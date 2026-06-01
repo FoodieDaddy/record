@@ -1,0 +1,61 @@
+server:
+  port: 18080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: mahjong-score
+  datasource:
+    url: jdbc:mysql://localhost:13306/mahjong_score?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
+    password: root123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: localhost
+      port: 16379
+      database: 0
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: ASSIGN_ID
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# 自定义配置
+app:
+  jwt:
+    secret: your-256-bit-secret-key-here-change-in-production
+    expiration: 604800000  # 7 天
+  minio:
+    endpoint: http://localhost:19000
+    access-key: minioadmin
+    secret-key: minioadmin123
+    bucket: mahjong-score
+  room:
+    no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+    no-length: 6
+    expire-hours: 24
+
+wechat:
+  appid: wx9d93ece2b67f812b
+  secret: 5bcbb76c58c59b466acc90a86e4864c6

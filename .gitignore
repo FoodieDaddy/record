@@ -1,0 +1,41 @@
+# Java
+backend/target/
+*.class
+*.jar
+*.war
+
+# Maven
+.mvn/
+mvnw
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+mysql_data/
+redis_data/
+minio_data/
+
+# Logs
+*.log
+logs/
+
+# MinIO data
+minio-data/
+
+# WeChat Dev Tools
+miniprogram/node_modules/
+miniprogram/miniprogram_npm/
+
+# Claude
+.claude/
+CLAUDE.local.md

@@ -1,0 +1,176 @@
+/* ===== 全局主题：暗黑 + 毛玻璃 ===== */
+page {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #141414;
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.4);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --accent: #4f8cff;
+  --accent-light: rgba(79, 140, 255, 0.15);
+  --success: #34d399;
+  --danger: #f87171;
+  --border-radius: 24rpx;
+  --spacing-xs: 12rpx;
+  --spacing-sm: 20rpx;
+  --spacing-md: 32rpx;
+  --spacing-lg: 48rpx;
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* 毛玻璃卡片 */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(40rpx);
+  -webkit-backdrop-filter: blur(40rpx);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--glass-shadow);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 16rpx;
+  padding: 24rpx 48rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  text-align: center;
+  transition: opacity 0.2s;
+}
+.btn-primary:active {
+  opacity: 0.8;
+}
+.btn-primary[disabled] {
+  background: rgba(79, 140, 255, 0.3);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 次要按钮 */
+.btn-secondary {
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  border: 1rpx solid var(--glass-border);
+  border-radius: 16rpx;
+  padding: 24rpx 48rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* 输入框 */
+.input-glass {
+  background: var(--glass-bg);
+  border: 1rpx solid var(--glass-border);
+  border-radius: 16rpx;
+  padding: 24rpx 32rpx;
+  color: var(--text-primary);
+  font-size: 30rpx;
+}
+.input-glass::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* 分割线 */
+.divider {
+  height: 1rpx;
+  background: var(--glass-border);
+  margin: var(--spacing-md) 0;
+}
+
+/* 文字工具 */
+.text-secondary {
+  color: var(--text-secondary);
+}
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+.text-accent {
+  color: var(--accent);
+}
+.text-success {
+  color: var(--success);
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-center {
+  text-align: center;
+}
+.text-bold {
+  font-weight: 600;
+}
+
+/* Flex 工具 */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+.flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.flex-1 {
+  flex: 1;
+}
+
+/* 数字滚动 */
+.score-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  transition: all 0.3s ease;
+}
+
+/* 头像 */
+.avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--glass-border);
+}
+.avatar-sm {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+}
+
+/* 徽章 */
+.badge {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+.badge-accent {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.badge-success {
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--success);
+}

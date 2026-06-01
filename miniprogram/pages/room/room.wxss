@@ -1,0 +1,110 @@
+.room-page {
+  padding: var(--spacing-md);
+  padding-bottom: 160rpx;
+}
+
+.empty-state {
+  padding-top: 48rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 24rpx;
+  display: block;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.form-label {
+  width: 120rpx;
+  color: var(--text-secondary);
+  font-size: 28rpx;
+}
+
+.create-card {
+  padding: 40rpx 36rpx;
+}
+
+.room-info-card {
+  text-align: center;
+}
+
+.room-no {
+  font-size: 48rpx;
+  font-weight: 700;
+  letter-spacing: 8rpx;
+  color: var(--accent);
+}
+
+.qr-section {
+  margin-top: 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qr-image {
+  width: 320rpx;
+  height: 320rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  border: 1rpx solid var(--glass-border);
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 16rpx 0;
+}
+
+.member-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.session-item {
+  padding: 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.session-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.action-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 32rpx;
+  flex-wrap: wrap;
+}
+
+.action-bar .btn-secondary,
+.action-bar .btn-danger {
+  flex: 1;
+  min-width: 160rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+}
+
+.btn-danger {
+  background: rgba(248, 113, 113, 0.12);
+  color: var(--danger);
+  border: 1rpx solid rgba(248, 113, 113, 0.2);
+  border-radius: 16rpx;
+  text-align: center;
+}

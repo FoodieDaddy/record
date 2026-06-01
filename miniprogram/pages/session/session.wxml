@@ -1,0 +1,103 @@
+<view class="session-page">
+  <!-- 场次头部 -->
+  <view class="glass-card header-card">
+    <view class="flex-between">
+      <view>
+        <text class="session-title">{{sessionInfo.title || '场次'}}</text>
+        <view class="badge {{sessionInfo.status === 0 ? 'badge-success' : 'badge-accent'}}" style="margin-left:16rpx;">
+          {{sessionInfo.status === 0 ? '进行中' : '已结算'}}
+        </view>
+      </view>
+      <view style="display:flex;gap:12rpx;">
+        <button class="btn-secondary" style="padding:12rpx 24rpx;font-size:24rpx;" bindtap="generateSharePoster">
+          分享海报
+        </button>
+        <button class="btn-primary" style="padding:12rpx 24rpx;font-size:24rpx;" bindtap="settleSession" wx:if="{{sessionInfo.status === 0 && isOwner}}">
+          结算
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 实时排行榜 -->
+  <view class="glass-card ranking-card">
+    <text class="section-title">排行榜</text>
+    <view class="ranking-list">
+      <view class="ranking-item" wx:for="{{ranking}}" wx:key="userId" style="animation-delay:{{index * 0.05}}s;">
+        <view class="rank-num {{index < 3 ? 'rank-top' : ''}}">{{index + 1}}</view>
+        <image class="avatar-sm" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+        <text class="rank-name flex-1">{{item.nickname}}</text>
+        <text class="rank-score score-number {{item.score >= 0 ? 'text-success' : 'text-danger'}}">
+          {{item.score > 0 ? '+' : ''}}{{item.score}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 记分表单（仅进行中） -->
+  <view class="glass-card score-form" wx:if="{{sessionInfo.status === 0}}">
+    <text class="section-title">记分</text>
+    <view class="score-input-list">
+      <view class="score-input-row" wx:for="{{scoreInputs}}" wx:key="userId">
+        <image class="avatar-sm" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+        <text class="player-name flex-1">{{item.nickname}}</text>
+        <input class="score-input" type="number" value="{{item.score}}" bindinput="onScoreInput" data-user-id="{{item.userId}}" placeholder="0" />
+      </view>
+    </view>
+
+    <!-- 图片上传 -->
+    <view class="image-section">
+      <view class="image-preview-list" wx:if="{{selectedImages.length > 0}}">
+        <view class="image-preview-item" wx:for="{{selectedImages}}" wx:key="*this">
+          <image src="{{item}}" mode="aspectFill" class="preview-img" bindtap="previewImage" data-src="{{item}}"></image>
+          <view class="remove-img" bindtap="removeImage" data-index="{{index}}">✕</view>
+        </view>
+      </view>
+      <button class="btn-secondary add-image-btn" bindtap="chooseImage" wx:if="{{selectedImages.length < 9}}">
+        + 添加图片 ({{selectedImages.length}}/9)
+      </button>
+    </view>
+
+    <button class="btn-primary submit-btn" bindtap="submitScore" loading="{{submitting}}" disabled="{{submitting}}">
+      提交记分
+    </button>
+  </view>
+
+  <!-- 最近流水 -->
+  <view class="glass-card">
+    <text class="section-title">最近流水</text>
+    <view wx:if="{{recentBatches.length === 0}}" class="text-tertiary text-center" style="padding:32rpx;">
+      暂无记录
+    </view>
+    <view class="batch-item" wx:for="{{recentBatches}}" wx:key="batchTime">
+      <view class="batch-header">
+        <text class="text-tertiary" style="font-size:22rpx;">{{item.batchTimeFormatted}}</text>
+      </view>
+      <view class="batch-scores">
+        <view class="batch-score-item" wx:for="{{item.scores}}" wx:for-item="s" wx:key="userId">
+          <text class="text-secondary">{{s.nickname}}</text>
+          <text class="score-number {{s.score >= 0 ? 'text-success' : 'text-danger'}}">
+            {{s.score > 0 ? '+' : ''}}{{s.score}}
+          </text>
+        </view>
+      </view>
+      <view class="batch-images" wx:if="{{item.imageUrls && item.imageUrls.length > 0}}">
+        <image wx:for="{{item.imageUrls}}" wx:for-item="img" wx:key="*this" src="{{img}}" mode="aspectFill" class="batch-thumb" bindtap="previewBatchImage" data-urls="{{item.imageUrls}}" data-src="{{img}}"></image>
+      </view>
+    </view>
+  </view>
+
+  <!-- 海报预览弹窗 -->
+  <view class="poster-modal" wx:if="{{posterPath}}" bindtap="closePoster">
+    <view class="poster-content" catchtap="">
+      <image src="{{posterPath}}" mode="aspectFit" class="poster-image"></image>
+      <view class="poster-actions">
+        <button class="btn-primary" bindtap="savePoster">保存到相册</button>
+        <button class="btn-secondary" bindtap="closePoster" style="margin-top:16rpx;">关闭</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 隐藏 Canvas -->
+  <canvas type="2d" id="posterCanvas" style="position:fixed;left:-9999px;width:750px;height:1000px;"></canvas>
+</view>

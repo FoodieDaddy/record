@@ -1,0 +1,7 @@
+{
+  "description": "此文件包含项目私有配置，请勿提交到版本库",
+  "projectname": "mahjong-score",
+  "setting": {
+    "compileHotReLoad": true
+  }
+}

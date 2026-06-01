@@ -1,0 +1,69 @@
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 48rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.bg-gradient {
+  position: absolute;
+  top: -30%;
+  left: -20%;
+  width: 140%;
+  height: 70%;
+  background: radial-gradient(ellipse at center, rgba(79, 140, 255, 0.12) 0%, transparent 70%);
+  z-index: 0;
+}
+
+.logo-section {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 80rpx;
+}
+
+.logo-icon {
+  font-size: 120rpx;
+  margin-bottom: 24rpx;
+}
+
+.logo-title {
+  font-size: 52rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  margin-bottom: 12rpx;
+}
+
+.logo-subtitle {
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 36rpx;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 32rpx;
+}
+
+.login-tip {
+  margin-top: 24rpx;
+  font-size: 24rpx;
+}

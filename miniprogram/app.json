@@ -1,0 +1,37 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/room/room",
+    "pages/session/session",
+    "pages/gallery/gallery"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#0a0a0a",
+    "navigationBarTitleText": "麻将记分器",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0a0a0a",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#ffffff",
+    "backgroundColor": "#0a0a0a",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/room/room",
+        "text": "房间",
+        "iconPath": "images/tab-room.png",
+        "selectedIconPath": "images/tab-room-active.png"
+      },
+      {
+        "pagePath": "pages/gallery/gallery",
+        "text": "图库",
+        "iconPath": "images/tab-gallery.png",
+        "selectedIconPath": "images/tab-gallery-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

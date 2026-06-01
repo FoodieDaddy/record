@@ -1,0 +1,102 @@
+<view class="room-page">
+  <!-- 未登录状态 -->
+  <view wx:if="{{!isLoggedIn}}" class="flex-center" style="min-height:80vh;">
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <!-- 已登录：无房间 -->
+  <view wx:elif="{{!currentRoom}}" class="empty-state">
+    <view class="glass-card create-card">
+      <text class="section-title">创建房间</text>
+      <view class="form-row">
+        <text class="form-label">底分</text>
+        <input class="input-glass" type="number" value="{{baseScore}}" bindinput="onBaseScoreInput" placeholder="1" />
+      </view>
+      <button class="btn-primary" style="margin-top:32rpx;" bindtap="createRoom" loading="{{creating}}">
+        创建房间
+      </button>
+    </view>
+
+    <view class="divider"></view>
+
+    <view class="glass-card">
+      <text class="section-title">加入房间</text>
+      <view class="form-row">
+        <input class="input-glass flex-1" value="{{joinRoomNo}}" bindinput="onJoinInput" placeholder="输入房间号" maxlength="6" />
+        <button class="btn-primary" style="margin-left:16rpx;width:180rpx;" bindtap="joinByNo">加入</button>
+      </view>
+      <button class="btn-secondary" style="margin-top:24rpx;" bindtap="scanJoin">
+        扫码加入
+      </button>
+    </view>
+  </view>
+
+  <!-- 已登录：在房间中 -->
+  <view wx:else>
+    <!-- 房间信息卡片 -->
+    <view class="glass-card room-info-card">
+      <view class="flex-between">
+        <view>
+          <text class="room-no">{{currentRoom.roomNo}}</text>
+          <text class="text-secondary" style="margin-left:16rpx;">底分 {{currentRoom.baseScore}}</text>
+        </view>
+        <view class="badge badge-success" wx:if="{{currentRoom.status === 0}}">进行中</view>
+      </view>
+
+      <!-- 专属小程序码 -->
+      <view class="qr-section" wx:if="{{currentRoom.qrCodeUrl}}">
+        <image class="qr-image" src="{{currentRoom.qrCodeUrl}}" mode="aspectFit" show-menu-by-longpress></image>
+        <text class="text-tertiary" style="font-size:22rpx;">长按识别或截图分享给牌友</text>
+      </view>
+    </view>
+
+    <!-- 成员列表 -->
+    <view class="glass-card">
+      <text class="section-title">房间成员 ({{currentRoom.members.length}}/8)</text>
+      <view class="member-list">
+        <view class="member-item" wx:for="{{currentRoom.members}}" wx:key="userId">
+          <image class="avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}"></image>
+          <view class="member-info">
+            <text>{{item.nickname}}</text>
+            <text class="text-tertiary" style="font-size:22rpx;">座位 {{item.seatNo}}</text>
+          </view>
+          <view class="badge badge-accent" wx:if="{{item.userId === currentRoom.ownerId}}">房主</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 场次列表 -->
+    <view class="glass-card">
+      <view class="flex-between" style="margin-bottom:24rpx;">
+        <text class="section-title">场次记录</text>
+        <button class="btn-primary" style="width:180rpx;padding:16rpx;" bindtap="createSession">
+          新建场次
+        </button>
+      </view>
+      <view wx:if="{{sessions.length === 0}}" class="text-tertiary text-center" style="padding:32rpx;">
+        暂无场次，点击上方按钮开始
+      </view>
+      <view class="session-item glass-card" wx:for="{{sessions}}" wx:key="sessionId" bindtap="goSession" data-id="{{item.sessionId}}">
+        <view class="flex-between">
+          <text class="text-bold">{{item.title}}</text>
+          <view class="badge {{item.status === 0 ? 'badge-success' : 'badge-accent'}}">
+            {{item.status === 0 ? '进行中' : '已结算'}}
+          </view>
+        </view>
+        <view class="session-players" style="margin-top:16rpx;">
+          <text class="text-secondary" wx:for="{{item.playerTotals}}" wx:for-item="score" wx:for-index="uid" wx:key="uid">
+            {{uid}}: {{score > 0 ? '+' : ''}}{{score}}
+          </text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-bar">
+      <button class="btn-secondary" bindtap="scanJoin">扫码邀人</button>
+      <button class="btn-secondary" bindtap="copyRoomNo">复制房号</button>
+      <button class="btn-danger" bindtap="quitRoom" wx:if="{{!isOwner}}">退出</button>
+      <button class="btn-danger" bindtap="dissolveRoom" wx:if="{{isOwner}}">解散</button>
+    </view>
+  </view>
+</view>

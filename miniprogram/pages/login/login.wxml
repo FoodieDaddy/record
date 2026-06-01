@@ -1,0 +1,19 @@
+<view class="login-page">
+  <!-- 背景渐变 -->
+  <view class="bg-gradient"></view>
+
+  <!-- Logo 区域 -->
+  <view class="logo-section">
+    <view class="logo-icon">🀄</view>
+    <text class="logo-title">麻将记分器</text>
+    <text class="logo-subtitle text-secondary">极简记分 · 实时同步</text>
+  </view>
+
+  <!-- 登录卡片 -->
+  <view class="glass-card login-card">
+    <button class="btn-primary login-btn" bindtap="onLogin" loading="{{loading}}">
+      微信一键登录
+    </button>
+    <text class="text-tertiary login-tip">授权后即可创建或加入房间</text>
+  </view>
+</view>
