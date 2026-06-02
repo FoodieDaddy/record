@@ -149,6 +149,7 @@ Page({
   },
 
   buildMemberGrid() {
+    console.log('[ANIM] buildMemberGrid called');
     const room = this.data.currentRoom;
     if (!room || !room.members) return;
     const rankingMap = {};
@@ -162,6 +163,7 @@ Page({
       const style = this.getScoreStyle(score);
       const old = oldMap[m.userId];
       const animating = old ? old._animating : false;
+      if (animating) console.log('[ANIM] buildMemberGrid preserving displayScore for', m.nickname, 'old:', old.displayScore, 'new score:', score);
       return {
         ...m,
         score,
@@ -724,6 +726,7 @@ Page({
   // ========== 转账动画 ==========
 
   playTransferAnimation(fromUserId, toUserId, amount) {
+    console.log('[ANIM] playTransferAnimation called, enabled:', app.globalData.animationEnabled, 'playing:', this._animPlaying);
     if (!app.globalData.animationEnabled) return;
     // 防止重复触发（本地转账 + WS 回声）
     if (this._animPlaying) return;
@@ -865,6 +868,7 @@ Page({
 
   /** 分数滚动动画：从旧值逐步滚动到新值 */
   playScoreRollAnimation(fromUserId, toUserId, amount) {
+    console.log('[ANIM] playScoreRollAnimation called, rollTimer:', this._rollTimer);
     // 已有动画在播放，跳过（等待当前动画结束）
     if (this._rollTimer) return;
 
@@ -879,6 +883,7 @@ Page({
     const fromNew = grid[fromIdx].score;
     const toNew = grid[toIdx].score;
 
+    console.log('[ANIM] scores - fromOld:', fromOld, 'fromNew:', fromNew, 'toOld:', toOld, 'toNew:', toNew);
     // 分数没有变化，跳过
     if (fromOld === fromNew && toOld === toNew) { this._animPlaying = false; return; }
 
