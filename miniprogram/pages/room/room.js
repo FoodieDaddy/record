@@ -95,7 +95,6 @@ Page({
       clearTimeout(this._rollTimer);
       this._rollTimer = null;
     }
-    this._animPlaying = false;
   },
 
   goLogin() {
@@ -149,7 +148,6 @@ Page({
   },
 
   buildMemberGrid() {
-    console.log('[ANIM] buildMemberGrid called');
     const room = this.data.currentRoom;
     if (!room || !room.members) return;
     const rankingMap = {};
@@ -163,7 +161,6 @@ Page({
       const style = this.getScoreStyle(score);
       const old = oldMap[m.userId];
       const animating = old ? old._animating : false;
-      if (animating) console.log('[ANIM] buildMemberGrid preserving displayScore for', m.nickname, 'old:', old.displayScore, 'new score:', score);
       return {
         ...m,
         score,
@@ -726,11 +723,7 @@ Page({
   // ========== 转账动画 ==========
 
   playTransferAnimation(fromUserId, toUserId, amount) {
-    console.log('[ANIM] playTransferAnimation called, enabled:', app.globalData.animationEnabled, 'playing:', this._animPlaying);
     if (!app.globalData.animationEnabled) return;
-    // 防止重复触发（本地转账 + WS 回声）
-    if (this._animPlaying) return;
-    this._animPlaying = true;
 
     // 快照动画前的分数，用于滚动动画（必须在 updateAllData 之前）
     const grid = this.data.memberGrid;
@@ -754,20 +747,12 @@ Page({
       .selectAll('.mg-cell')
       .boundingClientRect()
       .exec((res) => {
-        if (!res || !res[0]) { this._animPlaying = false; return; }
+        if (!res || !res[0]) return;
         const rects = res[0];
         const members = this.data.memberGrid;
         const fromIdx = members.findIndex(m => m.userId === fromUserId);
         const toIdx = members.findIndex(m => m.userId === toUserId);
-        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) {
-          this._animPlaying = false;
-          // 清除 _animating 标记防止 buildMemberGrid 卡住
-          const fix = {};
-          if (fromIdx >= 0) fix[`memberGrid[${fromIdx}]._animating`] = false;
-          if (toIdx >= 0) fix[`memberGrid[${toIdx}]._animating`] = false;
-          if (Object.keys(fix).length > 0) this.setData(fix);
-          return;
-        }
+        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) return;
 
         const fromRect = rects[fromIdx];
         const toRect = rects[toIdx];
@@ -868,14 +853,13 @@ Page({
 
   /** 分数滚动动画：从旧值逐步滚动到新值 */
   playScoreRollAnimation(fromUserId, toUserId, amount) {
-    console.log('[ANIM] playScoreRollAnimation called, rollTimer:', this._rollTimer);
     // 已有动画在播放，跳过（等待当前动画结束）
     if (this._rollTimer) return;
 
     const grid = this.data.memberGrid;
     const fromIdx = grid.findIndex(m => m.userId === fromUserId);
     const toIdx = grid.findIndex(m => m.userId === toUserId);
-    if (fromIdx < 0 || toIdx < 0) { this._animPlaying = false; return; }
+    if (fromIdx < 0 || toIdx < 0) return;
 
     // 使用快照的旧分数（在 playTransferAnimation 开头保存）
     const fromOld = this._rollOldFromScore;
@@ -883,9 +867,8 @@ Page({
     const fromNew = grid[fromIdx].score;
     const toNew = grid[toIdx].score;
 
-    console.log('[ANIM] scores - fromOld:', fromOld, 'fromNew:', fromNew, 'toOld:', toOld, 'toNew:', toNew);
     // 分数没有变化，跳过
-    if (fromOld === fromNew && toOld === toNew) { this._animPlaying = false; return; }
+    if (fromOld === fromNew && toOld === toNew) return;
 
     // 非动画模式，直接设置最终值
     if (!app.globalData.animationEnabled) {
@@ -893,7 +876,6 @@ Page({
       updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
       updates[`memberGrid[${toIdx}].displayScore`] = toNew;
       this.setData(updates);
-      this._animPlaying = false;
       return;
     }
     const markAnim = {};
@@ -926,7 +908,6 @@ Page({
         finalUpdates[`memberGrid[${toIdx}]._animating`] = false;
         this.setData(finalUpdates);
         this._rollTimer = null;
-        this._animPlaying = false;
       }
     };
 
