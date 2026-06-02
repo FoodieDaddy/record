@@ -8,6 +8,7 @@ import com.mahjong.score.common.BizException;
 import com.mahjong.score.config.MinioConfig;
 import com.mahjong.score.dto.room.CreateRoomReq;
 import com.mahjong.score.dto.room.JoinRoomReq;
+import com.mahjong.score.dto.room.RearrangeSeatsReq;
 import com.mahjong.score.dto.room.RoomResp;
 import com.mahjong.score.entity.Room;
 import com.mahjong.score.entity.RoomMember;
@@ -18,6 +19,7 @@ import com.mahjong.score.mapper.RoomMemberMapper;
 import com.mahjong.score.mapper.SessionMapper;
 import com.mahjong.score.mapper.UserMapper;
 import com.mahjong.score.service.RoomService;
+import com.mahjong.score.service.impl.ws.ScoreWebSocket;
 import com.mahjong.score.util.JwtUtil;
 import com.mahjong.score.util.SnowflakeIdGenerator;
 import io.minio.MinioClient;
@@ -48,6 +50,7 @@ public class RoomServiceImpl implements RoomService {
     private final StringRedisTemplate redisTemplate;
     private final MinioClient minioClient;
     private final MinioConfig minioConfig;
+    private final ScoreWebSocket scoreWebSocket;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -95,7 +98,7 @@ public class RoomServiceImpl implements RoomService {
         roomMemberMapper.insert(member);
 
         // 4. Redis 初始化房间状态
-        initRoomRedis(room, userId);
+        initRoomRedis(room, userId, session.getId());
 
         // 5. 生成专属小程序码
         String qrCodeUrl = generateQrCode(roomNo);
@@ -124,13 +127,11 @@ public class RoomServiceImpl implements RoomService {
             roomId = room.getId();
         }
 
-        // 2. 检查是否已在房间
+        // 2. 从 Redis 缓存检查是否已在房间
         Long rid = roomId;
-        RoomMember existing = roomMemberMapper.selectOne(
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, rid)
-                        .eq(RoomMember::getUserId, userId));
-        if (existing != null) {
+        String membersKey = "mj:room:" + rid + ":members";
+        Boolean isMember = redisTemplate.opsForHash().hasKey(membersKey, String.valueOf(userId));
+        if (Boolean.TRUE.equals(isMember)) {
             return getRoomDetail(rid);
         }
 
@@ -140,12 +141,14 @@ public class RoomServiceImpl implements RoomService {
             throw new BizException("房间已关闭");
         }
 
-        // 4. 分配座位
-        List<RoomMember> allMembers = roomMemberMapper.selectList(
-                new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, rid));
-        Set<Integer> usedSeats = allMembers.stream()
-                .map(RoomMember::getSeatNo)
-                .collect(Collectors.toSet());
+        // 4. 从 Redis 缓存分配座位
+        Map<Object, Object> memberEntries = redisTemplate.opsForHash().entries(membersKey);
+        Set<Integer> usedSeats = new HashSet<>();
+        for (Object value : memberEntries.values()) {
+            String memberJson = (String) value;
+            JSONObject memberObj = JSONUtil.parseObj(memberJson);
+            usedSeats.add(memberObj.getInt("seatNo"));
+        }
         int nextSeat = 1;
         while (usedSeats.contains(nextSeat)) nextSeat++;
         if (nextSeat > 8) throw new BizException("房间已满（最多 8 人）");
@@ -158,19 +161,47 @@ public class RoomServiceImpl implements RoomService {
         member.setSeatNo(nextSeat);
         roomMemberMapper.insert(member);
 
-        // 6. 更新 Redis
-        User user = userMapper.selectById(userId);
-        if (user == null) throw new BizException("用户不存在，请重新登录");
+        // 6. 从 Redis 缓存获取用户信息
+        String userKey = "mj:user:" + userId;
+        String userJson = redisTemplate.opsForValue().get(userKey);
+        String nickname;
+        String avatarUrl;
+        if (userJson != null) {
+            JSONObject userObj = JSONUtil.parseObj(userJson);
+            nickname = userObj.getStr("nickname");
+            avatarUrl = userObj.getStr("avatarUrl");
+        } else {
+            // 降级查数据库
+            User user = userMapper.selectById(userId);
+            if (user == null) throw new BizException("用户不存在，请重新登录");
+            nickname = user.getNickname();
+            avatarUrl = user.getAvatarUrl();
+        }
+
+        // 7. 更新房间成员缓存
         String memberJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
-                "nickname", user.getNickname(),
-                "avatarUrl", user.getAvatarUrl(),
+                "nickname", nickname,
+                "avatarUrl", avatarUrl != null ? avatarUrl : "",
                 "seatNo", nextSeat));
         redisTemplate.opsForHash().put("mj:room:" + rid + ":members", String.valueOf(userId), memberJson);
         redisTemplate.opsForSet().add("mj:user:rooms:" + userId, String.valueOf(rid));
 
+        // 8. WebSocket 广播 MEMBER_UPDATE
+        try {
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "MEMBER_UPDATE");
+            pushData.put("roomId", rid);
+            pushData.put("userId", userId);
+            scoreWebSocket.pushToRoom(String.valueOf(rid), pushData);
+        } catch (Exception e) {
+            log.warn("推送 MEMBER_UPDATE 失败: roomId={}, userId={}", rid, userId, e);
+        }
+
+        List<RoomMember> allMembers = new ArrayList<>();
         allMembers.add(member);
-        return buildRoomResp(room, allMembers, null);
+        String qrCodeUrl = minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/qrcode/" + room.getRoomNo() + ".png";
+        return buildRoomResp(room, allMembers, qrCodeUrl);
     }
 
     @Override
@@ -178,10 +209,31 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("房间不存在");
 
-        List<RoomMember> members = roomMemberMapper.selectList(
-                new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+        // 从 Redis 缓存查询房间成员
+        String membersKey = "mj:room:" + roomId + ":members";
+        Map<Object, Object> memberEntries = redisTemplate.opsForHash().entries(membersKey);
 
-        return buildRoomResp(room, members, null);
+        List<RoomMember> members;
+        if (memberEntries != null && !memberEntries.isEmpty()) {
+            members = new ArrayList<>();
+            for (Map.Entry<Object, Object> entry : memberEntries.entrySet()) {
+                String memberJson = (String) entry.getValue();
+                JSONObject memberObj = JSONUtil.parseObj(memberJson);
+                RoomMember member = new RoomMember();
+                member.setRoomId(roomId);
+                member.setUserId(memberObj.getLong("userId"));
+                member.setSeatNo(memberObj.getInt("seatNo"));
+                members.add(member);
+            }
+        } else {
+            // 降级查数据库
+            members = roomMemberMapper.selectList(
+                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+        }
+
+        // 构建二维码 URL（MinIO 中的固定路径）
+        String qrCodeUrl = minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/qrcode/" + room.getRoomNo() + ".png";
+        return buildRoomResp(room, members, qrCodeUrl);
     }
 
     @Override
@@ -253,8 +305,178 @@ public class RoomServiceImpl implements RoomService {
                 prefix + "info",
                 prefix + "members",
                 prefix + "scores",
-                prefix + "session:counter"));
+                prefix + "session:counter",
+                prefix + "active_session"));
         redisTemplate.delete("mj:room_no:" + room.getRoomNo());
+    }
+
+    @Override
+    @Transactional
+    public void swapSeat(Long userId, Long roomId, Integer targetSeatNo) {
+        // 1. 校验房间
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getStatus() != 0) {
+            throw new BizException("房间不存在或已关闭");
+        }
+
+        // 2. 校验用户在房间内
+        String membersKey = "mj:room:" + roomId + ":members";
+        String userMemberJson = (String) redisTemplate.opsForHash().get(membersKey, String.valueOf(userId));
+        if (userMemberJson == null) {
+            throw new BizException("您不在此房间内");
+        }
+
+        // 3. 校验目标座位未被占用
+        Map<Object, Object> allMembers = redisTemplate.opsForHash().entries(membersKey);
+        for (Map.Entry<Object, Object> entry : allMembers.entrySet()) {
+            if (String.valueOf(entry.getKey()).equals(String.valueOf(userId))) continue;
+            JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
+            if (targetSeatNo.equals(obj.getInt("seatNo"))) {
+                throw new BizException("该座位已被占用");
+            }
+        }
+
+        // 4. 更新 Redis
+        JSONObject memberObj = JSONUtil.parseObj(userMemberJson);
+        memberObj.set("seatNo", targetSeatNo);
+        redisTemplate.opsForHash().put(membersKey, String.valueOf(userId), memberObj.toString());
+
+        // 5. 更新 MySQL
+        RoomMember updateMember = new RoomMember();
+        updateMember.setSeatNo(targetSeatNo);
+        roomMemberMapper.update(updateMember,
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getRoomId, roomId)
+                        .eq(RoomMember::getUserId, userId));
+
+        // 6. 广播 MEMBER_UPDATE
+        try {
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "MEMBER_UPDATE");
+            pushData.put("roomId", roomId);
+            pushData.put("userId", userId);
+            scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+        } catch (Exception e) {
+            log.warn("推送换座 MEMBER_UPDATE 失败: roomId={}, userId={}", roomId, userId, e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void rearrangeSeats(Long userId, Long roomId, List<RearrangeSeatsReq.SeatAssignment> assignments) {
+        // 1. 校验房间
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getStatus() != 0) {
+            throw new BizException("房间不存在或已关闭");
+        }
+
+        // 2. 权限校验：仅房主可操作
+        if (!room.getOwnerId().equals(userId)) {
+            throw new BizException("仅房主可调整座位");
+        }
+
+        // 3. 读取全部成员
+        String membersKey = "mj:room:" + roomId + ":members";
+        Map<Object, Object> allMembers = redisTemplate.opsForHash().entries(membersKey);
+        if (allMembers.isEmpty()) {
+            throw new BizException("房间内无成员");
+        }
+
+        // 4. 构建当前座位映射：seatNo → userId, userId → memberJson
+        Map<Integer, Long> currentSeatMap = new HashMap<>();
+        Map<Long, String> memberJsonMap = new HashMap<>();
+        for (Map.Entry<Object, Object> entry : allMembers.entrySet()) {
+            String uid = String.valueOf(entry.getKey());
+            String json = (String) entry.getValue();
+            JSONObject obj = JSONUtil.parseObj(json);
+            memberJsonMap.put(Long.parseLong(uid), json);
+            currentSeatMap.put(obj.getInt("seatNo"), Long.parseLong(uid));
+        }
+
+        // 5. 校验所有 userId 在房间内
+        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
+            if (!memberJsonMap.containsKey(a.getUserId())) {
+                throw new BizException("用户 " + a.getUserId() + " 不在房间内");
+            }
+        }
+
+        // 6. 校验目标座位号无重复
+        Set<Integer> targetSeats = new HashSet<>();
+        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
+            if (!targetSeats.add(a.getTargetSeatNo())) {
+                throw new BizException("目标座位号 " + a.getTargetSeatNo() + " 重复");
+            }
+        }
+
+        // 7. 虚拟应用，检查座位冲突
+        Map<Integer, Long> finalSeatMap = new HashMap<>(currentSeatMap);
+        // 先清除所有被调整用户的旧座位
+        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
+            finalSeatMap.values().removeIf(v -> v.equals(a.getUserId()));
+        }
+        // 再分配新座位，检查目标是否被未调整的人占用
+        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
+            if (finalSeatMap.containsKey(a.getTargetSeatNo())) {
+                throw new BizException("座位 " + a.getTargetSeatNo() + " 已被占用");
+            }
+            finalSeatMap.put(a.getTargetSeatNo(), a.getUserId());
+        }
+
+        // 7. 更新 Redis 和 MySQL
+        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
+            // Redis
+            String json = memberJsonMap.get(a.getUserId());
+            JSONObject obj = JSONUtil.parseObj(json);
+            obj.set("seatNo", a.getTargetSeatNo());
+            redisTemplate.opsForHash().put(membersKey, String.valueOf(a.getUserId()), obj.toString());
+
+            // MySQL
+            RoomMember updateMember = new RoomMember();
+            updateMember.setSeatNo(a.getTargetSeatNo());
+            roomMemberMapper.update(updateMember,
+                    new LambdaQueryWrapper<RoomMember>()
+                            .eq(RoomMember::getRoomId, roomId)
+                            .eq(RoomMember::getUserId, a.getUserId()));
+        }
+
+        // 8. 广播 MEMBER_UPDATE
+        try {
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "MEMBER_UPDATE");
+            pushData.put("roomId", roomId);
+            pushData.put("rearrangedBy", userId);
+            scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+        } catch (Exception e) {
+            log.warn("推送调整座位 MEMBER_UPDATE 失败: roomId={}", roomId, e);
+        }
+    }
+
+    @Override
+    public void updateLayout(Long userId, Long roomId, String layoutType) {
+        // 1. 校验房间
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getStatus() != 0) {
+            throw new BizException("房间不存在或已关闭");
+        }
+
+        // 2. 权限校验
+        if (!room.getOwnerId().equals(userId)) {
+            throw new BizException("仅房主可切换布局");
+        }
+
+        // 3. 更新 Redis
+        redisTemplate.opsForHash().put("mj:room:" + roomId + ":info", "layoutType", layoutType);
+
+        // 4. 广播 LAYOUT_UPDATE
+        try {
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "LAYOUT_UPDATE");
+            pushData.put("roomId", roomId);
+            pushData.put("layoutType", layoutType);
+            scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+        } catch (Exception e) {
+            log.warn("推送 LAYOUT_UPDATE 失败: roomId={}", roomId, e);
+        }
     }
 
     // ===== 私有方法 =====
@@ -276,7 +498,7 @@ public class RoomServiceImpl implements RoomService {
         throw new BizException("房间号生成失败，请重试");
     }
 
-    private void initRoomRedis(Room room, Long ownerId) {
+    private void initRoomRedis(Room room, Long ownerId, Long sessionId) {
         User owner = userMapper.selectById(ownerId);
         if (owner == null) throw new BizException("用户不存在，请重新登录");
         String roomId = String.valueOf(room.getId());
@@ -287,6 +509,7 @@ public class RoomServiceImpl implements RoomService {
         info.put("baseScore", String.valueOf(room.getBaseScore()));
         info.put("status", "0");
         info.put("sessionCounter", "0");
+        info.put("layoutType", "circle");
         redisTemplate.opsForHash().putAll("mj:room:" + roomId + ":info", info);
         redisTemplate.expire("mj:room:" + roomId + ":info", ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
@@ -305,6 +528,17 @@ public class RoomServiceImpl implements RoomService {
 
         // 更新房间号映射的实际 roomId
         redisTemplate.opsForValue().set("mj:room_no:" + room.getRoomNo(), roomId, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        // 缓存活跃场次 ID
+        redisTemplate.opsForValue().set("mj:room:" + roomId + ":active_session", String.valueOf(sessionId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        // 缓存用户信息
+        String userKey = "mj:user:" + ownerId;
+        String userJson = JSONUtil.toJsonStr(Map.of(
+                "userId", ownerId,
+                "nickname", owner.getNickname(),
+                "avatarUrl", owner.getAvatarUrl() != null ? owner.getAvatarUrl() : ""));
+        redisTemplate.opsForValue().set(userKey, userJson, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
     }
 
     private String generateQrCode(String roomNo) {
@@ -349,27 +583,56 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private RoomResp buildRoomResp(Room room, List<RoomMember> members, String qrCodeUrl) {
-        // 批量查询用户信息
+        // 从 Redis 缓存获取用户信息
         Set<Long> userIds = members.stream().map(RoomMember::getUserId).collect(Collectors.toSet());
-        Map<Long, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<Long, String> nicknameMap = new HashMap<>();
+        Map<Long, String> avatarUrlMap = new HashMap<>();
+        for (Long uid : userIds) {
+            String userKey = "mj:user:" + uid;
+            String userJson = redisTemplate.opsForValue().get(userKey);
+            if (userJson != null) {
+                JSONObject userObj = JSONUtil.parseObj(userJson);
+                nicknameMap.put(uid, userObj.getStr("nickname", ""));
+                avatarUrlMap.put(uid, userObj.getStr("avatarUrl", ""));
+            } else {
+                // 降级查数据库
+                User u = userMapper.selectById(uid);
+                nicknameMap.put(uid, u != null ? u.getNickname() : "");
+                avatarUrlMap.put(uid, u != null ? u.getAvatarUrl() : "");
+            }
+        }
 
         List<RoomResp.MemberVO> memberVOs = members.stream().map(m -> {
-            User u = userMap.get(m.getUserId());
             return RoomResp.MemberVO.builder()
                     .userId(m.getUserId())
-                    .nickname(u != null ? u.getNickname() : "")
-                    .avatarUrl(u != null ? u.getAvatarUrl() : "")
+                    .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
+                    .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
                     .seatNo(m.getSeatNo())
                     .build();
         }).collect(Collectors.toList());
 
-        // 查找当前活跃场次
-        Session activeSession = sessionMapper.selectOne(
-                new LambdaQueryWrapper<Session>()
-                        .eq(Session::getRoomId, room.getId())
-                        .eq(Session::getStatus, 0)
-                        .last("LIMIT 1"));
+        // 从 Redis 缓存获取活跃场次 ID
+        Long activeSessionId = null;
+        String activeSessionKey = "mj:room:" + room.getId() + ":active_session";
+        String sessionIdStr = redisTemplate.opsForValue().get(activeSessionKey);
+        if (sessionIdStr != null) {
+            activeSessionId = Long.parseLong(sessionIdStr);
+        } else {
+            // 降级查数据库
+            Session activeSession = sessionMapper.selectOne(
+                    new LambdaQueryWrapper<Session>()
+                            .eq(Session::getRoomId, room.getId())
+                            .eq(Session::getStatus, 0)
+                            .last("LIMIT 1"));
+            if (activeSession != null) {
+                activeSessionId = activeSession.getId();
+                // 缓存活跃场次 ID
+                redisTemplate.opsForValue().set(activeSessionKey, String.valueOf(activeSessionId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+            }
+        }
+
+        // 从 Redis 读取布局类型
+        String layoutType = (String) redisTemplate.opsForHash().get("mj:room:" + room.getId() + ":info", "layoutType");
 
         return RoomResp.builder()
                 .roomId(room.getId())
@@ -378,8 +641,9 @@ public class RoomServiceImpl implements RoomService {
                 .baseScore(room.getBaseScore())
                 .status(room.getStatus())
                 .roundCount(room.getRoundCount())
-                .activeSessionId(activeSession != null ? activeSession.getId() : null)
+                .activeSessionId(activeSessionId)
                 .qrCodeUrl(qrCodeUrl)
+                .layoutType(layoutType != null ? layoutType : "circle")
                 .members(memberVOs)
                 .createdAt(room.getCreatedAt())
                 .build();

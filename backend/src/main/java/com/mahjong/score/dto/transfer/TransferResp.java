@@ -14,6 +14,9 @@ public class TransferResp {
     @Schema(description = "转账 ID")
     private Long id;
 
+    @Schema(description = "关联场次 ID")
+    private Long sessionId;
+
     @Schema(description = "转账人信息")
     private UserInfo fromUser;
 

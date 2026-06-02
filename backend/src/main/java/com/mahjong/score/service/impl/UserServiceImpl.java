@@ -14,7 +14,9 @@ import com.mahjong.score.entity.Room;
 import com.mahjong.score.entity.RoomMember;
 import com.mahjong.score.mapper.RoomMapper;
 import com.mahjong.score.mapper.RoomMemberMapper;
+import com.mahjong.score.config.MinioConfig;
 import com.mahjong.score.mapper.UserMapper;
+import com.mahjong.score.service.StorageService;
 import com.mahjong.score.service.UserService;
 import com.mahjong.score.service.impl.ws.ScoreWebSocket;
 import com.mahjong.score.util.JwtUtil;
@@ -29,6 +31,8 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,6 +47,8 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
     private final ScoreWebSocket scoreWebSocket;
+    private final StorageService storageService;
+    private final MinioConfig minioConfig;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -74,20 +80,20 @@ public class UserServiceImpl implements UserService {
             user.setId(idGenerator.nextId());
             user.setOpenid(openid);
             user.setUnionid(resp.getStr("unionid"));
-            user.setNickname(req.getNickname() != null && !req.getNickname().isEmpty()
-                    ? req.getNickname() : NicknameGenerator.generate());
+            user.setNickname(req.getNickname() != null ? req.getNickname() : NicknameGenerator.generate());
             user.setAvatarUrl(req.getAvatarUrl() != null ? req.getAvatarUrl() : "");
             userMapper.insert(user);
-        } else {
-            // 更新昵称和头像（如果有传入）
-            if (req.getNickname() != null || req.getAvatarUrl() != null) {
-                if (req.getNickname() != null) user.setNickname(req.getNickname());
-                if (req.getAvatarUrl() != null) user.setAvatarUrl(req.getAvatarUrl());
-                userMapper.updateById(user);
-            }
         }
 
-        // 3. 签发 JWT
+        // 3. 缓存用户信息到 Redis
+        String userKey = "mj:user:" + user.getId();
+        String userJson = JSONUtil.toJsonStr(Map.of(
+                "userId", user.getId(),
+                "nickname", user.getNickname(),
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
+        redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
+
+        // 4. 签发 JWT
         String token = jwtUtil.generateToken(user.getId());
 
         return LoginResp.builder()
@@ -117,12 +123,38 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new BizException("用户不存在");
         }
+
+        // 头像变更时，异步删除旧的 MinIO 文件
+        if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
+            deleteOldAvatarAsync(user.getAvatarUrl());
+        }
+
         if (nickname != null) user.setNickname(nickname);
         if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
         userMapper.updateById(user);
 
+        // 更新 Redis 缓存
+        String userKey = "mj:user:" + userId;
+        String userJson = JSONUtil.toJsonStr(Map.of(
+                "userId", user.getId(),
+                "nickname", user.getNickname(),
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
+        redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
+
         // 推送 MEMBER_UPDATE 给用户所在的活跃房间
         pushMemberUpdateToRooms(userId);
+    }
+
+    /**
+     * 异步删除旧头像文件（仅 MinIO 上传的头像）
+     */
+    private void deleteOldAvatarAsync(String oldAvatarUrl) {
+        if (oldAvatarUrl == null || oldAvatarUrl.isEmpty()) return;
+        String prefix = minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/";
+        if (oldAvatarUrl.startsWith(prefix)) {
+            String objectKey = oldAvatarUrl.substring(prefix.length());
+            storageService.deleteObjectAsync(objectKey);
+        }
     }
 
     /**
@@ -130,27 +162,26 @@ public class UserServiceImpl implements UserService {
      */
     private void pushMemberUpdateToRooms(Long userId) {
         try {
-            List<RoomMember> memberships = roomMemberMapper.selectList(
-                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getUserId, userId));
-            if (memberships == null || memberships.isEmpty()) return;
-
-            List<Long> roomIds = memberships.stream()
-                    .map(RoomMember::getRoomId)
-                    .collect(Collectors.toList());
-
-            List<Room> rooms = roomMapper.selectList(
-                    new LambdaQueryWrapper<Room>()
-                            .in(Room::getId, roomIds)
-                            .eq(Room::getStatus, 0));
-            if (rooms == null || rooms.isEmpty()) return;
+            // 从 Redis 缓存获取用户所在的房间
+            Set<String> roomIds = redisTemplate.opsForSet().members("mj:user:rooms:" + userId);
+            if (roomIds == null || roomIds.isEmpty()) {
+                // 降级查数据库
+                List<RoomMember> memberships = roomMemberMapper.selectList(
+                        new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getUserId, userId));
+                if (memberships == null || memberships.isEmpty()) return;
+                roomIds = memberships.stream()
+                        .map(m -> String.valueOf(m.getRoomId()))
+                        .collect(Collectors.toSet());
+            }
 
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "MEMBER_UPDATE");
             pushData.put("userId", userId);
 
-            for (Room room : rooms) {
-                pushData.put("roomId", room.getId());
-                scoreWebSocket.pushToRoom(String.valueOf(room.getId()), pushData);
+            for (String roomIdStr : roomIds) {
+                Long roomId = Long.parseLong(roomIdStr);
+                pushData.put("roomId", roomId);
+                scoreWebSocket.pushToRoom(roomIdStr, pushData);
             }
         } catch (Exception e) {
             log.warn("推送 MEMBER_UPDATE 失败: userId={}", userId, e);

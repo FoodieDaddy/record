@@ -1,0 +1,537 @@
+/* ===== 关系矩阵 ===== */
+.matrix-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 12rpx;
+}
+
+.matrix-row {
+  display: flex;
+  align-items: center;
+}
+
+.matrix-header {
+  margin-bottom: 8rpx;
+}
+
+.matrix-corner {
+  width: 72rpx;
+  flex-shrink: 0;
+}
+
+.matrix-th {
+  flex: 1;
+  min-width: 80rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.matrix-th-avatar {
+  width: 36rpx;
+  height: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-th-img {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+}
+
+.auto-avatar-xxs {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auto-avatar-char-xxs {
+  font-size: 16rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.matrix-th-name {
+  font-size: 18rpx;
+  color: var(--text-tertiary);
+  max-width: 72rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.matrix-row-header {
+  width: 72rpx;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-rh-img {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+}
+
+.matrix-cell {
+  flex: 1;
+  min-width: 80rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8rpx;
+  margin: 2rpx;
+  transition: background 0.2s;
+}
+
+.matrix-cell:active {
+  background: rgba(255,255,255,0.08);
+}
+
+.matrix-cell-val {
+  font-size: 22rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mc-pos {
+  background: rgba(255, 138, 101, 0.08);
+}
+
+.mc-pos .matrix-cell-val {
+  color: #ff8a65;
+}
+
+.mc-neg {
+  background: rgba(77, 208, 225, 0.08);
+}
+
+.mc-neg .matrix-cell-val {
+  color: #4dd0e1;
+}
+
+/* 对角线总分单元格 — 琥珀金高亮 */
+.mc-diagonal {
+  background: rgba(245, 197, 24, 0.06);
+  border: 1rpx solid rgba(245, 197, 24, 0.18);
+  border-radius: 10rpx;
+  position: relative;
+}
+
+.mc-diagonal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 10rpx;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.mc-diagonal .mc-diagonal-val {
+  color: #F5C518;
+  font-weight: 700;
+  text-shadow: 0 0 8rpx rgba(245, 197, 24, 0.4);
+}
+
+/* ===== 积分总览弹窗 ===== */
+.matrix-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 90;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+}
+
+.mp-show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.matrix-panel-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: #141414;
+  border-top: 1rpx solid var(--glass-border);
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 24rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.mp-show .matrix-panel-sheet {
+  transform: translateY(0);
+}
+
+.panel-scroll {
+  height: calc(85vh - 120rpx);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.panel-divider {
+  height: 1rpx;
+  margin: 24rpx 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ===== 折线图筛选 ===== */
+.chart-section {
+  margin-bottom: 0;
+  transform: translateZ(0);
+  will-change: opacity;
+  transition: opacity 0.2s ease;
+}
+
+.chart-hidden {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+}
+
+.chart-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.cf-item {
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  background: rgba(255,255,255,0.04);
+  border: 1rpx solid rgba(255,255,255,0.08);
+  opacity: 0.4;
+  transition: all 0.2s ease;
+}
+
+.cf-item.cf-active {
+  opacity: 1;
+  background: rgba(79, 140, 255, 0.12);
+  border-color: rgba(79, 140, 255, 0.3);
+}
+
+.cf-name {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+}
+
+.cf-active .cf-name {
+  color: var(--accent);
+}
+
+/* ===== 积分明细弹窗 ===== */
+.matrix-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 9990;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.25s ease;
+}
+
+.detail-show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.matrix-detail-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #1A1A1C;
+  border-top: 1rpx solid var(--glass-border);
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 24rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.detail-show .matrix-detail-sheet {
+  transform: translateY(0);
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.detail-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: var(--text-tertiary);
+  border-radius: 50%;
+}
+
+.detail-close:active {
+  background: rgba(255,255,255,0.08);
+}
+
+.detail-parties {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.detail-party {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.detail-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+}
+
+.auto-avatar-sm {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auto-avatar-char-sm {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.detail-name {
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.detail-arrow-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8rpx;
+}
+
+.detail-arrow-line {
+  width: 32rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, rgba(255,255,255,0.15), rgba(100,180,255,0.5));
+  border-radius: 1rpx;
+}
+
+.detail-arrow-head {
+  width: 0;
+  height: 0;
+  border-top: 8rpx solid transparent;
+  border-bottom: 8rpx solid transparent;
+  border-left: 10rpx solid rgba(100,180,255,0.6);
+  filter: drop-shadow(0 0 4rpx rgba(100,180,255,0.4));
+}
+
+.detail-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 16rpx;
+  background: rgba(255,255,255,0.03);
+  border-radius: var(--border-radius-xs);
+  margin-bottom: 20rpx;
+}
+
+.detail-total-val {
+  font-size: 36rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-scroll-list {
+  max-height: 50vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 8rpx;
+  border-bottom: 1rpx solid rgba(255,255,255,0.04);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item-score {
+  font-size: 30rpx;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex: 1;
+  text-align: center;
+}
+
+.dis-score-pos {
+  color: #4fc3f7;
+  text-shadow: 0 0 8rpx rgba(79,195,247,0.3);
+}
+
+.dis-score-neg {
+  color: #ff6b6b;
+  text-shadow: 0 0 8rpx rgba(255,107,107,0.3);
+}
+
+.detail-item-time {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.35);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ===== 共享工具类 ===== */
+.mg-pos {
+  color: #ff8a65;
+}
+
+.mg-neg {
+  color: #4dd0e1;
+}
+
+.empty-batches {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32rpx 0;
+  gap: 8rpx;
+}
+
+/* ===== 一维关系列表（>4人） ===== */
+.relation-section {
+  margin-top: 8rpx;
+}
+
+.relation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.relation-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.relation-count {
+  font-size: 22rpx;
+}
+
+.relation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.relation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 16rpx;
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.02);
+  transition: background 0.15s;
+}
+
+.relation-item:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.relation-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.relation-avatar-wrap {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.relation-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+}
+
+.relation-name {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-score {
+  font-size: 32rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.rs-pos {
+  color: #ff8a65;
+}
+
+.rs-neg {
+  color: #4dd0e1;
+}

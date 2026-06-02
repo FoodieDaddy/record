@@ -94,3 +94,30 @@ CREATE TABLE IF NOT EXISTS `transfer` (
   KEY `idx_from_user` (`from_user_id`),
   KEY `idx_to_user` (`to_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='转账记录表';
+
+-- 迁移：transfer 表增加 session_id 字段（若尚未添加）
+ALTER TABLE `transfer` ADD COLUMN IF NOT EXISTS `session_id` BIGINT NOT NULL DEFAULT 0 COMMENT '关联场次' AFTER `room_id`;
+CREATE INDEX IF NOT EXISTS `idx_session_id` ON `transfer`(`session_id`);
+
+-- 用户对局汇总表（永久保留）
+CREATE TABLE IF NOT EXISTS `session_record` (
+  `id`           BIGINT   NOT NULL COMMENT '雪花 ID',
+  `session_id`   BIGINT   NOT NULL COMMENT '关联 session',
+  `user_id`      BIGINT   NOT NULL COMMENT '用户 ID',
+  `total_score`  INT      NOT NULL DEFAULT 0 COMMENT '该用户本局总净胜分',
+  `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_session_user` (`session_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户对局汇总表';
+
+-- 对局流水明细表（90天过期清理）
+CREATE TABLE IF NOT EXISTS `session_event_log` (
+  `id`           BIGINT  NOT NULL COMMENT '雪花 ID',
+  `session_id`   BIGINT  NOT NULL COMMENT '关联 session',
+  `events_data`  JSON    NOT NULL COMMENT '该局所有批次的结构化流水',
+  `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_session_id` (`session_id`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='对局流水明细表';

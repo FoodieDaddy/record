@@ -1,10 +1,12 @@
 package com.mahjong.score.controller;
 
 import com.mahjong.score.common.Result;
+import com.mahjong.score.dto.score.ChartDataResp;
 import com.mahjong.score.dto.score.ScoreBatchResp;
 import com.mahjong.score.dto.score.ScoreSubmitResp;
 import com.mahjong.score.dto.score.SessionScoreResp;
 import com.mahjong.score.dto.score.SubmitScoreReq;
+import com.mahjong.score.service.OverviewService;
 import com.mahjong.score.service.ScoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,6 +25,7 @@ import java.util.List;
 public class ScoreController {
 
     private final ScoreService scoreService;
+    private final OverviewService overviewService;
 
     @Operation(
             summary = "提交记分",
@@ -46,6 +49,20 @@ public class ScoreController {
         return Result.ok(scoreService.getSessionScores(sessionId));
     }
 
+
+    @Operation(summary = "获取房间折线图数据", description = "返回当前活跃场次各成员的累计积分变化序列")
+    @GetMapping("/room/{roomId}/chart")
+    public Result<ChartDataResp> getChartData(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        return Result.ok(scoreService.getChartData(roomId));
+    }
+
+    @Operation(summary = "获取房间总览缓存", description = "优先读取缓存，miss 时同步计算")
+    @GetMapping("/room/{roomId}/overview")
+    public Result<String> getRoomOverview(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        return Result.ok(overviewService.getCachedOverview(roomId));
+    }
 
     // ===== 房间级接口（前端使用这些） =====
 

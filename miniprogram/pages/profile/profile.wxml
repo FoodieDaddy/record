@@ -9,26 +9,40 @@
 
   <!-- 已登录 -->
   <view wx:else>
-    <!-- 头像 + 昵称 -->
+    <!-- 头像 + 昵称卡片 -->
     <view class="glass-card-glow user-card">
-      <view class="user-card-row">
-        <view class="avatar-ring" bindtap="onChangeAvatar">
-          <view class="auto-avatar-lg" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
-            <text class="auto-avatar-char-lg">{{avatarChar}}</text>
-          </view>
-          <image class="avatar-lg" src="{{avatarUrl}}" wx:else></image>
+      <button class="avatar-ring-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <view class="auto-avatar-lg" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
+          <text class="auto-avatar-char-lg">{{avatarChar}}</text>
         </view>
-        <view class="user-info">
-          <view class="nickname-row">
-            <input class="nickname-input" value="{{nickname}}" bindinput="onNicknameInput" placeholder="输入昵称" maxlength="20" />
-            <view class="btn-shuffle" bindtap="shuffleNickname">
-              <text class="shuffle-icon">🎲</text>
-            </view>
-          </view>
-          <text class="text-tertiary text-xs">点击头像更换 · 骰子随机昵称</text>
+        <image class="avatar-lg" src="{{avatarUrl}}" wx:else></image>
+      </button>
+      <view class="nickname-row">
+        <input class="nickname-input" type="nickname" value="{{nickname}}" bindinput="onNicknameInput" placeholder="输入昵称" maxlength="20" />
+        <view class="btn-shuffle" bindtap="shuffleNickname">
+          <text class="shuffle-icon">🎲</text>
         </view>
       </view>
+      <text class="hint-text">点击头像或昵称可修改</text>
       <button class="btn-primary save-btn" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving}}">保存</button>
+    </view>
+
+    <!-- 积分记录 -->
+    <view class="glass-card menu-section">
+      <view class="menu-item" bindtap="goScoreRecords">
+        <view class="menu-item-left">
+          <text class="menu-icon">📊</text>
+          <text class="menu-label">积分记录</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" bindtap="goHistoryRooms">
+        <view class="menu-item-left">
+          <text class="menu-icon">🏠</text>
+          <text class="menu-label">历史房间</text>
+        </view>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
 
     <!-- 设置 -->
@@ -60,42 +74,6 @@
           <text class="text-tertiary text-xs">计分时显示积分飞行动画</text>
         </view>
         <switch class="setting-switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#4f8cff" />
-      </view>
-    </view>
-
-    <!-- 历史房间 -->
-    <view class="glass-card history-section">
-      <text class="section-title">历史房间</text>
-      <view wx:if="{{historyRooms.length === 0}}" class="empty-history">
-        <text class="text-tertiary">暂无历史记录</text>
-      </view>
-      <view class="history-list">
-        <view class="history-item" wx:for="{{historyRooms}}" wx:key="roomId">
-          <view class="hi-left">
-            <text class="hi-room-no">{{item.roomNo}}</text>
-            <text class="hi-meta text-tertiary text-xs">底分 {{item.baseScore}} · {{item.memberCount}}人</text>
-          </view>
-          <view class="hi-right">
-            <text class="hi-time text-tertiary text-xs">{{item.createdAtFormatted}}</text>
-            <view class="badge {{item.status === 1 ? 'badge-success' : 'badge-accent'}}">
-              {{item.status === 1 ? '已结束' : '进行中'}}
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 微信授权 -->
-    <view class="glass-card auth-section">
-      <text class="section-title">账号</text>
-      <view class="setting-row">
-        <view class="setting-info">
-          <text class="setting-label">微信授权</text>
-          <text class="text-tertiary text-xs">已授权微信登录</text>
-        </view>
-        <view class="auth-status">
-          <text class="auth-ok">✓</text>
-        </view>
       </view>
     </view>
 

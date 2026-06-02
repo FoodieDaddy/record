@@ -60,6 +60,10 @@ wechat:
   appid: wx9d93ece2b67f812b
   secret: 5bcbb76c58c59b466acc90a86e4864c6
 
+tts:
+  edge-tts-cmd: /Users/happy/.local/bin/edge-tts
+  voice: zh-CN-XiaoxiaoNeural
+
 emotion:
   audio:
     win-urls:

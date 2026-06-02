@@ -39,3 +39,9 @@ miniprogram/miniprogram_npm/
 # Claude
 .claude/
 CLAUDE.local.md
+
+# CodeGraph
+.codegraph/
+
+# Cursor
+.cursor/

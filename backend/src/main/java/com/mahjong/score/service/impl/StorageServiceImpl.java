@@ -8,7 +8,10 @@ import com.mahjong.score.util.SnowflakeIdGenerator;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import io.minio.http.Method;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -60,6 +63,40 @@ public class StorageServiceImpl implements StorageService {
             results.add(generatePresignUrl(contentType));
         }
         return results;
+    }
+
+    @Override
+    public String uploadFile(MultipartFile file) {
+        try {
+            String contentType = file.getContentType() != null ? file.getContentType() : "image/jpeg";
+            String objectKey = buildObjectKey(contentType);
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(minioConfig.getBucket())
+                            .object(objectKey)
+                            .stream(file.getInputStream(), file.getSize(), -1)
+                            .contentType(contentType)
+                            .build());
+            return minioConfig.getEndpoint() + "/" + minioConfig.getBucket() + "/" + objectKey;
+        } catch (Exception e) {
+            log.error("上传文件失败", e);
+            throw new RuntimeException("上传文件失败");
+        }
+    }
+
+    @Async
+    @Override
+    public void deleteObjectAsync(String objectKey) {
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(minioConfig.getBucket())
+                            .object(objectKey)
+                            .build());
+            log.info("异步删除 MinIO 对象成功: {}", objectKey);
+        } catch (Exception e) {
+            log.warn("异步删除 MinIO 对象失败: {}", objectKey, e);
+        }
     }
 
     private String buildObjectKey(String contentType) {

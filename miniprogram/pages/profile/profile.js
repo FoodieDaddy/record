@@ -14,8 +14,7 @@ Page({
     voiceEnabled: true,
     voiceType: 'female',
     animationEnabled: true,
-    saving: false,
-    historyRooms: []
+    saving: false
   },
 
   onShow() {
@@ -24,7 +23,6 @@ Page({
     if (loggedIn) {
       this.loadUserInfo();
       this.loadVoiceSettings();
-      this.loadHistory();
       this.setData({ animationEnabled: app.globalData.animationEnabled });
     }
   },
@@ -60,25 +58,6 @@ Page({
     });
   },
 
-  async loadHistory() {
-    try {
-      const rooms = await get('/room/my');
-      if (!rooms) return;
-      const pad = n => String(n).padStart(2, '0');
-      const formatted = rooms.map(r => {
-        const d = new Date(r.createdAt);
-        return {
-          ...r,
-          createdAtFormatted: `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
-          memberCount: r.members ? r.members.length : 0
-        };
-      });
-      this.setData({ historyRooms: formatted });
-    } catch (e) {
-      console.error('加载历史房间失败', e);
-    }
-  },
-
   updateAvatar() {
     const { nickname, avatarUrl } = this.data;
     if (!avatarUrl) {
@@ -91,16 +70,9 @@ Page({
 
   // ========== 头像 ==========
 
-  onChangeAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempPath = res.tempFiles[0].tempFilePath;
-        this.setData({ avatarUrl: tempPath });
-      }
-    });
+  onChooseAvatar(e) {
+    const tempPath = e.detail.avatarUrl;
+    this.setData({ avatarUrl: tempPath });
   },
 
   // ========== 昵称 ==========
@@ -121,6 +93,8 @@ Page({
     const enabled = e.detail.value;
     this.setData({ voiceEnabled: enabled });
     saveSettings({ enabled });
+    app.globalData.audioEnabled = enabled;
+    wx.setStorageSync('audioEnabled', enabled);
   },
 
   setVoiceType(e) {
@@ -134,6 +108,18 @@ Page({
     this.setData({ animationEnabled: enabled });
     app.globalData.animationEnabled = enabled;
     wx.setStorageSync('animationEnabled', enabled);
+  },
+
+  // ========== 导航 ==========
+
+  goScoreRecords() {
+    // 切换到房间 tab，显示积分记录
+    wx.switchTab({ url: '/pages/room/room' });
+  },
+
+  goHistoryRooms() {
+    // 切换到房间 tab，显示历史房间
+    wx.switchTab({ url: '/pages/room/room' });
   },
 
   // ========== 保存 ==========
@@ -150,8 +136,9 @@ Page({
     this.setData({ saving: true });
     try {
       let finalAvatarUrl = avatarUrl;
-      if (avatarUrl && (avatarUrl.startsWith('wxfile://') || avatarUrl.startsWith('http://tmp/'))) {
-        finalAvatarUrl = await this.uploadAvatar(avatarUrl);
+      // 非 MinIO URL 需要先上传到后端（临时文件路径不包含 /mahjong-score/）
+      if (avatarUrl && !avatarUrl.includes('/mahjong-score/')) {
+        finalAvatarUrl = await this.uploadToBackend(avatarUrl);
       }
 
       await put('/user/me', {
@@ -164,6 +151,10 @@ Page({
         avatarUrl: finalAvatarUrl || ''
       };
 
+      // 更新本地显示
+      this.setData({ avatarUrl: finalAvatarUrl || '' });
+      this.updateAvatar();
+
       wx.showToast({ title: '已保存', icon: 'success' });
     } catch (e) {
       console.error('保存失败', e);
@@ -172,10 +163,12 @@ Page({
     }
   },
 
-  async uploadAvatar(filePath) {
+  // ========== 上传 ==========
+
+  uploadToBackend(filePath) {
     return new Promise((resolve, reject) => {
       wx.uploadFile({
-        url: `${app.globalData.baseUrl}/user/avatar`,
+        url: `${app.globalData.baseUrl}/storage/upload`,
         filePath,
         name: 'file',
         header: {
@@ -184,11 +177,8 @@ Page({
         success(res) {
           try {
             const data = JSON.parse(res.data);
-            if (data.code === 200) {
-              resolve(data.data);
-            } else {
-              reject(new Error(data.message));
-            }
+            if (data.code === 200) resolve(data.data);
+            else reject(new Error(data.message || '上传失败'));
           } catch (e) {
             reject(e);
           }

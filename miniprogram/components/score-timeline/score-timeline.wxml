@@ -1,0 +1,14 @@
+<view class="chart-wrap">
+  <canvas type="2d" id="timelineCanvas" class="timeline-canvas"
+    style="width:100%;height:{{canvasHeight}}rpx;"
+    bindtouchstart="onTouchStart"
+    bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd"
+    bindlongpress="onLongPress"
+    disable-scroll="{{true}}">
+  </canvas>
+  <view class="tooltip" wx:if="{{tooltipVisible}}"
+    style="left:{{tooltipX}}px;top:{{tooltipY}}px;">
+    <text class="tooltip-value">{{tooltipText}}</text>
+  </view>
+</view>

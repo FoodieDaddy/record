@@ -1,5 +1,6 @@
 package com.mahjong.score.controller;
 
+import com.mahjong.score.common.PageResult;
 import com.mahjong.score.common.Result;
 import com.mahjong.score.dto.transfer.TransferReq;
 import com.mahjong.score.dto.transfer.TransferResp;
@@ -31,11 +32,14 @@ public class TransferController {
         return Result.ok(transferService.transfer(userId, req));
     }
 
-    @Operation(summary = "房间转账记录")
+    @Operation(summary = "房间转账记录（分页）")
     @GetMapping("/room/{roomId}")
-    public Result<List<TransferResp>> getRoomTransfers(
-            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
-        return Result.ok(transferService.getRoomTransfers(roomId));
+    public Result<PageResult<TransferResp>> getRoomTransfers(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId,
+            @Parameter(description = "场次 ID（可选，不传则查全部）") @RequestParam(required = false) Long sessionId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") Integer size) {
+        return Result.ok(transferService.getRoomTransfers(roomId, sessionId, page, size));
     }
 
     @Operation(summary = "撤回转账", description = "仅转账人可操作，限 5 分钟内")

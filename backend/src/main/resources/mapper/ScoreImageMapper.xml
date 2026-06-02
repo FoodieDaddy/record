@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mahjong.score.mapper.ScoreImageMapper">
+
+    <insert id="insertBatch">
+        INSERT INTO score_image (id, session_id, room_id, round_no, user_id, image_url, sort_order, created_at)
+        VALUES
+        <foreach collection="list" item="img" separator=",">
+            (#{img.id}, #{img.sessionId}, #{img.roomId}, #{img.roundNo}, #{img.userId}, #{img.imageUrl}, #{img.sortOrder}, #{img.createdAt})
+        </foreach>
+    </insert>
+
+</mapper>

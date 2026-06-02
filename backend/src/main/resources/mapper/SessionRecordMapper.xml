@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mahjong.score.mapper.SessionRecordMapper">
+
+    <insert id="insertBatch">
+        INSERT INTO session_record (id, session_id, user_id, total_score, created_at)
+        VALUES
+        <foreach collection="list" item="r" separator=",">
+            (#{r.id}, #{r.sessionId}, #{r.userId}, #{r.totalScore}, #{r.createdAt})
+        </foreach>
+    </insert>
+
+</mapper>

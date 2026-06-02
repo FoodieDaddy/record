@@ -1,0 +1,53 @@
+/**
+ * seat-mode.wxs — 视图层动画引擎
+ * 在 WXS 中执行数字滚动和坐标插值，避免 setData 通信瓶颈
+ */
+
+/**
+ * 数字滚动：从旧值缓动到新值
+ * @param {number} oldVal - 动画前的值
+ * @param {number} newVal - 目标值
+ * @param {number} progress - 0~1 的进度（由 JS 层计算后传入）
+ * @returns {string} 格式化后的显示文本
+ */
+function countUp(oldVal, newVal, progress) {
+  if (progress >= 1) return formatScore(newVal)
+  // easeOutExpo
+  var ease = progress >= 1 ? 1 : 1 - Math.pow(2, -10 * progress)
+  var current = Math.round(oldVal + (newVal - oldVal) * ease)
+  return formatScore(current)
+}
+
+/**
+ * 格式化分数（大数字转万/亿）
+ */
+function formatScore(score) {
+  if (score === 0) return '0'
+  var abs = score < 0 ? -score : score
+  var sign = score > 0 ? '+' : '-'
+  if (abs >= 100000000) {
+    var yi = Math.round(abs / 10000000) / 10
+    return sign + yi + '亿'
+  }
+  if (abs >= 10000) {
+    var wan = Math.round(abs / 1000) / 10
+    return sign + wan + '万'
+  }
+  return (score > 0 ? '+' : '') + score
+}
+
+/**
+ * 计算座位的 translate3d 样式
+ * @param {number} x - 目标 x（px）
+ * @param {number} y - 目标 y（px）
+ * @returns {string} CSS transform 值
+ */
+function seatTransform(x, y) {
+  return 'translate3d(' + x + 'px,' + y + 'px,0)'
+}
+
+module.exports = {
+  countUp: countUp,
+  formatScore: formatScore,
+  seatTransform: seatTransform
+}

@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "score-chart": "/components/score-chart/score-chart"
+  }
+}

@@ -1,0 +1,366 @@
+/* ===== 座位模式 — 暗黑毛玻璃 + GPU 加速 ===== */
+
+.seat-arena {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 600rpx;
+  overflow: hidden;
+  /* 圆桌区域容器 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 桌面中央 ===== */
+.table-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240rpx;
+  height: 240rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.table-glow {
+  position: absolute;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
+  filter: blur(20rpx);
+}
+
+.table-ring {
+  position: absolute;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(79, 140, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+}
+
+/* 长桌：矩形桌面 */
+.table-rectangle .table-glow {
+  border-radius: 16rpx;
+  width: 280rpx;
+  height: 180rpx;
+  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
+}
+
+.table-rectangle .table-ring {
+  border-radius: 16rpx;
+  width: 240rpx;
+  height: 140rpx;
+}
+
+/* 半弧：扁椭圆桌面 */
+.table-arc .table-glow {
+  border-radius: 50%;
+  width: 300rpx;
+  height: 160rpx;
+  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
+}
+
+.table-arc .table-ring {
+  border-radius: 50%;
+  width: 260rpx;
+  height: 120rpx;
+}
+
+.table-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 4rpx;
+  font-weight: 300;
+  z-index: 1;
+}
+
+/* ===== 座位列表 ===== */
+.seat-list {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== 单个座位 ===== */
+.seat-item {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  /* 核心：只用 transform + opacity，零 reflow */
+  will-change: transform, opacity;
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.35s ease;
+  /* 默认尺寸（由 JS 计算后覆盖位置） */
+  width: 120rpx;
+  padding: 16rpx 8rpx;
+  border-radius: 20rpx;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 禁止动画时：移除过渡 */
+.seat-no-anim .seat-item,
+.seat-no-anim .seat-item {
+  transition: none !important;
+}
+
+.seat-item:active {
+  transform: scale(0.92) !important;
+}
+
+/* 主视角标记（自己） */
+.seat-me {
+  /* 微弱底光 */
+}
+
+.seat-me::after {
+  content: '';
+  position: absolute;
+  bottom: -4rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(79, 140, 255, 0.5), transparent);
+  border-radius: 1rpx;
+}
+
+/* 空座位 */
+.seat-empty {
+  opacity: 0.4;
+}
+
+.seat-empty:active {
+  opacity: 0.7;
+}
+
+/* 高亮座位 */
+.seat-highlight {
+  opacity: 1;
+}
+
+/* ===== 头像 ===== */
+.seat-avatar-ring {
+  position: relative;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 毛玻璃外环 */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.seat-avatar-ring.ring-me {
+  border-color: rgba(79, 140, 255, 0.35);
+  box-shadow: 0 0 20rpx rgba(79, 140, 255, 0.15);
+}
+
+.seat-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.seat-avatar-img {
+  border: none;
+  display: block;
+}
+
+.seat-avatar-fallback {
+  /* 背景色由 JS 动态设置 */
+}
+
+.seat-avatar-char {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.seat-avatar-empty {
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.2);
+  font-weight: 300;
+}
+
+/* 选中光环 */
+.seat-ring-glow {
+  position: absolute;
+  inset: -8rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(79, 140, 255, 0.5);
+  animation: seatPulseGlow 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes seatPulseGlow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.06); }
+}
+
+/* ===== 昵称 ===== */
+.seat-name {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 120rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.seat-me .seat-name {
+  color: rgba(79, 140, 255, 0.8);
+  font-weight: 500;
+}
+
+/* ===== 分数 ===== */
+.seat-score-wrap {
+  min-height: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-score {
+  font-size: 28rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.5rpx;
+  /* 等宽字体保证数字不跳动 */
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+}
+
+.score-pos {
+  /* 正数：高饱和橙 */
+  color: #ff8a65;
+  text-shadow: 0 0 12rpx rgba(255, 138, 101, 0.25);
+}
+
+.score-neg {
+  /* 负数：亮红 */
+  color: #ff6b6b;
+  text-shadow: 0 0 12rpx rgba(255, 107, 107, 0.25);
+}
+
+.score-zero {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* 主视角分数加粗高亮 */
+.seat-me .score-pos {
+  color: #ffab91;
+  text-shadow: 0 0 16rpx rgba(255, 171, 145, 0.3);
+}
+
+.seat-me .score-neg {
+  color: #ff8a8a;
+  text-shadow: 0 0 16rpx rgba(255, 138, 138, 0.3);
+}
+
+/* ===== 座位编号（调试） ===== */
+.seat-idx {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: rgba(79, 140, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-idx-text {
+  font-size: 16rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ===== 底部操作栏 ===== */
+.seat-actions {
+  position: absolute;
+  bottom: 16rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16rpx;
+  z-index: 5;
+}
+
+.seat-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 32rpx;
+  transition: all 0.2s ease;
+}
+
+.seat-action-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.95);
+}
+
+.seat-action-icon {
+  font-size: 24rpx;
+}
+
+.seat-action-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===== 呼吸灯动画（空座位吸引点击） ===== */
+.seat-empty .seat-avatar-ring {
+  animation: emptyBreath 3s ease-in-out infinite;
+}
+
+/* ===== 编辑模式 ===== */
+.seat-editable {
+  cursor: grab;
+}
+
+.seat-editable:active {
+  transform: scale(0.95) !important;
+}
+
+.seat-edit-selected .seat-avatar-ring {
+  border-color: rgba(255, 200, 0, 0.7);
+  box-shadow: 0 0 24rpx rgba(255, 200, 0, 0.3);
+  animation: editPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes editPulse {
+  0%, 100% { box-shadow: 0 0 24rpx rgba(255, 200, 0, 0.3); }
+  50% { box-shadow: 0 0 40rpx rgba(255, 200, 0, 0.5); }
+}
+
+@keyframes emptyBreath {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.06); }
+  50% { border-color: rgba(255, 255, 255, 0.15); }
+}

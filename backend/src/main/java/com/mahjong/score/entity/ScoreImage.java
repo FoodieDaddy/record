@@ -16,6 +16,9 @@ public class ScoreImage {
 
     private Long roomId;
 
+    /** 轮次号 */
+    private Integer roundNo;
+
     /** 上传者 */
     private Long userId;
 

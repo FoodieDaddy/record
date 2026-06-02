@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "房间",
-  "usingComponents": {}
+  "usingComponents": {
+    "seat-mode": "/components/seat-mode/seat-mode",
+    "matrix-overview": "/components/matrix-overview/matrix-overview"
+  }
 }

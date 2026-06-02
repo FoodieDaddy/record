@@ -1,0 +1,24 @@
+/**
+ * 格式化积分显示
+ * >= 1亿 → 亿单位 / >= 1万 → 万单位，保留一位小数
+ */
+function formatScore(score) {
+  if (score === 0) return '0';
+  var abs = score < 0 ? -score : score;
+  var sign = score > 0 ? '+' : '-';
+  if (abs >= 100000000) {
+    var yi = abs / 100000000;
+    var rounded = Math.round(yi * 10) / 10;
+    return sign + rounded + '亿';
+  }
+  if (abs >= 10000) {
+    var wan = abs / 10000;
+    var rounded2 = Math.round(wan * 10) / 10;
+    return sign + rounded2 + '万';
+  }
+  return (score > 0 ? '+' : '') + score;
+}
+
+module.exports = {
+  formatScore: formatScore
+};

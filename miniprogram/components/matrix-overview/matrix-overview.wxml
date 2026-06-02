@@ -1,0 +1,150 @@
+<wxs src="./matrix-overview.wxs" module="fmt" />
+
+<view wx:if="{{active}}">
+  <!-- 积分总览弹窗 -->
+  <view class="matrix-panel-overlay {{visible ? 'mp-show' : ''}}" catchtap="closePanel" catchtouchmove="preventClose">
+    <view class="matrix-panel-sheet" catchtap="preventClose" catchtouchmove="preventClose">
+      <view class="detail-header">
+        <text class="section-title" style="margin-bottom:0;">积分总览</text>
+        <view class="detail-close" bindtap="closePanel">✕</view>
+      </view>
+      <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
+        <text class="text-tertiary">至少需要 2 名成员</text>
+      </view>
+      <scroll-view scroll-y="{{true}}" scroll-x="{{false}}" class="panel-scroll" wx:else catchtouchmove="preventClose">
+
+        <!-- ===== 模式一：≤4人 矩阵模式 ===== -->
+        <block wx:if="{{playerCount <= 4}}">
+          <!-- 折线图 -->
+          <view wx:if="{{chartSeries.length > 0}}" class="chart-section {{chartHidden || showMatrixDetail ? 'chart-hidden' : ''}}">
+            <score-chart timestamps="{{chartTimestamps}}" series="{{chartSeries}}" visible-users="{{chartVisibleUsers}}" />
+            <view class="chart-filter">
+              <view class="cf-item {{chartVisibleUsers.indexOf('' + item.userId) >= 0 ? 'cf-active' : ''}}"
+                    wx:for="{{chartSeries}}" wx:key="userId"
+                    bindtap="toggleChartMember" data-user-id="{{item.userId}}">
+                <text class="cf-name">{{item.nickname}}</text>
+              </view>
+            </view>
+          </view>
+          <!-- 分割线 -->
+          <view class="panel-divider" wx:if="{{chartSeries.length > 0}}"></view>
+          <!-- 关系矩阵 -->
+          <view class="matrix-wrap">
+            <view class="matrix-row matrix-header">
+              <view class="matrix-corner"></view>
+              <view class="matrix-th" wx:for="{{matrixMembers}}" wx:key="userId">
+                <view class="matrix-th-avatar">
+                  <view class="auto-avatar-xxs" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
+                    <text class="auto-avatar-char-xxs">{{item.avatarChar}}</text>
+                  </view>
+                  <image class="matrix-th-img" src="{{item.avatarUrl}}" wx:else></image>
+                </view>
+                <text class="matrix-th-name">{{item.nickname}}</text>
+              </view>
+            </view>
+            <view class="matrix-row" wx:for="{{matrixData}}" wx:for-item="row" wx:key="fromUserId">
+              <view class="matrix-row-header">
+                <view class="auto-avatar-xxs" style="background:{{row.fromColor}};" wx:if="{{!row.fromAvatarUrl}}">
+                  <text class="auto-avatar-char-xxs">{{row.fromChar}}</text>
+                </view>
+                <image class="matrix-rh-img" src="{{row.fromAvatarUrl}}" wx:else></image>
+              </view>
+              <!-- 对角线：总分高亮 / 非对角线：普通转分 -->
+              <view class="matrix-cell {{cell.isDiagonal ? 'mc-diagonal' : (cell.value > 0 ? 'mc-pos' : cell.value < 0 ? 'mc-neg' : '')}}"
+                    wx:for="{{row.cells}}" wx:for-item="cell" wx:key="toUserId"
+                    bindtap="onMatrixCell" data-from="{{row.fromUserId}}" data-to="{{cell.toUserId}}">
+                <text class="matrix-cell-val {{cell.isDiagonal ? 'mc-diagonal-val' : ''}}">{{cell.display}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+
+        <!-- ===== 模式二：>4人 一维关系列表 ===== -->
+        <block wx:else>
+          <!-- 折线图聚焦模式：只显示第一名、最后一名、我、平均分 -->
+          <view wx:if="{{chartSeries.length > 0}}" class="chart-section {{chartHidden || showMatrixDetail ? 'chart-hidden' : ''}}">
+            <score-chart timestamps="{{chartTimestamps}}" series="{{chartSeries}}" visible-users="{{chartVisibleUsers}}" />
+            <view class="chart-filter">
+              <view class="cf-item {{chartVisibleUsers.indexOf('' + item.userId) >= 0 ? 'cf-active' : ''}}"
+                    wx:for="{{chartSeries}}" wx:key="userId"
+                    bindtap="toggleChartMember" data-user-id="{{item.userId}}">
+                <text class="cf-name">{{item.nickname}}</text>
+              </view>
+            </view>
+          </view>
+          <!-- 分割线 -->
+          <view class="panel-divider" wx:if="{{chartSeries.length > 0}}"></view>
+          <!-- 一维关系列表 -->
+          <view class="relation-section">
+            <view class="relation-header">
+              <text class="relation-title">我与他人的积分往来</text>
+              <text class="relation-count text-tertiary">{{relationList.length}}人</text>
+            </view>
+            <view wx:if="{{relationList.length === 0}}" class="empty-batches">
+              <text class="text-tertiary">暂无积分往来</text>
+            </view>
+            <view class="relation-list" wx:else>
+              <view class="relation-item" wx:for="{{relationList}}" wx:key="userId"
+                    bindtap="onRelationTap" data-user-id="{{item.userId}}">
+                <view class="relation-left">
+                  <view class="relation-avatar-wrap">
+                    <view class="auto-avatar-xxs" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
+                      <text class="auto-avatar-char-xxs">{{item.avatarChar}}</text>
+                    </view>
+                    <image class="relation-avatar" src="{{item.avatarUrl}}" wx:else></image>
+                  </view>
+                  <text class="relation-name">{{item.nickname}}</text>
+                </view>
+                <text class="relation-score {{item.netScore > 0 ? 'rs-pos' : 'rs-neg'}}">{{item.display}}</text>
+              </view>
+            </view>
+          </view>
+        </block>
+
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 积分明细弹窗 -->
+  <view class="matrix-detail-overlay {{showMatrixDetail ? 'detail-show' : ''}}" catchtap="closeMatrixDetail" catchtouchmove="preventClose">
+    <view class="matrix-detail-sheet" catchtap="preventClose" catchtouchmove="preventClose">
+      <view class="detail-header">
+        <text class="section-title" style="margin-bottom:0;">积分明细</text>
+        <view class="detail-close" bindtap="closeMatrixDetail">✕</view>
+      </view>
+      <view class="detail-parties">
+        <view class="detail-party">
+          <view class="auto-avatar-sm" style="background:{{detailFrom.avatarColor}};" wx:if="{{!detailFrom.avatarUrl}}">
+            <text class="auto-avatar-char-sm">{{detailFrom.avatarChar}}</text>
+          </view>
+          <image class="detail-avatar" src="{{detailFrom.avatarUrl}}" wx:else></image>
+          <text class="detail-name">{{detailFrom.nickname}}</text>
+        </view>
+        <view class="detail-arrow-wrap">
+          <view class="detail-arrow-line"></view>
+          <view class="detail-arrow-head"></view>
+        </view>
+        <view class="detail-party">
+          <view class="auto-avatar-sm" style="background:{{detailTo.avatarColor}};" wx:if="{{!detailTo.avatarUrl}}">
+            <text class="auto-avatar-char-sm">{{detailTo.avatarChar}}</text>
+          </view>
+          <image class="detail-avatar" src="{{detailTo.avatarUrl}}" wx:else></image>
+          <text class="detail-name">{{detailTo.nickname}}</text>
+        </view>
+      </view>
+      <view class="detail-total">
+        <text class="text-tertiary text-xs">净积分</text>
+        <text class="detail-total-val {{detailNet > 0 ? 'mg-pos' : detailNet < 0 ? 'mg-neg' : ''}}">{{fmt.formatScore(detailNet)}}</text>
+      </view>
+      <scroll-view scroll-y="{{true}}" class="detail-scroll-list" catchtouchmove="preventClose">
+        <view class="detail-item" wx:for="{{detailRecords}}" wx:key="id">
+          <text class="detail-item-score {{item.amount > 0 ? 'dis-score-pos' : item.amount < 0 ? 'dis-score-neg' : ''}}">{{fmt.formatScore(item.amount)}}</text>
+          <text class="detail-item-time">{{item.timeFormatted}}</text>
+        </view>
+        <view wx:if="{{detailRecords.length === 0}}" class="empty-batches" style="padding:24rpx 0;">
+          <text class="text-tertiary">暂无记录</text>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+</view>

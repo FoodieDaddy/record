@@ -1,5 +1,6 @@
 package com.mahjong.score.service;
 
+import com.mahjong.score.dto.score.ChartDataResp;
 import com.mahjong.score.dto.score.ScoreBatchResp;
 import com.mahjong.score.dto.score.ScoreSubmitResp;
 import com.mahjong.score.dto.score.SessionScoreResp;
@@ -20,4 +21,7 @@ public interface ScoreService {
 
     /** 结束当前轮，开启新一轮 */
     void settleRoom(Long userId, Long roomId);
+
+    /** 获取房间当前轮的折线图数据 */
+    ChartDataResp getChartData(Long roomId);
 }

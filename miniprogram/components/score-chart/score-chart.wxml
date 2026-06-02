@@ -1,0 +1,18 @@
+<view class="chart-container">
+  <canvas type="2d" id="scoreChart" class="score-chart-canvas"
+    style="width:100%;height:{{canvasHeight}}rpx;"
+    bindtouchstart="onTouchStart"
+    bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd">
+  </canvas>
+  <!-- 悬浮 tooltip -->
+  <view class="chart-tooltip" wx:if="{{tooltipVisible}}"
+    style="left:{{tooltipX}}px;">
+    <text class="ct-time">{{tooltipTime}}</text>
+    <view class="ct-row" wx:for="{{tooltipItems}}" wx:key="nickname">
+      <view class="ct-dot" style="background:{{item.color}};"></view>
+      <text class="ct-name">{{item.nickname}}</text>
+      <text class="ct-score" style="color:{{item.color}};">{{item.score > 0 ? '+' : ''}}{{item.score}}</text>
+    </view>
+  </view>
+</view>

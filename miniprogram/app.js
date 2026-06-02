@@ -15,7 +15,7 @@ App({
     const token = wx.getStorageSync('token');
     if (token) {
       this.globalData.token = token;
-      this.globalData.userId = wx.getStorageSync('userId');
+      this.globalData.userId = String(wx.getStorageSync('userId') || '');
     }
     this.globalData.animationEnabled = wx.getStorageSync('animationEnabled') !== false;
     this.globalData.audioEnabled = wx.getStorageSync('audioEnabled') !== false;
@@ -23,7 +23,7 @@ App({
 
   setLoginInfo(data) {
     this.globalData.token = data.token;
-    this.globalData.userId = data.userId;
+    this.globalData.userId = String(data.userId);
     this.globalData.userInfo = {
       nickname: data.nickname,
       avatarUrl: data.avatarUrl

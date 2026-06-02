@@ -3,7 +3,10 @@ package com.mahjong.score.controller;
 import com.mahjong.score.common.Result;
 import com.mahjong.score.dto.room.CreateRoomReq;
 import com.mahjong.score.dto.room.JoinRoomReq;
+import com.mahjong.score.dto.room.RearrangeSeatsReq;
 import com.mahjong.score.dto.room.RoomResp;
+import com.mahjong.score.dto.room.SwapSeatReq;
+import com.mahjong.score.dto.room.UpdateLayoutReq;
 import com.mahjong.score.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -72,6 +75,39 @@ public class RoomController {
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
         Long userId = (Long) request.getAttribute("currentUserId");
         roomService.dissolveRoom(userId, roomId);
+        return Result.ok();
+    }
+
+    @Operation(summary = "换座", description = "切换到目标空座位，WebSocket 广播给同房间玩家")
+    @PostMapping("/{roomId}/swap-seat")
+    public Result<Void> swapSeat(
+            HttpServletRequest request,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId,
+            @Valid @RequestBody SwapSeatReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomService.swapSeat(userId, roomId, req.getTargetSeatNo());
+        return Result.ok();
+    }
+
+    @Operation(summary = "房主调整座位", description = "仅房主可操作，批量调整成员座位，WebSocket 广播")
+    @PostMapping("/{roomId}/rearrange-seats")
+    public Result<Void> rearrangeSeats(
+            HttpServletRequest request,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId,
+            @Valid @RequestBody RearrangeSeatsReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomService.rearrangeSeats(userId, roomId, req.getAssignments());
+        return Result.ok();
+    }
+
+    @Operation(summary = "更新座位布局", description = "仅房主可操作，切换座位排列方式")
+    @PutMapping("/{roomId}/layout")
+    public Result<Void> updateLayout(
+            HttpServletRequest request,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId,
+            @Valid @RequestBody UpdateLayoutReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomService.updateLayout(userId, roomId, req.getLayoutType());
         return Result.ok();
     }
 }

@@ -10,32 +10,69 @@
 
   <!-- 已登录：无房间 -->
   <view wx:elif="{{!currentRoom}}" class="empty-room">
+    <!-- 创建房间 -->
     <view class="glass-card-glow create-card">
       <view class="card-header">
         <text class="section-title">创建房间</text>
         <text class="text-tertiary text-xs">开局成为房主</text>
       </view>
-      <view class="form-row">
-        <text class="form-label">底分</text>
-        <input class="input-glass flex-1" type="number" value="{{baseScore}}" bindinput="onBaseScoreInput" placeholder="1" />
-      </view>
-      <button class="btn-primary" style="margin-top:24rpx;" bindtap="createRoom" loading="{{creating}}">创建房间</button>
+      <button class="btn-primary" bindtap="createRoom" loading="{{creating}}">创建房间</button>
     </view>
 
     <view class="divider-glow"><text class="divider-text">或者</text></view>
 
+    <!-- 加入房间 -->
     <view class="glass-card-glow join-card">
       <view class="card-header">
-        <text class="section-title">加入房间</text>
-        <text class="text-tertiary text-xs">输入牌友的房间号</text>
+        <view class="join-header-row">
+          <view>
+            <text class="section-title">加入房间</text>
+            <text class="text-tertiary text-xs">输入牌友的房间号</text>
+          </view>
+          <view class="scan-btn-corner" bindtap="scanJoin">
+            <text class="scan-icon-text">扫一扫</text>
+          </view>
+        </view>
       </view>
       <view class="form-row">
         <input class="input-glass flex-1" value="{{joinRoomNo}}" bindinput="onJoinInput" placeholder="输入 6 位房间号" maxlength="6" />
       </view>
-      <view class="join-actions">
-        <button class="btn-primary flex-1" bindtap="joinByNo">加入房间</button>
-        <button class="btn-secondary-scan" bindtap="scanJoin"><text class="scan-icon">📷</text></button>
+      <button class="btn-primary" style="margin-top:24rpx;" bindtap="joinByNo">加入房间</button>
+    </view>
+  </view>
+
+  <!-- 已登录：已有房间（首页快捷入口） -->
+  <view wx:elif="{{!viewingRoom}}" class="has-room">
+    <view class="glass-card-glow room-quick-card">
+      <view class="rq-header">
+        <view class="rq-info">
+          <text class="section-title">我的房间</text>
+          <text class="rq-room-no">{{currentRoom.roomNo}}</text>
+        </view>
+        <view class="rq-badge {{currentRoom.status === 1 ? 'badge-success' : 'badge-accent'}}">
+          {{currentRoom.status === 1 ? '已结束' : '进行中'}}
+        </view>
       </view>
+      <view class="rq-meta">
+        <text class="text-tertiary text-xs">{{currentRoom.members ? currentRoom.members.length : 0}}人</text>
+        <text class="text-tertiary text-xs">·</text>
+        <text class="text-tertiary text-xs">第{{currentRoom.roundCount || 1}}轮</text>
+      </view>
+      <view class="rq-actions">
+        <view class="rq-action-btn" bindtap="copyRoomNo">
+          <text class="rq-action-icon">📋</text>
+          <text class="rq-action-text">复制房间号</text>
+        </view>
+        <view class="rq-action-btn" bindtap="openShareSheet">
+          <text class="rq-action-icon">🔗</text>
+          <text class="rq-action-text">二维码</text>
+        </view>
+        <button class="rq-action-btn" open-type="share">
+          <text class="rq-action-icon">📤</text>
+          <text class="rq-action-text">分享</text>
+        </button>
+      </view>
+      <button class="btn-primary" style="margin-top:20rpx;" bindtap="enterRoom">进入房间</button>
     </view>
   </view>
 
@@ -45,70 +82,209 @@
     <view class="top-toast {{toastMsg ? 'top-toast-show' : ''}} {{toastType === 'error' ? 'top-toast-error' : ''}}" wx:if="{{toastMsg}}">
       <text>{{toastMsg}}</text>
     </view>
-    <!-- 顶部信息卡片 -->
-    <view class="glass-card-glow room-top-card">
-      <view class="hero-glow"></view>
-      <view class="top-card-row">
-        <view class="top-card-info">
-          <text class="top-card-label text-tertiary">房间号</text>
-          <text class="top-card-value">{{currentRoom.roomNo}}</text>
-        </view>
-        <view class="top-card-actions">
-          <view class="tc-action" bindtap="copyRoomNo">
-            <text class="tc-icon">📋</text>
-          </view>
-          <view class="tc-action" open-type="share">
-            <text class="tc-icon">📤</text>
-          </view>
-          <view class="tc-action" bindtap="scanJoin">
-            <text class="tc-icon">📷</text>
-          </view>
-          <view class="tc-action {{audioEnabled ? 'tc-audio-on' : ''}}" bindtap="toggleAudioSwitch">
-            <text class="tc-icon">{{audioEnabled ? '🔊' : '🔇'}}</text>
-          </view>
-          <view class="tc-action tc-danger" wx:if="{{!isOwner}}" bindtap="quitRoom">
-            <text class="tc-icon">🚪</text>
-          </view>
-          <view class="tc-action tc-danger" wx:if="{{isOwner}}" bindtap="dissolveRoom">
-            <text class="tc-icon">🗑️</text>
-          </view>
-        </view>
-      </view>
-      <!-- 小程序码 -->
-      <view class="qr-section" wx:if="{{currentRoom.qrCodeUrl}}">
-        <view class="qr-frame">
-          <image class="qr-image" src="{{currentRoom.qrCodeUrl}}" mode="aspectFit" show-menu-by-longpress></image>
-        </view>
-        <text class="text-tertiary text-xs">长按识别或截图分享给牌友</text>
-      </view>
-    </view>
 
-    <!-- 成员网格（4 列：头像 + 昵称 + 分数，点击计分） -->
-    <view class="glass-card member-section">
-      <view class="flex-between" style="margin-bottom:16rpx;">
-        <text class="section-title" style="margin-bottom:0;">成员</text>
-        <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
-      </view>
-      <view class="member-grid">
-        <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
-              wx:for="{{memberGrid}}" wx:key="userId"
-              bindtap="onTapMember" data-user-id="{{item.userId}}">
-          <view class="mg-avatar-wrap">
-            <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
-              <text class="auto-avatar-char">{{item.avatarChar}}</text>
+    <!-- 可滚动区域（积分总览打开时禁止滚动） -->
+    <scroll-view scroll-y="{{!showMatrixPanel && !showNumpad}}" style="height:100vh;" bindscrolltolower="onScoreScrollToLower" lower-threshold="200">
+      <!-- 顶部信息卡片 -->
+      <view class="glass-card-glow room-top-card">
+        <view class="hero-glow"></view>
+        <view class="top-card-row">
+          <view class="top-card-info">
+            <text class="top-card-label text-tertiary">房间号</text>
+            <text class="top-card-value">{{currentRoom.roomNo}}</text>
+          </view>
+          <view class="top-card-actions">
+            <view class="tc-action" bindtap="openShareSheet">
+              <text class="tc-icon">📤</text>
             </view>
-            <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
-            <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
+            <view class="tc-action {{audioEnabled ? 'tc-audio-on' : ''}}" bindtap="toggleAudioSwitch">
+              <text class="tc-icon">{{audioEnabled ? '🔊' : '🔇'}}</text>
+            </view>
+            <view class="tc-action tc-danger" wx:if="{{!isOwner}}" bindtap="quitRoom">
+              <text class="tc-icon">🚪</text>
+            </view>
+            <view class="tc-action tc-danger" wx:if="{{isOwner}}" bindtap="dissolveRoom">
+              <text class="tc-icon">🗑️</text>
+            </view>
           </view>
-          <text class="mg-name">{{item.nickname}}</text>
-          <text class="mg-score score-number" style="color:{{item.scoreColor}};">
-            {{fmt.formatScore(item.displayScore)}}
-          </text>
         </view>
+      </view>
+
+      <!-- 成员区域（可切换简易/座位模式） -->
+      <view class="glass-card member-section">
+        <view class="flex-between" style="margin-bottom:16rpx;">
+          <text class="section-title" style="margin-bottom:0;">成员</text>
+          <view style="display:flex;align-items:center;gap:12rpx;">
+            <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
+            <view class="mode-toggle" bindtap="toggleViewMode">
+              <text class="mode-toggle-icon">{{viewMode === 'grid' ? '🪑' : '📋'}}</text>
+              <text class="mode-toggle-text">{{viewMode === 'grid' ? '座位' : '简易'}}</text>
+            </view>
+          </view>
+        </view>
+        <!-- 简易网格模式 -->
+        <view class="member-grid" wx:if="{{viewMode === 'grid'}}">
+          <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
+                wx:for="{{memberGrid}}" wx:key="userId"
+                bindtap="onTapMember" data-user-id="{{item.userId}}">
+            <view class="mg-avatar-wrap">
+              <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
+                <text class="auto-avatar-char">{{item.avatarChar}}</text>
+              </view>
+              <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
+              <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
+            </view>
+            <text class="mg-name">{{item.nickname}}</text>
+            <text class="mg-score score-number" style="color:{{item.scoreColor}};">
+              {{fmt.formatScore(item.displayScore)}}
+            </text>
+          </view>
+        </view>
+        <!-- 座位模式 -->
+        <view class="seat-container" wx:if="{{viewMode === 'seat'}}">
+          <!-- 编辑工具栏（仅房主可见） -->
+          <view class="seat-edit-bar" wx:if="{{isOwner}}">
+            <block wx:if="{{!seatEditMode}}">
+              <view class="seat-edit-btn" bindtap="enterSeatEditMode">
+                <text class="seat-edit-text">调整座位</text>
+              </view>
+              <view class="layout-switcher">
+                <view class="layout-opt {{seatLayoutType === 'circle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="circle">
+                  <text>圆桌</text>
+                </view>
+                <view class="layout-opt {{seatLayoutType === 'rectangle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="rectangle">
+                  <text>长桌</text>
+                </view>
+                <view class="layout-opt {{seatLayoutType === 'arc' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="arc">
+                  <text>半弧</text>
+                </view>
+              </view>
+            </block>
+            <block wx:else>
+              <view class="seat-edit-active-bar">
+                <view class="seat-edit-btn seat-edit-done" bindtap="exitSeatEditMode">
+                  <text class="seat-edit-text">完成</text>
+                </view>
+                <text class="seat-edit-hint">点击玩家，再点击目标位置</text>
+              </view>
+            </block>
+          </view>
+          <seat-mode
+            members="{{memberGrid}}"
+            score-map="{{seatScoreMap}}"
+            my-user-id="{{myUserId}}"
+            max-seats="{{currentRoom.maxSeats || 4}}"
+            table-label="{{currentRoom.roomNo}}"
+            layout-type="{{seatLayoutType}}"
+            edit-mode="{{seatEditMode}}"
+            edit-selected-user-id="{{editSelectedUserId}}"
+            bindtapseat="onSeatTap"
+            bindeditseat="onEditSeatTap"
+          />
+        </view>
+      </view>
+
+      <!-- 积分记录 -->
+      <view class="glass-card score-record-card">
+        <view class="flex-between" style="margin-bottom:12rpx;">
+          <text class="section-title" style="margin-bottom:0;">积分记录</text>
+          <view style="display:flex;gap:12rpx;">
+            <view class="matrix-btn filter-btn {{filterMine ? 'filter-btn-on' : ''}}" bindtap="toggleFilterMine">
+              <text class="matrix-btn-icon">👤</text>
+              <text class="matrix-btn-text">我</text>
+            </view>
+            <view class="matrix-btn" bindtap="loadSessionHistory" data-room-id="{{currentRoom.roomId}}">
+              <text class="matrix-btn-icon">📋</text>
+              <text class="matrix-btn-text">历史场次</text>
+            </view>
+            <view class="matrix-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
+              <text class="matrix-btn-icon">📊</text>
+              <text class="matrix-btn-text">积分总览</text>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{groupedRecords.length === 0}}" class="empty-batches">
+          <text class="empty-icon-sm">📝</text>
+          <text class="text-tertiary">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
+        </view>
+        <view wx:else class="score-records">
+          <block wx:for="{{groupedRecords}}" wx:key="timeKey">
+            <view class="sr-time-header">{{item.timeDisplay}}</view>
+            <view class="sr-item" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
+              <view class="sr-col sr-from">
+                <view class="sr-avatar-wrap">
+                  <view class="auto-avatar-xs" style="background:{{rec.fromColor}};" wx:if="{{!rec.fromAvatarUrl}}">
+                    <text class="auto-avatar-char-xs">{{rec.fromChar}}</text>
+                  </view>
+                  <image class="sr-avatar" src="{{rec.fromAvatarUrl}}" wx:else></image>
+                </view>
+                <text class="sr-name">{{rec.fromName}}</text>
+              </view>
+              <view class="sr-col sr-amount">
+                <text class="sr-amount-text {{rec.myRole === 'from' ? 'sr-amt-red' : rec.myRole === 'to' ? 'sr-amt-green' : 'sr-amt-gray'}}">{{fmt.formatAmount(rec.amount)}}</text>
+                <text class="sr-arrow-icon">→</text>
+              </view>
+              <view class="sr-col sr-to">
+                <view class="sr-avatar-wrap">
+                  <view class="auto-avatar-xs" style="background:{{rec.toColor}};" wx:if="{{!rec.toAvatarUrl}}">
+                    <text class="auto-avatar-char-xs">{{rec.toChar}}</text>
+                  </view>
+                  <image class="sr-avatar" src="{{rec.toAvatarUrl}}" wx:else></image>
+                </view>
+                <text class="sr-name">{{rec.toName}}</text>
+              </view>
+            </view>
+          </block>
+          <view wx:if="{{loadingMore}}" class="sr-loading">
+            <text class="text-tertiary text-xs">加载中...</text>
+          </view>
+          <view wx:if="{{noMore && groupedRecords.length > 0}}" class="sr-loading">
+            <text class="text-tertiary text-xs">— 没有更多了 —</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 结束本轮按钮（房主） -->
+      <view class="settle-bar" wx:if="{{isOwner && ranking.length > 0}}">
+        <button class="btn-settle" bindtap="settleRoom">结束本轮</button>
+      </view>
+    </scroll-view>
+
+    <!-- 历史场次列表弹窗 -->
+    <view class="matrix-panel-overlay {{showSessionHistory ? 'mp-show' : ''}}" catchtap="closeSessionHistory" catchtouchmove="preventClose">
+      <view class="matrix-panel-sheet" catchtap="preventClose">
+        <view class="detail-header">
+          <text class="section-title" style="margin-bottom:0;">历史场次</text>
+          <view class="detail-close" bindtap="closeSessionHistory">✕</view>
+        </view>
+        <view wx:if="{{sessionHistory.length === 0}}" class="empty-batches">
+          <text class="text-tertiary">暂无历史场次</text>
+        </view>
+        <scroll-view scroll-y="{{true}}" wx:else class="history-scroll" catchtouchmove="preventClose">
+          <view class="history-item" wx:for="{{sessionHistory}}" wx:key="sessionId"
+                bindtap="openSessionMatrix" data-session-id="{{item.sessionId}}">
+            <view class="history-item-row">
+              <text class="history-title">{{item.title || '第' + item.sessionNo + '轮'}}</text>
+              <text class="history-count text-tertiary text-xs">{{item.scoreCount || 0}}笔记分</text>
+            </view>
+            <view class="history-players" wx:if="{{item.players}}">
+              <view class="history-player-avatar" wx:for="{{item.players}}" wx:for-item="p" wx:key="userId">
+                <view class="auto-avatar-xxs" style="background:{{p.avatarColor}};" wx:if="{{!p.avatarUrl}}">
+                  <text class="auto-avatar-char-xxs">{{p.avatarChar}}</text>
+                </view>
+                <image class="history-avatar-img" src="{{p.avatarUrl}}" wx:else></image>
+              </view>
+            </view>
+            <view class="history-time-row">
+              <text class="text-tertiary text-xs">{{item.createdAt}}</text>
+              <text class="text-tertiary text-xs" wx:if="{{item.settledAt}}"> ~ {{item.settledAt}}</text>
+            </view>
+          </view>
+        </scroll-view>
       </view>
     </view>
 
-    <!-- 数字键盘 -->
+    <!-- 数字键盘弹窗 -->
     <view class="numpad-overlay {{showNumpad ? 'numpad-show' : ''}}" catchtap="closeNumpad">
       <view class="numpad-sheet" catchtap="preventClose">
         <view class="numpad-header">
@@ -116,24 +292,6 @@
           <view class="numpad-display">
             <text class="numpad-display-value">{{numpadValue || '0'}}</text>
             <text class="numpad-unit">积分</text>
-          </view>
-        </view>
-        <!-- 留证区 -->
-        <view class="evidence-area">
-          <view class="evidence-dashed" bindtap="chooseImage">
-            <view wx:if="{{selectedImages.length === 0}}" class="evidence-empty">
-              <text class="evidence-icon">📸</text>
-              <text class="evidence-label">添加留证 (选填)</text>
-            </view>
-            <view wx:else class="evidence-thumbs">
-              <view class="evidence-thumb" wx:for="{{selectedImages}}" wx:key="*this">
-                <image src="{{item}}" mode="aspectFill" class="thumb-img" catchtap="previewImage" data-src="{{item}}"></image>
-                <view class="thumb-remove" catchtap="removeImage" data-index="{{index}}">✕</view>
-              </view>
-              <view class="evidence-add" wx:if="{{selectedImages.length < 9}}" catchtap="chooseImage">
-                <text class="evidence-add-icon">+</text>
-              </view>
-            </view>
           </view>
         </view>
         <view class="numpad-grid">
@@ -156,132 +314,17 @@
       </view>
     </view>
 
-    <!-- 积分记录 -->
-    <view class="glass-card">
-      <view class="flex-between" style="margin-bottom:12rpx;">
-        <text class="section-title" style="margin-bottom:0;">积分记录</text>
-        <view class="matrix-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
-          <text class="matrix-btn-icon">📊</text>
-          <text class="matrix-btn-text">积分总览</text>
-        </view>
-      </view>
-      <view wx:if="{{scoreRecords.length === 0}}" class="empty-batches">
-        <text class="empty-icon-sm">📝</text>
-        <text class="text-tertiary">暂无记录</text>
-      </view>
-      <scroll-view wx:else class="score-records-scroll" scroll-y style="height:{{scoreRecordHeight}}rpx;">
-        <view class="score-records">
-          <view class="sr-item" wx:for="{{scoreRecords}}" wx:key="id">
-            <view class="sr-col sr-from">
-              <view class="sr-avatar-wrap">
-                <view class="auto-avatar-xs" style="background:{{item.fromColor}};" wx:if="{{!item.fromAvatarUrl}}">
-                  <text class="auto-avatar-char-xs">{{item.fromChar}}</text>
-                </view>
-                <image class="sr-avatar" src="{{item.fromAvatarUrl}}" wx:else></image>
-              </view>
-              <text class="sr-name">{{item.fromName}}</text>
-            </view>
-            <view class="sr-col sr-amount">
-              <text class="sr-amount-text {{item.myRole === 'from' ? 'sr-amt-red' : item.myRole === 'to' ? 'sr-amt-green' : 'sr-amt-gray'}}">{{fmt.formatAmount(item.amount)}}</text>
-              <text class="sr-arrow-icon">→</text>
-            </view>
-            <view class="sr-col sr-to">
-              <view class="sr-avatar-wrap">
-                <view class="auto-avatar-xs" style="background:{{item.toColor}};" wx:if="{{!item.toAvatarUrl}}">
-                  <text class="auto-avatar-char-xs">{{item.toChar}}</text>
-                </view>
-                <image class="sr-avatar" src="{{item.toAvatarUrl}}" wx:else></image>
-              </view>
-              <text class="sr-name">{{item.toName}}</text>
-            </view>
-            <text class="sr-time">{{item.timeFormatted}}</text>
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-
-    <!-- 积分总览弹窗 -->
-    <view class="matrix-panel-overlay {{showMatrixPanel ? 'mp-show' : ''}}" catchtap="closeMatrixPanel">
-      <view class="matrix-panel-sheet" catchtap="preventClose">
-        <view class="detail-header">
-          <text class="section-title" style="margin-bottom:0;">积分总览</text>
-          <view class="detail-close" bindtap="closeMatrixPanel">✕</view>
-        </view>
-        <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
-          <text class="text-tertiary">至少需要 2 名成员</text>
-        </view>
-        <view wx:else class="matrix-wrap">
-          <!-- 表头 -->
-          <view class="matrix-row matrix-header">
-            <view class="matrix-corner"></view>
-            <view class="matrix-th" wx:for="{{matrixMembers}}" wx:key="userId">
-              <view class="matrix-th-avatar">
-                <view class="auto-avatar-xxs" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
-                  <text class="auto-avatar-char-xxs">{{item.avatarChar}}</text>
-                </view>
-                <image class="matrix-th-img" src="{{item.avatarUrl}}" wx:else></image>
-              </view>
-              <text class="matrix-th-name">{{item.nickname}}</text>
-            </view>
-          </view>
-          <!-- 数据行 -->
-          <view class="matrix-row" wx:for="{{matrixData}}" wx:for-item="row" wx:key="fromUserId">
-            <view class="matrix-row-header">
-              <view class="auto-avatar-xxs" style="background:{{row.fromColor}};" wx:if="{{!row.fromAvatarUrl}}">
-                <text class="auto-avatar-char-xxs">{{row.fromChar}}</text>
-              </view>
-              <image class="matrix-rh-img" src="{{row.fromAvatarUrl}}" wx:else></image>
-            </view>
-            <view class="matrix-cell {{cell.value > 0 ? 'mc-pos' : cell.value < 0 ? 'mc-neg' : ''}}"
-                  wx:for="{{row.cells}}" wx:for-item="cell" wx:key="toUserId"
-                  bindtap="onMatrixCell" data-from="{{row.fromUserId}}" data-to="{{cell.toUserId}}">
-              <text class="matrix-cell-val">{{cell.display}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 积分明细弹窗 -->
-    <view class="matrix-detail-overlay {{showMatrixDetail ? 'detail-show' : ''}}" catchtap="closeMatrixDetail">
-      <view class="matrix-detail-sheet" catchtap="preventClose">
-        <view class="detail-header">
-          <text class="section-title" style="margin-bottom:0;">积分明细</text>
-          <view class="detail-close" bindtap="closeMatrixDetail">✕</view>
-        </view>
-        <view class="detail-parties">
-          <view class="detail-party">
-            <view class="auto-avatar-sm" style="background:{{detailFrom.avatarColor}};" wx:if="{{!detailFrom.avatarUrl}}">
-              <text class="auto-avatar-char-sm">{{detailFrom.avatarChar}}</text>
-            </view>
-            <image class="detail-avatar" src="{{detailFrom.avatarUrl}}" wx:else></image>
-            <text class="detail-name">{{detailFrom.nickname}}</text>
-          </view>
-          <text class="detail-arrow">⇄</text>
-          <view class="detail-party">
-            <view class="auto-avatar-sm" style="background:{{detailTo.avatarColor}};" wx:if="{{!detailTo.avatarUrl}}">
-              <text class="auto-avatar-char-sm">{{detailTo.avatarChar}}</text>
-            </view>
-            <image class="detail-avatar" src="{{detailTo.avatarUrl}}" wx:else></image>
-            <text class="detail-name">{{detailTo.nickname}}</text>
-          </view>
-        </view>
-        <view class="detail-total">
-          <text class="text-tertiary text-xs">净积分</text>
-          <text class="detail-total-val {{detailNet > 0 ? 'mg-pos' : detailNet < 0 ? 'mg-neg' : ''}}">{{fmt.formatScore(detailNet)}}</text>
-        </view>
-        <view class="detail-list">
-          <view class="detail-item" wx:for="{{detailRecords}}" wx:key="id">
-            <text class="detail-item-dir">{{item.direction}}</text>
-            <text class="detail-item-amount">{{fmt.formatScore(item.amount)}}</text>
-            <text class="detail-item-time text-tertiary text-xs">{{item.timeFormatted}}</text>
-          </view>
-          <view wx:if="{{detailRecords.length === 0}}" class="empty-batches" style="padding:24rpx 0;">
-            <text class="text-tertiary">暂无记录</text>
-          </view>
-        </view>
-      </view>
-    </view>
+    <!-- 积分总览（全局组件） -->
+    <matrix-overview
+      id="matrix-overview"
+      visible="{{showMatrixPanel}}"
+      room-id="{{currentRoom.roomId}}"
+      session-id="{{selectedSessionId}}"
+      member-grid="{{memberGrid}}"
+      score-records="{{scoreRecords}}"
+      my-user-id="{{myUserId}}"
+      bind:close="onMatrixClose"
+    />
 
     <!-- 计分动画层 -->
     <view class="transfer-anim-overlay" wx:if="{{animActive}}">
@@ -303,10 +346,47 @@
         <text class="transfer-anim-amount">{{animAmount}}</text>
       </view>
     </view>
+  </view>
 
-    <!-- 结束本轮按钮（房主） -->
-    <view class="settle-bar" wx:if="{{isOwner && ranking.length > 0}}">
-      <button class="btn-settle" bindtap="settleRoom">结束本轮</button>
+  <!-- 分享面板（全局，可从首页或房间内打开） -->
+  <view class="share-overlay {{showShareSheet ? 'share-show' : ''}}" catchtap="closeShareSheet" catchtouchmove="preventClose">
+    <view class="share-sheet" catchtap="preventClose">
+      <view class="detail-header">
+        <text class="section-title" style="margin-bottom:0;">邀请牌友</text>
+        <view class="detail-close" bindtap="closeShareSheet">✕</view>
+      </view>
+      <!-- 二维码 -->
+      <view class="share-qr-section" wx:if="{{currentRoom.qrCodeUrl}}">
+        <view class="share-qr-frame">
+          <image class="share-qr-image" src="{{currentRoom.qrCodeUrl}}" mode="aspectFit" show-menu-by-longpress></image>
+        </view>
+        <text class="text-tertiary text-xs">长按识别二维码加入房间</text>
+      </view>
+      <view class="share-qr-section" wx:else>
+        <view class="share-qr-frame share-qr-placeholder">
+          <text class="share-qr-room-no">{{currentRoom.roomNo}}</text>
+        </view>
+        <text class="text-tertiary text-xs">房间号 {{currentRoom.roomNo}}</text>
+      </view>
+      <!-- 操作按钮 -->
+      <view class="share-actions">
+        <button class="share-action-btn" open-type="share">
+          <text class="share-action-icon">💬</text>
+          <text class="share-action-text">分享给好友</text>
+        </button>
+        <view class="share-action-btn" bindtap="sharePoster">
+          <text class="share-action-icon">🖼️</text>
+          <text class="share-action-text">保存图片</text>
+        </view>
+        <view class="share-action-btn" bindtap="copyRoomLink">
+          <text class="share-action-icon">🔗</text>
+          <text class="share-action-text">复制链接</text>
+        </view>
+        <view class="share-action-btn" bindtap="scanJoin">
+          <text class="share-action-icon">📷</text>
+          <text class="share-action-text">扫码加入</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

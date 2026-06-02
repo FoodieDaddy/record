@@ -36,6 +36,9 @@ public class RoomResp {
     @Schema(description = "专属小程序码 URL")
     private String qrCodeUrl;
 
+    @Schema(description = "座位布局类型: circle, rectangle, arc", example = "circle")
+    private String layoutType;
+
     @Schema(description = "成员列表")
     private List<MemberVO> members;
 

@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -39,5 +40,11 @@ public class StorageController {
     @PostMapping("/presign/batch")
     public Result<List<PresignUrlResp>> batchPresignUrls(@Valid @RequestBody BatchPresignReq req) {
         return Result.ok(storageService.batchGeneratePresignUrls(req));
+    }
+
+    @Operation(summary = "直接上传文件", description = "前端 multipart 上传，后端转存 MinIO，返回访问 URL")
+    @PostMapping("/upload")
+    public Result<String> upload(@RequestParam("file") MultipartFile file) {
+        return Result.ok(storageService.uploadFile(file));
     }
 }

@@ -14,6 +14,8 @@ public class Transfer {
 
     private Long roomId;
 
+    private Long sessionId;
+
     private Long fromUserId;
 
     private Long toUserId;

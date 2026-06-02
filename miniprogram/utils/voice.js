@@ -25,64 +25,88 @@ function _speakOnce(text, onDone) {
     url,
     success: (res) => {
       if (res.statusCode !== 200) {
-        console.warn('TTS 下载失败', res.statusCode);
         onDone();
         return;
       }
-      const audio = wx.createInnerAudioContext();
-      audio.src = res.tempFilePath;
-      audio.obeyMuteSwitch = false;
-      audio.onEnded(() => {
-        try { audio.destroy(); } catch (e) {}
-        onDone();
+      // 保存到持久化路径（http://tmp/ 路径不兼容 InnerAudioContext）
+      const fs = wx.getFileSystemManager();
+      const savedPath = `${wx.env.USER_DATA_PATH}/tts_${Date.now()}.mp3`;
+      fs.saveFile({
+        tempFilePath: res.tempFilePath,
+        filePath: savedPath,
+        success: () => _playAudio(savedPath, onDone),
+        fail: () => _playAudio(res.tempFilePath, onDone)
       });
-      audio.onError((err) => {
-        console.warn('TTS 播放失败', err);
-        try { audio.destroy(); } catch (e) {}
-        onDone();
-      });
-      audio.play();
     },
-    fail: (err) => {
-      console.warn('TTS 请求失败', err);
-      onDone();
-    }
+    fail: () => onDone()
   });
+}
+
+function _playAudio(src, onDone) {
+  const audio = wx.createInnerAudioContext();
+  audio.src = src;
+  audio.obeyMuteSwitch = false;
+
+  const cleanup = () => {
+    try { audio.destroy(); } catch (e) {}
+    try { wx.getFileSystemManager().unlinkSync(src); } catch (e) {}
+  };
+
+  let played = false;
+  audio.onCanplay(() => {
+    if (played) return;
+    played = true;
+    audio.play();
+  });
+  audio.onEnded(() => {
+    cleanup();
+    onDone();
+  });
+  audio.onError(() => {
+    cleanup();
+    onDone();
+  });
+  setTimeout(() => {
+    if (played) return;
+    played = true;
+    audio.play();
+  }, 300);
 }
 
 /**
  * 计分语音播报
- * @param {string} fromName 发起人昵称
- * @param {string} toName 得分方昵称
- * @param {string} amount 分数
  */
 function speakTransfer(fromName, toName, amount) {
+  const settings = getSettings();
+  console.log('[TTS] speakTransfer:', fromName, toName, amount, 'enabled:', settings.enabled);
+  if (!settings.enabled) return;
   const text = `${toName} 收到 ${fromName} 的 ${amount} 分`;
   _queue.push(text);
   if (!_speaking) _dequeue();
 }
 
-/**
- * 通用语音播报
- */
 function speak(text) {
   if (!text) return;
   _queue.push(text);
   if (!_speaking) _dequeue();
 }
 
-/**
- * 停止当前播报
- */
 function stop() {
   _queue.length = 0;
   _speaking = false;
 }
 
 function getSettings() {
-  return { enabled: true };
+  const saved = wx.getStorageSync('voiceSettings');
+  return {
+    enabled: saved.enabled !== undefined ? saved.enabled : true,
+    voiceType: saved.voiceType || 'female'
+  };
 }
 
-function saveSettings() {}
+function saveSettings(partial) {
+  const current = getSettings();
+  wx.setStorageSync('voiceSettings', { ...current, ...partial });
+}
 
 module.exports = { speakTransfer, speak, stop, getSettings, saveSettings };

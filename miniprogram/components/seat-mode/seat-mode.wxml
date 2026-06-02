@@ -1,0 +1,71 @@
+<wxs src="./seat-mode.wxs" module="anim" />
+
+<!--
+  座位模式组件
+  核心算法：第一人称主视角锚定
+  当前用户永远渲染在屏幕正下方（6点钟方向）
+-->
+<view class="seat-arena" id="seatArena">
+  <!-- 桌面中央装饰 -->
+  <view class="table-center table-{{layoutType}}">
+    <view class="table-glow"></view>
+    <view class="table-ring"></view>
+    <text class="table-label" wx:if="{{tableLabel}}">{{tableLabel}}</text>
+  </view>
+
+  <!-- 座位列表 -->
+  <view class="seat-list">
+    <view
+      wx:for="{{seats}}"
+      wx:key="userId"
+      class="seat-item {{item.isMe ? 'seat-me' : ''}} {{item.isEmpty ? 'seat-empty' : ''}} {{item.isHighlight ? 'seat-highlight' : ''}} {{editMode ? 'seat-editable' : ''}} {{editSelectedUserId == item.userId ? 'seat-edit-selected' : ''}}"
+      style="transform:{{item.transform}};will-change:transform,opacity;"
+      bindtap="onTapSeat"
+      data-index="{{item.index}}"
+      data-user-id="{{item.userId}}"
+    >
+      <!-- 头像 -->
+      <view class="seat-avatar-ring {{item.isMe ? 'ring-me' : ''}}">
+        <view class="seat-avatar" wx:if="{{item.isEmpty}}">
+          <text class="seat-avatar-empty">+</text>
+        </view>
+        <image
+          wx:elif="{{item.avatarUrl}}"
+          class="seat-avatar seat-avatar-img"
+          src="{{item.avatarUrl}}"
+          mode="aspectFill"
+          binderror="onAvatarError"
+          data-user-id="{{item.userId}}"
+        />
+        <view wx:else class="seat-avatar seat-avatar-fallback" style="background:{{item.avatarColor}};">
+          <text class="seat-avatar-char">{{item.avatarChar}}</text>
+        </view>
+        <!-- 选中光环 -->
+        <view class="seat-ring-glow" wx:if="{{item.isHighlight}}"></view>
+      </view>
+
+      <!-- 昵称 -->
+      <text class="seat-name">{{item.nickname || '空位'}}</text>
+
+      <!-- 分数（WXS 格式化，避免 JS 预计算字符串） -->
+      <view class="seat-score-wrap" wx:if="{{!item.isEmpty}}">
+        <text
+          class="seat-score {{item.score > 0 ? 'score-pos' : item.score < 0 ? 'score-neg' : 'score-zero'}}"
+        >{{anim.formatScore(item.animValue)}}</text>
+      </view>
+
+      <!-- 座位编号指示器（调试用，可移除） -->
+      <view class="seat-idx" wx:if="{{showDebug}}">
+        <text class="seat-idx-text">{{item.absIndex}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="seat-actions" wx:if="{{showActions}}">
+    <view class="seat-action-btn" bindtap="onToggleAnimation">
+      <text class="seat-action-icon">{{animationEnabled ? '🎬' : '⚡'}}</text>
+      <text class="seat-action-text">{{animationEnabled ? '动效开' : '动效关'}}</text>
+    </view>
+  </view>
+</view>

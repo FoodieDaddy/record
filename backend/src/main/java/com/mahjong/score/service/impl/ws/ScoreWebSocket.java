@@ -1,6 +1,6 @@
 package com.mahjong.score.service.impl.ws;
 
-import cn.hutool.json.JSONUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -27,9 +27,11 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     private static final Map<String, Set<WebSocketSession>> ROOM_SESSIONS = new ConcurrentHashMap<>();
 
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    public ScoreWebSocket(StringRedisTemplate redisTemplate) {
+    public ScoreWebSocket(StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -64,7 +66,13 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
         if (sessions == null || sessions.isEmpty()) return;
 
-        String payload = JSONUtil.toJsonStr(message);
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(message);
+        } catch (Exception e) {
+            log.warn("WebSocket 消息序列化失败", e);
+            return;
+        }
         TextMessage textMessage = new TextMessage(payload);
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
