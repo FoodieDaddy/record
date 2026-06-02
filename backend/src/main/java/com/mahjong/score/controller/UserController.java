@@ -3,6 +3,7 @@ package com.mahjong.score.controller;
 import com.mahjong.score.common.Result;
 import com.mahjong.score.dto.user.LoginReq;
 import com.mahjong.score.dto.user.LoginResp;
+import com.mahjong.score.dto.user.UpdateUserReq;
 import com.mahjong.score.dto.user.UserInfoResp;
 import com.mahjong.score.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,14 +35,18 @@ public class UserController {
         return Result.ok(userService.getUserInfo(userId));
     }
 
-    @Operation(summary = "更新用户信息", description = "更新昵称和头像")
+    @Operation(summary = "更新用户信息", description = "支持 JSON body 和 query params 两种方式")
     @PutMapping("/me")
     public Result<Void> updateCurrentUser(
             HttpServletRequest request,
-            @Parameter(description = "昵称") @RequestParam(required = false) String nickname,
-            @Parameter(description = "头像 URL") @RequestParam(required = false) String avatarUrl) {
+            @RequestBody(required = false) UpdateUserReq body,
+            @Parameter(description = "昵称（query 方式）") @RequestParam(required = false) String nickname,
+            @Parameter(description = "头像 URL（query 方式）") @RequestParam(required = false) String avatarUrl) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        userService.updateUserInfo(userId, nickname, avatarUrl);
+        // JSON body 优先
+        String finalNickname = (body != null && body.getNickname() != null) ? body.getNickname() : nickname;
+        String finalAvatarUrl = (body != null && body.getAvatarUrl() != null) ? body.getAvatarUrl() : avatarUrl;
+        userService.updateUserInfo(userId, finalNickname, finalAvatarUrl);
         return Result.ok();
     }
 }

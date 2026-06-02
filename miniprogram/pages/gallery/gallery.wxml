@@ -1,41 +1,55 @@
 <view class="gallery-page">
-  <view class="glass-card">
-    <text class="section-title">我的图库</text>
-    <text class="text-secondary" style="font-size:24rpx;display:block;margin-bottom:24rpx;">
-      记分凭证图片按时间线展示
-    </text>
-
-    <!-- 加载中 -->
-    <view wx:if="{{loading}}" class="flex-center" style="padding:80rpx 0;">
-      <view class="loading-spinner"></view>
-      <text class="text-secondary" style="margin-left:16rpx;">加载中...</text>
+  <!-- 头部统计 -->
+  <view class="gallery-header">
+    <view class="header-left">
+      <text class="gallery-title">图库</text>
+      <text class="text-secondary text-sm" wx:if="{{images.length > 0}}">共 {{images.length}} 张凭证</text>
     </view>
+  </view>
 
-    <!-- 空状态 -->
-    <view wx:elif="{{images.length === 0}}" class="empty-state">
-      <text class="empty-icon">📷</text>
-      <text class="text-tertiary">暂无图片</text>
-      <text class="text-tertiary" style="font-size:24rpx;margin-top:8rpx;">开始记分后自动生成</text>
+  <!-- 加载中 -->
+  <view wx:if="{{loading && images.length === 0}}" class="loading-state">
+    <view class="skeleton-grid">
+      <view class="skeleton-item skeleton" wx:for="{{9}}" wx:key="*this"></view>
     </view>
+  </view>
 
-    <!-- 图片网格 -->
-    <view class="image-grid" wx:else>
-      <view class="grid-item" wx:for="{{images}}" wx:key="id" bindtap="preview" data-index="{{index}}">
-        <image src="{{item.imageUrl}}" mode="aspectFill" class="grid-img" lazy-load></image>
-        <view class="grid-overlay">
-          <text class="grid-date">{{item.dateFormatted}}</text>
-        </view>
+  <!-- 空状态 -->
+  <view wx:elif="{{images.length === 0 && !loading}}" class="empty-gallery">
+    <view class="empty-illustration">
+      <view class="empty-circle">
+        <text class="empty-icon">📷</text>
       </view>
     </view>
+    <text class="text-lg text-bold" style="margin-bottom:8rpx;">暂无图片</text>
+    <text class="text-secondary text-sm">开始记分后自动生成</text>
+  </view>
 
-    <!-- 加载更多 -->
-    <view class="load-more" wx:if="{{hasMore && !loading}}" bindtap="loadMore">
-      <text class="text-secondary">加载更多</text>
+  <!-- 图片网格 -->
+  <view wx:else class="image-grid">
+    <view class="grid-item" wx:for="{{images}}" wx:key="id" bindtap="preview" data-index="{{index}}">
+      <image src="{{item.imageUrl}}" mode="aspectFill" class="grid-img" lazy-load></image>
+      <view class="grid-overlay">
+        <text class="grid-date">{{item.dateFormatted}}</text>
+      </view>
     </view>
+  </view>
 
-    <!-- 全部加载完 -->
-    <view wx:if="{{!hasMore && images.length > 0}}" class="text-tertiary text-center" style="padding:24rpx;font-size:22rpx;">
-      — 已加载全部 —
-    </view>
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore && !loading}}" bindtap="loadMore">
+    <text class="text-secondary">加载更多</text>
+  </view>
+
+  <!-- 加载中指示器 -->
+  <view wx:if="{{loading && images.length > 0}}" class="loading-more">
+    <view class="loading-spinner"></view>
+    <text class="text-secondary text-sm">加载中...</text>
+  </view>
+
+  <!-- 全部加载完 -->
+  <view wx:if="{{!hasMore && images.length > 0}}" class="end-marker">
+    <view class="end-line"></view>
+    <text class="text-tertiary text-xs">已加载全部</text>
+    <view class="end-line"></view>
   </view>
 </view>

@@ -41,6 +41,10 @@
 
   <!-- 已登录：在房间中 -->
   <view wx:else class="room-content">
+    <!-- 顶部提示 -->
+    <view class="top-toast {{toastMsg ? 'top-toast-show' : ''}} {{toastType === 'error' ? 'top-toast-error' : ''}}" wx:if="{{toastMsg}}">
+      <text>{{toastMsg}}</text>
+    </view>
     <!-- 顶部信息卡片 -->
     <view class="glass-card-glow room-top-card">
       <view class="hero-glow"></view>
@@ -79,7 +83,7 @@
       </view>
     </view>
 
-    <!-- 成员网格（4 列：头像 + 昵称 + 分数，点击转账） -->
+    <!-- 成员网格（4 列：头像 + 昵称 + 分数，点击计分） -->
     <view class="glass-card member-section">
       <view class="flex-between" style="margin-bottom:16rpx;">
         <text class="section-title" style="margin-bottom:0;">成员</text>
@@ -147,7 +151,7 @@
           <view class="numpad-key numpad-key-func" bindtap="onNumpadKey" data-key="del">⌫</view>
         </view>
         <view class="numpad-actions">
-          <button class="numpad-confirm" bindtap="confirmNumpad">确定转账</button>
+          <button class="numpad-confirm" bindtap="confirmNumpad">确认计分</button>
         </view>
       </view>
     </view>
@@ -279,7 +283,7 @@
       </view>
     </view>
 
-    <!-- 转账动画层 -->
+    <!-- 计分动画层 -->
     <view class="transfer-anim-overlay" wx:if="{{animActive}}">
       <!-- 屏幕闪烁 -->
       <view class="transfer-anim-flash" style="opacity:{{animFlashOpacity}};"></view>

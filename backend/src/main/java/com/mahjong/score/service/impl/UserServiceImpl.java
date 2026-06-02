@@ -10,9 +10,15 @@ import com.mahjong.score.dto.user.LoginReq;
 import com.mahjong.score.dto.user.LoginResp;
 import com.mahjong.score.dto.user.UserInfoResp;
 import com.mahjong.score.entity.User;
+import com.mahjong.score.entity.Room;
+import com.mahjong.score.entity.RoomMember;
+import com.mahjong.score.mapper.RoomMapper;
+import com.mahjong.score.mapper.RoomMemberMapper;
 import com.mahjong.score.mapper.UserMapper;
 import com.mahjong.score.service.UserService;
+import com.mahjong.score.service.impl.ws.ScoreWebSocket;
 import com.mahjong.score.util.JwtUtil;
+import com.mahjong.score.util.NicknameGenerator;
 import com.mahjong.score.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,15 +26,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final RoomMemberMapper roomMemberMapper;
+    private final RoomMapper roomMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
+    private final ScoreWebSocket scoreWebSocket;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -60,7 +74,8 @@ public class UserServiceImpl implements UserService {
             user.setId(idGenerator.nextId());
             user.setOpenid(openid);
             user.setUnionid(resp.getStr("unionid"));
-            user.setNickname(req.getNickname() != null ? req.getNickname() : "玩家");
+            user.setNickname(req.getNickname() != null && !req.getNickname().isEmpty()
+                    ? req.getNickname() : NicknameGenerator.generate());
             user.setAvatarUrl(req.getAvatarUrl() != null ? req.getAvatarUrl() : "");
             userMapper.insert(user);
         } else {
@@ -105,5 +120,40 @@ public class UserServiceImpl implements UserService {
         if (nickname != null) user.setNickname(nickname);
         if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
         userMapper.updateById(user);
+
+        // 推送 MEMBER_UPDATE 给用户所在的活跃房间
+        pushMemberUpdateToRooms(userId);
+    }
+
+    /**
+     * 查找用户所在的所有活跃房间，推送 MEMBER_UPDATE 事件
+     */
+    private void pushMemberUpdateToRooms(Long userId) {
+        try {
+            List<RoomMember> memberships = roomMemberMapper.selectList(
+                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getUserId, userId));
+            if (memberships == null || memberships.isEmpty()) return;
+
+            List<Long> roomIds = memberships.stream()
+                    .map(RoomMember::getRoomId)
+                    .collect(Collectors.toList());
+
+            List<Room> rooms = roomMapper.selectList(
+                    new LambdaQueryWrapper<Room>()
+                            .in(Room::getId, roomIds)
+                            .eq(Room::getStatus, 0));
+            if (rooms == null || rooms.isEmpty()) return;
+
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "MEMBER_UPDATE");
+            pushData.put("userId", userId);
+
+            for (Room room : rooms) {
+                pushData.put("roomId", room.getId());
+                scoreWebSocket.pushToRoom(String.valueOf(room.getId()), pushData);
+            }
+        } catch (Exception e) {
+            log.warn("推送 MEMBER_UPDATE 失败: userId={}", userId, e);
+        }
     }
 }

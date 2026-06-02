@@ -1,0 +1,105 @@
+<view class="profile-page">
+  <!-- 未登录 -->
+  <view wx:if="{{!isLoggedIn}}" class="empty-auth">
+    <view class="empty-auth-icon">🔐</view>
+    <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
+    <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可管理个人信息</text>
+    <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
+  </view>
+
+  <!-- 已登录 -->
+  <view wx:else>
+    <!-- 头像 + 昵称 -->
+    <view class="glass-card-glow user-card">
+      <view class="user-card-row">
+        <view class="avatar-ring" bindtap="onChangeAvatar">
+          <view class="auto-avatar-lg" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
+            <text class="auto-avatar-char-lg">{{avatarChar}}</text>
+          </view>
+          <image class="avatar-lg" src="{{avatarUrl}}" wx:else></image>
+        </view>
+        <view class="user-info">
+          <view class="nickname-row">
+            <input class="nickname-input" value="{{nickname}}" bindinput="onNicknameInput" placeholder="输入昵称" maxlength="20" />
+            <view class="btn-shuffle" bindtap="shuffleNickname">
+              <text class="shuffle-icon">🎲</text>
+            </view>
+          </view>
+          <text class="text-tertiary text-xs">点击头像更换 · 骰子随机昵称</text>
+        </view>
+      </view>
+      <button class="btn-primary save-btn" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving}}">保存</button>
+    </view>
+
+    <!-- 设置 -->
+    <view class="glass-card settings-section">
+      <text class="section-title">设置</text>
+      <view class="setting-row">
+        <view class="setting-info">
+          <text class="setting-label">计分语音播报</text>
+          <text class="text-tertiary text-xs">计分后自动语音通知</text>
+        </view>
+        <switch class="setting-switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#4f8cff" />
+      </view>
+      <view class="setting-row" wx:if="{{voiceEnabled}}">
+        <view class="setting-info">
+          <text class="setting-label">播报音色</text>
+        </view>
+        <view class="voice-type-group">
+          <view class="voice-type-btn {{voiceType === 'female' ? 'voice-type-active' : ''}}" bindtap="setVoiceType" data-type="female">
+            <text>女声</text>
+          </view>
+          <view class="voice-type-btn {{voiceType === 'male' ? 'voice-type-active' : ''}}" bindtap="setVoiceType" data-type="male">
+            <text>男声</text>
+          </view>
+        </view>
+      </view>
+      <view class="setting-row">
+        <view class="setting-info">
+          <text class="setting-label">计分动画</text>
+          <text class="text-tertiary text-xs">计分时显示积分飞行动画</text>
+        </view>
+        <switch class="setting-switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#4f8cff" />
+      </view>
+    </view>
+
+    <!-- 历史房间 -->
+    <view class="glass-card history-section">
+      <text class="section-title">历史房间</text>
+      <view wx:if="{{historyRooms.length === 0}}" class="empty-history">
+        <text class="text-tertiary">暂无历史记录</text>
+      </view>
+      <view class="history-list">
+        <view class="history-item" wx:for="{{historyRooms}}" wx:key="roomId">
+          <view class="hi-left">
+            <text class="hi-room-no">{{item.roomNo}}</text>
+            <text class="hi-meta text-tertiary text-xs">底分 {{item.baseScore}} · {{item.memberCount}}人</text>
+          </view>
+          <view class="hi-right">
+            <text class="hi-time text-tertiary text-xs">{{item.createdAtFormatted}}</text>
+            <view class="badge {{item.status === 1 ? 'badge-success' : 'badge-accent'}}">
+              {{item.status === 1 ? '已结束' : '进行中'}}
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 微信授权 -->
+    <view class="glass-card auth-section">
+      <text class="section-title">账号</text>
+      <view class="setting-row">
+        <view class="setting-info">
+          <text class="setting-label">微信授权</text>
+          <text class="text-tertiary text-xs">已授权微信登录</text>
+        </view>
+        <view class="auth-status">
+          <text class="auth-ok">✓</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <button class="btn-logout" bindtap="onLogout">退出登录</button>
+  </view>
+</view>

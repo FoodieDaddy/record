@@ -41,20 +41,4 @@ public class SessionController {
         return Result.ok(sessionService.getSessionsByRoom(roomId, page, size));
     }
 
-    @Operation(summary = "获取场次详情", description = "包含各玩家累计总分")
-    @GetMapping("/{sessionId}")
-    public Result<SessionResp> getSessionDetail(
-            @Parameter(description = "场次 ID") @PathVariable Long sessionId) {
-        return Result.ok(sessionService.getSessionDetail(sessionId));
-    }
-
-    @Operation(summary = "结算场次", description = "标记场次结束，异步将 Redis 数据落库 MySQL")
-    @PostMapping("/{sessionId}/settle")
-    public Result<Void> settleSession(
-            HttpServletRequest request,
-            @Parameter(description = "场次 ID") @PathVariable Long sessionId) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        sessionService.settleSession(userId, sessionId);
-        return Result.ok();
-    }
 }

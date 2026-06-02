@@ -21,6 +21,9 @@ public class Room {
     /** 0-使用中 1-已归档 */
     private Integer status;
 
+    /** 已进行轮数 */
+    private Integer roundCount;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

@@ -2,8 +2,8 @@
   "pages": [
     "pages/login/login",
     "pages/room/room",
-    "pages/session/session",
-    "pages/gallery/gallery"
+    "pages/gallery/gallery",
+    "pages/profile/profile"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",
@@ -29,6 +29,12 @@
         "text": "图库",
         "iconPath": "images/tab-gallery.png",
         "selectedIconPath": "images/tab-gallery-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/tab-profile.png",
+        "selectedIconPath": "images/tab-profile-active.png"
       }
     ]
   },

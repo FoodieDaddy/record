@@ -1,19 +1,70 @@
 <view class="login-page">
-  <!-- 背景渐变 -->
-  <view class="bg-gradient"></view>
+  <!-- 背景装饰层 -->
+  <view class="bg-layer">
+    <view class="bg-glow bg-glow-1"></view>
+    <view class="bg-glow bg-glow-2"></view>
+    <view class="bg-grid"></view>
+    <view class="particle particle-1"></view>
+    <view class="particle particle-2"></view>
+    <view class="particle particle-3"></view>
+    <view class="particle particle-4"></view>
+    <view class="particle particle-5"></view>
+  </view>
 
   <!-- Logo 区域 -->
   <view class="logo-section">
-    <view class="logo-icon">🀄</view>
+    <view class="logo-ring">
+      <view class="logo-icon-wrap">
+        <text class="logo-icon">🀄</text>
+      </view>
+    </view>
     <text class="logo-title">麻将记分器</text>
+    <view class="logo-divider"></view>
     <text class="logo-subtitle text-secondary">极简记分 · 实时同步</text>
+    <view class="feature-tags">
+      <view class="tag">
+        <text class="tag-dot"></text>
+        <text>多人房间</text>
+      </view>
+      <view class="tag">
+        <text class="tag-dot"></text>
+        <text>实时排行</text>
+      </view>
+      <view class="tag">
+        <text class="tag-dot"></text>
+        <text>成绩海报</text>
+      </view>
+    </view>
   </view>
 
   <!-- 登录卡片 -->
-  <view class="glass-card login-card">
-    <button class="btn-primary login-btn" bindtap="onLogin" loading="{{loading}}">
-      微信一键登录
-    </button>
-    <text class="text-tertiary login-tip">授权后即可创建或加入房间</text>
+  <view class="login-card">
+    <view class="card-border-glow"></view>
+    <view class="card-inner">
+      <!-- 预览头像和昵称 -->
+      <view class="preview-section">
+        <view class="preview-avatar" style="background:{{previewColor}};">
+          <text class="preview-char">{{previewChar}}</text>
+        </view>
+        <view class="preview-info">
+          <text class="preview-nickname">{{previewNickname}}</text>
+          <text class="text-tertiary text-xs">将为你自动生成麻将昵称</text>
+        </view>
+        <button class="btn-refresh" bindtap="refreshNickname">
+          <text class="refresh-icon">🎲</text>
+        </button>
+      </view>
+
+      <button class="login-btn" bindtap="onLogin" loading="{{loading}}">
+        <text class="btn-icon">💬</text>
+        <text>微信一键登录</text>
+      </button>
+      <view class="login-footer">
+        <text class="text-tertiary login-tip">授权微信头像昵称，或自动生成</text>
+      </view>
+    </view>
   </view>
+
+  <!-- 底部版本 -->
+  <text class="version-text text-tertiary">v1.0.0</text>
 </view>

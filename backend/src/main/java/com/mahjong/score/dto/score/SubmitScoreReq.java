@@ -13,9 +13,11 @@ import java.util.List;
 @Schema(description = "提交记分请求（一次提交为一轮，包含多个玩家得分）")
 public class SubmitScoreReq {
 
-    @NotNull(message = "sessionId 不能为空")
-    @Schema(description = "场次 ID", example = "1750000000000020")
+    @Schema(description = "场次 ID（与 roomId 二选一）", example = "1750000000000020")
     private Long sessionId;
+
+    @Schema(description = "房间 ID（与 sessionId 二选一，传 roomId 时自动使用当前活跃场次）")
+    private Long roomId;
 
     @NotEmpty(message = "得分列表不能为空")
     @Valid

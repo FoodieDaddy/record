@@ -20,12 +20,12 @@ Page({
     audioEnabled: true,
     // 成员网格
     memberGrid: [],
-    // 转账
+    // 计分目标
     transferTo: '',
     transferToInfo: null,
     showNumpad: false,
     numpadValue: 0,
-    // 转账动画
+    // 计分动画
     animActive: false,
     animCurX: 0,
     animCurY: 0,
@@ -55,7 +55,10 @@ Page({
     // 积分总览弹窗
     showMatrixPanel: false,
     // 积分记录滚动高度（rpx）
-    scoreRecordHeight: 400
+    scoreRecordHeight: 400,
+    // 顶部提示
+    toastMsg: '',
+    toastType: 'success'
   },
 
   onShow() {
@@ -90,15 +93,28 @@ Page({
     if (this._onWsMessage) {
       scoreWS.off('message', this._onWsMessage);
     }
-    // 清理滚动动画定时器
+    // 清理定时器
     if (this._rollTimer) {
       clearTimeout(this._rollTimer);
       this._rollTimer = null;
+    }
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
     }
   },
 
   goLogin() {
     wx.navigateTo({ url: '/pages/login/login' });
+  },
+
+  showToast(msg, type = 'success') {
+    this.setData({ toastMsg: msg, toastType: type });
+    if (this._toastTimer) clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
+      this.setData({ toastMsg: '' });
+      this._toastTimer = null;
+    }, 1500);
   },
 
   calcScoreRecordHeight() {
@@ -485,7 +501,7 @@ Page({
     });
   },
 
-  // ========== 转账（点击成员 → 键盘 → 确认直接提交） ==========
+  // ========== 计分（点击成员 → 键盘 → 确认直接提交） ==========
 
   onTapMember(e) {
     const { userId } = e.currentTarget.dataset;
@@ -531,7 +547,7 @@ Page({
       return;
     }
     if (!this.data.transferTo) {
-      wx.showToast({ title: '请选择收款方', icon: 'none' });
+      wx.showToast({ title: '请选择得分方', icon: 'none' });
       return;
     }
     this.setData({ showNumpad: false });
@@ -561,7 +577,7 @@ Page({
 
     const transferTo = this.data.transferTo;
     if (!transferTo) {
-      wx.showToast({ title: '请选择收款方', icon: 'none' });
+      wx.showToast({ title: '请选择得分方', icon: 'none' });
       return;
     }
 
@@ -583,12 +599,12 @@ Page({
       const toName = this.data.transferToInfo?.nickname || '';
       speakTransfer(fromName, toName, String(amount));
 
-      wx.showToast({ title: '转账成功', icon: 'success' });
+      this.showToast('计分成功');
       this.playTransferAnimation(app.globalData.userId, transferTo, amount);
       this.cancelTransfer();
       this.updateAllData(room.roomId);
     } catch (e) {
-      console.error('转账失败', e);
+      console.error('计分失败', e);
     } finally {
       this.setData({ submitting: false });
     }
@@ -720,7 +736,7 @@ Page({
     return { fontSize, color };
   },
 
-  // ========== 转账动画 ==========
+  // ========== 计分动画 ==========
 
   playTransferAnimation(fromUserId, toUserId, amount) {
     if (!app.globalData.animationEnabled) return;

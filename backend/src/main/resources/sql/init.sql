@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS `room` (
   `owner_id`    BIGINT       NOT NULL COMMENT '房主',
   `base_score`  INT          NOT NULL DEFAULT 1 COMMENT '底分',
   `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0-使用中 1-已归档',
+  `round_count` INT          NOT NULL DEFAULT 0 COMMENT '已进行轮数',
   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -54,25 +55,42 @@ CREATE TABLE IF NOT EXISTS `session` (
 
 CREATE TABLE IF NOT EXISTS `score` (
   `id`          BIGINT   NOT NULL COMMENT '雪花 ID',
-  `session_id`  BIGINT   NOT NULL,
+  `session_id`  BIGINT   NOT NULL DEFAULT 0 COMMENT '兼容旧数据',
   `room_id`     BIGINT   NOT NULL,
+  `round_no`    INT      NOT NULL DEFAULT 1 COMMENT '轮次号',
   `user_id`     BIGINT   NOT NULL,
   `score`       INT      NOT NULL,
   `created_by`  BIGINT   NOT NULL,
   `created_at`  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_session_id` (`session_id`),
+  KEY `idx_room_round` (`room_id`, `round_no`),
   KEY `idx_room_user` (`room_id`, `user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='得分记录表';
 
 CREATE TABLE IF NOT EXISTS `score_image` (
   `id`         BIGINT       NOT NULL COMMENT '雪花 ID',
-  `session_id` BIGINT       NOT NULL,
+  `session_id` BIGINT       NOT NULL DEFAULT 0 COMMENT '兼容旧数据',
   `room_id`    BIGINT       NOT NULL,
+  `round_no`   INT          NOT NULL DEFAULT 1 COMMENT '轮次号',
   `user_id`    BIGINT       NOT NULL,
   `image_url`  VARCHAR(512) NOT NULL,
   `sort_order` TINYINT      NOT NULL DEFAULT 0,
   `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `idx_session_id` (`session_id`)
+  KEY `idx_room_round` (`room_id`, `round_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='得分图片表';
+
+CREATE TABLE IF NOT EXISTS `transfer` (
+  `id`            BIGINT      NOT NULL COMMENT '雪花 ID',
+  `room_id`       BIGINT      NOT NULL,
+  `from_user_id`  BIGINT      NOT NULL COMMENT '转账人',
+  `to_user_id`    BIGINT      NOT NULL COMMENT '收款人',
+  `amount`        INT         NOT NULL COMMENT '金额(分)',
+  `remark`        VARCHAR(100) DEFAULT NULL COMMENT '备注',
+  `status`        TINYINT     NOT NULL DEFAULT 0 COMMENT '0-正常 1-已撤回',
+  `created_at`    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_room_id` (`room_id`),
+  KEY `idx_from_user` (`from_user_id`),
+  KEY `idx_to_user` (`to_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='转账记录表';

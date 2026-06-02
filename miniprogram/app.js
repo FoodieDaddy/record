@@ -1,11 +1,14 @@
 const config = require('./config');
+const scoreWS = require('./utils/score-ws');
 
 App({
   globalData: {
     baseUrl: config.baseUrl,
     token: null,
     userId: null,
-    userInfo: null
+    userInfo: null,
+    audioEnabled: true,
+    animationEnabled: true
   },
 
   onLaunch() {
@@ -14,6 +17,8 @@ App({
       this.globalData.token = token;
       this.globalData.userId = wx.getStorageSync('userId');
     }
+    this.globalData.animationEnabled = wx.getStorageSync('animationEnabled') !== false;
+    this.globalData.audioEnabled = wx.getStorageSync('audioEnabled') !== false;
   },
 
   setLoginInfo(data) {
@@ -27,7 +32,19 @@ App({
     wx.setStorageSync('userId', data.userId);
   },
 
+  /** 连接房间 WebSocket（进入房间时调用） */
+  connectWS(roomId) {
+    scoreWS.connect(roomId);
+  },
+
+  /** 断开 WebSocket（退出登录/退出房间时调用） */
+  disconnectWS() {
+    scoreWS.disconnect();
+  },
+
   logout() {
+    scoreWS.disconnect();
+    scoreWS.clearListeners();
     this.globalData.token = null;
     this.globalData.userId = null;
     this.globalData.userInfo = null;

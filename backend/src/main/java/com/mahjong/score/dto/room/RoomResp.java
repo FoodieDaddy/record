@@ -27,6 +27,12 @@ public class RoomResp {
     @Schema(description = "房间状态：0-使用中 1-已归档", example = "0")
     private Integer status;
 
+    @Schema(description = "当前轮次", example = "1")
+    private Integer roundCount;
+
+    @Schema(description = "当前活跃场次 ID（内部使用）")
+    private Long activeSessionId;
+
     @Schema(description = "专属小程序码 URL")
     private String qrCodeUrl;
 

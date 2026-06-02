@@ -1,7 +1,23 @@
 {
   "description": "此文件包含项目私有配置，请勿提交到版本库",
-  "projectname": "mahjong-score",
+  "projectname": "Record",
   "setting": {
-    "compileHotReLoad": true
-  }
+    "compileHotReLoad": true,
+    "urlCheck": false,
+    "coverView": true,
+    "lazyloadPlaceholderEnable": false,
+    "skylineRenderEnable": false,
+    "preloadBackgroundData": false,
+    "autoAudits": false,
+    "useApiHook": true,
+    "showShadowRootInWxmlPanel": true,
+    "useStaticServer": false,
+    "useLanDebug": false,
+    "showES6CompileOption": false,
+    "checkInvalidKey": true,
+    "ignoreDevUnusedFiles": true,
+    "bigPackageSizeSupport": false
+  },
+  "libVersion": "3.16.1",
+  "condition": {}
 }

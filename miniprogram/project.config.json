@@ -31,7 +31,12 @@
       "disablePlugins": [],
       "outputPath": ""
     },
-    "condition": false
+    "condition": false,
+    "compileWorklet": false,
+    "localPlugins": false,
+    "useCompilerPlugins": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.4.6",
@@ -41,5 +46,6 @@
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }

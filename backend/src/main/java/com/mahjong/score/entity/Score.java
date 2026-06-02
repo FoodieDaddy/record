@@ -16,6 +16,9 @@ public class Score {
 
     private Long roomId;
 
+    /** 轮次号 */
+    private Integer roundNo;
+
     /** 得分玩家 */
     private Long userId;
 

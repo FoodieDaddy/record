@@ -13,7 +13,6 @@ import com.mahjong.score.mapper.RoomMemberMapper;
 import com.mahjong.score.mapper.SessionMapper;
 import com.mahjong.score.mapper.UserMapper;
 import com.mahjong.score.service.SessionService;
-import com.mahjong.score.service.impl.async.ScoreSettleTask;
 import com.mahjong.score.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +37,6 @@ public class SessionServiceImpl implements SessionService {
     private final UserMapper userMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
-    private final ScoreSettleTask scoreSettleTask;
 
     @Override
     @Transactional
@@ -84,28 +82,6 @@ public class SessionServiceImpl implements SessionService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public SessionResp getSessionDetail(Long sessionId) {
-        Session session = sessionMapper.selectById(sessionId);
-        if (session == null) throw new BizException("场次不存在");
-        return buildSessionResp(session);
-    }
-
-    @Override
-    @Transactional
-    public void settleSession(Long userId, Long sessionId) {
-        Session session = sessionMapper.selectById(sessionId);
-        if (session == null) throw new BizException("场次不存在");
-        if (session.getStatus() == 1) throw new BizException("场次已结算");
-
-        // 标记结算
-        session.setStatus(1);
-        session.setSettledAt(LocalDateTime.now());
-        sessionMapper.updateById(session);
-
-        // 异步落库
-        scoreSettleTask.asyncSettle(sessionId);
-    }
 
     private SessionResp buildSessionResp(Session session) {
         Map<Long, Integer> playerTotals = new HashMap<>();

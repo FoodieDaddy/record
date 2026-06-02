@@ -3,17 +3,22 @@ package com.mahjong.score.service.impl;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mahjong.score.common.BizException;
+import com.mahjong.score.common.EmotionType;
 import com.mahjong.score.dto.score.ScoreBatchResp;
+import com.mahjong.score.dto.score.ScoreSubmitResp;
 import com.mahjong.score.dto.score.SessionScoreResp;
 import com.mahjong.score.dto.score.SubmitScoreReq;
+import com.mahjong.score.entity.Room;
 import com.mahjong.score.entity.RoomMember;
 import com.mahjong.score.entity.ScoreImage;
 import com.mahjong.score.entity.Session;
 import com.mahjong.score.entity.User;
+import com.mahjong.score.mapper.RoomMapper;
 import com.mahjong.score.mapper.RoomMemberMapper;
 import com.mahjong.score.mapper.ScoreImageMapper;
 import com.mahjong.score.mapper.SessionMapper;
 import com.mahjong.score.mapper.UserMapper;
+import com.mahjong.score.service.EmotionAudioPool;
 import com.mahjong.score.service.ScoreService;
 import com.mahjong.score.service.impl.ws.ScoreWebSocket;
 import com.mahjong.score.util.SnowflakeIdGenerator;
@@ -38,6 +43,7 @@ import java.util.stream.Collectors;
 public class ScoreServiceImpl implements ScoreService {
 
     private final SessionMapper sessionMapper;
+    private final RoomMapper roomMapper;
     private final UserMapper userMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final ScoreImageMapper scoreImageMapper;
@@ -45,12 +51,21 @@ public class ScoreServiceImpl implements ScoreService {
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
     private final ScoreWebSocket scoreWebSocket;
+    private final EmotionAudioPool emotionAudioPool;
 
     private static final String SESSION_PREFIX = "mj:session:";
 
     @Override
-    public void submitScore(Long userId, SubmitScoreReq req) {
-        Session session = sessionMapper.selectById(req.getSessionId());
+    public ScoreSubmitResp submitScore(Long userId, SubmitScoreReq req) {
+        // 支持 sessionId 或 roomId（二选一）
+        Session session;
+        if (req.getSessionId() != null) {
+            session = sessionMapper.selectById(req.getSessionId());
+        } else if (req.getRoomId() != null) {
+            session = getActiveSession(req.getRoomId());
+        } else {
+            throw new BizException("sessionId 或 roomId 不能为空");
+        }
         if (session == null || session.getStatus() != 0) {
             throw new BizException("场次不存在或已结算");
         }
@@ -61,6 +76,15 @@ public class ScoreServiceImpl implements ScoreService {
                         .eq(RoomMember::getRoomId, session.getRoomId())
                         .eq(RoomMember::getUserId, userId));
         if (submitter == null) throw new BizException("您不是该房间成员");
+
+        // 提交者本人的分数变动（用于情绪音频）
+        int submitterScoreChange = 0;
+        for (SubmitScoreReq.PlayerScore ps : req.getScores()) {
+            if (ps.getUserId().equals(userId)) {
+                submitterScoreChange = ps.getScore();
+                break;
+            }
+        }
 
         // Redisson 分布式锁
         String lockKey = SESSION_PREFIX + session.getId() + ":lock";
@@ -100,13 +124,39 @@ public class ScoreServiceImpl implements ScoreService {
             session.setScoreCount(session.getScoreCount() + 1);
             sessionMapper.updateById(session);
 
-            // 6. WebSocket 推送给房间内所有玩家
+            // 6. 为每个玩家生成情绪音频 URL
+            List<Map<String, Object>> scoreWithEmotion = new ArrayList<>();
+            for (SubmitScoreReq.PlayerScore ps : req.getScores()) {
+                Map<String, Object> entry = new HashMap<>();
+                entry.put("userId", ps.getUserId());
+                entry.put("score", ps.getScore());
+                EmotionType playerEmotion = ps.getScore() > 0 ? EmotionType.WIN
+                        : ps.getScore() < 0 ? EmotionType.LOSE : null;
+                if (playerEmotion != null) {
+                    entry.put("emotionAudioUrl", emotionAudioPool.randomUrl(playerEmotion));
+                }
+                scoreWithEmotion.add(entry);
+            }
+
+            // 7. WebSocket 推送给房间内所有玩家（含情绪音频）
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "SCORE_UPDATE");
             pushData.put("sessionId", session.getId());
             pushData.put("batchTime", batchTs);
-            pushData.put("scores", req.getScores());
+            pushData.put("scores", scoreWithEmotion);
             scoreWebSocket.pushToRoom(String.valueOf(session.getRoomId()), pushData);
+
+            // 8. 为提交者返回情绪音频
+            String submitterAudioUrl = null;
+            if (submitterScoreChange > 0) {
+                submitterAudioUrl = emotionAudioPool.randomUrl(EmotionType.WIN);
+            } else if (submitterScoreChange < 0) {
+                submitterAudioUrl = emotionAudioPool.randomUrl(EmotionType.LOSE);
+            }
+
+            return ScoreSubmitResp.builder()
+                    .emotionAudioUrl(submitterAudioUrl)
+                    .build();
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -144,13 +194,11 @@ public class ScoreServiceImpl implements ScoreService {
                 .build();
     }
 
-    @Override
-    public List<ScoreBatchResp> getRecentScores(Long sessionId, Integer count) {
+    private List<ScoreBatchResp> getRecentScores(Long sessionId, Integer count) {
         return getBatchesFromRedis(sessionId, count);
     }
 
-    @Override
-    public List<ScoreBatchResp.PlayerScoreVO> getRanking(Long sessionId) {
+    private List<ScoreBatchResp.PlayerScoreVO> getRanking(Long sessionId) {
         Session session = sessionMapper.selectById(sessionId);
         if (session == null) throw new BizException("场次不存在");
 
@@ -163,8 +211,9 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 查询用户信息
         Set<Long> userIds = totals.keySet();
-        Map<Long, User> userMap = userMapper.selectBatchIds(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<Long, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
+                : userMapper.selectBatchIds(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
 
         return totals.entrySet().stream()
                 .sorted(Map.Entry.<Long, Integer>comparingByValue().reversed())
@@ -224,8 +273,9 @@ public class ScoreServiceImpl implements ScoreService {
             for (Object v : entries.keySet()) {
                 uids.add(Long.parseLong(v.toString()));
             }
-            Map<Long, User> userMap = userMapper.selectBatchIds(uids).stream()
-                    .collect(Collectors.toMap(User::getId, u -> u));
+            Map<Long, User> userMap = uids.isEmpty() ? Collections.emptyMap()
+                    : userMapper.selectBatchIds(uids).stream()
+                            .collect(Collectors.toMap(User::getId, u -> u));
 
             for (Map.Entry<Object, Object> e : entries.entrySet()) {
                 Long uid = Long.parseLong(e.getKey().toString());
@@ -259,8 +309,9 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 查询用户信息
         Set<Long> allUserIds = scores.stream().map(com.mahjong.score.entity.Score::getUserId).collect(Collectors.toSet());
-        Map<Long, User> userMap = userMapper.selectBatchIds(allUserIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<Long, User> userMap = allUserIds.isEmpty() ? Collections.emptyMap()
+                : userMapper.selectBatchIds(allUserIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
 
         // 查询图片
         List<ScoreImage> images = scoreImageMapper.selectList(
@@ -290,5 +341,64 @@ public class ScoreServiceImpl implements ScoreService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    // ===== 房间级接口 =====
+
+    @Override
+    public List<ScoreBatchResp.PlayerScoreVO> getRoomRanking(Long roomId) {
+        Session session = getActiveSession(roomId);
+        return getRanking(session.getId());
+    }
+
+    @Override
+    public List<ScoreBatchResp> getRoomRecentScores(Long roomId, Integer count) {
+        Session session = getActiveSession(roomId);
+        return getRecentScores(session.getId(), count);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void settleRoom(Long userId, Long roomId) {
+        Room room = roomMapper.selectById(roomId);
+        if (room == null) throw new BizException("房间不存在");
+        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可结束本轮");
+
+        Session session = getActiveSession(roomId);
+
+        // 结算当前场次
+        session.setStatus(1);
+        session.setSettledAt(LocalDateTime.now());
+        sessionMapper.updateById(session);
+
+        // 房间轮次+1
+        room.setRoundCount(room.getRoundCount() + 1);
+        roomMapper.updateById(room);
+
+        // 创建新一轮场次
+        Session newSession = new Session();
+        newSession.setId(idGenerator.nextId());
+        newSession.setRoomId(roomId);
+        newSession.setSessionNo(room.getRoundCount());
+        newSession.setTitle("第" + room.getRoundCount() + "轮");
+        newSession.setStatus(0);
+        newSession.setScoreCount(0);
+        newSession.setCreatedBy(userId);
+        sessionMapper.insert(newSession);
+
+        // 初始化新场次 Redis
+        String sessionPrefix = SESSION_PREFIX + newSession.getId() + ":";
+        redisTemplate.opsForZSet().add(sessionPrefix + "scores", "init", 0);
+        redisTemplate.expire(sessionPrefix + "scores", 24, TimeUnit.HOURS);
+    }
+
+    private Session getActiveSession(Long roomId) {
+        Session session = sessionMapper.selectOne(
+                new LambdaQueryWrapper<Session>()
+                        .eq(Session::getRoomId, roomId)
+                        .eq(Session::getStatus, 0)
+                        .last("LIMIT 1"));
+        if (session == null) throw new BizException("当前没有进行中的轮次");
+        return session;
     }
 }

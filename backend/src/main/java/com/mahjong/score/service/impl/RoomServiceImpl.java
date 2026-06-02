@@ -11,9 +11,11 @@ import com.mahjong.score.dto.room.JoinRoomReq;
 import com.mahjong.score.dto.room.RoomResp;
 import com.mahjong.score.entity.Room;
 import com.mahjong.score.entity.RoomMember;
+import com.mahjong.score.entity.Session;
 import com.mahjong.score.entity.User;
 import com.mahjong.score.mapper.RoomMapper;
 import com.mahjong.score.mapper.RoomMemberMapper;
+import com.mahjong.score.mapper.SessionMapper;
 import com.mahjong.score.mapper.UserMapper;
 import com.mahjong.score.service.RoomService;
 import com.mahjong.score.util.JwtUtil;
@@ -40,6 +42,7 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
+    private final SessionMapper sessionMapper;
     private final UserMapper userMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
@@ -69,7 +72,19 @@ public class RoomServiceImpl implements RoomService {
         room.setOwnerId(userId);
         room.setBaseScore(req.getBaseScore());
         room.setStatus(0);
+        room.setRoundCount(1);
         roomMapper.insert(room);
+
+        // 自动创建第一轮场次
+        Session session = new Session();
+        session.setId(idGenerator.nextId());
+        session.setRoomId(room.getId());
+        session.setSessionNo(1);
+        session.setTitle("第1轮");
+        session.setStatus(0);
+        session.setScoreCount(0);
+        session.setCreatedBy(userId);
+        sessionMapper.insert(session);
 
         // 3. 房主自动加入（座位 1）
         RoomMember member = new RoomMember();
@@ -145,6 +160,7 @@ public class RoomServiceImpl implements RoomService {
 
         // 6. 更新 Redis
         User user = userMapper.selectById(userId);
+        if (user == null) throw new BizException("用户不存在，请重新登录");
         String memberJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", user.getNickname(),
@@ -262,6 +278,7 @@ public class RoomServiceImpl implements RoomService {
 
     private void initRoomRedis(Room room, Long ownerId) {
         User owner = userMapper.selectById(ownerId);
+        if (owner == null) throw new BizException("用户不存在，请重新登录");
         String roomId = String.valueOf(room.getId());
 
         // 房间信息
@@ -347,12 +364,21 @@ public class RoomServiceImpl implements RoomService {
                     .build();
         }).collect(Collectors.toList());
 
+        // 查找当前活跃场次
+        Session activeSession = sessionMapper.selectOne(
+                new LambdaQueryWrapper<Session>()
+                        .eq(Session::getRoomId, room.getId())
+                        .eq(Session::getStatus, 0)
+                        .last("LIMIT 1"));
+
         return RoomResp.builder()
                 .roomId(room.getId())
                 .roomNo(room.getRoomNo())
                 .ownerId(room.getOwnerId())
                 .baseScore(room.getBaseScore())
                 .status(room.getStatus())
+                .roundCount(room.getRoundCount())
+                .activeSessionId(activeSession != null ? activeSession.getId() : null)
                 .qrCodeUrl(qrCodeUrl)
                 .members(memberVOs)
                 .createdAt(room.getCreatedAt())

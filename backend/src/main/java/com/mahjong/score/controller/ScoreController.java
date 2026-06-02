@@ -2,6 +2,7 @@ package com.mahjong.score.controller;
 
 import com.mahjong.score.common.Result;
 import com.mahjong.score.dto.score.ScoreBatchResp;
+import com.mahjong.score.dto.score.ScoreSubmitResp;
 import com.mahjong.score.dto.score.SessionScoreResp;
 import com.mahjong.score.dto.score.SubmitScoreReq;
 import com.mahjong.score.service.ScoreService;
@@ -28,12 +29,11 @@ public class ScoreController {
             description = "一次提交为一轮，包含多个玩家得分和可选图片。同一秒内提交的记录视为同一批次。使用 Redisson 分布式锁防并发"
     )
     @PostMapping
-    public Result<Void> submitScore(
+    public Result<ScoreSubmitResp> submitScore(
             HttpServletRequest request,
             @Valid @RequestBody SubmitScoreReq req) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        scoreService.submitScore(userId, req);
-        return Result.ok();
+        return Result.ok(scoreService.submitScore(userId, req));
     }
 
     @Operation(
@@ -46,24 +46,31 @@ public class ScoreController {
         return Result.ok(scoreService.getSessionScores(sessionId));
     }
 
-    @Operation(
-            summary = "获取最新几轮流水",
-            description = "用于房间内实时展示最近的记分动态，从 Redis 读取"
-    )
-    @GetMapping("/session/{sessionId}/recent")
-    public Result<List<ScoreBatchResp>> getRecentScores(
-            @Parameter(description = "场次 ID") @PathVariable Long sessionId,
-            @Parameter(description = "获取最近 N 轮") @RequestParam(defaultValue = "5") Integer count) {
-        return Result.ok(scoreService.getRecentScores(sessionId, count));
+
+    // ===== 房间级接口（前端使用这些） =====
+
+    @Operation(summary = "获取房间当前轮排行榜")
+    @GetMapping("/room/{roomId}/ranking")
+    public Result<List<ScoreBatchResp.PlayerScoreVO>> getRoomRanking(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        return Result.ok(scoreService.getRoomRanking(roomId));
     }
 
-    @Operation(
-            summary = "获取场次排行榜",
-            description = "各玩家累计总分排名。进行中场次从 Redis Sorted Set 读取，已结算场次从 MySQL 聚合"
-    )
-    @GetMapping("/session/{sessionId}/ranking")
-    public Result<List<ScoreBatchResp.PlayerScoreVO>> getRanking(
-            @Parameter(description = "场次 ID") @PathVariable Long sessionId) {
-        return Result.ok(scoreService.getRanking(sessionId));
+    @Operation(summary = "获取房间最近几轮流水")
+    @GetMapping("/room/{roomId}/recent")
+    public Result<List<ScoreBatchResp>> getRoomRecentScores(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId,
+            @Parameter(description = "获取最近 N 轮") @RequestParam(defaultValue = "10") Integer count) {
+        return Result.ok(scoreService.getRoomRecentScores(roomId, count));
+    }
+
+    @Operation(summary = "结束当前轮", description = "房主操作，结算当前轮并自动开启新一轮")
+    @PostMapping("/room/{roomId}/settle")
+    public Result<Void> settleRoom(
+            HttpServletRequest request,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        scoreService.settleRoom(userId, roomId);
+        return Result.ok();
     }
 }

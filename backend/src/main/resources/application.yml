@@ -59,3 +59,14 @@ app:
 wechat:
   appid: wx9d93ece2b67f812b
   secret: 5bcbb76c58c59b466acc90a86e4864c6
+
+emotion:
+  audio:
+    win-urls:
+      - http://localhost:19000/mahjong-score/emotion/win_01.mp3
+      - http://localhost:19000/mahjong-score/emotion/win_02.mp3
+      - http://localhost:19000/mahjong-score/emotion/win_03.mp3
+    lose-urls:
+      - http://localhost:19000/mahjong-score/emotion/lose_01.mp3
+      - http://localhost:19000/mahjong-score/emotion/lose_02.mp3
+      - http://localhost:19000/mahjong-score/emotion/lose_03.mp3

@@ -1,0 +1,153 @@
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-body {
+  width: 620rpx;
+  background: #1a1a1a;
+  border-radius: 28rpx;
+  padding: 40rpx 36rpx;
+  border: 1rpx solid rgba(255,255,255,0.1);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(40rpx); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 得分方 */
+.target-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 32rpx;
+}
+
+.target-avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4rpx;
+}
+
+.target-char {
+  font-size: 40rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+.target-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* 金额 */
+.amount-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid rgba(255,255,255,0.08);
+}
+
+.amount-prefix {
+  font-size: 48rpx;
+  font-weight: 300;
+  color: rgba(255,255,255,0.5);
+  margin-right: 8rpx;
+}
+
+.amount-input {
+  font-size: 64rpx;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  width: 400rpx;
+  background: transparent;
+}
+
+/* 快捷金额 */
+.quick-amounts {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  justify-content: center;
+}
+
+.quick-btn {
+  padding: 10rpx 24rpx;
+  background: rgba(255,255,255,0.06);
+  border: 1rpx solid rgba(255,255,255,0.1);
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.7);
+}
+.quick-btn:active {
+  background: rgba(79, 140, 255, 0.15);
+  color: #4f8cff;
+}
+
+/* 备注 */
+.remark-input {
+  background: rgba(255,255,255,0.04);
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  color: #fff;
+  margin-bottom: 32rpx;
+}
+
+/* 按钮 */
+.modal-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.btn-cancel {
+  flex: 1;
+  height: 84rpx;
+  line-height: 84rpx;
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.6);
+  border: 1rpx solid rgba(255,255,255,0.1);
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.btn-confirm {
+  flex: 1.5;
+  height: 84rpx;
+  line-height: 84rpx;
+  background: linear-gradient(135deg, #5a9bff, #3d7aed);
+  color: #fff;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  text-align: center;
+}
+.btn-confirm[disabled] {
+  background: rgba(79, 140, 255, 0.25);
+  color: rgba(255,255,255,0.35);
+}

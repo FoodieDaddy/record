@@ -11,7 +11,4 @@ public interface SessionService {
 
     List<SessionResp> getSessionsByRoom(Long roomId, Integer page, Integer size);
 
-    SessionResp getSessionDetail(Long sessionId);
-
-    void settleSession(Long userId, Long sessionId);
 }
