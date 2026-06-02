@@ -720,10 +720,15 @@ Page({
   playTransferAnimation(fromUserId, toUserId, amount) {
     if (!app.globalData.animationEnabled) return;
 
-    // 快照动画前的分数，用于滚动动画
+    // 快照动画前的分数，用于滚动动画（必须在 updateAllData 之前）
+    const grid = this.data.memberGrid;
+    const fromMember = grid.find(m => m.userId === fromUserId);
+    const toMember = grid.find(m => m.userId === toUserId);
     this._rollFromUserId = fromUserId;
     this._rollToUserId = toUserId;
     this._rollAmount = amount;
+    this._rollOldFromScore = fromMember ? fromMember.displayScore : 0;
+    this._rollOldToScore = toMember ? toMember.displayScore : 0;
 
     wx.createSelectorQuery()
       .selectAll('.mg-cell')
@@ -843,8 +848,9 @@ Page({
     const toIdx = grid.findIndex(m => m.userId === toUserId);
     if (fromIdx < 0 || toIdx < 0) return;
 
-    const fromOld = grid[fromIdx].displayScore;
-    const toOld = grid[toIdx].displayScore;
+    // 使用快照的旧分数（在 playTransferAnimation 开头保存）
+    const fromOld = this._rollOldFromScore;
+    const toOld = this._rollOldToScore;
     const fromNew = grid[fromIdx].score;
     const toNew = grid[toIdx].score;
 
