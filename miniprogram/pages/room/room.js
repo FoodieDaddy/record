@@ -90,6 +90,12 @@ Page({
     if (this._onWsMessage) {
       scoreWS.off('message', this._onWsMessage);
     }
+    // 清理滚动动画定时器
+    if (this._rollTimer) {
+      clearTimeout(this._rollTimer);
+      this._rollTimer = null;
+    }
+    this._animPlaying = false;
   },
 
   goLogin() {
@@ -719,6 +725,9 @@ Page({
 
   playTransferAnimation(fromUserId, toUserId, amount) {
     if (!app.globalData.animationEnabled) return;
+    // 防止重复触发（本地转账 + WS 回声）
+    if (this._animPlaying) return;
+    this._animPlaying = true;
 
     // 快照动画前的分数，用于滚动动画（必须在 updateAllData 之前）
     const grid = this.data.memberGrid;
@@ -729,6 +738,14 @@ Page({
     this._rollAmount = amount;
     this._rollOldFromScore = fromMember ? fromMember.displayScore : 0;
     this._rollOldToScore = toMember ? toMember.displayScore : 0;
+
+    // 立即标记动画中，防止 buildMemberGrid 在粒子动画期间覆盖 displayScore
+    const markAnim = {};
+    const fromIdx = grid.findIndex(m => m.userId === fromUserId);
+    const toIdx = grid.findIndex(m => m.userId === toUserId);
+    if (fromIdx >= 0) markAnim[`memberGrid[${fromIdx}]._animating`] = true;
+    if (toIdx >= 0) markAnim[`memberGrid[${toIdx}]._animating`] = true;
+    if (fromIdx >= 0 || toIdx >= 0) this.setData(markAnim);
 
     wx.createSelectorQuery()
       .selectAll('.mg-cell')
@@ -846,7 +863,7 @@ Page({
     const grid = this.data.memberGrid;
     const fromIdx = grid.findIndex(m => m.userId === fromUserId);
     const toIdx = grid.findIndex(m => m.userId === toUserId);
-    if (fromIdx < 0 || toIdx < 0) return;
+    if (fromIdx < 0 || toIdx < 0) { this._animPlaying = false; return; }
 
     // 使用快照的旧分数（在 playTransferAnimation 开头保存）
     const fromOld = this._rollOldFromScore;
@@ -855,7 +872,7 @@ Page({
     const toNew = grid[toIdx].score;
 
     // 分数没有变化，跳过
-    if (fromOld === fromNew && toOld === toNew) return;
+    if (fromOld === fromNew && toOld === toNew) { this._animPlaying = false; return; }
 
     // 非动画模式，直接设置最终值
     if (!app.globalData.animationEnabled) {
@@ -863,10 +880,9 @@ Page({
       updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
       updates[`memberGrid[${toIdx}].displayScore`] = toNew;
       this.setData(updates);
+      this._animPlaying = false;
       return;
     }
-
-    // 标记动画中
     const markAnim = {};
     markAnim[`memberGrid[${fromIdx}]._animating`] = true;
     markAnim[`memberGrid[${toIdx}]._animating`] = true;
@@ -897,6 +913,7 @@ Page({
         finalUpdates[`memberGrid[${toIdx}]._animating`] = false;
         this.setData(finalUpdates);
         this._rollTimer = null;
+        this._animPlaying = false;
       }
     };
 
