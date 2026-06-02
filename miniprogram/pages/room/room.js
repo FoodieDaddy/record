@@ -169,19 +169,16 @@ Page({
     const rankingMap = {};
     this.data.ranking.forEach(r => { rankingMap[r.userId] = r.score || 0; });
     const scores = room.members.map(m => rankingMap[m.userId] || 0);
-    const oldGrid = this.data.memberGrid || [];
-    const oldMap = {};
-    oldGrid.forEach(item => { oldMap[item.userId] = item; });
+    // 使用页面级 map 判断动画状态（setData 异步，item 级 _animating 可能未生效）
+    const animMap = this._animatingScores || {};
     const grid = room.members.map((m, i) => {
       const score = scores[i];
       const style = this.getScoreStyle(score);
-      const old = oldMap[m.userId];
-      const animating = old ? old._animating : false;
+      const isAnimating = m.userId in animMap;
       return {
         ...m,
         score,
-        displayScore: animating ? old.displayScore : score,
-        _animating: animating,
+        displayScore: isAnimating ? animMap[m.userId] : score,
         scoreFontSize: style.fontSize,
         scoreColor: style.color
       };
@@ -395,6 +392,16 @@ Page({
     if (data.type === 'SCORE_UPDATE' || data.type === 'MEMBER_UPDATE' || data.type === 'TRANSFER') {
       if (data.type === 'TRANSFER' && data.fromUserId && data.toUserId && data.amount) {
         this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount);
+        // 收分方语音播报
+        const myId = String(app.globalData.userId);
+        if (String(data.toUserId) === myId && app.globalData.audioEnabled) {
+          const members = this.data.currentRoom.members || [];
+          const fromMember = members.find(m => String(m.userId) === String(data.fromUserId));
+          const toMember = members.find(m => String(m.userId) === myId);
+          const fromName = fromMember ? fromMember.nickname : '未知';
+          const toName = toMember ? toMember.nickname : '我';
+          speakTransfer(fromName, toName, String(data.amount));
+        }
       }
       this.updateAllData(roomId);
 
@@ -594,11 +601,6 @@ Page({
         await this.uploadImages(room.roomId);
       }
 
-      // 发起者听到 TTS 语音播报
-      const fromName = app.globalData.userInfo?.nickname || '我';
-      const toName = this.data.transferToInfo?.nickname || '';
-      speakTransfer(fromName, toName, String(amount));
-
       this.showToast('计分成功');
       this.playTransferAnimation(app.globalData.userId, transferTo, amount);
       this.cancelTransfer();
@@ -748,16 +750,15 @@ Page({
     this._rollFromUserId = fromUserId;
     this._rollToUserId = toUserId;
     this._rollAmount = amount;
-    this._rollOldFromScore = fromMember ? fromMember.displayScore : 0;
-    this._rollOldToScore = toMember ? toMember.displayScore : 0;
+    const oldFromScore = fromMember ? fromMember.displayScore : 0;
+    const oldToScore = toMember ? toMember.displayScore : 0;
+    this._rollOldFromScore = oldFromScore;
+    this._rollOldToScore = oldToScore;
 
-    // 立即标记动画中，防止 buildMemberGrid 在粒子动画期间覆盖 displayScore
-    const markAnim = {};
-    const fromIdx = grid.findIndex(m => m.userId === fromUserId);
-    const toIdx = grid.findIndex(m => m.userId === toUserId);
-    if (fromIdx >= 0) markAnim[`memberGrid[${fromIdx}]._animating`] = true;
-    if (toIdx >= 0) markAnim[`memberGrid[${toIdx}]._animating`] = true;
-    if (fromIdx >= 0 || toIdx >= 0) this.setData(markAnim);
+    // 立即标记动画中（页面级 map，不依赖 setData 异步更新）
+    this._animatingScores = {};
+    this._animatingScores[fromUserId] = oldFromScore;
+    this._animatingScores[toUserId] = oldToScore;
 
     wx.createSelectorQuery()
       .selectAll('.mg-cell')
@@ -884,7 +885,10 @@ Page({
     const toNew = grid[toIdx].score;
 
     // 分数没有变化，跳过
-    if (fromOld === fromNew && toOld === toNew) return;
+    if (fromOld === fromNew && toOld === toNew) {
+      this._animatingScores = {};
+      return;
+    }
 
     // 非动画模式，直接设置最终值
     if (!app.globalData.animationEnabled) {
@@ -892,12 +896,9 @@ Page({
       updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
       updates[`memberGrid[${toIdx}].displayScore`] = toNew;
       this.setData(updates);
+      this._animatingScores = {};
       return;
     }
-    const markAnim = {};
-    markAnim[`memberGrid[${fromIdx}]._animating`] = true;
-    markAnim[`memberGrid[${toIdx}]._animating`] = true;
-    this.setData(markAnim);
 
     const duration = 600;
     const startTime = Date.now();
@@ -916,14 +917,13 @@ Page({
       if (t < 1) {
         this._rollTimer = setTimeout(animate, 16);
       } else {
-        // 动画结束：确保最终值精确，清除标记
+        // 动画结束：确保最终值精确
         const finalUpdates = {};
         finalUpdates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-        finalUpdates[`memberGrid[${fromIdx}]._animating`] = false;
         finalUpdates[`memberGrid[${toIdx}].displayScore`] = toNew;
-        finalUpdates[`memberGrid[${toIdx}]._animating`] = false;
         this.setData(finalUpdates);
         this._rollTimer = null;
+        this._animatingScores = {};
       }
     };
 

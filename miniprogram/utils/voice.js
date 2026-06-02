@@ -57,7 +57,7 @@ function _speakOnce(text, onDone) {
  * @param {string} amount 分数
  */
 function speakTransfer(fromName, toName, amount) {
-  const text = `${fromName} 向 ${toName} 计 ${amount} 分`;
+  const text = `${toName} 收到 ${fromName} 的 ${amount} 分`;
   _queue.push(text);
   if (!_speaking) _dequeue();
 }
