@@ -751,12 +751,20 @@ Page({
       .selectAll('.mg-cell')
       .boundingClientRect()
       .exec((res) => {
-        if (!res || !res[0]) return;
+        if (!res || !res[0]) { this._animPlaying = false; return; }
         const rects = res[0];
         const members = this.data.memberGrid;
         const fromIdx = members.findIndex(m => m.userId === fromUserId);
         const toIdx = members.findIndex(m => m.userId === toUserId);
-        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) return;
+        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) {
+          this._animPlaying = false;
+          // 清除 _animating 标记防止 buildMemberGrid 卡住
+          const fix = {};
+          if (fromIdx >= 0) fix[`memberGrid[${fromIdx}]._animating`] = false;
+          if (toIdx >= 0) fix[`memberGrid[${toIdx}]._animating`] = false;
+          if (Object.keys(fix).length > 0) this.setData(fix);
+          return;
+        }
 
         const fromRect = rects[fromIdx];
         const toRect = rects[toIdx];
