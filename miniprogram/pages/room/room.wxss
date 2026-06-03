@@ -56,7 +56,36 @@
 
 .create-card,
 .join-card {
-  padding: 36rpx 32rpx;
+  padding: 36rpx 32rpx 40rpx;
+}
+
+/* 主按钮：深邃蓝 + 悬浮光晕 */
+.create-card .btn-primary,
+.join-card .btn-primary {
+  background: #0A84FF;
+  background: linear-gradient(135deg, #0A84FF, #0066CC);
+  box-shadow: 0 8rpx 20rpx rgba(10, 132, 255, 0.2);
+  letter-spacing: 2rpx;
+  border-radius: 20rpx;
+}
+
+.create-card .btn-primary:active,
+.join-card .btn-primary:active {
+  box-shadow: 0 4rpx 12rpx rgba(10, 132, 255, 0.15);
+  transform: scale(0.98);
+}
+
+/* 加入按钮：未满 6 位 → 禁用态 */
+.join-card .btn-join-disabled {
+  background: rgba(10, 132, 255, 0.2);
+  box-shadow: none;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* 加入按钮：满 6 位 → 就绪态（更亮） */
+.join-card .btn-join-ready {
+  background: linear-gradient(135deg, #0A84FF, #0066CC);
+  box-shadow: 0 8rpx 24rpx rgba(10, 132, 255, 0.3);
 }
 
 .card-header {
@@ -125,7 +154,7 @@
 /* 加入房间头部行 */
 .join-header-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
 }
 
@@ -146,6 +175,339 @@
   font-size: 22rpx;
   color: var(--accent);
   font-weight: 500;
+}
+
+/* ===== 记分规则选择器 ===== */
+.mode-selector {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 28rpx;
+}
+
+.mode-card {
+  flex: 1;
+  position: relative;
+  padding: 28rpx 24rpx 24rpx;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1rpx solid rgba(255, 255, 255, 0.06);
+  border-radius: 20rpx;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.mode-card-active {
+  border-color: rgba(79, 140, 255, 0.4);
+  background: rgba(79, 140, 255, 0.08);
+  box-shadow: 0 0 40rpx rgba(79, 140, 255, 0.1), inset 0 0 20rpx rgba(79, 140, 255, 0.03);
+  transform: scale(1) translateY(-4rpx);
+}
+
+.mode-card-inactive {
+  opacity: 1;
+  transform: scale(0.97) translateY(4rpx);
+}
+
+.mode-card-inactive:active {
+  transform: scale(0.98) translateY(2rpx);
+}
+
+.mode-card-inactive .mode-card-title {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.mode-card-inactive .mode-card-desc {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.mode-card-inactive .mode-icon-wrap {
+  opacity: 0.3;
+}
+
+.mode-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.mode-card-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8rpx;
+  letter-spacing: 1rpx;
+}
+
+.mode-card-desc {
+  display: block;
+  font-size: 20rpx;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+}
+
+.mode-check {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 模式图标：自由流转（双向箭头） */
+.mode-icon-free {
+  position: relative;
+  width: 60rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-arrow {
+  position: absolute;
+  font-size: 24rpx;
+  color: var(--accent);
+  font-weight: 300;
+  line-height: 1;
+}
+
+.icon-arrow-left {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.icon-arrow-right {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.icon-node-center {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: var(--accent);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 模式图标：赢家统录（发散节点） */
+.mode-icon-winner {
+  position: relative;
+  width: 60rpx;
+  height: 56rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.icon-node-top {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: var(--accent);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.icon-line {
+  position: absolute;
+  width: 1rpx;
+  height: 20rpx;
+  background: rgba(79, 140, 255, 0.4);
+  top: 16rpx;
+}
+
+.icon-line-left {
+  left: 10rpx;
+  transform: rotate(-20deg);
+  transform-origin: top center;
+}
+
+.icon-line-center {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.icon-line-right {
+  right: 10rpx;
+  transform: rotate(20deg);
+  transform-origin: top center;
+}
+
+.icon-bottom-row {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  gap: 14rpx;
+}
+
+.icon-node-sm {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(79, 140, 255, 0.5);
+}
+
+/* ===== 扫码按钮（内联图标） ===== */
+.scan-btn-inline {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 20rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 28rpx;
+  transition: all 0.2s ease;
+}
+
+.scan-btn-inline:active {
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(0.95);
+}
+
+.scan-icon-svg {
+  width: 32rpx;
+  height: 32rpx;
+  position: relative;
+}
+
+.scan-corner {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-color: var(--accent);
+  border-style: solid;
+  border-width: 0;
+}
+
+.scan-corner-tl {
+  top: 0; left: 0;
+  border-top-width: 2rpx;
+  border-left-width: 2rpx;
+}
+
+.scan-corner-tr {
+  top: 0; right: 0;
+  border-top-width: 2rpx;
+  border-right-width: 2rpx;
+}
+
+.scan-corner-bl {
+  bottom: 0; left: 0;
+  border-bottom-width: 2rpx;
+  border-left-width: 2rpx;
+}
+
+.scan-corner-br {
+  bottom: 0; right: 0;
+  border-bottom-width: 2rpx;
+  border-right-width: 2rpx;
+}
+
+.scan-line {
+  position: absolute;
+  top: 50%;
+  left: 4rpx;
+  right: 4rpx;
+  height: 1rpx;
+  background: var(--accent);
+  transform: translateY(-50%);
+  opacity: 0.6;
+}
+
+.scan-label {
+  font-size: 22rpx;
+  color: var(--accent);
+  font-weight: 500;
+  letter-spacing: 1rpx;
+}
+
+/* ===== 6 格 OTP 输入 ===== */
+.otp-container {
+  display: flex;
+  gap: 16rpx;
+  justify-content: center;
+  margin: 24rpx 0 8rpx;
+}
+
+.otp-box {
+  width: 80rpx;
+  height: 92rpx;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.otp-box-focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 24rpx rgba(79, 140, 255, 0.15);
+  background: rgba(79, 140, 255, 0.05);
+  transform: scale(1.05);
+}
+
+.otp-box-filled {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.otp-char {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0;
+  font-family: "SF Pro Display", -apple-system, monospace;
+}
+
+.otp-cursor {
+  width: 2rpx;
+  height: 32rpx;
+  background: var(--accent);
+  border-radius: 1rpx;
+  animation: cursorBlink 1s ease-in-out infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.otp-hidden-input {
+  position: absolute;
+  left: -9999rpx;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
 }
 
 /* ===== 已有房间快捷入口 ===== */

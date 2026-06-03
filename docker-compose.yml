@@ -1,46 +1,26 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
-    container_name: mj-mysql
+    container_name: sr-mysql
     restart: unless-stopped
     ports:
       - "13306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: mahjong_score
-      MYSQL_CHARACTER_SET_SERVER: utf8mb4
-      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+      MYSQL_DATABASE: smartrecord
     volumes:
       - mysql_data:/var/lib/mysql
       - ./backend/src/main/resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: --default-authentication-plugin=mysql_native_password
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
 
   redis:
     image: redis:7-alpine
-    container_name: mj-redis
+    container_name: sr-redis
     restart: unless-stopped
     ports:
       - "16379:6379"
-    volumes:
-      - redis_data:/data
-
-  minio:
-    image: minio/minio:latest
-    container_name: mj-minio
-    restart: unless-stopped
-    ports:
-      - "19000:9000"
-      - "19001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
 
 volumes:
   mysql_data:
-  redis_data:
-  minio_data:

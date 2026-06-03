@@ -1,4 +1,4 @@
--- 麻将记分器数据库初始化脚本
+-- 智能记分器数据库初始化脚本
 
 CREATE TABLE IF NOT EXISTS `user` (
   `id`          BIGINT       NOT NULL COMMENT '雪花 ID',
@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `room` (
   `room_no`     VARCHAR(8)   NOT NULL COMMENT '唯一房间号',
   `owner_id`    BIGINT       NOT NULL COMMENT '房主',
   `base_score`  INT          NOT NULL DEFAULT 1 COMMENT '底分',
+  `score_mode`  TINYINT      NOT NULL DEFAULT 1 COMMENT '记分模式：1-自由流转 2-赢家统录',
   `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0-使用中 1-已归档',
   `round_count` INT          NOT NULL DEFAULT 0 COMMENT '已进行轮数',
   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +84,7 @@ CREATE TABLE IF NOT EXISTS `score_image` (
 CREATE TABLE IF NOT EXISTS `transfer` (
   `id`            BIGINT      NOT NULL COMMENT '雪花 ID',
   `room_id`       BIGINT      NOT NULL,
+  `session_id`    BIGINT      NOT NULL DEFAULT 0 COMMENT '关联场次',
   `from_user_id`  BIGINT      NOT NULL COMMENT '转账人',
   `to_user_id`    BIGINT      NOT NULL COMMENT '收款人',
   `amount`        INT         NOT NULL COMMENT '金额(分)',
@@ -91,13 +93,10 @@ CREATE TABLE IF NOT EXISTS `transfer` (
   `created_at`    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_room_id` (`room_id`),
+  KEY `idx_session_id` (`session_id`),
   KEY `idx_from_user` (`from_user_id`),
   KEY `idx_to_user` (`to_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='转账记录表';
-
--- 迁移：transfer 表增加 session_id 字段（若尚未添加）
-ALTER TABLE `transfer` ADD COLUMN IF NOT EXISTS `session_id` BIGINT NOT NULL DEFAULT 0 COMMENT '关联场次' AFTER `room_id`;
-CREATE INDEX IF NOT EXISTS `idx_session_id` ON `transfer`(`session_id`);
 
 -- 用户对局汇总表（永久保留）
 CREATE TABLE IF NOT EXISTS `session_record` (

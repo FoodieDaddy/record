@@ -1,0 +1,13 @@
+# 服务器部署配置 — 通过环境变量注入，Docker Compose 中配置
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST}
+      port: ${SPRING_REDIS_PORT}
+
+tts:
+  edge-tts-cmd: edge-tts

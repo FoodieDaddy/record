@@ -136,9 +136,9 @@ Page({
     this.setData({ saving: true });
     try {
       let finalAvatarUrl = avatarUrl;
-      // 非 MinIO URL 需要先上传到后端（临时文件路径不包含 /mahjong-score/）
-      if (avatarUrl && !avatarUrl.includes('/mahjong-score/')) {
-        finalAvatarUrl = await this.uploadToBackend(avatarUrl);
+      // 非 OSS URL 的本地临时文件需要先上传
+      if (avatarUrl && avatarUrl.indexOf('aliyuncs.com') === -1) {
+        finalAvatarUrl = await this.uploadToOSS(avatarUrl);
       }
 
       await put('/user/me', {
@@ -165,27 +165,42 @@ Page({
 
   // ========== 上传 ==========
 
-  uploadToBackend(filePath) {
-    return new Promise((resolve, reject) => {
-      wx.uploadFile({
-        url: `${app.globalData.baseUrl}/storage/upload`,
+  async uploadToOSS(filePath) {
+    // 1. 获取预签名 URL
+    const presignData = await get('/storage/presign?contentType=' + encodeURIComponent('image/jpeg'));
+
+    if (!presignData || !presignData.uploadUrl) {
+      throw new Error('获取预签名 URL 失败');
+    }
+
+    // 2. 读取文件为 ArrayBuffer
+    const fileData = await new Promise((resolve, reject) => {
+      wx.getFileSystemManager().readFile({
         filePath,
-        name: 'file',
+        success: res => resolve(res.data),
+        fail: reject
+      });
+    });
+
+    // 3. PUT 上传到 OSS
+    await new Promise((resolve, reject) => {
+      wx.request({
+        url: presignData.uploadUrl,
+        method: 'PUT',
+        data: fileData,
         header: {
-          Authorization: `Bearer ${app.globalData.token}`
+          'Content-Type': 'image/jpeg'
         },
         success(res) {
-          try {
-            const data = JSON.parse(res.data);
-            if (data.code === 200) resolve(data.data);
-            else reject(new Error(data.message || '上传失败'));
-          } catch (e) {
-            reject(e);
-          }
+          if (res.statusCode === 200) resolve();
+          else reject(new Error('上传到 OSS 失败, statusCode: ' + res.statusCode));
         },
         fail: reject
       });
     });
+
+    // 4. 返回 objectKey（不存完整 URL，节省空间）
+    return presignData.objectKey;
   },
 
   // ========== 退出登录 ==========

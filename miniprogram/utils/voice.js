@@ -28,6 +28,13 @@ function _speakOnce(text, onDone) {
         onDone();
         return;
       }
+      // 校验返回的是音频文件而非错误 JSON
+      const ct = (res.header && (res.header['content-type'] || res.header['Content-Type'])) || '';
+      if (!ct.includes('audio')) {
+        console.warn('[TTS] 非音频响应:', ct);
+        onDone();
+        return;
+      }
       // 保存到持久化路径（http://tmp/ 路径不兼容 InnerAudioContext）
       const fs = wx.getFileSystemManager();
       const savedPath = `${wx.env.USER_DATA_PATH}/tts_${Date.now()}.mp3`;

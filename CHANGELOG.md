@@ -205,12 +205,12 @@
 - score_image 通过 session_id 关联，每轮最多 9 张图
 
 **Redis Key 设计：**
-- `mj:room_no:{room_no}` — 房间号唯一映射
-- `mj:room:{rid}:info/members` — 房间实时状态
-- `mj:session:{sid}:scores` — Sorted Set 实时排行榜
-- `mj:session:{sid}:batch:{ts}` — Hash 批次得分
-- `mj:session:{sid}:batches` — List 批次时间戳列表
-- `mj:session:{sid}:lock` — Redisson 分布式锁
+- `sr:room_no:{room_no}` — 房间号唯一映射
+- `sr:room:{rid}:info/members` — 房间实时状态
+- `sr:session:{sid}:scores` — Sorted Set 实时排行榜
+- `sr:session:{sid}:batch:{ts}` — Hash 批次得分
+- `sr:session:{sid}:batches` — List 批次时间戳列表
+- `sr:session:{sid}:lock` — Redisson 分布式锁
 
 ---
 
@@ -220,7 +220,7 @@
 
 - `pom.xml` — Spring Boot 3.2.5, MyBatis-Plus 3.5.6, Springdoc 2.5.0, Redisson 3.27.2, MinIO 8.5.9
 - `application.yml` — 数据库/Redis/MinIO/Swagger 配置
-- `MahjongScoreApplication.java` — 启动类
+- `SmartRecordApplication.java` — 启动类
 
 **通用模块：**
 - `common/Result.java` — 统一响应 Result<T>

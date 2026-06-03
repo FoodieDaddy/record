@@ -12,6 +12,15 @@ Page({
     viewingRoom: false,
     isOwner: false,
     joinRoomNo: '',
+    joining: false,
+    // 记分模式：1=自由流转 2=赢家统录
+    scoreMode: 1,
+    // 6 格 OTP 输入
+    otpValues: ['', '', '', '', '', ''],
+    otpBoxes: [0, 1, 2, 3, 4, 5],
+    otpFocusIndex: 0,
+    otpInputFocused: false,
+    otpRawValue: '',
     creating: false,
     loading: false,
     ranking: [],
@@ -511,18 +520,72 @@ Page({
     this.setData({ joinRoomNo: e.detail.value.toUpperCase() });
   },
 
+  // ========== 记分模式选择 ==========
+  selectScoreMode(e) {
+    const mode = Number(e.currentTarget.dataset.mode);
+    if (mode === this.data.scoreMode) return;
+    this.setData({ scoreMode: mode });
+  },
+
+  // ========== 6 格 OTP 输入 ==========
+  onOtpBoxTap(e) {
+    const index = Number(e.currentTarget.dataset.index);
+    this.setData({ otpFocusIndex: index, otpInputFocused: true });
+  },
+
+  onOtpInput(e) {
+    const raw = (e.detail.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const chars = raw.split('');
+    const values = ['', '', '', '', '', ''];
+    for (let i = 0; i < 6 && i < chars.length; i++) {
+      values[i] = chars[i];
+    }
+    const focusIndex = Math.min(chars.length, 5);
+    this.setData({
+      otpValues: values,
+      otpRawValue: raw,
+      otpFocusIndex: focusIndex,
+      joinRoomNo: raw,
+      otpInputFocused: raw.length < 6
+    });
+    // 输入满 6 位自动加入
+    if (raw.length >= 6) {
+      this.setData({ otpInputFocused: false });
+      clearTimeout(this._autoJoinTimer);
+      this._autoJoinTimer = setTimeout(() => {
+        this.joinByNo();
+      }, 100);
+    }
+  },
+
+  onOtpBlur() {
+    this.setData({ otpInputFocused: false });
+  },
+
+  resetOtpState() {
+    clearTimeout(this._autoJoinTimer);
+    this.setData({
+      otpValues: ['', '', '', '', '', ''],
+      otpFocusIndex: 0,
+      otpInputFocused: false,
+      otpRawValue: '',
+      joinRoomNo: ''
+    });
+  },
+
   async createRoom() {
     if (this.data.creating) return;
     this.setData({ creating: true });
     try {
-      const room = await post('/room', { baseScore: 1 });
+      const room = await post('/room', { baseScore: 1, scoreMode: this.data.scoreMode });
+      this.resetOtpState();
       this.setData({ currentRoom: room, viewingRoom: true, isOwner: true, seatLayoutType: room.layoutType || 'circle' });
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
       wx.showToast({ title: '房间已创建', icon: 'success' });
     } catch (e) {
-      console.error('创建房间失败', e);
+      wx.showToast({ title: (e && e.message) || '创建失败', icon: 'none', duration: 2000 });
     } finally {
       this.setData({ creating: false });
     }
@@ -530,11 +593,13 @@ Page({
 
   async joinByNo() {
     const roomNo = this.data.joinRoomNo.trim();
-    if (!roomNo) {
-      wx.showToast({ title: '请输入房间号', icon: 'none' });
-      return;
+    if (!roomNo || roomNo.length < 6 || this.data.joining) return;
+    this.setData({ joining: true });
+    try {
+      await this.joinByRoomNo(roomNo);
+    } finally {
+      this.setData({ joining: false });
     }
-    await this.joinByRoomNo(roomNo);
   },
 
   async joinByRoomNo(roomNo) {
@@ -546,13 +611,14 @@ Page({
         isOwner: String(room.ownerId) === String(app.globalData.userId),
         seatLayoutType: room.layoutType || 'circle'
       });
+      this.resetOtpState();
       // 加入后重新加载完整房间信息（确保成员列表完整）
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
       wx.showToast({ title: '已加入房间', icon: 'success' });
     } catch (e) {
-      console.error('加入房间失败', e);
+      wx.showToast({ title: (e && e.message) || '加入失败', icon: 'none', duration: 2000 });
     }
   },
 

@@ -5,9 +5,11 @@ server:
 
 spring:
   application:
-    name: mahjong-score
+    name: smartrecord
+  profiles:
+    active: local
   datasource:
-    url: jdbc:mysql://localhost:13306/mahjong_score?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false
+    url: jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root
     password: root123
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -46,11 +48,11 @@ app:
   jwt:
     secret: your-256-bit-secret-key-here-change-in-production
     expiration: 604800000  # 7 天
-  minio:
-    endpoint: http://localhost:19000
-    access-key: minioadmin
-    secret-key: minioadmin123
-    bucket: mahjong-score
+  oss:
+    endpoint: oss-cn-guangzhou.aliyuncs.com
+    access-key-id: LTAI5t8gKSckJYZjUqivuhPi
+    access-key-secret: GfCTwLAUSFerci7Ov5NKGGYS5w8YoE
+    bucket-name: smartrecord
   room:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     no-length: 6
@@ -67,10 +69,10 @@ tts:
 emotion:
   audio:
     win-urls:
-      - http://localhost:19000/mahjong-score/emotion/win_01.mp3
-      - http://localhost:19000/mahjong-score/emotion/win_02.mp3
-      - http://localhost:19000/mahjong-score/emotion/win_03.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/win_01.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/win_02.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/win_03.mp3
     lose-urls:
-      - http://localhost:19000/mahjong-score/emotion/lose_01.mp3
-      - http://localhost:19000/mahjong-score/emotion/lose_02.mp3
-      - http://localhost:19000/mahjong-score/emotion/lose_03.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_01.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_02.mp3
+      - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_03.mp3

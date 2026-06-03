@@ -1,5 +1,5 @@
 {
-  "description": "麻将记分器",
+  "description": "智能记分器",
   "packOptions": {
     "ignore": [],
     "include": []
@@ -41,7 +41,7 @@
   "compileType": "miniprogram",
   "libVersion": "3.4.6",
   "appid": "wx9d93ece2b67f812b",
-  "projectname": "mahjong-score",
+  "projectname": "smartrecord",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",

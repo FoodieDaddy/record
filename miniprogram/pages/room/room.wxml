@@ -14,8 +14,49 @@
     <view class="glass-card-glow create-card">
       <view class="card-header">
         <text class="section-title">创建房间</text>
-        <text class="text-tertiary text-xs">开局成为房主</text>
+        <text class="text-tertiary text-xs">让小伙伴们进来吧</text>
       </view>
+
+      <!-- 记分规则选择器 -->
+      <view class="mode-selector">
+        <view class="mode-card {{scoreMode === 1 ? 'mode-card-active' : 'mode-card-inactive'}}"
+              bindtap="selectScoreMode" data-mode="1">
+          <view class="mode-icon-wrap">
+            <!-- 多节点双向交织箭头 -->
+            <view class="mode-icon mode-icon-free">
+              <view class="icon-arrow icon-arrow-left">←</view>
+              <view class="icon-node icon-node-center"></view>
+              <view class="icon-arrow icon-arrow-right">→</view>
+            </view>
+          </view>
+          <text class="mode-card-title">自由流转</text>
+          <text class="mode-card-desc">全员开放权限
+          随时记录分数流转</text>
+          <view class="mode-check" wx:if="{{scoreMode === 1}}">✓</view>
+        </view>
+        <view class="mode-card {{scoreMode === 2 ? 'mode-card-active' : 'mode-card-inactive'}}"
+              bindtap="selectScoreMode" data-mode="2">
+          <view class="mode-icon-wrap">
+            <!-- 顶部大圆点向下发散连接三个小圆点 -->
+            <view class="mode-icon mode-icon-winner">
+              <view class="icon-node icon-node-top"></view>
+              <view class="icon-line icon-line-left"></view>
+              <view class="icon-line icon-line-center"></view>
+              <view class="icon-line icon-line-right"></view>
+              <view class="icon-bottom-row">
+                <view class="icon-node icon-node-sm"></view>
+                <view class="icon-node icon-node-sm"></view>
+                <view class="icon-node icon-node-sm"></view>
+              </view>
+            </view>
+          </view>
+          <text class="mode-card-title">赢家统录</text>
+          <text class="mode-card-desc">由单局胜者统一录入全盘分数
+          可上传图片</text>
+          <view class="mode-check" wx:if="{{scoreMode === 2}}">✓</view>
+        </view>
+      </view>
+
       <button class="btn-primary" bindtap="createRoom" loading="{{creating}}">创建房间</button>
     </view>
 
@@ -29,15 +70,36 @@
             <text class="section-title">加入房间</text>
             <text class="text-tertiary text-xs">输入牌友的房间号</text>
           </view>
-          <view class="scan-btn-corner" bindtap="scanJoin">
-            <text class="scan-icon-text">扫一扫</text>
+          <view class="scan-btn-inline" bindtap="scanJoin">
+            <view class="scan-icon-svg">
+              <view class="scan-corner scan-corner-tl"></view>
+              <view class="scan-corner scan-corner-tr"></view>
+              <view class="scan-corner scan-corner-bl"></view>
+              <view class="scan-corner scan-corner-br"></view>
+              <view class="scan-line"></view>
+            </view>
+            <text class="scan-label">扫码</text>
           </view>
         </view>
       </view>
-      <view class="form-row">
-        <input class="input-glass flex-1" value="{{joinRoomNo}}" bindinput="onJoinInput" placeholder="输入 6 位房间号" maxlength="6" />
+
+      <!-- 6 格 OTP 输入 -->
+      <view class="otp-container">
+        <view class="otp-box {{otpFocusIndex === idx ? 'otp-box-focus' : ''}} {{otpValues[idx] ? 'otp-box-filled' : ''}}"
+              wx:for="{{otpBoxes}}" wx:for-item="idx" wx:key="*this"
+              bindtap="onOtpBoxTap" data-index="{{idx}}">
+          <text class="otp-char">{{otpValues[idx] || ''}}</text>
+          <view class="otp-cursor" wx:if="{{otpFocusIndex === idx && !otpValues[idx]}}"></view>
+        </view>
       </view>
-      <button class="btn-primary" style="margin-top:24rpx;" bindtap="joinByNo">加入房间</button>
+      <!-- 真实隐藏输入框 -->
+      <input class="otp-hidden-input" type="number" maxlength="6" value="{{otpRawValue}}"
+             focus="{{otpInputFocused}}" bindinput="onOtpInput" bindblur="onOtpBlur"
+             adjust-position="{{false}}" />
+
+      <button class="btn-primary {{joinRoomNo.length === 6 ? 'btn-join-ready' : 'btn-join-disabled'}}"
+              style="margin-top:28rpx;" bindtap="joinByNo"
+              disabled="{{joining || joinRoomNo.length < 6}}" loading="{{joining}}">加入房间</button>
     </view>
   </view>
 

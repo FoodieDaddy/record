@@ -1,5 +1,5 @@
 /**
- * 图片工具 — 压缩 + 预签名直传 MinIO
+ * 图片工具 — 压缩 + 预签名直传 OSS
  */
 const { get, post } = require('./request');
 
@@ -49,16 +49,16 @@ function getContentType(filePath) {
 }
 
 /**
- * 上传图片到 MinIO（预签名直传）
+ * 上传图片到 OSS（预签名直传）
  * @param {string} filePath - 本地文件路径
  * @returns {Promise<string>} - 上传后的访问 URL
  */
-async function uploadToMinio(filePath) {
+async function uploadToOSS(filePath) {
   // 1. 获取预签名 URL
   const contentType = getContentType(filePath);
   const presign = await get(`/storage/presign?contentType=${encodeURIComponent(contentType)}`);
 
-  // 2. 直传到 MinIO
+  // 2. 直传到 OSS
   await new Promise((resolve, reject) => {
     wx.uploadFile({
       url: presign.uploadUrl,
@@ -115,4 +115,4 @@ async function batchUpload(filePaths) {
   return urls;
 }
 
-module.exports = { compressImage, chooseAndCompress, uploadToMinio, batchUpload };
+module.exports = { compressImage, chooseAndCompress, uploadToOSS, batchUpload };

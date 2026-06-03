@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-麻将记分器微信小程序。后端 Java (Spring Boot 3.2.5) + 前端原生微信小程序。
+智能记分器微信小程序。后端 Java (Spring Boot 3.2.5) + 前端原生微信小程序。
 
 ## 启动命令
 
@@ -38,7 +38,7 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 ## 非显而易见的模式
 
 - 房间号生成：Redis SETNX，32 字符集（去 O/0/I/L），6 位，碰撞重试最多 10 次
-- 记分并发控制：Redisson `tryLock(5s, 30s)`，锁 key 为 `mj:session:{sid}:lock`
+- 记分并发控制：Redisson `tryLock(5s, 30s)`，锁 key 为 `sr:session:{sid}:lock`
 - 场次得分聚合：session 表不存总分，进行中读 Redis Sorted Set，已结算读 MySQL GROUP BY
 - 2 分钟聚合：前端同一次提交的多条 score 记录共享相同秒级 `created_at`，前端按此分组渲染
 - 小程序码：后端调微信 `getUnlimited` API → 字节流 → MinIO PUT → 返回访问 URL

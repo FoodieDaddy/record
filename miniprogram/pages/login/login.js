@@ -1,4 +1,4 @@
-const { post, put } = require('../../utils/request');
+const { get, post, put } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const app = getApp();
 
@@ -98,26 +98,37 @@ Page({
     app.globalData.userInfo.avatarUrl = avatarUrl;
   },
 
-  uploadToBackend(filePath) {
-    return new Promise((resolve, reject) => {
-      wx.uploadFile({
-        url: `${app.globalData.baseUrl}/storage/upload`,
+  async uploadToBackend(filePath) {
+    // 1. 获取预签名 URL
+    const presignData = await get('/storage/presign?contentType=' + encodeURIComponent('image/png'));
+
+    // 2. 读取文件为 ArrayBuffer
+    const fileData = await new Promise((resolve, reject) => {
+      wx.getFileSystemManager().readFile({
         filePath,
-        name: 'file',
+        success: res => resolve(res.data),
+        fail: reject
+      });
+    });
+
+    // 3. PUT 上传到 OSS
+    await new Promise((resolve, reject) => {
+      wx.request({
+        url: presignData.uploadUrl,
+        method: 'PUT',
+        data: fileData,
         header: {
-          Authorization: `Bearer ${app.globalData.token}`
+          'Content-Type': 'image/png'
         },
         success(res) {
-          try {
-            const data = JSON.parse(res.data);
-            if (data.code === 200) resolve(data.data);
-            else reject(new Error(data.message || '上传失败'));
-          } catch (e) {
-            reject(e);
-          }
+          if (res.statusCode === 200) resolve();
+          else reject(new Error('上传到 OSS 失败'));
         },
         fail: reject
       });
     });
+
+    // 3. 返回 objectKey（不存完整 URL，节省空间）
+    return presignData.objectKey;
   }
 });
