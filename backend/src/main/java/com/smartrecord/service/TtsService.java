@@ -47,12 +47,10 @@ public class TtsService {
             cmd.add("--write-media");
             cmd.add(rawFile);
             if (rate != null && !rate.isBlank()) {
-                cmd.add("--rate");
-                cmd.add(rate);
+                cmd.add("--rate=" + rate);
             }
             if (pitch != null && !pitch.isBlank()) {
-                cmd.add("--pitch");
-                cmd.add(pitch);
+                cmd.add("--pitch=" + pitch);
             }
             ProcessBuilder pb1 = new ProcessBuilder(cmd);
             pb1.redirectErrorStream(true);
