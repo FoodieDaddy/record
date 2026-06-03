@@ -55,17 +55,14 @@
         </view>
         <switch class="setting-switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#4f8cff" />
       </view>
-      <view class="setting-row" wx:if="{{voiceEnabled}}">
+      <!-- 播报音色入口 -->
+      <view class="setting-row" wx:if="{{voiceEnabled}}" bindtap="openVoiceSheet">
         <view class="setting-info">
           <text class="setting-label">播报音色</text>
         </view>
-        <view class="voice-type-group">
-          <view class="voice-type-btn {{voiceType === 'female' ? 'voice-type-active' : ''}}" bindtap="setVoiceType" data-type="female">
-            <text>女声</text>
-          </view>
-          <view class="voice-type-btn {{voiceType === 'male' ? 'voice-type-active' : ''}}" bindtap="setVoiceType" data-type="male">
-            <text>男声</text>
-          </view>
+        <view class="setting-value-row">
+          <text class="setting-value">{{voiceName}}</text>
+          <text class="setting-arrow">›</text>
         </view>
       </view>
       <view class="setting-row">
@@ -74,6 +71,59 @@
           <text class="text-tertiary text-xs">计分时显示积分飞行动画</text>
         </view>
         <switch class="setting-switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#4f8cff" />
+      </view>
+    </view>
+
+    <!-- 音色选择抽屉 -->
+    <view class="voice-sheet-mask {{voiceSheetVisible ? 'show' : ''}}" bindtap="closeVoiceSheet"></view>
+    <view class="voice-sheet {{voiceSheetVisible ? 'show' : ''}}">
+      <view class="voice-sheet-handle"></view>
+      <view class="voice-sheet-title">选择音色</view>
+      <view class="voice-sheet-body">
+        <!-- 左侧分类 -->
+        <scroll-view class="voice-cat-list" scroll-y enhanced show-scrollbar="{{false}}">
+          <view
+            class="voice-cat-item {{activeCatIndex === index ? 'active' : ''}}"
+            wx:for="{{voiceCategories}}"
+            wx:key="id"
+            data-index="{{index}}"
+            bindtap="onCatTap"
+          >{{item.name}}</view>
+        </scroll-view>
+        <!-- 右侧音色列表 -->
+        <scroll-view
+          class="voice-list"
+          scroll-y
+          enhanced
+          show-scrollbar="{{false}}"
+          scroll-into-view="{{scrollToCat}}"
+          scroll-with-animation
+        >
+          <block wx:for="{{voiceCategories}}" wx:key="id" wx:for-item="cat" wx:for-index="catIdx">
+            <view class="voice-group-header" id="cat-{{cat.id}}">{{cat.name}}</view>
+            <view
+              class="voice-item {{item.id === selectedVoiceId ? 'active' : ''}} {{playingVoiceId === item.id ? 'playing' : ''}}"
+              wx:for="{{cat.voices}}"
+              wx:key="id"
+              data-voice="{{item}}"
+              data-cat-index="{{catIdx}}"
+              bindtap="onVoiceTap"
+            >
+              <view class="voice-item-info">
+                <text class="voice-item-name">{{item.name}}</text>
+                <text class="voice-item-desc">{{item.desc}}</text>
+              </view>
+              <view class="voice-item-right">
+                <view class="voice-wave" wx:if="{{playingVoiceId === item.id}}">
+                  <view class="wave-bar"></view>
+                  <view class="wave-bar"></view>
+                  <view class="wave-bar"></view>
+                </view>
+                <text class="voice-check" wx:elif="{{item.id === selectedVoiceId}}">✓</text>
+              </view>
+            </view>
+          </block>
+        </scroll-view>
       </view>
     </view>
 
