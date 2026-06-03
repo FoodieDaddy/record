@@ -25,12 +25,12 @@ public class TtsService {
     /**
      * 合成语音，返回 MP3 字节数组（标准 44.1kHz 128kbps 格式）
      */
-    public byte[] synthesize(String text, String voiceOverride) {
+    public byte[] synthesize(String text, String voiceOverride, String rate, String pitch) {
         String activeVoice = (voiceOverride != null && !voiceOverride.isBlank()) ? voiceOverride : voice;
-        return doSynthesize(text, activeVoice);
+        return doSynthesize(text, activeVoice, rate, pitch);
     }
 
-    private byte[] doSynthesize(String text, String activeVoice) {
+    private byte[] doSynthesize(String text, String activeVoice, String rate, String pitch) {
         String id = UUID.randomUUID().toString();
         String tmpDir = System.getProperty("java.io.tmpdir");
         String rawFile = tmpDir + "/tts_raw_" + id + ".mp3";
@@ -38,12 +38,23 @@ public class TtsService {
 
         try {
             // 1. edge-tts 生成原始音频
-            ProcessBuilder pb1 = new ProcessBuilder(
-                    edgeTtsCmd,
-                    "--voice", activeVoice,
-                    "--text", text,
-                    "--write-media", rawFile
-            );
+            var cmd = new java.util.ArrayList<String>();
+            cmd.add(edgeTtsCmd);
+            cmd.add("--voice");
+            cmd.add(activeVoice);
+            cmd.add("--text");
+            cmd.add(text);
+            cmd.add("--write-media");
+            cmd.add(rawFile);
+            if (rate != null && !rate.isBlank()) {
+                cmd.add("--rate");
+                cmd.add(rate);
+            }
+            if (pitch != null && !pitch.isBlank()) {
+                cmd.add("--pitch");
+                cmd.add(pitch);
+            }
+            ProcessBuilder pb1 = new ProcessBuilder(cmd);
             pb1.redirectErrorStream(true);
             Process proc1 = pb1.start();
             byte[] stdout1 = proc1.getInputStream().readAllBytes();

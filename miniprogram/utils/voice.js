@@ -20,7 +20,7 @@ function _dequeue() {
 
 function _speakOnce(text, onDone) {
   const settings = getSettings();
-  const url = config.baseUrl + '/tts/audio?text=' + encodeURIComponent(text) + '&voice=' + encodeURIComponent(settings.voice);
+  const url = config.baseUrl + '/tts/audio?text=' + encodeURIComponent(text) + '&voiceId=' + encodeURIComponent(settings.voiceId);
 
   wx.downloadFile({
     url,
