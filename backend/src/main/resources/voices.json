@@ -1,44 +1,30 @@
 {
   "categories": [
     {
-      "id": "standard",
-      "name": "普通话",
-      "icon": "🎤",
+      "id": "female",
+      "name": "女声",
+      "icon": "👩",
       "voices": [
         { "id": "std_01", "name": "晓晓", "file": "std_01_xiaoxiao.mp3", "gender": "female", "desc": "温暖女声", "voice": "zh-CN-XiaoxiaoNeural" },
         { "id": "std_02", "name": "晓依", "file": "std_02_xiaoyi.mp3", "gender": "female", "desc": "活泼女声", "voice": "zh-CN-XiaoyiNeural" },
+        { "id": "dia_01", "name": "小北", "file": "dia_01_xiaobei.mp3", "gender": "female", "desc": "辽宁方言", "voice": "zh-CN-liaoning-XiaobeiNeural" },
+        { "id": "dia_02", "name": "晓妮", "file": "dia_02_xiaoni.mp3", "gender": "female", "desc": "陕西方言", "voice": "zh-CN-shaanxi-XiaoniNeural" },
+        { "id": "hk_01", "name": "晓佳", "file": "hk_01_hiugaai.mp3", "gender": "female", "desc": "粤语女声", "voice": "zh-HK-HiuGaaiNeural" },
+        { "id": "hk_02", "name": "晓蔓", "file": "hk_02_hiumaan.mp3", "gender": "female", "desc": "粤语女声", "voice": "zh-HK-HiuMaanNeural" },
+        { "id": "tw_01", "name": "晓晨", "file": "tw_01_hsiaochen.mp3", "gender": "female", "desc": "台湾女声", "voice": "zh-TW-HsiaoChenNeural" },
+        { "id": "tw_02", "name": "晓雨", "file": "tw_02_hsiaoyu.mp3", "gender": "female", "desc": "台湾女声", "voice": "zh-TW-HsiaoYuNeural" }
+      ]
+    },
+    {
+      "id": "male",
+      "name": "男声",
+      "icon": "👨",
+      "voices": [
         { "id": "std_03", "name": "云健", "file": "std_03_yunjian.mp3", "gender": "male", "desc": "激情男声", "voice": "zh-CN-YunjianNeural" },
         { "id": "std_04", "name": "云希", "file": "std_04_yunxi.mp3", "gender": "male", "desc": "阳光男声", "voice": "zh-CN-YunxiNeural" },
         { "id": "std_05", "name": "云夏", "file": "std_05_yunxia.mp3", "gender": "male", "desc": "可爱男声", "voice": "zh-CN-YunxiaNeural" },
-        { "id": "std_06", "name": "云扬", "file": "std_06_yunyang.mp3", "gender": "male", "desc": "专业男声", "voice": "zh-CN-YunyangNeural" }
-      ]
-    },
-    {
-      "id": "dialect",
-      "name": "方言",
-      "icon": "🗣️",
-      "voices": [
-        { "id": "dia_01", "name": "小北", "file": "dia_01_xiaobei.mp3", "gender": "female", "desc": "辽宁方言", "voice": "zh-CN-liaoning-XiaobeiNeural" },
-        { "id": "dia_02", "name": "晓妮", "file": "dia_02_xiaoni.mp3", "gender": "female", "desc": "陕西方言", "voice": "zh-CN-shaanxi-XiaoniNeural" }
-      ]
-    },
-    {
-      "id": "cantonese",
-      "name": "粤语",
-      "icon": "🏙️",
-      "voices": [
-        { "id": "hk_01", "name": "晓佳", "file": "hk_01_hiugaai.mp3", "gender": "female", "desc": "粤语女声", "voice": "zh-HK-HiuGaaiNeural" },
-        { "id": "hk_02", "name": "晓蔓", "file": "hk_02_hiumaan.mp3", "gender": "female", "desc": "粤语女声", "voice": "zh-HK-HiuMaanNeural" },
-        { "id": "hk_03", "name": "云龙", "file": "hk_03_wanlung.mp3", "gender": "male", "desc": "粤语男声", "voice": "zh-HK-WanLungNeural" }
-      ]
-    },
-    {
-      "id": "taiwan",
-      "name": "台湾腔",
-      "icon": "🌴",
-      "voices": [
-        { "id": "tw_01", "name": "晓晨", "file": "tw_01_hsiaochen.mp3", "gender": "female", "desc": "台湾女声", "voice": "zh-TW-HsiaoChenNeural" },
-        { "id": "tw_02", "name": "晓雨", "file": "tw_02_hsiaoyu.mp3", "gender": "female", "desc": "台湾女声", "voice": "zh-TW-HsiaoYuNeural" },
+        { "id": "std_06", "name": "云扬", "file": "std_06_yunyang.mp3", "gender": "male", "desc": "专业男声", "voice": "zh-CN-YunyangNeural" },
+        { "id": "hk_03", "name": "云龙", "file": "hk_03_wanlung.mp3", "gender": "male", "desc": "粤语男声", "voice": "zh-HK-WanLungNeural" },
         { "id": "tw_03", "name": "云哲", "file": "tw_03_yunjhe.mp3", "gender": "male", "desc": "台湾男声", "voice": "zh-TW-YunJheNeural" }
       ]
     }
