@@ -169,10 +169,15 @@ public class ScoreServiceImpl implements ScoreService {
             pushData.put("scores", scoreWithEmotion);
             scoreWebSocket.pushToRoom(String.valueOf(session.getRoomId()), pushData);
 
-            // 8. 异步更新总览缓存
+            // 8. 更新最后活跃时间
+            redisTemplate.opsForValue().set(
+                    SESSION_PREFIX + session.getId() + ":last_active",
+                    LocalDateTime.now().toString(), 48, TimeUnit.HOURS);
+
+            // 9. 异步更新总览缓存
             overviewService.computeOverview(session.getRoomId());
 
-            // 9. 为提交者返回情绪音频
+            // 10. 为提交者返回情绪音频
             String submitterAudioUrl = null;
             if (submitterScoreChange > 0) {
                 submitterAudioUrl = emotionAudioPool.randomUrl(EmotionType.WIN);
@@ -616,6 +621,37 @@ public class ScoreServiceImpl implements ScoreService {
         scoreWebSocket.pushToRoom(String.valueOf(roomId), Map.of("type", "SETTLE"));
     }
 
+    @Override
+    public void forceSettleSession(Long sessionId) {
+        Session session = sessionMapper.selectById(sessionId);
+        if (session == null || session.getStatus() != 0) {
+            log.warn("[ForceSettle] 场次不存在或已结算: sessionId={}", sessionId);
+            return;
+        }
+
+        log.info("[ForceSettle] 强制结算场次: sessionId={}, roomId={}", sessionId, session.getRoomId());
+
+        // 标记已结算
+        session.setStatus(1);
+        session.setSettledAt(LocalDateTime.now());
+        sessionMapper.updateById(session);
+
+        // 持久化 Redis 数据到 MySQL
+        persistSessionToMySQL(session);
+
+        // 清理活跃场次缓存
+        String activeSessionKey = "sr:room:" + session.getRoomId() + ":active_session";
+        String cachedSessionId = redisTemplate.opsForValue().get(activeSessionKey);
+        if (String.valueOf(sessionId).equals(cachedSessionId)) {
+            redisTemplate.delete(activeSessionKey);
+        }
+
+        // 清理最后活跃时间
+        redisTemplate.delete(SESSION_PREFIX + sessionId + ":last_active");
+
+        log.info("[ForceSettle] 场次 {} 强制结算完成", sessionId);
+    }
+
     /**
      * 将 Redis 中的场次数据持久化到 MySQL
      */
@@ -740,21 +776,60 @@ public class ScoreServiceImpl implements ScoreService {
                 images.add(img);
             }
             scoreImageMapper.insertBatch(images);
-            log.info("持久化场次 {} 图片 {} 张", sessionId, images.size());
+            log.info("持久化场次 {} 图片 {} 张", sessionId, imageUrls.size());
         }
 
-        // 5. 清理 Redis 键
+        // 5. 持久化 Lua 转账流水到 transfer 表
+        persistTransferEvents(sessionId, roomId, session.getSettledAt());
+
+        // 6. 清理 Redis 键
         cleanupSessionRedisKeys(sessionId, sessionPrefix, batchTsList);
     }
 
     /**
      * 清理场次相关的 Redis 键
      */
+    /**
+     * 从 Redis events 列表读取 Lua 转账流水，持久化到 MySQL transfer 表
+     */
+    private void persistTransferEvents(Long sessionId, Long roomId, LocalDateTime settledAt) {
+        String eventsKey = SESSION_PREFIX + sessionId + ":events";
+        List<String> events = redisTemplate.opsForList().range(eventsKey, 0, -1);
+        if (events == null || events.isEmpty()) return;
+
+        List<Transfer> transfers = new ArrayList<>();
+        for (String eventJson : events) {
+            try {
+                JSONObject obj = JSONUtil.parseObj(eventJson);
+                Transfer t = new Transfer();
+                t.setId(idGenerator.nextId());
+                t.setRoomId(roomId);
+                t.setSessionId(sessionId);
+                t.setFromUserId(obj.getLong("from"));
+                t.setToUserId(obj.getLong("to"));
+                t.setAmount(obj.getInt("amount"));
+                t.setRemark(obj.getStr("remark", ""));
+                t.setStatus(0);
+                transfers.add(t);
+            } catch (Exception e) {
+                log.warn("解析转账流水失败: {}", eventJson, e);
+            }
+        }
+
+        if (!transfers.isEmpty()) {
+            for (Transfer t : transfers) {
+                transferMapper.insert(t);
+            }
+            log.info("持久化场次 {} 转账流水 {} 条", sessionId, transfers.size());
+        }
+    }
+
     private void cleanupSessionRedisKeys(Long sessionId, String sessionPrefix, List<String> batchTsList) {
         List<String> keysToDelete = new ArrayList<>();
         keysToDelete.add(sessionPrefix + "scores");
         keysToDelete.add(sessionPrefix + "batches");
         keysToDelete.add(sessionPrefix + "images");
+        keysToDelete.add(sessionPrefix + "events");
         for (String ts : batchTsList) {
             keysToDelete.add(sessionPrefix + "batch:" + ts);
         }

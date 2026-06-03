@@ -1,25 +1,28 @@
-/* ===== 座位模式 — 暗黑毛玻璃 + GPU 加速 ===== */
+/* ===== 座位模式 — 绝对定位舞台 ===== */
 
 .seat-arena {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 600rpx;
-  overflow: hidden;
-  /* 圆桌区域容器 */
+  min-height: 560rpx;
+  /* 不裁剪，让头像光环可以溢出 */
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 给边缘座位留出发光空间 */
+  padding: 16rpx;
+  box-sizing: border-box;
 }
 
-/* ===== 桌面中央 ===== */
+/* ===== 桌面中央（极简质感） ===== */
 .table-center {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 240rpx;
-  height: 240rpx;
+  width: 160rpx;
+  height: 160rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -28,56 +31,58 @@
 
 .table-glow {
   position: absolute;
-  width: 200rpx;
-  height: 200rpx;
+  width: 140rpx;
+  height: 140rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
-  filter: blur(20rpx);
+  background: radial-gradient(circle, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
+  filter: blur(16rpx);
 }
 
 .table-ring {
   position: absolute;
-  width: 160rpx;
-  height: 160rpx;
+  width: 120rpx;
+  height: 120rpx;
   border-radius: 50%;
-  border: 1rpx solid rgba(79, 140, 255, 0.12);
+  border: 1rpx dashed rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
 }
 
-/* 长桌：矩形桌面 */
+/* 长桌：矩形桌面（缩小） */
 .table-rectangle .table-glow {
-  border-radius: 16rpx;
-  width: 280rpx;
-  height: 180rpx;
-  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
+  border-radius: 12rpx;
+  width: 200rpx;
+  height: 130rpx;
+  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
 }
 
 .table-rectangle .table-ring {
-  border-radius: 16rpx;
-  width: 240rpx;
-  height: 140rpx;
+  border-radius: 12rpx;
+  width: 170rpx;
+  height: 100rpx;
+  border: 1rpx dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
 }
 
-/* 半弧：扁椭圆桌面 */
+/* 半弧：扁椭圆桌面（缩小） */
 .table-arc .table-glow {
   border-radius: 50%;
-  width: 300rpx;
-  height: 160rpx;
-  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.06) 0%, transparent 70%);
+  width: 220rpx;
+  height: 120rpx;
+  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
 }
 
 .table-arc .table-ring {
   border-radius: 50%;
-  width: 260rpx;
-  height: 120rpx;
+  width: 190rpx;
+  height: 90rpx;
+  border: 1rpx dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .table-label {
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.2);
-  letter-spacing: 4rpx;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.15);
+  letter-spacing: 6rpx;
   font-weight: 300;
   z-index: 1;
 }
@@ -163,6 +168,12 @@
   /* 毛玻璃外环 */
   background: rgba(255, 255, 255, 0.04);
   border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+/* 空座位：虚线圆圈 */
+.seat-empty .seat-avatar-ring {
+  border: 1rpx dashed rgba(255, 255, 255, 0.15);
+  background: transparent;
 }
 
 .seat-avatar-ring.ring-me {
@@ -361,6 +372,6 @@
 }
 
 @keyframes emptyBreath {
-  0%, 100% { border-color: rgba(255, 255, 255, 0.06); }
-  50% { border-color: rgba(255, 255, 255, 0.15); }
+  0%, 100% { border-color: rgba(255, 255, 255, 0.1); }
+  50% { border-color: rgba(255, 255, 255, 0.25); }
 }

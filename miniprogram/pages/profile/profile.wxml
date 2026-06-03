@@ -1,98 +1,138 @@
-<view class="profile-page">
+<view class="profile-page {{!animationEnabled ? 'reduce-motion' : ''}}">
   <!-- 未登录 -->
-  <view wx:if="{{!isLoggedIn}}" class="empty-auth">
-    <view class="empty-auth-icon">🔐</view>
-    <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
-    <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可管理个人信息</text>
+  <view wx:if="{{!isLoggedIn}}" class="empty-state">
+    <view class="empty-state__icon">
+      <view class="svg-icon svg-icon--lock"></view>
+    </view>
+    <text class="empty-state__title">尚未登录</text>
+    <text class="empty-state__desc">登录后即可管理个人信息</text>
     <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
   </view>
 
   <!-- 已登录 -->
   <view wx:else>
-    <!-- 头像 + 昵称卡片 -->
-    <view class="glass-card-glow user-card">
-      <button class="avatar-ring-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <view class="auto-avatar-lg" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
-          <text class="auto-avatar-char-lg">{{avatarChar}}</text>
+    <!-- Top Card: 个人资料区 -->
+    <view class="glass-card-glow profile-card">
+      <button class="profile-card__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <view class="profile-card__avatar-ring">
+          <view class="profile-card__avatar-auto" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
+            <text class="profile-card__avatar-char">{{avatarChar}}</text>
+          </view>
+          <image class="profile-card__avatar-img" src="{{avatarUrl}}" wx:else></image>
         </view>
-        <image class="avatar-lg" src="{{avatarUrl}}" wx:else></image>
       </button>
-      <view class="nickname-row">
-        <input class="nickname-input" type="nickname" value="{{nickname}}" bindinput="onNicknameInput" placeholder="输入昵称" maxlength="20" />
-        <view class="btn-shuffle" bindtap="shuffleNickname">
-          <text class="shuffle-icon">🎲</text>
+
+      <view class="profile-card__nickname-row">
+        <input
+          class="profile-card__nickname-input"
+          type="nickname"
+          value="{{nickname}}"
+          placeholder="输入昵称"
+          maxlength="20"
+          bindinput="onNicknameInput"
+          bindblur="onNicknameBlur"
+        />
+        <view class="profile-card__shuffle-btn" bindtap="shuffleNickname">
+          <view class="svg-icon svg-icon--dice"></view>
         </view>
       </view>
-      <text class="hint-text">点击头像或昵称可修改</text>
-      <button class="btn-primary save-btn" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving}}">保存</button>
+
+      <text class="profile-card__hint">点击头像或昵称可修改</text>
+      <text class="profile-card__saving-hint" wx:if="{{saving}}">保存中...</text>
     </view>
 
-    <!-- 积分记录 -->
-    <view class="glass-card menu-section">
-      <view class="menu-item" bindtap="goScoreRecords">
-        <view class="menu-item-left">
-          <text class="menu-icon">📊</text>
-          <text class="menu-label">积分记录</text>
+    <!-- Middle Card: 导航列表区 -->
+    <view class="glass-card nav-card">
+      <view class="nav-card__item" bindtap="goScoreRecords">
+        <view class="nav-card__item-left">
+          <view class="svg-icon svg-icon--chart"></view>
+          <text class="nav-card__item-label">积分记录</text>
         </view>
-        <text class="menu-arrow">›</text>
+        <text class="nav-card__item-arrow">›</text>
       </view>
-      <view class="menu-item" bindtap="goHistoryRooms">
-        <view class="menu-item-left">
-          <text class="menu-icon">🏠</text>
-          <text class="menu-label">历史房间</text>
+      <view class="nav-card__divider"></view>
+      <view class="nav-card__item" bindtap="goHistoryRooms">
+        <view class="nav-card__item-left">
+          <view class="svg-icon svg-icon--house"></view>
+          <text class="nav-card__item-label">历史房间</text>
         </view>
-        <text class="menu-arrow">›</text>
+        <text class="nav-card__item-arrow">›</text>
       </view>
     </view>
 
-    <!-- 设置 -->
-    <view class="glass-card settings-section">
-      <text class="section-title">设置</text>
-      <view class="setting-row">
-        <view class="setting-info">
-          <text class="setting-label">计分语音播报</text>
-          <text class="text-tertiary text-xs">计分后自动语音通知</text>
+    <!-- Bottom Card: 设置区 -->
+    <view class="glass-card settings-card">
+      <text class="settings-card__title">设置</text>
+
+      <!-- 计分语音播报 -->
+      <view class="settings-card__row">
+        <view class="settings-card__row-info">
+          <text class="settings-card__row-label">计分语音播报</text>
+          <text class="settings-card__row-desc">计分后自动语音通知</text>
         </view>
-        <switch class="setting-switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#4f8cff" />
+        <switch class="settings-card__switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#0A84FF" />
       </view>
-      <!-- 播报音色入口 -->
-      <view class="setting-row" wx:if="{{voiceEnabled}}" bindtap="openVoiceSheet">
-        <view class="setting-info">
-          <text class="setting-label">播报音色</text>
+
+      <!-- 音色切换 Segmented Control -->
+      <view class="settings-card__row" wx:if="{{voiceEnabled && voiceCategories.length >= 2}}">
+        <view class="settings-card__row-info">
+          <text class="settings-card__row-label">播报音色</text>
         </view>
-        <view class="setting-value-row">
-          <text class="setting-value">{{voiceName}}</text>
-          <text class="setting-arrow">›</text>
+        <view class="segment-control">
+          <view class="segment-control__slider {{activeVoiceCatId === voiceCategories[0].id ? '' : 'segment-control__slider--right'}}"></view>
+          <view
+            class="segment-control__item {{activeVoiceCatId === voiceCategories[0].id ? 'segment-control__item--active' : ''}}"
+            data-cat-id="{{voiceCategories[0].id}}"
+            bindtap="onSegmentTap"
+          >{{voiceCategories[0].name}}</view>
+          <view
+            class="segment-control__item {{activeVoiceCatId === voiceCategories[1].id ? 'segment-control__item--active' : ''}}"
+            data-cat-id="{{voiceCategories[1].id}}"
+            bindtap="onSegmentTap"
+          >{{voiceCategories[1].name}}</view>
         </view>
       </view>
-      <view class="setting-row">
-        <view class="setting-info">
-          <text class="setting-label">计分动画</text>
-          <text class="text-tertiary text-xs">计分时显示积分飞行动画</text>
+
+      <!-- 具体音色选择入口 -->
+      <view class="settings-card__row" wx:if="{{voiceEnabled}}" bindtap="openVoiceSheet">
+        <view class="settings-card__row-info">
+          <text class="settings-card__row-label">具体音色</text>
         </view>
-        <switch class="setting-switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#4f8cff" />
+        <view class="settings-card__row-value">
+          <text class="settings-card__value-text">{{voiceName}}</text>
+          <text class="settings-card__value-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 计分动画 -->
+      <view class="settings-card__row settings-card__row--last">
+        <view class="settings-card__row-info">
+          <text class="settings-card__row-label">计分动画</text>
+          <text class="settings-card__row-desc">计分时显示积分飞行动画</text>
+        </view>
+        <switch class="settings-card__switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#0A84FF" />
       </view>
     </view>
 
     <!-- 音色选择抽屉 -->
-    <view class="voice-sheet-mask {{voiceSheetVisible ? 'show' : ''}}" bindtap="closeVoiceSheet"></view>
-    <view class="voice-sheet {{voiceSheetVisible ? 'show' : ''}}">
-      <view class="voice-sheet-handle"></view>
-      <view class="voice-sheet-title">选择音色</view>
-      <view class="voice-sheet-body">
+    <view class="voice-sheet-mask {{voiceSheetVisible ? 'voice-sheet-mask--show' : ''}}" bindtap="closeVoiceSheet"></view>
+    <view class="voice-sheet {{voiceSheetVisible ? 'voice-sheet--show' : ''}}">
+      <view class="voice-sheet__handle"></view>
+      <view class="voice-sheet__title">选择音色</view>
+      <view class="voice-sheet__body">
         <!-- 左侧分类 -->
-        <scroll-view class="voice-cat-list" scroll-y enhanced show-scrollbar="{{false}}">
+        <scroll-view class="voice-sheet__cat-list" scroll-y enhanced show-scrollbar="{{false}}">
           <view
-            class="voice-cat-item {{activeCatIndex === index ? 'active' : ''}}"
+            class="voice-sheet__cat-item {{activeVoiceCatId === item.id ? 'voice-sheet__cat-item--active' : ''}}"
             wx:for="{{voiceCategories}}"
             wx:key="id"
-            data-index="{{index}}"
+            data-cat-id="{{item.id}}"
             bindtap="onCatTap"
           >{{item.name}}</view>
         </scroll-view>
         <!-- 右侧音色列表 -->
         <scroll-view
-          class="voice-list"
+          class="voice-sheet__voice-list"
           scroll-y
           enhanced
           show-scrollbar="{{false}}"
@@ -100,26 +140,26 @@
           scroll-with-animation
         >
           <block wx:for="{{voiceCategories}}" wx:key="id" wx:for-item="cat" wx:for-index="catIdx">
-            <view class="voice-group-header" id="cat-{{cat.id}}">{{cat.name}}</view>
+            <view class="voice-sheet__group-header" id="cat-{{cat.id}}">{{cat.name}}</view>
             <view
-              class="voice-item {{item.id === selectedVoiceId ? 'active' : ''}} {{playingVoiceId === item.id ? 'playing' : ''}}"
+              class="voice-sheet__voice-item {{item.id === selectedVoiceId ? 'voice-sheet__voice-item--active' : ''}} {{playingVoiceId === item.id ? 'voice-sheet__voice-item--playing' : ''}}"
               wx:for="{{cat.voices}}"
               wx:key="id"
               data-voice="{{item}}"
-              data-cat-index="{{catIdx}}"
+              data-cat-id="{{cat.id}}"
               bindtap="onVoiceTap"
             >
-              <view class="voice-item-info">
-                <text class="voice-item-name">{{item.name}}</text>
-                <text class="voice-item-desc">{{item.desc}}</text>
+              <view class="voice-sheet__voice-info">
+                <text class="voice-sheet__voice-name">{{item.name}}</text>
+                <text class="voice-sheet__voice-desc">{{item.desc}}</text>
               </view>
-              <view class="voice-item-right">
-                <view class="voice-wave" wx:if="{{playingVoiceId === item.id}}">
-                  <view class="wave-bar"></view>
-                  <view class="wave-bar"></view>
-                  <view class="wave-bar"></view>
+              <view class="voice-sheet__voice-right">
+                <view class="voice-sheet__wave" wx:if="{{playingVoiceId === item.id}}">
+                  <view class="voice-sheet__wave-bar"></view>
+                  <view class="voice-sheet__wave-bar"></view>
+                  <view class="voice-sheet__wave-bar"></view>
                 </view>
-                <text class="voice-check" wx:elif="{{item.id === selectedVoiceId}}">✓</text>
+                <text class="voice-sheet__check" wx:elif="{{item.id === selectedVoiceId}}">✓</text>
               </view>
             </view>
           </block>
@@ -128,6 +168,8 @@
     </view>
 
     <!-- 退出登录 -->
-    <button class="btn-logout" bindtap="onLogout">退出登录</button>
+    <view class="logout-btn" bindtap="onLogout">
+      <text class="logout-btn__text">退出登录</text>
+    </view>
   </view>
 </view>

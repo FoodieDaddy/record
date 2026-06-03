@@ -2,7 +2,7 @@
 <view class="room-page">
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
-    <view class="empty-auth-icon">🔐</view>
+    <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
     <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
     <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可创建或加入房间</text>
     <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
@@ -122,15 +122,15 @@
       </view>
       <view class="rq-actions">
         <view class="rq-action-btn" bindtap="copyRoomNo">
-          <text class="rq-action-icon">📋</text>
+          <view class="icon-clip"></view>
           <text class="rq-action-text">复制房间号</text>
         </view>
         <view class="rq-action-btn" bindtap="openShareSheet">
-          <text class="rq-action-icon">🔗</text>
+          <view class="icon-link"></view>
           <text class="rq-action-text">二维码</text>
         </view>
         <button class="rq-action-btn" open-type="share">
-          <text class="rq-action-icon">📤</text>
+          <view class="icon-share"></view>
           <text class="rq-action-text">分享</text>
         </button>
       </view>
@@ -157,16 +157,16 @@
           </view>
           <view class="top-card-actions">
             <view class="tc-action" bindtap="openShareSheet">
-              <text class="tc-icon">📤</text>
+              <view class="icon-share"></view>
             </view>
             <view class="tc-action {{audioEnabled ? 'tc-audio-on' : ''}}" bindtap="toggleAudioSwitch">
-              <text class="tc-icon">{{audioEnabled ? '🔊' : '🔇'}}</text>
+              <view class="{{audioEnabled ? 'icon-audio-on' : 'icon-audio-off'}}"></view>
             </view>
             <view class="tc-action tc-danger" wx:if="{{!isOwner}}" bindtap="quitRoom">
-              <text class="tc-icon">🚪</text>
+              <view class="icon-door"></view>
             </view>
             <view class="tc-action tc-danger" wx:if="{{isOwner}}" bindtap="dissolveRoom">
-              <text class="tc-icon">🗑️</text>
+              <view class="icon-trash"></view>
             </view>
           </view>
         </view>
@@ -179,29 +179,31 @@
           <view style="display:flex;align-items:center;gap:12rpx;">
             <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
             <view class="mode-toggle" bindtap="toggleViewMode">
-              <text class="mode-toggle-icon">{{viewMode === 'grid' ? '🪑' : '📋'}}</text>
+              <view class="{{viewMode === 'grid' ? 'icon-grid' : 'icon-list'}}"></view>
               <text class="mode-toggle-text">{{viewMode === 'grid' ? '座位' : '简易'}}</text>
             </view>
           </view>
         </view>
         <!-- 简易网格模式 -->
-        <view class="member-grid" wx:if="{{viewMode === 'grid'}}">
-          <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
-                wx:for="{{memberGrid}}" wx:key="userId"
-                bindtap="onTapMember" data-user-id="{{item.userId}}">
-            <view class="mg-avatar-wrap">
-              <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
-                <text class="auto-avatar-char">{{item.avatarChar}}</text>
+        <scroll-view class="member-grid-scroll" wx:if="{{viewMode === 'grid'}}" scroll-y="{{memberGrid.length > 8}}" style="max-height:{{memberGrid.length > 8 ? '600rpx' : 'none'}};">
+          <view class="member-grid">
+            <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
+                  wx:for="{{memberGrid}}" wx:key="userId"
+                  bindtap="onTapMember" data-user-id="{{item.userId}}">
+              <view class="mg-avatar-wrap">
+                <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
+                  <text class="auto-avatar-char">{{item.avatarChar}}</text>
+                </view>
+                <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
+                <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
               </view>
-              <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
-              <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
+              <text class="mg-name">{{item.nickname}}</text>
+              <text class="mg-score score-number" style="color:{{item.scoreColor}};">
+                {{fmt.formatScore(item.displayScore)}}
+              </text>
             </view>
-            <text class="mg-name">{{item.nickname}}</text>
-            <text class="mg-score score-number" style="color:{{item.scoreColor}};">
-              {{fmt.formatScore(item.displayScore)}}
-            </text>
           </view>
-        </view>
+        </scroll-view>
         <!-- 座位模式 -->
         <view class="seat-container" wx:if="{{viewMode === 'seat'}}">
           <!-- 编辑工具栏（仅房主可见） -->
@@ -235,7 +237,7 @@
             members="{{memberGrid}}"
             score-map="{{seatScoreMap}}"
             my-user-id="{{myUserId}}"
-            max-seats="{{currentRoom.maxSeats || 4}}"
+            max-seats="{{currentRoom.maxSeats || 16}}"
             table-label="{{currentRoom.roomNo}}"
             layout-type="{{seatLayoutType}}"
             edit-mode="{{seatEditMode}}"
@@ -252,22 +254,22 @@
           <text class="section-title" style="margin-bottom:0;">积分记录</text>
           <view style="display:flex;gap:12rpx;">
             <view class="matrix-btn filter-btn {{filterMine ? 'filter-btn-on' : ''}}" bindtap="toggleFilterMine">
-              <text class="matrix-btn-icon">👤</text>
+              <view class="icon-person matrix-btn-icon-svg"></view>
               <text class="matrix-btn-text">我</text>
             </view>
             <view class="matrix-btn" bindtap="loadSessionHistory" data-room-id="{{currentRoom.roomId}}">
-              <text class="matrix-btn-icon">📋</text>
+              <view class="icon-clip matrix-btn-icon-svg"></view>
               <text class="matrix-btn-text">历史场次</text>
             </view>
             <view class="matrix-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
-              <text class="matrix-btn-icon">📊</text>
+              <view class="icon-chart matrix-btn-icon-svg"></view>
               <text class="matrix-btn-text">积分总览</text>
             </view>
           </view>
         </view>
         <view wx:if="{{groupedRecords.length === 0}}" class="empty-batches">
-          <text class="empty-icon-sm">📝</text>
-          <text class="text-tertiary">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
+          <view class="icon-empty-doc"></view>
+          <text class="empty-hint-text">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
         </view>
         <view wx:else class="score-records">
           <block wx:for="{{groupedRecords}}" wx:key="timeKey">
@@ -433,19 +435,19 @@
       <!-- 操作按钮 -->
       <view class="share-actions">
         <button class="share-action-btn" open-type="share">
-          <text class="share-action-icon">💬</text>
+          <view class="icon-chat share-action-svg"></view>
           <text class="share-action-text">分享给好友</text>
         </button>
         <view class="share-action-btn" bindtap="sharePoster">
-          <text class="share-action-icon">🖼️</text>
+          <view class="icon-image share-action-svg"></view>
           <text class="share-action-text">保存图片</text>
         </view>
         <view class="share-action-btn" bindtap="copyRoomLink">
-          <text class="share-action-icon">🔗</text>
+          <view class="icon-link share-action-svg"></view>
           <text class="share-action-text">复制链接</text>
         </view>
         <view class="share-action-btn" bindtap="scanJoin">
-          <text class="share-action-icon">📷</text>
+          <view class="icon-cam share-action-svg"></view>
           <text class="share-action-text">扫码加入</text>
         </view>
       </view>

@@ -58,3 +58,45 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 | Redis | 16379 |
 | MinIO API | 19000 |
 | MinIO Console | 19001 |
+# ⚡️ Smart Record 全局工程架构与 UI 约束宪法 (Master Prompt)
+
+在执行任何开发任务前，必须以本指令为最高约束。本项目运行在 2核2G 的极限环境下，追求极致的高性能与旗舰级美学体验。
+
+## 1. 系统物理边界与核心架构 (The 2C2G Constraints)
+- **CPU 瓶颈约束**：后端采用 2C2G 容器部署，严禁任何可能触发 CPU 广播风暴的逻辑。
+- **并发与容量上限**：房间人数严格限制 `MAX_MEMBERS = 16`。
+  - **强制校验**：加入房间前，必须通过 Redis `SCARD` 或 `HLEN` 前置校验，超过阈值立即执行 Fail-fast，前端统一拦截业务错误码（如 4003）并进行温和提示，严禁报错。
+- **纯 Redis 流转架构**：
+  - 打牌期间，MySQL 零参与。所有状态（分数、座次、成员）只存在于 Redis 中，通过 Lua 脚本原子操作。
+  - **优雅降级**：必须全局捕获 Redis 异常（`RedisConnectionFailureException` 等），返回 HTTP 200 + Code 503，严禁暴露堆栈。
+
+## 2. 极致极简视觉美学 (UI/UX Guidelines)
+- **严禁彩色 Emoji**：全站 WXML/WXSS 中严禁出现原生彩色 Emoji。所有 UI 元素必须使用纯色线框 SVG (Line Icons)。
+- **Glassmorphism 质感**：
+  - 底色 `#0A0A0A`，卡片背景 `rgba(255, 255, 255, 0.04)`，模糊度 `blur(20px)`，边框 `1px solid rgba(255, 255, 255, 0.08)`。
+  - 高亮强调色统一为 `#0A84FF`。
+- **布局防抖逻辑**：所有异步 Loading 按钮，必须使用“文本绝对居中 + 图标绝对定位”的结构，确保文字在 Loading 状态下偏移量为 0。
+
+## 3. 成员与座位布局模式 (Member Layouts)
+- **简易模式 (Simple Mode)**：4x4 矩阵网格，必须配合 `scroll-view` 与 `max-height: 600rpx`，防止撑爆首屏。
+- **座位模式 (Seat Mode)**：使用“绝对定位舞台 (Absolute Positioning Stage)”。中央设为虚拟桌子参考点，玩家通过 `pos-top`, `pos-bottom`, `pos-left`, `pos-right` 环绕排布，营造空间秩序感。
+
+## 4. 全局动效静默管理 (Animation Management)
+- **开关集成**：全局开关 `animationEnabled` (全局控制：`app.globalData` + `Storage`)。
+- **JS 守卫**：记分流程、飞行粒子、分数滚动动画必须在执行前判断 `if (!app.globalData.animationEnabled)`，跳过所有 `requestAnimationFrame` 和定时器。
+- **CSS 静默机制**：
+  - 核心页面根节点必须绑定：`class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}"`。
+  - `app.wxss` 全局覆盖规则：
+    ```css
+    .reduce-motion * { animation: none !important; transition: none !important; }
+    ```
+
+## 5. 前端性能最佳实践
+- **音频单例模式**：音色试听必须维护单例 `InnerAudioContext`，执行 `stop() -> src替换 -> play()`，严禁重复创建实例。
+- **组件化交互**：记分键盘、成员卡片、底部抽屉，必须具备高级弹性动效（`cubic-bezier`），但在 `reduce-motion` 类名作用下必须实现 0 延迟的静默展示。
+
+---
+**执行准则**：在编写任何代码前，若需求与上述规范冲突，必须优先纠正规范方向，确保应用架构的“小而美、快而稳”。
+
+## 5. 前端性能最佳实践
+- **音频单例模式**：在处理 多种音色试听时，禁止频繁 `new` 新的 `InnerAudioContext`。必须在顶层使用单例，通过 `stop()` -> 替换 `src` -> `play()` 来防止内存泄漏和声音重叠。

@@ -29,8 +29,10 @@ function request(options) {
           resolve(res.data.data);
         } else {
           const msg = (res.data && res.data.message) || '请求失败';
+          const err = new Error(msg);
+          err.code = res.data && res.data.code;
           wx.showToast({ title: msg, icon: 'none' });
-          reject(new Error(msg));
+          reject(err);
         }
       },
       fail(err) {

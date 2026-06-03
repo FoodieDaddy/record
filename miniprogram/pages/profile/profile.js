@@ -24,11 +24,14 @@ Page({
     // 音色抽屉
     voiceSheetVisible: false,
     voiceCategories: [],
-    activeCatIndex: 0,
+    activeVoiceCatId: 'female',
     scrollToCat: '',
     playingVoiceId: '',
     // 待保存的音色（关闭抽屉时才持久化）
-    pendingVoice: null
+    pendingVoice: null,
+    // 自动保存：记录上次保存的值，避免冗余请求
+    _lastSavedNickname: '',
+    _lastSavedAvatar: ''
   },
 
   onShow() {
@@ -38,6 +41,8 @@ Page({
       this.loadUserInfo();
       this.loadVoiceSettings();
       this.setData({ animationEnabled: app.globalData.animationEnabled });
+      // 预加载音色分类（供 Segmented Control 使用）
+      this.loadVoiceCatalog();
     }
   },
 
@@ -49,9 +54,13 @@ Page({
     try {
       const user = await get('/user/me');
       if (user) {
+        const loadedNick = user.nickname || '';
+        const loadedAvatar = user.avatarUrl || '';
         this.setData({
-          nickname: user.nickname || '',
-          avatarUrl: user.avatarUrl || ''
+          nickname: loadedNick,
+          avatarUrl: loadedAvatar,
+          _lastSavedNickname: loadedNick,
+          _lastSavedAvatar: loadedAvatar
         });
         app.globalData.userInfo = {
           nickname: user.nickname,
@@ -83,23 +92,32 @@ Page({
     }
   },
 
-  // ========== 头像 ==========
+  // ========== 头像（选择后自动保存） ==========
 
   onChooseAvatar(e) {
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
+    this.updateAvatar();
+    // 头像变更是明确的用户操作，立即自动保存
+    this.saveProfile();
   },
 
-  // ========== 昵称 ==========
+  // ========== 昵称（失焦自动保存） ==========
 
   onNicknameInput(e) {
     this.setData({ nickname: e.detail.value });
+  },
+
+  onNicknameBlur() {
+    this.saveProfile();
   },
 
   shuffleNickname() {
     const nickname = generateNickname();
     this.setData({ nickname });
     this.updateAvatar();
+    // 随机昵称后自动保存
+    this.saveProfile();
   },
 
   // ========== 语音设置 ==========
@@ -113,7 +131,7 @@ Page({
   },
 
   async loadVoiceCatalog() {
-    if (this.data.voiceCategories.length > 0) return; // 已缓存
+    if (this.data.voiceCategories.length > 0) return;
     try {
       const res = await new Promise((resolve, reject) => {
         wx.request({
@@ -123,10 +141,36 @@ Page({
         });
       });
       if (res.statusCode === 200 && res.data && res.data.data) {
-        this.setData({ voiceCategories: res.data.data.categories || [] });
+        const categories = res.data.data.categories || [];
+        this.setData({ voiceCategories: categories });
+        // 确保 activeVoiceCatId 在分类列表中有效
+        if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
+          this.setData({ activeVoiceCatId: categories[0].id });
+        }
       }
     } catch (e) {
       console.error('加载音色目录失败', e);
+    }
+  },
+
+  // 分段控制器点击（女声/男声）
+  onSegmentTap(e) {
+    const catId = e.currentTarget.dataset.catId;
+    this.setData({ activeVoiceCatId: catId });
+    // 同步滚动到对应分类
+    const cats = this.data.voiceCategories;
+    const target = cats.find(c => c.id === catId);
+    if (target) {
+      this.setData({ scrollToCat: 'cat-' + target.id });
+    } else if (cats.length > 0) {
+      // fallback: 按索引（female=0, male=1）
+      const idx = catId === 'male' ? 1 : 0;
+      if (cats[idx]) {
+        this.setData({
+          activeVoiceCatId: cats[idx].id,
+          scrollToCat: 'cat-' + cats[idx].id
+        });
+      }
     }
   },
 
@@ -136,7 +180,6 @@ Page({
   },
 
   closeVoiceSheet() {
-    // 关闭抽屉时持久化音色选择
     if (this.data.pendingVoice) {
       saveSettings(this.data.pendingVoice);
       this.setData({ pendingVoice: null });
@@ -147,31 +190,30 @@ Page({
   },
 
   onCatTap(e) {
-    const index = e.currentTarget.dataset.index;
-    const cat = this.data.voiceCategories[index];
+    const catId = e.currentTarget.dataset.catId;
     this.setData({
-      activeCatIndex: index,
-      scrollToCat: 'cat-' + cat.id
+      activeVoiceCatId: catId,
+      scrollToCat: 'cat-' + catId
     });
   },
 
   onVoiceTap(e) {
     const voice = e.currentTarget.dataset.voice;
+    const catId = e.currentTarget.dataset.catId;
 
-    // 更新 UI 状态，暂不持久化（关闭抽屉时再保存）
     this.setData({
       selectedVoiceId: voice.id,
       voiceName: voice.name,
+      activeVoiceCatId: catId,
       pendingVoice: { voiceId: voice.id, voiceName: voice.name, voice: voice.voice }
     });
 
-    // 试听：stop → src → play，严格顺序
+    // 试听：stop → src → play
     audioCtx.stop();
     this.setData({ playingVoiceId: voice.id });
     audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
     audioCtx.play();
 
-    // 播放结束清除状态
     audioCtx.offEnded();
     audioCtx.onEnded(() => {
       this.setData({ playingVoiceId: '' });
@@ -188,31 +230,30 @@ Page({
   // ========== 导航 ==========
 
   goScoreRecords() {
-    // 切换到房间 tab，显示积分记录
     wx.switchTab({ url: '/pages/room/room' });
   },
 
   goHistoryRooms() {
-    // 切换到房间 tab，显示历史房间
     wx.switchTab({ url: '/pages/room/room' });
   },
 
-  // ========== 保存 ==========
+  // ========== 自动保存 ==========
 
   async saveProfile() {
     if (this.data.saving) return;
     const { nickname, avatarUrl } = this.data;
 
-    if (!nickname.trim()) {
-      wx.showToast({ title: '请输入昵称', icon: 'none' });
-      return;
-    }
+    if (!nickname || !nickname.trim()) return;
+
+    // 值未变化时跳过保存
+    const trimmed = nickname.trim();
+    if (trimmed === this.data._lastSavedNickname && avatarUrl === this.data._lastSavedAvatar) return;
 
     this.setData({ saving: true });
     try {
       let finalAvatarUrl = avatarUrl;
-      // 非 OSS URL 的本地临时文件需要先上传
-      if (avatarUrl && avatarUrl.indexOf('aliyuncs.com') === -1) {
+      // 非 OSS URL 视为本地临时文件，需上传
+      if (avatarUrl && avatarUrl.indexOf('aliyuncs.com') === -1 && avatarUrl.indexOf('.com/') === -1) {
         finalAvatarUrl = await this.uploadToOSS(avatarUrl);
       }
 
@@ -226,13 +267,14 @@ Page({
         avatarUrl: finalAvatarUrl || ''
       };
 
-      // 更新本地显示
-      this.setData({ avatarUrl: finalAvatarUrl || '' });
+      this.setData({
+        avatarUrl: finalAvatarUrl || '',
+        _lastSavedNickname: trimmed,
+        _lastSavedAvatar: finalAvatarUrl || ''
+      });
       this.updateAvatar();
-
-      wx.showToast({ title: '已保存', icon: 'success' });
     } catch (e) {
-      console.error('保存失败', e);
+      console.error('自动保存失败', e);
     } finally {
       this.setData({ saving: false });
     }
@@ -241,14 +283,12 @@ Page({
   // ========== 上传 ==========
 
   async uploadToOSS(filePath) {
-    // 1. 获取预签名 URL
     const presignData = await get('/storage/presign?contentType=' + encodeURIComponent('image/jpeg'));
 
     if (!presignData || !presignData.uploadUrl) {
       throw new Error('获取预签名 URL 失败');
     }
 
-    // 2. 读取文件为 ArrayBuffer
     const fileData = await new Promise((resolve, reject) => {
       wx.getFileSystemManager().readFile({
         filePath,
@@ -257,7 +297,6 @@ Page({
       });
     });
 
-    // 3. PUT 上传到 OSS
     await new Promise((resolve, reject) => {
       wx.request({
         url: presignData.uploadUrl,
@@ -274,7 +313,6 @@ Page({
       });
     });
 
-    // 4. 返回 objectKey（不存完整 URL，节省空间）
     return presignData.objectKey;
   },
 
@@ -292,7 +330,6 @@ Page({
   },
 
   onUnload() {
-    // 页面卸载前保存待持久化的音色
     if (this.data.pendingVoice) {
       saveSettings(this.data.pendingVoice);
     }

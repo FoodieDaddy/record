@@ -16,9 +16,11 @@ const app = getApp()
  */
 
 // 圆桌半径比例（相对容器短边）
-const TABLE_RADIUS_RATIO = 0.32
+const TABLE_RADIUS_RATIO = 0.30
 // 最大座位数
 const MAX_SEATS = 8
+// 座位宽度的一半（rpx），用于居中偏移
+const HALF_SEAT_RPX = 60
 // 分数滚动动画时长
 const SCORE_ROLL_DURATION = 600
 
@@ -30,8 +32,8 @@ Component({
     scoreMap: { type: Object, value: {} },
     /** 当前用户 ID */
     myUserId: { type: String, value: '' },
-    /** 房间最大座位数（默认 4） */
-    maxSeats: { type: Number, value: 4 },
+    /** 房间最大座位数（默认 16） */
+    maxSeats: { type: Number, value: 16 },
     /** 表面标签文字 */
     tableLabel: { type: String, value: '' },
     /** 显示调试信息 */
@@ -61,7 +63,8 @@ Component({
       this._coordContainerW = 0
       this._coordLayout = ''
       const N = (this.data.members || []).length
-      if (N > 0) this._calcCoords(N)
+      const M = Math.max(N, this.data.maxSeats || N)
+      if (N > 0) this._calcCoords(M)
     }
   },
 
@@ -90,43 +93,73 @@ Component({
     /**
      * 构建座位数据
      * 核心：第一人称视角转换算法
+     * 坐标按 maxSeats 布局，空位渲染为虚线占位
      */
     _buildSeats(members, scoreMap, myUserId, maxSeats) {
       const N = members.length
+      const M = Math.max(N, maxSeats || N)
       const myIndex = members.findIndex(m => String(m.userId) === String(myUserId))
       this._myIndex = myIndex
 
-      // 布局坐标基于实际人数，随人数变化动态调整
-      this._calcCoords(N)
+      // 布局坐标基于 maxSeats，保证空位也有坐标
+      this._calcCoords(M)
+
+      // 构建成员按相对位置的映射
+      const memberMap = {}
+      members.forEach((member, i) => {
+        const relIndex = (i - myIndex + M) % M
+        memberMap[relIndex] = member
+      })
 
       const seats = []
-      for (let i = 0; i < N; i++) {
-        const member = members[i]
-        const relIndex = (i - myIndex + N) % N
-        const coord = this._seatCoords[relIndex] || { x: 0, y: 0 }
+      for (let rel = 0; rel < M; rel++) {
+        const coord = this._seatCoords[rel] || { x: 0, y: 0 }
+        const member = memberMap[rel]
 
-        const score = scoreMap[member.userId] || 0
-        const prevSeat = this._prevSeats && this._prevSeats.find(s => s.userId === member.userId)
-        const animVal = prevSeat ? prevSeat.animValue : score
+        if (member) {
+          const score = scoreMap[member.userId] || 0
+          const prevSeat = this._prevSeats && this._prevSeats.find(s => s.userId === member.userId)
+          const animVal = prevSeat ? prevSeat.animValue : score
 
-        seats.push({
-          userId: member.userId,
-          nickname: member.nickname,
-          avatarUrl: member.avatarUrl || '',
-          avatarColor: member.avatarUrl ? '' : getColor(member.nickname),
-          avatarChar: member.avatarUrl ? '' : getFirstChar(member.nickname),
-          score,
-          animValue: animVal,
-          displayScore: score,
-          isMe: String(member.userId) === String(myUserId),
-          isEmpty: false,
-          isHighlight: false,
-          absIndex: i,
-          index: i,
-          x: coord.x,
-          y: coord.y,
-          transform: `translate3d(${coord.x}px,${coord.y}px,0)`
-        })
+          seats.push({
+            userId: member.userId,
+            nickname: member.nickname,
+            avatarUrl: member.avatarUrl || '',
+            avatarColor: member.avatarUrl ? '' : getColor(member.nickname),
+            avatarChar: member.avatarUrl ? '' : getFirstChar(member.nickname),
+            score,
+            animValue: animVal,
+            displayScore: score,
+            isMe: String(member.userId) === String(myUserId),
+            isEmpty: false,
+            isHighlight: false,
+            absIndex: members.indexOf(member),
+            index: members.indexOf(member),
+            x: coord.x,
+            y: coord.y,
+            transform: `translate3d(${coord.x}px,${coord.y}px,0)`
+          })
+        } else {
+          // 空座位占位
+          seats.push({
+            userId: `_empty_${rel}`,
+            nickname: '',
+            avatarUrl: '',
+            avatarColor: '',
+            avatarChar: '',
+            score: 0,
+            animValue: 0,
+            displayScore: 0,
+            isMe: false,
+            isEmpty: true,
+            isHighlight: false,
+            absIndex: -1,
+            index: -1,
+            x: coord.x,
+            y: coord.y,
+            transform: `translate3d(${coord.x}px,${coord.y}px,0)`
+          })
+        }
       }
 
       this._prevSeats = seats
@@ -167,9 +200,20 @@ Component({
         const scoreMap = this.data.scoreMap
         const myUserId = this.data.myUserId
         if (members && members.length > 0) {
-          this._buildSeats(members, scoreMap, myUserId, N)
+          this._buildSeats(members, scoreMap, myUserId, this.data.maxSeats)
         }
       })
+    },
+
+    /**
+     * rpx 转换为 CSS px
+     */
+    _rpx2px(rpx) {
+      if (!this._pxPerRpx) {
+        const sys = wx.getSystemInfoSync()
+        this._pxPerRpx = sys.screenWidth / 750
+      }
+      return rpx * this._pxPerRpx
     },
 
     /**
@@ -178,7 +222,7 @@ Component({
     _layoutCoords(type, N, rect) {
       const cx = rect.width / 2
       const cy = rect.height / 2
-      const halfSeat = 60
+      const halfSeat = this._rpx2px(HALF_SEAT_RPX)
 
       if (type === 'rectangle') {
         return this._rectangleLayout(N, rect, cx, cy, halfSeat)

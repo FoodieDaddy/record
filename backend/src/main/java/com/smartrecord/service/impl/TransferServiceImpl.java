@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,29 @@ public class TransferServiceImpl implements TransferService {
 
     private static final String SESSION_PREFIX = "sr:session:";
     private static final String ROOM_PREFIX = "sr:room:";
+
+    /**
+     * Lua 脚本：原子转账（扣分 + 加分 + 记录流水）
+     * KEYS[1] = 排行榜 Sorted Set (sr:session:{sid}:scores)
+     * KEYS[2] = 流水 List (sr:session:{sid}:events)
+     * ARGV[1] = fromUserId, ARGV[2] = toUserId
+     * ARGV[3] = amount, ARGV[4] = eventJson
+     * 返回 1 表示成功
+     */
+    private static final String TRANSFER_LUA = """
+            local scoresKey = KEYS[1]
+            local eventsKey = KEYS[2]
+            local fromUser = ARGV[1]
+            local toUser = ARGV[2]
+            local amount = tonumber(ARGV[3])
+            local eventJson = ARGV[4]
+            redis.call('ZINCRBY', scoresKey, -amount, fromUser)
+            redis.call('ZINCRBY', scoresKey, amount, toUser)
+            redis.call('RPUSH', eventsKey, eventJson)
+            return 1
+            """;
+
+    private static final DefaultRedisScript<Long> TRANSFER_SCRIPT = new DefaultRedisScript<>(TRANSFER_LUA, Long.class);
 
     private final TransferMapper transferMapper;
     private final RoomMemberMapper roomMemberMapper;
@@ -68,58 +92,45 @@ public class TransferServiceImpl implements TransferService {
         }
 
         // 从 Redis 缓存获取活跃场次 ID
-        String activeSessionKey = ROOM_PREFIX + req.getRoomId() + ":active_session";
-        String sessionIdStr = redisTemplate.opsForValue().get(activeSessionKey);
-        Long sessionId = null;
-        if (sessionIdStr != null) {
-            sessionId = Long.parseLong(sessionIdStr);
-        } else {
-            // 降级查数据库
-            Session session = sessionMapper.selectOne(
-                    new LambdaQueryWrapper<Session>()
-                            .eq(Session::getRoomId, req.getRoomId())
-                            .eq(Session::getStatus, 0)
-                            .last("LIMIT 1"));
-            if (session != null) {
-                sessionId = session.getId();
-                // 缓存活跃场次 ID
-                redisTemplate.opsForValue().set(activeSessionKey, String.valueOf(sessionId), 24, TimeUnit.HOURS);
+        Long sessionId = resolveActiveSessionId(req.getRoomId());
+        if (sessionId == null) {
+            throw new BizException("当前没有进行中的场次");
+        }
+
+        // 组装流水 JSON（结算时批量落盘用）
+        long now = System.currentTimeMillis();
+        String eventJson = String.format("{\"from\":%d,\"to\":%d,\"amount\":%d,\"time\":%d,\"remark\":\"%s\"}",
+                userId, req.getToUserId(), req.getAmount(), now,
+                req.getRemark() != null ? req.getRemark() : "");
+
+        // 执行 Lua 脚本：原子完成 扣分 + 加分 + 记录流水
+        String scoresKey = SESSION_PREFIX + sessionId + ":scores";
+        String eventsKey = SESSION_PREFIX + sessionId + ":events";
+        try {
+            Long result = redisTemplate.execute(TRANSFER_SCRIPT,
+                    List.of(scoresKey, eventsKey),
+                    String.valueOf(userId),
+                    String.valueOf(req.getToUserId()),
+                    String.valueOf(req.getAmount()),
+                    eventJson);
+            if (result == null || result == 0) {
+                throw new BizException("转账失败，请重试");
             }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Lua 转账执行异常: roomId={}, from={}, to={}, amount={}",
+                    req.getRoomId(), userId, req.getToUserId(), req.getAmount(), e);
+            throw new BizException("系统繁忙，请稍后重试");
         }
 
-        Transfer transfer = new Transfer();
-        transfer.setId(idGenerator.nextId());
-        transfer.setRoomId(req.getRoomId());
-        transfer.setSessionId(sessionId != null ? sessionId : 0L);
-        transfer.setFromUserId(userId);
-        transfer.setToUserId(req.getToUserId());
-        transfer.setAmount(req.getAmount());
-        transfer.setRemark(req.getRemark());
-        transfer.setStatus(0);
-        transferMapper.insert(transfer);
+        // 设置流水列表过期时间（每次续期 24h）
+        redisTemplate.expire(eventsKey, 24, TimeUnit.HOURS);
 
-        if (sessionId != null) {
-            String sessionPrefix = SESSION_PREFIX + sessionId + ":";
-            String scoresKey = sessionPrefix + "scores";
-
-            // 更新排行榜
-            redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(userId), -req.getAmount());
-            redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(req.getToUserId()), req.getAmount());
-            redisTemplate.expire(scoresKey, 24, TimeUnit.HOURS);
-
-            // 写入批次数据（供折线图使用）
-            long batchTs = System.currentTimeMillis();
-            String batchKey = sessionPrefix + "batch:" + batchTs;
-            String batchesKey = sessionPrefix + "batches";
-
-            redisTemplate.opsForHash().put(batchKey, String.valueOf(userId), String.valueOf(-req.getAmount()));
-            redisTemplate.opsForHash().put(batchKey, String.valueOf(req.getToUserId()), String.valueOf(req.getAmount()));
-            redisTemplate.opsForHash().put(batchKey, "_created_by", String.valueOf(userId));
-            redisTemplate.expire(batchKey, 24, TimeUnit.HOURS);
-
-            redisTemplate.opsForList().rightPush(batchesKey, String.valueOf(batchTs));
-            redisTemplate.expire(batchesKey, 24, TimeUnit.HOURS);
-        }
+        // 更新最后活跃时间（供幽灵对局清扫器判断）
+        redisTemplate.opsForValue().set(
+                SESSION_PREFIX + sessionId + ":last_active",
+                LocalDateTime.now().toString(), 48, TimeUnit.HOURS);
 
         // WebSocket 推送给房间内所有玩家（ID 转字符串，避免 JS 精度丢失）
         Map<String, Object> pushData = new HashMap<>();
@@ -133,7 +144,39 @@ public class TransferServiceImpl implements TransferService {
         // 异步更新总览缓存
         overviewService.computeOverview(req.getRoomId());
 
-        return buildResp(transfer);
+        return TransferResp.builder()
+                .id(now)
+                .fromUser(TransferResp.UserInfo.builder().userId(userId).build())
+                .toUser(TransferResp.UserInfo.builder().userId(req.getToUserId()).build())
+                .amount(req.getAmount())
+                .amountDisplay(String.format("%.2f", req.getAmount() / 100.0))
+                .remark(req.getRemark())
+                .status(0)
+                .sessionId(sessionId)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * 从 Redis 获取房间活跃场次 ID，未命中则降级查 MySQL 并回填
+     */
+    private Long resolveActiveSessionId(Long roomId) {
+        String activeSessionKey = ROOM_PREFIX + roomId + ":active_session";
+        String sessionIdStr = redisTemplate.opsForValue().get(activeSessionKey);
+        if (sessionIdStr != null) {
+            return Long.parseLong(sessionIdStr);
+        }
+        // 降级查数据库
+        Session session = sessionMapper.selectOne(
+                new LambdaQueryWrapper<Session>()
+                        .eq(Session::getRoomId, roomId)
+                        .eq(Session::getStatus, 0)
+                        .last("LIMIT 1"));
+        if (session != null) {
+            redisTemplate.opsForValue().set(activeSessionKey, String.valueOf(session.getId()), 24, TimeUnit.HOURS);
+            return session.getId();
+        }
+        return null;
     }
 
     @Override

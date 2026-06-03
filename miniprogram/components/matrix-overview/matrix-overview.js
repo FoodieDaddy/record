@@ -6,7 +6,7 @@ const { get } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 
 /** 人数阈值：超过此值切换为一维列表模式 */
-const MAX_MATRIX_SIZE = 4;
+const MAX_MATRIX_SIZE = 16;
 
 Component({
   properties: {
@@ -22,13 +22,13 @@ Component({
     active: false,         // 控制 DOM 存在（延迟于 visible 关闭）
     chartHidden: true,     // 折线图显隐
     playerCount: 0,        // 当前人数
-    animEnabled: true,     // 是否启用动画（>4人时关闭）
+    animEnabled: true,     // 是否启用动画（>16人时关闭）
 
-    // 矩阵模式（≤4人）
+    // 矩阵模式（≤16人）
     matrixMembers: [],
     matrixData: [],
 
-    // 一维关系列表模式（>4人）
+    // 一维关系列表模式（>16人）
     relationList: [],
 
     // 折线图
@@ -101,7 +101,7 @@ Component({
       }, 50);
     },
 
-    /** 构建矩阵（≤4人）：含对角线总分 */
+    /** 构建矩阵（≤16人）：含对角线总分 */
     buildMatrix() {
       const members = this.data.memberGrid;
       if (!members || members.length < 2) {
@@ -188,7 +188,7 @@ Component({
       }, 0);
     },
 
-    /** 构建一维关系列表（>4人）：我与他人的积分往来 */
+    /** 构建一维关系列表（>16人）：我与他人的积分往来 */
     buildRelationList() {
       const members = this.data.memberGrid;
       if (!members || members.length < 2) {

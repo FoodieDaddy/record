@@ -618,7 +618,21 @@ Page({
       this.connectWS(room.roomId);
       wx.showToast({ title: '已加入房间', icon: 'success' });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '加入失败', icon: 'none', duration: 2000 });
+      if (e && e.code === 4003) {
+        // 房间已满：温柔提示 + 退回最后一位输入
+        wx.showToast({ title: '当前房间已满员（最多16人）', icon: 'none', duration: 2500 });
+        const vals = this.data.otpValues.slice();
+        vals[5] = '';
+        this.setData({
+          otpValues: vals,
+          otpRawValue: vals.join(''),
+          joinRoomNo: vals.join(''),
+          otpFocusIndex: 5,
+          otpInputFocused: true
+        });
+      } else {
+        wx.showToast({ title: (e && e.message) || '加入失败', icon: 'none', duration: 2000 });
+      }
     }
   },
 

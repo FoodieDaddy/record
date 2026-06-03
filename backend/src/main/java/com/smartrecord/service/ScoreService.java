@@ -22,6 +22,12 @@ public interface ScoreService {
     /** 结束当前轮，开启新一轮 */
     void settleRoom(Long userId, Long roomId);
 
+    /**
+     * 强制结算指定场次（供幽灵对局清扫器调用）
+     * 仅持久化 Redis 数据到 MySQL 并标记场次已结算，不创建新场次
+     */
+    void forceSettleSession(Long sessionId);
+
     /** 获取房间当前轮的折线图数据 */
     ChartDataResp getChartData(Long roomId);
 }

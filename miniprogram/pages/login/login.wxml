@@ -1,53 +1,67 @@
 <view class="login-page">
-  <!-- 背景装饰层 -->
-  <view class="bg-layer">
-    <view class="bg-glow bg-glow-1"></view>
-    <view class="bg-glow bg-glow-2"></view>
-    <view class="bg-grid"></view>
-    <view class="particle particle-1"></view>
-    <view class="particle particle-2"></view>
-    <view class="particle particle-3"></view>
-    <view class="particle particle-4"></view>
-    <view class="particle particle-5"></view>
-  </view>
+  <!-- 环境光 -->
+  <view class="atmosphere"></view>
 
   <!-- Logo 区域 -->
-  <view class="logo-section">
-    <view class="logo-ring">
-      <view class="logo-icon-wrap">
-        <text class="logo-icon">🀄</text>
+  <view class="brand">
+    <!-- 极简几何 Logo：抽象 S 形 -->
+    <view class="logo-mark">
+      <view class="logo-ring">
+        <view class="logo-inner">
+          <view class="logo-s">
+            <view class="s-top"></view>
+            <view class="s-bottom"></view>
+          </view>
+        </view>
       </view>
+      <view class="logo-glow"></view>
     </view>
-    <text class="logo-title">Happy记分器</text>
-    <view class="logo-divider"></view>
-    <text class="logo-subtitle text-secondary">细致记分 · 实时同步</text>
-    <view class="feature-tags">
-      <view class="tag">
-        <text class="tag-dot"></text>
-        <text>多人房间</text>
-      </view>
-      <view class="tag">
-        <text class="tag-dot"></text>
-        <text>实时排行</text>
-      </view>
-      <view class="tag">
-        <text class="tag-dot"></text>
-        <text>成绩海报</text>
-      </view>
+
+    <text class="brand-name">Smart Record</text>
+    <text class="brand-tagline">细致记分 · 实时同步</text>
+
+    <view class="brand-features">
+      <text class="feature-item">多人房间</text>
+      <text class="feature-sep">|</text>
+      <text class="feature-item">实时排行</text>
+      <text class="feature-sep">|</text>
+      <text class="feature-item">成绩海报</text>
     </view>
   </view>
 
   <!-- 登录卡片 -->
   <view class="login-card">
-    <view class="card-border-glow"></view>
-    <view class="card-inner">
-      <button class="login-btn" bindtap="onLogin" loading="{{loading}}">
-        <text class="btn-icon">💬</text>
-        <text>微信一键登录</text>
+    <view class="card-shine"></view>
+    <view class="card-body">
+      <button
+        class="login-btn {{loading ? 'is-loading' : ''}}"
+        hover-class="login-btn--hover"
+        hover-stay-time="100"
+        bindtap="onLogin"
+      >
+        <view class="btn-content">
+          <!-- 微信 Logo SVG -->
+          <view class="btn-icon-wrap">
+            <view class="wechat-icon">
+              <view class="wc-bubble wc-bubble--lg"></view>
+              <view class="wc-bubble wc-bubble--sm"></view>
+              <view class="wc-dot wc-dot--1"></view>
+              <view class="wc-dot wc-dot--2"></view>
+              <view class="wc-dot wc-dot--3"></view>
+              <view class="wc-dot wc-dot--4"></view>
+              <view class="wc-dot wc-dot--5"></view>
+              <view class="wc-dot wc-dot--6"></view>
+            </view>
+          </view>
+          <text class="btn-text">微信一键登录</text>
+        </view>
+        <!-- loading 圈绝对定位，不影响文字居中 -->
+        <view wx:if="{{loading}}" class="btn-loading">
+          <view class="spinner"></view>
+        </view>
       </button>
-      <view class="login-footer">
-        <text class="text-tertiary login-tip">首次登录将自动生成昵称头像</text>
-      </view>
+
+      <text class="login-hint">首次登录将自动生成昵称头像</text>
     </view>
   </view>
 
@@ -55,5 +69,5 @@
   <canvas type="2d" id="avatarCanvas" style="position:fixed;left:-999rpx;top:-999rpx;width:200rpx;height:200rpx;"></canvas>
 
   <!-- 底部版本 -->
-  <text class="version-text text-tertiary">v1.0.0</text>
+  <text class="version">v1.0.0</text>
 </view>

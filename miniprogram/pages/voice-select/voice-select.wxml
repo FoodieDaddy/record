@@ -1,0 +1,61 @@
+<view class="page">
+  <!-- 蒙层 -->
+  <view class="mask {{showSheet ? 'visible' : ''}}" bindtap="closeSheet"></view>
+
+  <!-- 底部抽屉 -->
+  <view class="sheet {{showSheet ? 'slide-up' : ''}}">
+    <!-- 把手 -->
+    <view class="handle"></view>
+
+    <!-- Header -->
+    <view class="header">
+      <text class="header-title">选择音色</text>
+      <view class="close-btn" bindtap="closeSheet">
+        <text class="close-icon">✕</text>
+      </view>
+    </view>
+
+    <!-- 内容区：左右分栏 -->
+    <view class="content">
+      <!-- 左侧分类栏 -->
+      <scroll-view class="sidebar" scroll-y>
+        <view
+          wx:for="{{categories}}"
+          wx:key="id"
+          class="sidebar-item {{activeTab === index ? 'active' : ''}}"
+          bindtap="switchTab"
+          data-index="{{index}}"
+        >
+          <text class="sidebar-icon">{{item.icon}}</text>
+          <text class="sidebar-name">{{item.name}}</text>
+        </view>
+      </scroll-view>
+
+      <!-- 右侧音色列表 -->
+      <scroll-view class="voice-list" scroll-y scroll-into-view="{{scrollTo}}">
+        <!-- 当前分类标题 -->
+        <view class="section-title">{{categories[activeTab].name}}</view>
+
+        <block wx:for="{{categories[activeTab].voices}}" wx:key="id">
+          <view
+            id="v-{{item.id}}"
+            class="voice-card {{selectedId === item.id ? 'selected' : ''}} {{playingId === item.id ? 'playing' : ''}}"
+            bindtap="playVoice"
+            data-id="{{item.id}}"
+            data-file="{{item.file}}"
+          >
+            <view class="voice-info">
+              <view class="voice-name">{{item.name}}</view>
+              <view class="voice-desc">{{item.desc}}</view>
+            </view>
+            <view class="voice-action">
+              <view wx:if="{{selectedId === item.id}}" class="check-icon">✓</view>
+              <view wx:elif="{{playingId === item.id}}" class="play-icon spin">🔊</view>
+              <view wx:else class="play-icon">▶</view>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+</view>

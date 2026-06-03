@@ -156,7 +156,7 @@ public class RoomServiceImpl implements RoomService {
         }
         int nextSeat = 1;
         while (usedSeats.contains(nextSeat)) nextSeat++;
-        if (nextSeat > 8) throw new BizException("房间已满（最多 8 人）");
+        if (nextSeat > 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
 
         // 5. 加入房间
         RoomMember member = new RoomMember();
