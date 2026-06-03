@@ -27,6 +27,17 @@
         { "id": "hk_03", "name": "云龙", "file": "hk_03_wanlung.mp3", "gender": "male", "desc": "粤语男声", "voice": "zh-HK-WanLungNeural" },
         { "id": "tw_03", "name": "云哲", "file": "tw_03_yunjhe.mp3", "gender": "male", "desc": "台湾男声", "voice": "zh-TW-YunJheNeural" }
       ]
+    },
+    {
+      "id": "funny",
+      "name": "搞怪",
+      "icon": "😂",
+      "voices": [
+        { "id": "fn_01", "name": "急速甜妹", "file": "funny_01_fast_high.mp3", "gender": "female", "desc": "快速高音", "voice": "zh-CN-XiaoxiaoNeural", "rate": "+60%", "pitch": "+80Hz" },
+        { "id": "fn_02", "name": "闪电小子", "file": "funny_02_speedy.mp3", "gender": "male", "desc": "极速尖细", "voice": "zh-CN-YunxiaNeural", "rate": "+80%", "pitch": "+100Hz" },
+        { "id": "fn_03", "name": "深沉大叔", "file": "funny_03_deep.mp3", "gender": "male", "desc": "慢速低沉", "voice": "zh-CN-YunjianNeural", "rate": "-40%", "pitch": "-60Hz" },
+        { "id": "fn_04", "name": "机关枪", "file": "funny_04_rapid.mp3", "gender": "male", "desc": "极速播报", "voice": "zh-CN-YunyangNeural", "rate": "+80%" }
+      ]
     }
   ]
 }
