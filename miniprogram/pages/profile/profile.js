@@ -26,7 +26,9 @@ Page({
     voiceCategories: [],
     activeCatIndex: 0,
     scrollToCat: '',
-    playingVoiceId: ''
+    playingVoiceId: '',
+    // 待保存的音色（关闭抽屉时才持久化）
+    pendingVoice: null
   },
 
   onShow() {
@@ -134,6 +136,11 @@ Page({
   },
 
   closeVoiceSheet() {
+    // 关闭抽屉时持久化音色选择
+    if (this.data.pendingVoice) {
+      saveSettings(this.data.pendingVoice);
+      this.setData({ pendingVoice: null });
+    }
     this.setData({ voiceSheetVisible: false });
     audioCtx.stop();
     this.setData({ playingVoiceId: '' });
@@ -151,15 +158,11 @@ Page({
   onVoiceTap(e) {
     const voice = e.currentTarget.dataset.voice;
 
-    // 更新选中状态并持久化
+    // 更新 UI 状态，暂不持久化（关闭抽屉时再保存）
     this.setData({
       selectedVoiceId: voice.id,
-      voiceName: voice.name
-    });
-    saveSettings({
-      voiceId: voice.id,
       voiceName: voice.name,
-      voice: voice.voice
+      pendingVoice: { voiceId: voice.id, voiceName: voice.name, voice: voice.voice }
     });
 
     // 试听：stop → src → play，严格顺序
@@ -289,6 +292,10 @@ Page({
   },
 
   onUnload() {
+    // 页面卸载前保存待持久化的音色
+    if (this.data.pendingVoice) {
+      saveSettings(this.data.pendingVoice);
+    }
     audioCtx.stop();
     audioCtx.destroy();
   }
