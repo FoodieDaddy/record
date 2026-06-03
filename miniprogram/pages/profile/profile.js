@@ -2,7 +2,12 @@ const { get, put } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { generateNickname } = require('../../utils/nickname');
 const { getSettings, saveSettings } = require('../../utils/voice');
+const config = require('../../config');
 const app = getApp();
+
+// 音频单例 — 全局唯一，避免内存泄漏和重叠播放
+const audioCtx = wx.createInnerAudioContext();
+audioCtx.obeyMuteSwitch = false;
 
 Page({
   data: {
@@ -12,9 +17,16 @@ Page({
     avatarColor: '',
     avatarChar: '',
     voiceEnabled: true,
-    voiceType: 'female',
+    voiceName: '晓晓',
+    selectedVoiceId: 'std_01',
     animationEnabled: true,
-    saving: false
+    saving: false,
+    // 音色抽屉
+    voiceSheetVisible: false,
+    voiceCategories: [],
+    activeCatIndex: 0,
+    scrollToCat: '',
+    playingVoiceId: ''
   },
 
   onShow() {
@@ -54,7 +66,8 @@ Page({
     const settings = getSettings();
     this.setData({
       voiceEnabled: settings.enabled,
-      voiceType: settings.voiceType
+      voiceName: settings.voiceName,
+      selectedVoiceId: settings.voiceId
     });
   },
 
@@ -97,10 +110,69 @@ Page({
     wx.setStorageSync('audioEnabled', enabled);
   },
 
-  setVoiceType(e) {
-    const type = e.currentTarget.dataset.type;
-    this.setData({ voiceType: type });
-    saveSettings({ voiceType: type });
+  async loadVoiceCatalog() {
+    if (this.data.voiceCategories.length > 0) return; // 已缓存
+    try {
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: config.baseUrl + '/voice/catalog',
+          success: resolve,
+          fail: reject
+        });
+      });
+      if (res.statusCode === 200 && res.data && res.data.data) {
+        this.setData({ voiceCategories: res.data.data.categories || [] });
+      }
+    } catch (e) {
+      console.error('加载音色目录失败', e);
+    }
+  },
+
+  openVoiceSheet() {
+    this.loadVoiceCatalog();
+    this.setData({ voiceSheetVisible: true });
+  },
+
+  closeVoiceSheet() {
+    this.setData({ voiceSheetVisible: false });
+    audioCtx.stop();
+    this.setData({ playingVoiceId: '' });
+  },
+
+  onCatTap(e) {
+    const index = e.currentTarget.dataset.index;
+    const cat = this.data.voiceCategories[index];
+    this.setData({
+      activeCatIndex: index,
+      scrollToCat: 'cat-' + cat.id
+    });
+  },
+
+  onVoiceTap(e) {
+    const voice = e.currentTarget.dataset.voice;
+
+    // 更新选中状态并持久化
+    this.setData({
+      selectedVoiceId: voice.id,
+      voiceName: voice.name
+    });
+    saveSettings({
+      voiceId: voice.id,
+      voiceName: voice.name,
+      voice: voice.voice
+    });
+
+    // 试听：stop → src → play，严格顺序
+    audioCtx.stop();
+    this.setData({ playingVoiceId: voice.id });
+    audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
+    audioCtx.play();
+
+    // 播放结束清除状态
+    audioCtx.offEnded();
+    audioCtx.onEnded(() => {
+      this.setData({ playingVoiceId: '' });
+    });
   },
 
   onAnimationToggle(e) {
@@ -214,5 +286,10 @@ Page({
 
     app.logout();
     wx.reLaunch({ url: '/pages/login/login' });
+  },
+
+  onUnload() {
+    audioCtx.stop();
+    audioCtx.destroy();
   }
 });
