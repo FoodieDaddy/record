@@ -1,4 +1,4 @@
-package com.smartrecord.dto.transfer;
+package com.smartrecord.dto.score;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -9,13 +9,10 @@ import java.time.LocalDateTime;
 @Data
 @Builder
 @Schema(description = "计分记录")
-public class TransferResp {
+public class TransferScoreResp {
 
     @Schema(description = "记录 ID")
     private Long id;
-
-    @Schema(description = "关联场次 ID")
-    private Long sessionId;
 
     @Schema(description = "发起人信息")
     private UserInfo fromUser;

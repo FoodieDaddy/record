@@ -66,9 +66,6 @@ Page({
     // 积分总览弹窗
     showMatrixPanel: false,
     // 历史场次
-    sessionHistory: [],
-    showSessionHistory: false,
-    selectedSessionId: '',
     // 分享面板
     showShareSheet: false,
     // 积分记录滚动高度（rpx）
@@ -259,9 +256,7 @@ Page({
     }
     const page = this._transferPage || 1;
     try {
-      const sessionId = this.data.currentRoom?.activeSessionId || '';
-      const sessionParam = sessionId ? `&sessionId=${sessionId}` : '';
-      const res = await get(`/transfer/room/${roomId}?page=${page}&size=20${sessionParam}`);
+      const res = await get(`/score/transfer/room/${roomId}?page=${page}&size=20`);
       if (!res) return;
 
       const myId = app.globalData.userId;
@@ -354,7 +349,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     await this.updateAllData(room.roomId);
-    this.setData({ showMatrixPanel: true, selectedSessionId: '' });
+    this.setData({ showMatrixPanel: true });
   },
 
   closeMatrixPanel() {
@@ -362,61 +357,10 @@ Page({
   },
 
   onMatrixClose() {
-    this.setData({ showMatrixPanel: false, selectedSessionId: '' });
+    this.setData({ showMatrixPanel: false });
   },
 
   // ========== 历史场次 ==========
-
-  async loadSessionHistory(roomIdOrEvent) {
-    const roomId = typeof roomIdOrEvent === 'object'
-      ? (roomIdOrEvent.currentTarget?.dataset?.roomId || this.data.currentRoom?.roomId)
-      : roomIdOrEvent;
-    if (!roomId) return;
-    try {
-      const sessions = await get(`/session/room/${roomId}`);
-      if (sessions) {
-        const settled = sessions.filter(s => s.status === 1);
-        // 非房主只显示自己参与的场次
-        const myId = String(app.globalData.userId);
-        const filtered = this.data.isOwner
-          ? settled
-          : settled.filter(s => s.playerTotals && s.playerTotals[myId] !== undefined);
-        // 补充成员信息用于展示
-        const members = (this.data.currentRoom && this.data.currentRoom.members) || [];
-        const enriched = filtered.map(s => {
-          const playerIds = s.playerTotals ? Object.keys(s.playerTotals) : [];
-          const players = playerIds.map(uid => {
-            const m = members.find(mb => String(mb.userId) === String(uid));
-            return {
-              userId: uid,
-              nickname: m ? m.nickname : '未知',
-              avatarUrl: m ? (m.avatarUrl || '') : '',
-              avatarColor: m && !m.avatarUrl ? getColor(m.nickname) : '',
-              avatarChar: m && !m.avatarUrl ? getFirstChar(m.nickname) : ''
-            };
-          });
-          return { ...s, players };
-        });
-        this.setData({
-          sessionHistory: enriched,
-          showSessionHistory: true
-        });
-      }
-    } catch (e) {
-      console.error('加载历史场次失败', e);
-    }
-  },
-
-  /** 打开场次的积分总览（全局单例 matrix-overview） */
-  async openSessionMatrix(e) {
-    const sessionId = e.currentTarget.dataset.sessionId;
-    if (!sessionId) return;
-    this.setData({ showSessionHistory: false, showMatrixPanel: true, selectedSessionId: String(sessionId) });
-  },
-
-  closeSessionHistory() {
-    this.setData({ showSessionHistory: false });
-  },
 
   // ========== WebSocket ==========
 
@@ -430,7 +374,7 @@ Page({
     if (!this.data.currentRoom) return;
     const roomId = this.data.currentRoom.roomId;
 
-    // 结算通知：刷新房间数据（新场次 activeSessionId 自动生效，积分记录归零）
+    // 结算通知：刷新房间数据
     if (data.type === 'SETTLE') {
       this.loadMyRooms();
       return;
@@ -589,7 +533,7 @@ Page({
     if (this.data.creating) return;
     this.setData({ creating: true });
     try {
-      const room = await post('/room', { baseScore: 1, scoreMode: this.data.scoreMode });
+      const room = await post('/room', { scoreMode: this.data.scoreMode });
       this.resetOtpState();
       this.setData({ currentRoom: room, viewingRoom: true, isOwner: true, seatLayoutType: room.layoutType || 'circle' });
       await this.reloadRoomInfo(room.roomId);
@@ -745,7 +689,7 @@ Page({
 
     this.setData({ submitting: true });
     try {
-      await post('/transfer', {
+      await post('/score/transfer', {
         roomId: room.roomId,
         toUserId: transferTo,
         amount
@@ -843,24 +787,16 @@ Page({
   },
 
   async quitRoom() {
-    const { confirm } = await wx.showModal({ title: '确认退出？' });
+    const isOwner = this.data.isOwner;
+    const title = isOwner ? '确认解散房间？' : '确认退出？';
+    const content = isOwner ? '退出将解散房间，所有成员将被移除' : '';
+    const { confirm } = await wx.showModal({ title, content });
     if (!confirm) return;
     try {
       await del(`/room/${this.data.currentRoom.roomId}/quit`);
       app.disconnectWS();
       this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
-      wx.showToast({ title: '已退出', icon: 'success' });
-    } catch (e) {}
-  },
-
-  async dissolveRoom() {
-    const { confirm } = await wx.showModal({ title: '确认解散？', content: '所有数据将归档' });
-    if (!confirm) return;
-    try {
-      await del(`/room/${this.data.currentRoom.roomId}`);
-      app.disconnectWS();
-      this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
-      wx.showToast({ title: '已解散', icon: 'success' });
+      wx.showToast({ title: isOwner ? '已解散' : '已退出', icon: 'success' });
     } catch (e) {}
   },
 

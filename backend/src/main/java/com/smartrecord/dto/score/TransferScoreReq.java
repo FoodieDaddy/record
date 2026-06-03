@@ -1,4 +1,4 @@
-package com.smartrecord.dto.transfer;
+package com.smartrecord.dto.score;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 @Schema(description = "计分请求")
-public class TransferReq {
+public class TransferScoreReq {
 
     @NotNull(message = "roomId 不能为空")
     @Schema(description = "房间 ID", example = "1750000000000010")

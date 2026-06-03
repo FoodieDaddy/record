@@ -117,8 +117,6 @@
       </view>
       <view class="rq-meta">
         <text class="text-tertiary text-xs">{{currentRoom.members ? currentRoom.members.length : 0}}人</text>
-        <text class="text-tertiary text-xs">·</text>
-        <text class="text-tertiary text-xs">第{{currentRoom.roundCount || 1}}轮</text>
       </view>
       <view class="rq-actions">
         <view class="rq-action-btn" bindtap="copyRoomNo">
@@ -162,11 +160,8 @@
             <view class="tc-action {{audioEnabled ? 'tc-audio-on' : ''}}" bindtap="toggleAudioSwitch">
               <view class="{{audioEnabled ? 'icon-audio-on' : 'icon-audio-off'}}"></view>
             </view>
-            <view class="tc-action tc-danger" wx:if="{{!isOwner}}" bindtap="quitRoom">
+            <view class="tc-action tc-danger" bindtap="quitRoom">
               <view class="icon-door"></view>
-            </view>
-            <view class="tc-action tc-danger" wx:if="{{isOwner}}" bindtap="dissolveRoom">
-              <view class="icon-trash"></view>
             </view>
           </view>
         </view>
@@ -257,10 +252,6 @@
               <view class="icon-person matrix-btn-icon-svg"></view>
               <text class="matrix-btn-text">我</text>
             </view>
-            <view class="matrix-btn" bindtap="loadSessionHistory" data-room-id="{{currentRoom.roomId}}">
-              <view class="icon-clip matrix-btn-icon-svg"></view>
-              <text class="matrix-btn-text">历史场次</text>
-            </view>
             <view class="matrix-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
               <view class="icon-chart matrix-btn-icon-svg"></view>
               <text class="matrix-btn-text">积分总览</text>
@@ -314,40 +305,6 @@
       </view>
     </scroll-view>
 
-    <!-- 历史场次列表弹窗 -->
-    <view class="matrix-panel-overlay {{showSessionHistory ? 'mp-show' : ''}}" catchtap="closeSessionHistory" catchtouchmove="preventClose">
-      <view class="matrix-panel-sheet" catchtap="preventClose">
-        <view class="detail-header">
-          <text class="section-title" style="margin-bottom:0;">历史场次</text>
-          <view class="detail-close" bindtap="closeSessionHistory">×</view>
-        </view>
-        <view wx:if="{{sessionHistory.length === 0}}" class="empty-batches">
-          <text class="text-tertiary">暂无历史场次</text>
-        </view>
-        <scroll-view scroll-y="{{true}}" wx:else class="history-scroll" catchtouchmove="preventClose">
-          <view class="history-item" wx:for="{{sessionHistory}}" wx:key="sessionId"
-                bindtap="openSessionMatrix" data-session-id="{{item.sessionId}}">
-            <view class="history-item-row">
-              <text class="history-title">{{item.title || '第' + item.sessionNo + '轮'}}</text>
-              <text class="history-count text-tertiary text-xs">{{item.scoreCount || 0}}笔记分</text>
-            </view>
-            <view class="history-players" wx:if="{{item.players}}">
-              <view class="history-player-avatar" wx:for="{{item.players}}" wx:for-item="p" wx:key="userId">
-                <view class="auto-avatar-xxs" style="background:{{p.avatarColor}};" wx:if="{{!p.avatarUrl}}">
-                  <text class="auto-avatar-char-xxs">{{p.avatarChar}}</text>
-                </view>
-                <image class="history-avatar-img" src="{{p.avatarUrl}}" wx:else></image>
-              </view>
-            </view>
-            <view class="history-time-row">
-              <text class="text-tertiary text-xs">{{item.createdAt}}</text>
-              <text class="text-tertiary text-xs" wx:if="{{item.settledAt}}"> ~ {{item.settledAt}}</text>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-    </view>
-
     <!-- 数字键盘弹窗 -->
     <view class="numpad-overlay {{showNumpad ? 'numpad-show' : ''}}" catchtap="closeNumpad">
       <view class="numpad-sheet" catchtap="preventClose">
@@ -383,7 +340,6 @@
       id="matrix-overview"
       visible="{{showMatrixPanel}}"
       room-id="{{currentRoom.roomId}}"
-      session-id="{{selectedSessionId}}"
       member-grid="{{memberGrid}}"
       score-records="{{scoreRecords}}"
       my-user-id="{{myUserId}}"

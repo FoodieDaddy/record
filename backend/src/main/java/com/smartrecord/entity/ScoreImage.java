@@ -12,12 +12,7 @@ public class ScoreImage {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    private Long sessionId;
-
     private Long roomId;
-
-    /** 轮次号 */
-    private Integer roundNo;
 
     /** 上传者 */
     private Long userId;

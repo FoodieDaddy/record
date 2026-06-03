@@ -26,7 +26,7 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    @Operation(summary = "创建房间", description = "房主建房，配置底分，后端生成唯一房间号和专属小程序码")
+    @Operation(summary = "创建房间", description = "房主建房，后端生成唯一房间号和专属小程序码")
     @PostMapping
     public Result<RoomResp> createRoom(
             HttpServletRequest request,
@@ -44,7 +44,7 @@ public class RoomController {
         return Result.ok(roomService.joinRoom(userId, req));
     }
 
-    @Operation(summary = "获取房间详情", description = "包含成员列表、当前场次状态、小程序码 URL")
+    @Operation(summary = "获取房间详情", description = "包含成员列表、小程序码 URL")
     @GetMapping("/{roomId}")
     public Result<RoomResp> getRoomDetail(
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
@@ -58,23 +58,13 @@ public class RoomController {
         return Result.ok(roomService.getMyRooms(userId));
     }
 
-    @Operation(summary = "退出房间", description = "成员退出房间（房主不可退出，只能解散）")
+    @Operation(summary = "退出房间", description = "普通成员退出房间；房主退出等同于解散房间")
     @DeleteMapping("/{roomId}/quit")
     public Result<Void> quitRoom(
             HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
         Long userId = (Long) request.getAttribute("currentUserId");
         roomService.quitRoom(userId, roomId);
-        return Result.ok();
-    }
-
-    @Operation(summary = "解散房间", description = "仅房主可操作，房间数据异步落库后归档")
-    @DeleteMapping("/{roomId}")
-    public Result<Void> dissolveRoom(
-            HttpServletRequest request,
-            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        roomService.dissolveRoom(userId, roomId);
         return Result.ok();
     }
 

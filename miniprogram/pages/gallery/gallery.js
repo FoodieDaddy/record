@@ -27,36 +27,20 @@ Page({
       const allImages = [];
       for (const room of rooms) {
         try {
-          const sessions = await get(`/session/room/${room.roomId}?page=1&size=50`);
-          if (!sessions) continue;
-          for (const session of sessions) {
-            try {
-              const detail = await get(`/score/session/${session.sessionId}`);
-              if (detail && detail.batches) {
-                for (const batch of detail.batches) {
-                  if (batch.imageUrls) {
-                    for (const url of batch.imageUrls) {
-                      allImages.push({
-                        id: `${session.sessionId}-${url}`,
-                        imageUrl: url,
-                        dateFormatted: this.formatDate(batch.batchTime),
-                        rawDate: batch.batchTime
-                      });
-                    }
-                  }
-                }
-              }
-            } catch (e) {
-              // 单个场次加载失败不影响其他
-              console.warn('加载场次失败', session.sessionId);
-            }
+          const images = await get(`/score/room/${room.roomId}/images`);
+          if (!images) continue;
+          for (const url of images) {
+            allImages.push({
+              id: `${room.roomId}-${url}`,
+              imageUrl: url,
+              roomNo: room.roomNo
+            });
           }
         } catch (e) {
-          console.warn('加载房间场次失败', room.roomId);
+          console.warn('加载房间图片失败', room.roomId);
         }
       }
 
-      allImages.sort((a, b) => new Date(b.rawDate) - new Date(a.rawDate));
       this.setData({
         images: [...this.data.images, ...allImages],
         hasMore: false
@@ -69,21 +53,17 @@ Page({
     }
   },
 
-  formatDate(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    const month = d.getMonth() + 1;
-    const day = d.getDate();
-    const hours = d.getHours();
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    return `${month}/${day} ${hours}:${minutes}`;
+  onImageError(e) {
+    const idx = e.currentTarget.dataset.index;
+    this.setData({ [`images[${idx}].failed`]: true });
   },
 
   preview(e) {
     const idx = e.currentTarget.dataset.index;
+    const valid = this.data.images.filter(i => !i.failed);
     wx.previewImage({
       current: this.data.images[idx].imageUrl,
-      urls: this.data.images.map(i => i.imageUrl)
+      urls: valid.map(i => i.imageUrl)
     });
   },
 

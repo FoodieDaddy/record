@@ -12,7 +12,6 @@ Component({
   properties: {
     visible: { type: Boolean, value: false },
     roomId: { type: String, value: '' },
-    sessionId: { type: String, value: '' },
     memberGrid: { type: Array, value: [] },
     scoreRecords: { type: Array, value: [] },
     myUserId: { type: String, value: '' }
@@ -49,13 +48,9 @@ Component({
       if (val) {
         const count = this.data.memberGrid ? this.data.memberGrid.length : 0;
         this.setData({ active: true, chartHidden: false, playerCount: count, animEnabled: count <= MAX_MATRIX_SIZE });
-        if (this.data.sessionId) {
-          this.loadSessionData(this.data.sessionId);
-        } else {
-          this._scheduleBuild();
-          if (this.data.roomId) {
-            this.loadChartData(this.data.roomId);
-          }
+        this._scheduleBuild();
+        if (this.data.roomId) {
+          this.loadChartData(this.data.roomId);
         }
       } else {
         this.setData({ showMatrixDetail: false });
@@ -366,62 +361,6 @@ Component({
         visible.push(userId);
       }
       this.setData({ chartVisibleUsers: visible });
-    },
-
-    /** 加载场次数据：从 batches 构建 scoreRecords 和图表数据 */
-    async loadSessionData(sessionId) {
-      try {
-        const data = await get(`/score/session/${sessionId}`);
-        if (!data) return;
-
-        const batches = data.batches || [];
-        const playerTotals = data.playerTotals || {};
-        const members = this.data.memberGrid || [];
-
-        // batches API 返回时间倒序，转为正序
-        const sortedBatches = [...batches].reverse();
-
-        // 从 batches 构建 scoreRecords（每条记录 = 一个用户在一个批次的累计分）
-        const records = [];
-        sortedBatches.forEach(batch => {
-          const time = batch.batchTime;
-          (batch.scores || []).forEach(s => {
-            records.push({
-              id: `${sessionId}_${batch.batchTime}_${s.userId}`,
-              fromUserId: s.userId,
-              toUserId: s.userId,
-              amount: s.score || 0,
-              timeFormatted: time ? this._fmtBatchTime(time) : '',
-              createdAt: time
-            });
-          });
-        });
-
-        // 从 batches 构建图表数据（时间轴 + 每人累计分曲线）
-        const timestamps = sortedBatches.map(b => b.batchTime);
-        const userMap = {};
-        sortedBatches.forEach(batch => {
-          (batch.scores || []).forEach(s => {
-            const uid = String(s.userId);
-            if (!userMap[uid]) userMap[uid] = { userId: s.userId, nickname: s.nickname || '', scores: [] };
-            userMap[uid].scores.push(s.score || 0);
-          });
-        });
-        const series = Object.values(userMap);
-
-        const count = members.length;
-        this.setData({
-          scoreRecords: records,
-          chartTimestamps: timestamps,
-          chartSeries: series,
-          chartVisibleUsers: series.map(s => String(s.userId)),
-          playerCount: count,
-          animEnabled: count <= MAX_MATRIX_SIZE
-        });
-        this._scheduleBuild();
-      } catch (e) {
-        console.error('[matrix-overview] 加载场次数据失败', e);
-      }
     },
 
     _fmtBatchTime(ts) {

@@ -12,12 +12,7 @@ public class Score {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    private Long sessionId;
-
     private Long roomId;
-
-    /** 轮次号 */
-    private Integer roundNo;
 
     /** 得分玩家 */
     private Long userId;

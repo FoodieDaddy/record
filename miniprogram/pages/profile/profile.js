@@ -12,6 +12,7 @@ audioCtx.obeyMuteSwitch = false;
 
 // 防抖定时器（页面实例变量，不进 data 避免渲染开销）
 let _saveTimer = null;
+let _uploadingAvatar = false;
 
 Page({
   data: {
@@ -98,10 +99,20 @@ Page({
 
   // ========== 头像（选择后自动保存） ==========
 
-  onChooseAvatar(e) {
+  async onChooseAvatar(e) {
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
+    // 立即上传临时文件，防止被系统清理
+    _uploadingAvatar = true;
+    try {
+      const ossUrl = await this.uploadToOSS(tempPath);
+      this.setData({ avatarUrl: ossUrl });
+    } catch (err) {
+      console.error('头像上传失败', err);
+    } finally {
+      _uploadingAvatar = false;
+    }
     this.debouncedSave();
   },
 
@@ -232,7 +243,7 @@ Page({
   },
 
   async saveProfile() {
-    if (this.data.saving) return;
+    if (this.data.saving || _uploadingAvatar) return;
     const { nickname, avatarUrl } = this.data;
 
     if (!nickname || !nickname.trim()) return;
@@ -244,7 +255,7 @@ Page({
     this.setData({ saving: true });
     try {
       let finalAvatarUrl = avatarUrl;
-      // 非 OSS URL 视为本地临时文件，需上传
+      // 非 OSS URL 视为本地临时文件，需上传（正常情况 onChooseAvatar 已立即上传）
       if (avatarUrl && avatarUrl.indexOf('aliyuncs.com') === -1 && avatarUrl.indexOf('.com/') === -1) {
         finalAvatarUrl = await this.uploadToOSS(avatarUrl);
       }

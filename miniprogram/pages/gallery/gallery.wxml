@@ -27,10 +27,10 @@
 
   <!-- 图片网格 -->
   <view wx:else class="image-grid">
-    <view class="grid-item" wx:for="{{images}}" wx:key="id" bindtap="preview" data-index="{{index}}">
-      <image src="{{item.imageUrl}}" mode="aspectFill" class="grid-img" lazy-load></image>
+    <view class="grid-item" wx:for="{{images}}" wx:key="id" bindtap="preview" data-index="{{index}}" wx:if="{{!item.failed}}">
+      <image src="{{item.imageUrl}}" mode="aspectFill" class="grid-img" lazy-load binderror="onImageError" data-index="{{index}}"></image>
       <view class="grid-overlay">
-        <text class="grid-date">{{item.dateFormatted}}</text>
+        <text class="grid-date">{{item.roomNo}}</text>
       </view>
     </view>
   </view>

@@ -1,12 +1,15 @@
 package com.smartrecord.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 @Data
-@TableName("room")
+@TableName(value = "room", autoResultMap = true)
 public class Room {
 
     @TableId(type = IdType.ASSIGN_ID)
@@ -16,16 +19,15 @@ public class Room {
 
     private Long ownerId;
 
-    private Integer baseScore;
-
     /** 记分模式：1-自由流转 2-赢家统录 */
     private Integer scoreMode;
 
     /** 0-使用中 1-已归档 */
     private Integer status;
 
-    /** 已进行轮数 */
-    private Integer roundCount;
+    /** 对局流水明细（settle 时归档） */
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<Map<String, Object>> allRecord;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

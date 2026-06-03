@@ -21,20 +21,11 @@ public class RoomResp {
     @Schema(description = "房主用户 ID", example = "1750000000000001")
     private Long ownerId;
 
-    @Schema(description = "底分", example = "1")
-    private Integer baseScore;
-
     @Schema(description = "记分模式：1-自由流转 2-赢家统录", example = "1")
     private Integer scoreMode;
 
     @Schema(description = "房间状态：0-使用中 1-已归档", example = "0")
     private Integer status;
-
-    @Schema(description = "当前轮次", example = "1")
-    private Integer roundCount;
-
-    @Schema(description = "当前活跃场次 ID（内部使用）")
-    private Long activeSessionId;
 
     @Schema(description = "专属小程序码 URL")
     private String qrCodeUrl;

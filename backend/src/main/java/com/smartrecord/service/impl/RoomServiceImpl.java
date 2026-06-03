@@ -12,11 +12,9 @@ import com.smartrecord.dto.room.RearrangeSeatsReq;
 import com.smartrecord.dto.room.RoomResp;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
-import com.smartrecord.entity.Session;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
-import com.smartrecord.mapper.SessionMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.RoomService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
@@ -46,7 +44,6 @@ public class RoomServiceImpl implements RoomService {
 
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
-    private final SessionMapper sessionMapper;
     private final UserMapper userMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
@@ -69,6 +66,16 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public RoomResp createRoom(Long userId, CreateRoomReq req) {
+        // 检查是否已有活跃房间
+        Room existing = roomMapper.selectOne(
+                new LambdaQueryWrapper<Room>()
+                        .eq(Room::getOwnerId, userId)
+                        .eq(Room::getStatus, 0)
+                        .last("LIMIT 1"));
+        if (existing != null) {
+            throw new BizException("你已有活跃房间，请先退出后再创建");
+        }
+
         // 1. 生成唯一房间号
         String roomNo = generateUniqueRoomNo();
 
@@ -77,22 +84,9 @@ public class RoomServiceImpl implements RoomService {
         room.setId(idGenerator.nextId());
         room.setRoomNo(roomNo);
         room.setOwnerId(userId);
-        room.setBaseScore(req.getBaseScore());
         room.setScoreMode(req.getScoreMode() != null ? req.getScoreMode() : 1);
         room.setStatus(0);
-        room.setRoundCount(1);
         roomMapper.insert(room);
-
-        // 自动创建第一轮场次
-        Session session = new Session();
-        session.setId(idGenerator.nextId());
-        session.setRoomId(room.getId());
-        session.setSessionNo(1);
-        session.setTitle("第1轮");
-        session.setStatus(0);
-        session.setScoreCount(0);
-        session.setCreatedBy(userId);
-        sessionMapper.insert(session);
 
         // 3. 房主自动加入（座位 1）
         RoomMember member = new RoomMember();
@@ -103,7 +97,7 @@ public class RoomServiceImpl implements RoomService {
         roomMemberMapper.insert(member);
 
         // 4. Redis 初始化房间状态
-        initRoomRedis(room, userId, session.getId());
+        initRoomRedis(room, userId);
 
         // 5. 生成专属小程序码
         String qrCodeUrl = generateQrCode(roomNo);
@@ -262,10 +256,15 @@ public class RoomServiceImpl implements RoomService {
     public void quitRoom(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("房间不存在");
+        if (room.getStatus() != 0) throw new BizException("房间已关闭");
+
         if (room.getOwnerId().equals(userId)) {
-            throw new BizException("房主不能退出，请使用解散功能");
+            // 房主退出 = 解散房间
+            dissolveRoom(userId, roomId);
+            return;
         }
 
+        // 普通成员退出
         roomMemberMapper.delete(
                 new LambdaQueryWrapper<RoomMember>()
                         .eq(RoomMember::getRoomId, roomId)
@@ -302,9 +301,19 @@ public class RoomServiceImpl implements RoomService {
                 prefix + "info",
                 prefix + "members",
                 prefix + "scores",
-                prefix + "session:counter",
-                prefix + "active_session"));
+                prefix + "batches",
+                prefix + "images",
+                prefix + "last_active"));
         redisTemplate.delete("sr:room_no:" + room.getRoomNo());
+
+        // 清理批次 Hash key（通配符删除）
+        Set<Object> batchKeys = redisTemplate.opsForHash().keys(prefix + "batch:*");
+        if (batchKeys != null && !batchKeys.isEmpty()) {
+            List<String> keysToDelete = batchKeys.stream()
+                    .map(k -> prefix + "batch:" + k)
+                    .collect(Collectors.toList());
+            redisTemplate.delete(keysToDelete);
+        }
     }
 
     @Override
@@ -399,11 +408,9 @@ public class RoomServiceImpl implements RoomService {
 
         // 7. 虚拟应用，检查座位冲突
         Map<Integer, Long> finalSeatMap = new HashMap<>(currentSeatMap);
-        // 先清除所有被调整用户的旧座位
         for (RearrangeSeatsReq.SeatAssignment a : assignments) {
             finalSeatMap.values().removeIf(v -> v.equals(a.getUserId()));
         }
-        // 再分配新座位，检查目标是否被未调整的人占用
         for (RearrangeSeatsReq.SeatAssignment a : assignments) {
             if (finalSeatMap.containsKey(a.getTargetSeatNo())) {
                 throw new BizException("座位 " + a.getTargetSeatNo() + " 已被占用");
@@ -411,15 +418,13 @@ public class RoomServiceImpl implements RoomService {
             finalSeatMap.put(a.getTargetSeatNo(), a.getUserId());
         }
 
-        // 7. 更新 Redis 和 MySQL
+        // 8. 更新 Redis 和 MySQL
         for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            // Redis
             String json = memberJsonMap.get(a.getUserId());
             JSONObject obj = JSONUtil.parseObj(json);
             obj.set("seatNo", a.getTargetSeatNo());
             redisTemplate.opsForHash().put(membersKey, String.valueOf(a.getUserId()), obj.toString());
 
-            // MySQL
             RoomMember updateMember = new RoomMember();
             updateMember.setSeatNo(a.getTargetSeatNo());
             roomMemberMapper.update(updateMember,
@@ -428,7 +433,7 @@ public class RoomServiceImpl implements RoomService {
                             .eq(RoomMember::getUserId, a.getUserId()));
         }
 
-        // 8. 异步广播 MEMBER_UPDATE
+        // 9. 异步广播 MEMBER_UPDATE
         asyncPushMemberUpdate(roomId, userId);
     }
 
@@ -464,9 +469,6 @@ public class RoomServiceImpl implements RoomService {
 
     // ===== 私有方法 =====
 
-    /**
-     * 异步推送 MEMBER_UPDATE，防止单个用户网络阻塞拖累整个房间
-     */
     private void asyncPushMemberUpdate(Object roomId, Object userId) {
         CompletableFuture.runAsync(() -> {
             try {
@@ -497,7 +499,7 @@ public class RoomServiceImpl implements RoomService {
         throw new BizException("房间号生成失败，请重试");
     }
 
-    private void initRoomRedis(Room room, Long ownerId, Long sessionId) {
+    private void initRoomRedis(Room room, Long ownerId) {
         User owner = userMapper.selectById(ownerId);
         if (owner == null) throw new BizException("用户不存在，请重新登录");
         String roomId = String.valueOf(room.getId());
@@ -505,9 +507,7 @@ public class RoomServiceImpl implements RoomService {
         // 房间信息
         Map<String, String> info = new HashMap<>();
         info.put("ownerId", String.valueOf(ownerId));
-        info.put("baseScore", String.valueOf(room.getBaseScore()));
         info.put("status", "0");
-        info.put("sessionCounter", "0");
         info.put("layoutType", "circle");
         redisTemplate.opsForHash().putAll("sr:room:" + roomId + ":info", info);
         redisTemplate.expire("sr:room:" + roomId + ":info", ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
@@ -528,9 +528,6 @@ public class RoomServiceImpl implements RoomService {
         // 更新房间号映射的实际 roomId
         redisTemplate.opsForValue().set("sr:room_no:" + room.getRoomNo(), roomId, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
-        // 缓存活跃场次 ID
-        redisTemplate.opsForValue().set("sr:room:" + roomId + ":active_session", String.valueOf(sessionId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-
         // 缓存用户信息
         String userKey = "sr:user:" + ownerId;
         String userJson = JSONUtil.toJsonStr(Map.of(
@@ -542,7 +539,6 @@ public class RoomServiceImpl implements RoomService {
 
     private String generateQrCode(String roomNo) {
         try {
-            // 1. 获取 access_token
             String tokenUrl = String.format(
                     "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s",
                     appId, appSecret);
@@ -553,7 +549,6 @@ public class RoomServiceImpl implements RoomService {
                 return null;
             }
 
-            // 2. 调用 getUnlimited 生成小程序码
             String qrUrl = "https://api.weixin.qq.com/wxa/getunlimited?access_token=" + accessToken;
             JSONObject body = JSONUtil.createObj()
                     .set("scene", roomNo)
@@ -564,7 +559,6 @@ public class RoomServiceImpl implements RoomService {
                     .execute()
                     .bodyBytes();
 
-            // 3. 上传到 OSS
             String objectKey = "qrcode/" + roomNo + ".png";
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentType("image/png");
@@ -581,7 +575,6 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private RoomResp buildRoomResp(Room room, List<RoomMember> members, String qrCodeUrl) {
-        // 从 Redis 缓存获取用户信息
         Set<Long> userIds = members.stream().map(RoomMember::getUserId).collect(Collectors.toSet());
         Map<Long, String> nicknameMap = new HashMap<>();
         Map<Long, String> avatarUrlMap = new HashMap<>();
@@ -593,54 +586,29 @@ public class RoomServiceImpl implements RoomService {
                 nicknameMap.put(uid, userObj.getStr("nickname", ""));
                 avatarUrlMap.put(uid, buildFullUrl(userObj.getStr("avatarUrl", "")));
             } else {
-                // 降级查数据库
                 User u = userMapper.selectById(uid);
                 nicknameMap.put(uid, u != null ? u.getNickname() : "");
                 avatarUrlMap.put(uid, u != null ? buildFullUrl(u.getAvatarUrl()) : "");
             }
         }
 
-        List<RoomResp.MemberVO> memberVOs = members.stream().map(m -> {
-            return RoomResp.MemberVO.builder()
-                    .userId(m.getUserId())
-                    .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
-                    .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
-                    .seatNo(m.getSeatNo())
-                    .build();
-        }).collect(Collectors.toList());
+        List<RoomResp.MemberVO> memberVOs = members.stream().map(m ->
+                RoomResp.MemberVO.builder()
+                        .userId(m.getUserId())
+                        .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
+                        .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
+                        .seatNo(m.getSeatNo())
+                        .build()
+        ).collect(Collectors.toList());
 
-        // 从 Redis 缓存获取活跃场次 ID
-        Long activeSessionId = null;
-        String activeSessionKey = "sr:room:" + room.getId() + ":active_session";
-        String sessionIdStr = redisTemplate.opsForValue().get(activeSessionKey);
-        if (sessionIdStr != null) {
-            activeSessionId = Long.parseLong(sessionIdStr);
-        } else {
-            // 降级查数据库
-            Session activeSession = sessionMapper.selectOne(
-                    new LambdaQueryWrapper<Session>()
-                            .eq(Session::getRoomId, room.getId())
-                            .eq(Session::getStatus, 0)
-                            .last("LIMIT 1"));
-            if (activeSession != null) {
-                activeSessionId = activeSession.getId();
-                // 缓存活跃场次 ID
-                redisTemplate.opsForValue().set(activeSessionKey, String.valueOf(activeSessionId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-            }
-        }
-
-        // 从 Redis 读取布局类型
         String layoutType = (String) redisTemplate.opsForHash().get("sr:room:" + room.getId() + ":info", "layoutType");
 
         return RoomResp.builder()
                 .roomId(room.getId())
                 .roomNo(room.getRoomNo())
                 .ownerId(room.getOwnerId())
-                .baseScore(room.getBaseScore())
                 .scoreMode(room.getScoreMode() != null ? room.getScoreMode() : 1)
                 .status(room.getStatus())
-                .roundCount(room.getRoundCount())
-                .activeSessionId(activeSessionId)
                 .qrCodeUrl(qrCodeUrl)
                 .layoutType(layoutType != null ? layoutType : "circle")
                 .members(memberVOs)

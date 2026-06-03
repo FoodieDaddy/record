@@ -1,10 +1,7 @@
 package com.smartrecord.service;
 
-import com.smartrecord.dto.score.ChartDataResp;
-import com.smartrecord.dto.score.ScoreBatchResp;
-import com.smartrecord.dto.score.ScoreSubmitResp;
-import com.smartrecord.dto.score.SessionScoreResp;
-import com.smartrecord.dto.score.SubmitScoreReq;
+import com.smartrecord.common.PageResult;
+import com.smartrecord.dto.score.*;
 
 import java.util.List;
 
@@ -12,22 +9,24 @@ public interface ScoreService {
 
     ScoreSubmitResp submitScore(Long userId, SubmitScoreReq req);
 
-    SessionScoreResp getSessionScores(Long sessionId);
-
-    /** 房间级接口：查找活跃场次后委托 */
+    /** 房间排行榜 */
     List<ScoreBatchResp.PlayerScoreVO> getRoomRanking(Long roomId);
 
+    /** 房间最近记分记录 */
     List<ScoreBatchResp> getRoomRecentScores(Long roomId, Integer count);
 
-    /** 结束当前轮，开启新一轮 */
+    /** 结束对局，数据归档 */
     void settleRoom(Long userId, Long roomId);
 
-    /**
-     * 强制结算指定场次（供幽灵对局清扫器调用）
-     * 仅持久化 Redis 数据到 MySQL 并标记场次已结算，不创建新场次
-     */
-    void forceSettleSession(Long sessionId);
-
-    /** 获取房间当前轮的折线图数据 */
+    /** 获取房间折线图数据 */
     ChartDataResp getChartData(Long roomId);
+
+    /** 获取房间图片列表 */
+    List<String> getRoomImages(Long roomId);
+
+    /** 自由流转计分 */
+    TransferScoreResp transferScore(Long userId, TransferScoreReq req);
+
+    /** 房间计分流水（分页） */
+    PageResult<TransferScoreResp> getRoomTransfers(Long roomId, int page, int size);
 }

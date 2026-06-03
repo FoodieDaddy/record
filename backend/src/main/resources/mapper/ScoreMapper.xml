@@ -4,10 +4,10 @@
 <mapper namespace="com.smartrecord.mapper.ScoreMapper">
 
     <insert id="insertBatch">
-        INSERT INTO score (id, session_id, room_id, round_no, user_id, score, created_by, created_at)
+        INSERT INTO score (id, room_id, user_id, score, created_by, created_at)
         VALUES
         <foreach collection="list" item="s" separator=",">
-            (#{s.id}, #{s.sessionId}, #{s.roomId}, #{s.roundNo}, #{s.userId}, #{s.score}, #{s.createdBy}, #{s.createdAt})
+            (#{s.id}, #{s.roomId}, #{s.userId}, #{s.score}, #{s.createdBy}, #{s.createdAt})
         </foreach>
     </insert>
 
