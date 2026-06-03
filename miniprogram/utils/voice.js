@@ -19,7 +19,8 @@ function _dequeue() {
 }
 
 function _speakOnce(text, onDone) {
-  const url = config.baseUrl + '/tts/audio?text=' + encodeURIComponent(text);
+  const settings = getSettings();
+  const url = config.baseUrl + '/tts/audio?text=' + encodeURIComponent(text) + '&voice=' + encodeURIComponent(settings.voice);
 
   wx.downloadFile({
     url,
@@ -107,7 +108,9 @@ function getSettings() {
   const saved = wx.getStorageSync('voiceSettings');
   return {
     enabled: saved.enabled !== undefined ? saved.enabled : true,
-    voiceType: saved.voiceType || 'female'
+    voiceId: saved.voiceId || 'std_01',
+    voiceName: saved.voiceName || '晓晓',
+    voice: saved.voice || 'zh-CN-XiaoxiaoNeural'
   };
 }
 
