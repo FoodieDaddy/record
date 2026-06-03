@@ -17,7 +17,6 @@ import com.smartrecord.entity.ScoreImage;
 import com.smartrecord.entity.Session;
 import com.smartrecord.entity.SessionEventLog;
 import com.smartrecord.entity.SessionRecord;
-import com.smartrecord.entity.Transfer;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
@@ -26,7 +25,6 @@ import com.smartrecord.mapper.ScoreMapper;
 import com.smartrecord.mapper.SessionEventLogMapper;
 import com.smartrecord.mapper.SessionMapper;
 import com.smartrecord.mapper.SessionRecordMapper;
-import com.smartrecord.mapper.TransferMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.EmotionAudioPool;
 import com.smartrecord.service.OverviewService;
@@ -63,7 +61,6 @@ public class ScoreServiceImpl implements ScoreService {
     private final ScoreImageMapper scoreImageMapper;
     private final SessionRecordMapper sessionRecordMapper;
     private final SessionEventLogMapper sessionEventLogMapper;
-    private final TransferMapper transferMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
@@ -418,9 +415,9 @@ public class ScoreServiceImpl implements ScoreService {
         // 获取批次时间戳
         List<String> batchTsList = redisTemplate.opsForList().range(sessionPrefix + "batches", 0, -1);
 
-        // Redis 无批次数据时，从 transfer 表回填（兼容历史数据）
+        // Redis 无批次数据时，从 events 列表回填
         if (batchTsList == null || batchTsList.isEmpty()) {
-            return buildChartFromTransfers(roomId);
+            return buildChartFromEvents(sessionId);
         }
 
         // 获取所有成员 userId（从 sorted set）
@@ -485,25 +482,30 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     /**
-     * 从 transfer 表回填图表数据（Redis 无批次时的 fallback）
+     * 从 Redis events 列表回填图表数据（Redis 无批次时的 fallback）
      */
-    private ChartDataResp buildChartFromTransfers(Long roomId) {
-        List<Transfer> transfers = transferMapper.selectList(
-                new LambdaQueryWrapper<Transfer>()
-                        .eq(Transfer::getRoomId, roomId)
-                        .eq(Transfer::getStatus, 0)
-                        .orderByAsc(Transfer::getCreatedAt));
-
-        if (transfers.isEmpty()) {
+    private ChartDataResp buildChartFromEvents(Long sessionId) {
+        String eventsKey = SESSION_PREFIX + sessionId + ":events";
+        List<String> rawEvents = redisTemplate.opsForList().range(eventsKey, 0, -1);
+        if (rawEvents == null || rawEvents.isEmpty()) {
             return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
         }
 
+        // 解析事件并按时间正序排列
+        List<JSONObject> events = new ArrayList<>();
+        for (String raw : rawEvents) {
+            try {
+                events.add(JSONUtil.parseObj(raw));
+            } catch (Exception ignored) {}
+        }
+        events.sort(Comparator.comparingLong(e -> e.getLong("time", 0L)));
+
         // 收集所有涉及的 userId
         Set<Long> userIdSet = new LinkedHashSet<>();
-        transfers.forEach(t -> {
-            userIdSet.add(t.getFromUserId());
-            userIdSet.add(t.getToUserId());
-        });
+        for (JSONObject e : events) {
+            userIdSet.add(e.getLong("from"));
+            userIdSet.add(e.getLong("to"));
+        }
         List<Long> userIds = new ArrayList<>(userIdSet);
 
         Map<Long, String> nicknameMap = loadNicknameMap(userIds);
@@ -516,10 +518,10 @@ public class ScoreServiceImpl implements ScoreService {
         Map<Long, Integer> cumulative = new HashMap<>();
         userIds.forEach(uid -> cumulative.put(uid, 0));
 
-        for (Transfer t : transfers) {
-            timestamps.add(t.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            cumulative.merge(t.getFromUserId(), -t.getAmount(), Integer::sum);
-            cumulative.merge(t.getToUserId(), t.getAmount(), Integer::sum);
+        for (JSONObject e : events) {
+            timestamps.add(e.getLong("time", 0L));
+            cumulative.merge(e.getLong("from"), -e.getInt("amount"), Integer::sum);
+            cumulative.merge(e.getLong("to"), e.getInt("amount"), Integer::sum);
             for (Long uid : userIds) {
                 userScores.get(uid).add(cumulative.getOrDefault(uid, 0));
             }
@@ -779,49 +781,8 @@ public class ScoreServiceImpl implements ScoreService {
             log.info("持久化场次 {} 图片 {} 张", sessionId, imageUrls.size());
         }
 
-        // 5. 持久化 Lua 转账流水到 transfer 表
-        persistTransferEvents(sessionId, roomId, session.getSettledAt());
-
-        // 6. 清理 Redis 键
+        // 5. 清理 Redis 键（events 保留，供历史查询）
         cleanupSessionRedisKeys(sessionId, sessionPrefix, batchTsList);
-    }
-
-    /**
-     * 清理场次相关的 Redis 键
-     */
-    /**
-     * 从 Redis events 列表读取 Lua 转账流水，持久化到 MySQL transfer 表
-     */
-    private void persistTransferEvents(Long sessionId, Long roomId, LocalDateTime settledAt) {
-        String eventsKey = SESSION_PREFIX + sessionId + ":events";
-        List<String> events = redisTemplate.opsForList().range(eventsKey, 0, -1);
-        if (events == null || events.isEmpty()) return;
-
-        List<Transfer> transfers = new ArrayList<>();
-        for (String eventJson : events) {
-            try {
-                JSONObject obj = JSONUtil.parseObj(eventJson);
-                Transfer t = new Transfer();
-                t.setId(idGenerator.nextId());
-                t.setRoomId(roomId);
-                t.setSessionId(sessionId);
-                t.setFromUserId(obj.getLong("from"));
-                t.setToUserId(obj.getLong("to"));
-                t.setAmount(obj.getInt("amount"));
-                t.setRemark(obj.getStr("remark", ""));
-                t.setStatus(0);
-                transfers.add(t);
-            } catch (Exception e) {
-                log.warn("解析转账流水失败: {}", eventJson, e);
-            }
-        }
-
-        if (!transfers.isEmpty()) {
-            for (Transfer t : transfers) {
-                transferMapper.insert(t);
-            }
-            log.info("持久化场次 {} 转账流水 {} 条", sessionId, transfers.size());
-        }
     }
 
     private void cleanupSessionRedisKeys(Long sessionId, String sessionPrefix, List<String> batchTsList) {
@@ -829,7 +790,7 @@ public class ScoreServiceImpl implements ScoreService {
         keysToDelete.add(sessionPrefix + "scores");
         keysToDelete.add(sessionPrefix + "batches");
         keysToDelete.add(sessionPrefix + "images");
-        keysToDelete.add(sessionPrefix + "events");
+        // events 保留不清理，供历史计分记录查询
         for (String ts : batchTsList) {
             keysToDelete.add(sessionPrefix + "batch:" + ts);
         }

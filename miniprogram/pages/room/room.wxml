@@ -32,7 +32,7 @@
           <text class="mode-card-title">自由流转</text>
           <text class="mode-card-desc">全员开放权限
           随时记录分数流转</text>
-          <view class="mode-check" wx:if="{{scoreMode === 1}}">✓</view>
+          <view class="mode-check" wx:if="{{scoreMode === 1}}"></view>
         </view>
         <view class="mode-card {{scoreMode === 2 ? 'mode-card-active' : 'mode-card-inactive'}}"
               bindtap="selectScoreMode" data-mode="2">
@@ -53,7 +53,7 @@
           <text class="mode-card-title">赢家统录</text>
           <text class="mode-card-desc">由单局胜者统一录入全盘分数
           可上传图片</text>
-          <view class="mode-check" wx:if="{{scoreMode === 2}}">✓</view>
+          <view class="mode-check" wx:if="{{scoreMode === 2}}"></view>
         </view>
       </view>
 
@@ -319,7 +319,7 @@
       <view class="matrix-panel-sheet" catchtap="preventClose">
         <view class="detail-header">
           <text class="section-title" style="margin-bottom:0;">历史场次</text>
-          <view class="detail-close" bindtap="closeSessionHistory">✕</view>
+          <view class="detail-close" bindtap="closeSessionHistory">×</view>
         </view>
         <view wx:if="{{sessionHistory.length === 0}}" class="empty-batches">
           <text class="text-tertiary">暂无历史场次</text>
@@ -417,7 +417,7 @@
     <view class="share-sheet" catchtap="preventClose">
       <view class="detail-header">
         <text class="section-title" style="margin-bottom:0;">邀请牌友</text>
-        <view class="detail-close" bindtap="closeShareSheet">✕</view>
+        <view class="detail-close" bindtap="closeShareSheet">×</view>
       </view>
       <!-- 二维码 -->
       <view class="share-qr-section" wx:if="{{currentRoom.qrCodeUrl}}">

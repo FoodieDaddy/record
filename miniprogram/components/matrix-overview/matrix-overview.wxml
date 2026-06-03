@@ -6,7 +6,7 @@
     <view class="matrix-panel-sheet" catchtap="preventClose" catchtouchmove="preventClose">
       <view class="detail-header">
         <text class="section-title" style="margin-bottom:0;">积分总览</text>
-        <view class="detail-close" bindtap="closePanel">✕</view>
+        <view class="detail-close" bindtap="closePanel">×</view>
       </view>
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
         <text class="text-tertiary">至少需要 2 名成员</text>
@@ -110,7 +110,7 @@
     <view class="matrix-detail-sheet" catchtap="preventClose" catchtouchmove="preventClose">
       <view class="detail-header">
         <text class="section-title" style="margin-bottom:0;">积分明细</text>
-        <view class="detail-close" bindtap="closeMatrixDetail">✕</view>
+        <view class="detail-close" bindtap="closeMatrixDetail">×</view>
       </view>
       <view class="detail-parties">
         <view class="detail-party">

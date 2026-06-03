@@ -21,7 +21,7 @@ err()  { echo -e "${RED}[deploy]${NC} $*" >&2; }
 # ========== 1. 本地构建 ==========
 info "构建后端 jar ..."
 cd "$PROJECT_DIR/backend"
-JAVA_HOME=$(/usr/libexec/java_home -v 17) mvn package -DskipTests -q
+JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn package -DskipTests -q
 JAR=$(ls target/*.jar)
 info "构建完成: $JAR"
 
@@ -48,7 +48,7 @@ sleep 40
 # 检查容器是否在运行
 if ssh $SSH_OPTS "$SERVER" "docker ps --filter name=sr-app --format '{{.Status}}'" | grep -q "Up"; then
   # 检查端口是否可访问
-  if ssh $SSH_OPTS "$SERVER" "curl -sf http://localhost:18080/ > /dev/null 2>&1"; then
+  if ssh $SSH_OPTS "$SERVER" "curl -sf http://localhost:18080/api/ > /dev/null 2>&1"; then
     info "部署成功，服务正常"
   else
     err "容器已启动但端口未响应，可能正在初始化，请稍后检查"

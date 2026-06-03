@@ -3,7 +3,8 @@
     "pages/login/login",
     "pages/room/room",
     "pages/gallery/gallery",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/voice-select/voice-select"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",

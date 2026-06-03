@@ -11,7 +11,7 @@
     <view class="header">
       <text class="header-title">选择音色</text>
       <view class="close-btn" bindtap="closeSheet">
-        <text class="close-icon">✕</text>
+        <text class="close-icon">×</text>
       </view>
     </view>
 
@@ -49,9 +49,9 @@
               <view class="voice-desc">{{item.desc}}</view>
             </view>
             <view class="voice-action">
-              <view wx:if="{{selectedId === item.id}}" class="check-icon">✓</view>
-              <view wx:elif="{{playingId === item.id}}" class="play-icon spin">🔊</view>
-              <view wx:else class="play-icon">▶</view>
+              <view wx:if="{{selectedId === item.id}}" class="check-icon"></view>
+              <view wx:elif="{{playingId === item.id}}" class="play-icon spin"></view>
+              <view wx:else class="play-icon"></view>
             </view>
           </view>
         </block>

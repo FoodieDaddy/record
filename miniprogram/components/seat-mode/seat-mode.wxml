@@ -64,7 +64,7 @@
   <!-- 底部操作栏 -->
   <view class="seat-actions" wx:if="{{showActions}}">
     <view class="seat-action-btn" bindtap="onToggleAnimation">
-      <text class="seat-action-icon">{{animationEnabled ? '🎬' : '⚡'}}</text>
+      <view class="seat-action-icon {{animationEnabled ? 'icon-animation-on' : 'icon-animation-off'}}"></view>
       <text class="seat-action-text">{{animationEnabled ? '动效开' : '动效关'}}</text>
     </view>
   </view>

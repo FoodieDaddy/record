@@ -5,9 +5,13 @@ const { getSettings, saveSettings } = require('../../utils/voice');
 const config = require('../../config');
 const app = getApp();
 
+const SAVE_DELAY = 2000; // 自动保存防抖延迟（毫秒）
 // 音频单例 — 全局唯一，避免内存泄漏和重叠播放
 const audioCtx = wx.createInnerAudioContext();
 audioCtx.obeyMuteSwitch = false;
+
+// 防抖定时器（页面实例变量，不进 data 避免渲染开销）
+let _saveTimer = null;
 
 Page({
   data: {
@@ -41,7 +45,7 @@ Page({
       this.loadUserInfo();
       this.loadVoiceSettings();
       this.setData({ animationEnabled: app.globalData.animationEnabled });
-      // 预加载音色分类（供 Segmented Control 使用）
+      // 预加载音色分类（供音色抽屉使用）
       this.loadVoiceCatalog();
     }
   },
@@ -98,26 +102,25 @@ Page({
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
-    // 头像变更是明确的用户操作，立即自动保存
-    this.saveProfile();
+    this.debouncedSave();
   },
 
-  // ========== 昵称（失焦自动保存） ==========
+  // ========== 昵称（防抖保存，失焦立即刷盘） ==========
 
   onNicknameInput(e) {
     this.setData({ nickname: e.detail.value });
+    this.debouncedSave();
   },
 
   onNicknameBlur() {
-    this.saveProfile();
+    this.flushSave();
   },
 
   shuffleNickname() {
     const nickname = generateNickname();
     this.setData({ nickname });
     this.updateAvatar();
-    // 随机昵称后自动保存
-    this.saveProfile();
+    this.debouncedSave();
   },
 
   // ========== 语音设置 ==========
@@ -133,44 +136,15 @@ Page({
   async loadVoiceCatalog() {
     if (this.data.voiceCategories.length > 0) return;
     try {
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: config.baseUrl + '/voice/catalog',
-          success: resolve,
-          fail: reject
-        });
-      });
-      if (res.statusCode === 200 && res.data && res.data.data) {
-        const categories = res.data.data.categories || [];
-        this.setData({ voiceCategories: categories });
-        // 确保 activeVoiceCatId 在分类列表中有效
-        if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
-          this.setData({ activeVoiceCatId: categories[0].id });
-        }
+      const catalog = await get('/voice/catalog');
+      const categories = catalog.categories || [];
+      this.setData({ voiceCategories: categories });
+      // 确保 activeVoiceCatId 在分类列表中有效
+      if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
+        this.setData({ activeVoiceCatId: categories[0].id });
       }
     } catch (e) {
       console.error('加载音色目录失败', e);
-    }
-  },
-
-  // 分段控制器点击（女声/男声）
-  onSegmentTap(e) {
-    const catId = e.currentTarget.dataset.catId;
-    this.setData({ activeVoiceCatId: catId });
-    // 同步滚动到对应分类
-    const cats = this.data.voiceCategories;
-    const target = cats.find(c => c.id === catId);
-    if (target) {
-      this.setData({ scrollToCat: 'cat-' + target.id });
-    } else if (cats.length > 0) {
-      // fallback: 按索引（female=0, male=1）
-      const idx = catId === 'male' ? 1 : 0;
-      if (cats[idx]) {
-        this.setData({
-          activeVoiceCatId: cats[idx].id,
-          scrollToCat: 'cat-' + cats[idx].id
-        });
-      }
     }
   },
 
@@ -237,7 +211,25 @@ Page({
     wx.switchTab({ url: '/pages/room/room' });
   },
 
-  // ========== 自动保存 ==========
+  // ========== 自动保存（防抖 + 刷盘） ==========
+
+  // 防抖：延迟 2 秒，重复调用重置计时
+  debouncedSave() {
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+      _saveTimer = null;
+      this.saveProfile();
+    }, SAVE_DELAY);
+  },
+
+  // 刷盘：取消防抖，立即保存
+  flushSave() {
+    if (_saveTimer) {
+      clearTimeout(_saveTimer);
+      _saveTimer = null;
+    }
+    this.saveProfile();
+  },
 
   async saveProfile() {
     if (this.data.saving) return;
@@ -329,7 +321,13 @@ Page({
     wx.reLaunch({ url: '/pages/login/login' });
   },
 
+  onHide() {
+    // 页面切后台时刷盘，防止丢失未保存的修改
+    this.flushSave();
+  },
+
   onUnload() {
+    this.flushSave();
     if (this.data.pendingVoice) {
       saveSettings(this.data.pendingVoice);
     }

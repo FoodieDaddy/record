@@ -338,7 +338,45 @@
 }
 
 .seat-action-icon {
-  font-size: 24rpx;
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.icon-animation-on::after,
+.icon-animation-off::after {
+  content: '';
+  position: absolute;
+  left: 2rpx;
+  top: 2rpx;
+  width: 20rpx;
+  height: 20rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.6);
+  border-radius: 4rpx;
+}
+
+.icon-animation-on::before {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  top: 6rpx;
+  width: 8rpx;
+  height: 8rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.icon-animation-off::before {
+  content: '';
+  position: absolute;
+  left: 4rpx;
+  top: 10rpx;
+  width: 16rpx;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.6);
+  transform: rotate(-45deg);
+  z-index: 1;
 }
 
 .seat-action-text {

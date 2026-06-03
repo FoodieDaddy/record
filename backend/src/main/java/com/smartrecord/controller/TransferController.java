@@ -13,9 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-@Tag(name = "转账模块", description = "房间内转账、撤回")
+@Tag(name = "计分模块", description = "房间内计分")
 @RestController
 @RequestMapping("/transfer")
 @RequiredArgsConstructor
@@ -23,7 +21,7 @@ public class TransferController {
 
     private final TransferService transferService;
 
-    @Operation(summary = "发起转账")
+    @Operation(summary = "发起计分")
     @PostMapping
     public Result<TransferResp> transfer(
             HttpServletRequest request,
@@ -32,7 +30,7 @@ public class TransferController {
         return Result.ok(transferService.transfer(userId, req));
     }
 
-    @Operation(summary = "房间转账记录（分页）")
+    @Operation(summary = "房间计分记录（分页）")
     @GetMapping("/room/{roomId}")
     public Result<PageResult<TransferResp>> getRoomTransfers(
             @Parameter(description = "房间 ID") @PathVariable Long roomId,
@@ -40,15 +38,5 @@ public class TransferController {
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") Integer size) {
         return Result.ok(transferService.getRoomTransfers(roomId, sessionId, page, size));
-    }
-
-    @Operation(summary = "撤回转账", description = "仅转账人可操作，限 5 分钟内")
-    @DeleteMapping("/{transferId}")
-    public Result<Void> revokeTransfer(
-            HttpServletRequest request,
-            @Parameter(description = "转账 ID") @PathVariable Long transferId) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        transferService.revokeTransfer(userId, transferId);
-        return Result.ok();
     }
 }

@@ -8,34 +8,31 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@Schema(description = "转账记录")
+@Schema(description = "计分记录")
 public class TransferResp {
 
-    @Schema(description = "转账 ID")
+    @Schema(description = "记录 ID")
     private Long id;
 
     @Schema(description = "关联场次 ID")
     private Long sessionId;
 
-    @Schema(description = "转账人信息")
+    @Schema(description = "发起人信息")
     private UserInfo fromUser;
 
-    @Schema(description = "收款人信息")
+    @Schema(description = "接收人信息")
     private UserInfo toUser;
 
-    @Schema(description = "金额（分）")
+    @Schema(description = "分值")
     private Integer amount;
 
-    @Schema(description = "金额（元，用于显示）")
+    @Schema(description = "分值（元，用于显示）")
     private String amountDisplay;
 
     @Schema(description = "备注")
     private String remark;
 
-    @Schema(description = "状态 0=正常 1=已撤回")
-    private Integer status;
-
-    @Schema(description = "转账时间")
+    @Schema(description = "计分时间")
     private LocalDateTime createdAt;
 
     @Data

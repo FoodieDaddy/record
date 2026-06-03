@@ -8,6 +8,9 @@ spring:
     name: smartrecord
   profiles:
     active: local
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: root

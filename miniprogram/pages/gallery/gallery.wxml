@@ -18,7 +18,7 @@
   <view wx:elif="{{images.length === 0 && !loading}}" class="empty-gallery">
     <view class="empty-illustration">
       <view class="empty-circle">
-        <text class="empty-icon">📷</text>
+        <view class="svg-icon svg-icon--image"></view>
       </view>
     </view>
     <text class="text-lg text-bold" style="margin-bottom:8rpx;">暂无图片</text>

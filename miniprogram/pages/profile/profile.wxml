@@ -48,7 +48,7 @@
           <view class="svg-icon svg-icon--chart"></view>
           <text class="nav-card__item-label">积分记录</text>
         </view>
-        <text class="nav-card__item-arrow">›</text>
+        <view class="svg-icon svg-icon--arrow"></view>
       </view>
       <view class="nav-card__divider"></view>
       <view class="nav-card__item" bindtap="goHistoryRooms">
@@ -56,7 +56,7 @@
           <view class="svg-icon svg-icon--house"></view>
           <text class="nav-card__item-label">历史房间</text>
         </view>
-        <text class="nav-card__item-arrow">›</text>
+        <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
@@ -73,34 +73,14 @@
         <switch class="settings-card__switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#0A84FF" />
       </view>
 
-      <!-- 音色切换 Segmented Control -->
-      <view class="settings-card__row" wx:if="{{voiceEnabled && voiceCategories.length >= 2}}">
-        <view class="settings-card__row-info">
-          <text class="settings-card__row-label">播报音色</text>
-        </view>
-        <view class="segment-control">
-          <view class="segment-control__slider {{activeVoiceCatId === voiceCategories[0].id ? '' : 'segment-control__slider--right'}}"></view>
-          <view
-            class="segment-control__item {{activeVoiceCatId === voiceCategories[0].id ? 'segment-control__item--active' : ''}}"
-            data-cat-id="{{voiceCategories[0].id}}"
-            bindtap="onSegmentTap"
-          >{{voiceCategories[0].name}}</view>
-          <view
-            class="segment-control__item {{activeVoiceCatId === voiceCategories[1].id ? 'segment-control__item--active' : ''}}"
-            data-cat-id="{{voiceCategories[1].id}}"
-            bindtap="onSegmentTap"
-          >{{voiceCategories[1].name}}</view>
-        </view>
-      </view>
-
-      <!-- 具体音色选择入口 -->
-      <view class="settings-card__row" wx:if="{{voiceEnabled}}" bindtap="openVoiceSheet">
+      <!-- 具体音色选择入口（随开关折叠） -->
+      <view class="settings-card__row settings-card__row--collapse {{voiceEnabled ? '' : 'settings-card__row--hidden'}}" bindtap="openVoiceSheet">
         <view class="settings-card__row-info">
           <text class="settings-card__row-label">具体音色</text>
         </view>
         <view class="settings-card__row-value">
           <text class="settings-card__value-text">{{voiceName}}</text>
-          <text class="settings-card__value-arrow">›</text>
+          <view class="svg-icon svg-icon--arrow"></view>
         </view>
       </view>
 
@@ -159,7 +139,7 @@
                   <view class="voice-sheet__wave-bar"></view>
                   <view class="voice-sheet__wave-bar"></view>
                 </view>
-                <text class="voice-sheet__check" wx:elif="{{item.id === selectedVoiceId}}">✓</text>
+                <view class="voice-sheet__check" wx:elif="{{item.id === selectedVoiceId}}"></view>
               </view>
             </view>
           </block>

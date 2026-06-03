@@ -210,8 +210,8 @@ Component({
      */
     _rpx2px(rpx) {
       if (!this._pxPerRpx) {
-        const sys = wx.getSystemInfoSync()
-        this._pxPerRpx = sys.screenWidth / 750
+        const deviceInfo = wx.getDeviceInfo()
+        this._pxPerRpx = deviceInfo.screenWidth / 750
       }
       return rpx * this._pxPerRpx
     },

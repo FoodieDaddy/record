@@ -204,14 +204,39 @@
 }
 
 .check-icon {
-  font-size: 32rpx;
-  color: #0A84FF;
-  font-weight: 700;
+  width: 32rpx;
+  height: 32rpx;
+  position: relative;
+}
+
+.check-icon::after {
+  content: '';
+  position: absolute;
+  left: 6rpx;
+  top: 8rpx;
+  width: 14rpx;
+  height: 8rpx;
+  border-left: 3rpx solid #0A84FF;
+  border-bottom: 3rpx solid #0A84FF;
+  transform: rotate(-45deg);
 }
 
 .play-icon {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.4);
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.play-icon::after {
+  content: '';
+  position: absolute;
+  left: 6rpx;
+  top: 2rpx;
+  width: 0;
+  height: 0;
+  border-left: 16rpx solid rgba(255, 255, 255, 0.4);
+  border-top: 12rpx solid transparent;
+  border-bottom: 12rpx solid transparent;
 }
 
 .play-icon.spin {

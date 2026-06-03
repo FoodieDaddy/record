@@ -4,6 +4,7 @@ import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.config.interceptor.JwtInterceptor;
 import com.smartrecord.dto.user.LoginReq;
@@ -28,6 +29,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -119,30 +121,45 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUserInfo(Long userId, String nickname, String avatarUrl) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new BizException("用户不存在");
+        // 从 Redis 缓存读取旧信息，避免 SELECT 查询
+        String userKey = "sr:user:" + userId;
+        String cachedJson = redisTemplate.opsForValue().get(userKey);
+        String oldAvatarUrl = null;
+        String oldNickname = null;
+        if (cachedJson != null) {
+            JSONObject obj = JSONUtil.parseObj(cachedJson);
+            oldAvatarUrl = obj.getStr("avatarUrl", "");
+            oldNickname = obj.getStr("nickname", "");
         }
 
         // 头像变更时，异步删除旧的 OSS 文件
-        if (avatarUrl != null && !avatarUrl.equals(user.getAvatarUrl())) {
-            deleteOldAvatarAsync(user.getAvatarUrl());
+        String newAvatarUrl = avatarUrl != null ? avatarUrl : oldAvatarUrl;
+        if (avatarUrl != null && oldAvatarUrl != null && !avatarUrl.equals(oldAvatarUrl)) {
+            deleteOldAvatarAsync(oldAvatarUrl);
         }
 
-        if (nickname != null) user.setNickname(nickname);
-        if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
-        userMapper.updateById(user);
+        String newNickname = nickname != null ? nickname : oldNickname;
+        if (newNickname == null) {
+            throw new BizException("用户不存在");
+        }
+
+        // 使用 LambdaUpdateWrapper 直接更新，省掉 SELECT
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<User>()
+                .eq(User::getId, userId)
+                .set(nickname != null, User::getNickname, nickname)
+                .set(avatarUrl != null, User::getAvatarUrl, avatarUrl)
+                .set(User::getUpdatedAt, LocalDateTime.now());
+        userMapper.update(null, wrapper);
 
         // 更新 Redis 缓存
-        String userKey = "sr:user:" + userId;
         String userJson = JSONUtil.toJsonStr(Map.of(
-                "userId", user.getId(),
-                "nickname", user.getNickname(),
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
+                "userId", userId,
+                "nickname", newNickname,
+                "avatarUrl", newAvatarUrl != null ? newAvatarUrl : ""));
         redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
 
-        // 推送 MEMBER_UPDATE 给用户所在的活跃房间
-        pushMemberUpdateToRooms(userId);
+        // 推送 MEMBER_UPDATE 给用户所在的活跃房间（携带更新后的昵称头像）
+        pushMemberUpdateToRooms(userId, newNickname, newAvatarUrl);
     }
 
     /**
@@ -167,7 +184,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 查找用户所在的所有活跃房间，推送 MEMBER_UPDATE 事件
      */
-    private void pushMemberUpdateToRooms(Long userId) {
+    private void pushMemberUpdateToRooms(Long userId, String nickname, String avatarUrl) {
         try {
             // 从 Redis 缓存获取用户所在的房间
             Set<String> roomIds = redisTemplate.opsForSet().members("sr:user:rooms:" + userId);
@@ -183,11 +200,11 @@ public class UserServiceImpl implements UserService {
 
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "MEMBER_UPDATE");
-            pushData.put("userId", userId);
+            pushData.put("userId", String.valueOf(userId));
+            pushData.put("nickname", nickname);
+            pushData.put("avatarUrl", avatarUrl != null ? avatarUrl : "");
 
             for (String roomIdStr : roomIds) {
-                Long roomId = Long.parseLong(roomIdStr);
-                pushData.put("roomId", roomId);
                 scoreWebSocket.pushToRoom(roomIdStr, pushData);
             }
         } catch (Exception e) {

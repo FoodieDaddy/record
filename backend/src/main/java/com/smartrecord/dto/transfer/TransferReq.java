@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-@Schema(description = "转账请求")
+@Schema(description = "计分请求")
 public class TransferReq {
 
     @NotNull(message = "roomId 不能为空")
@@ -14,7 +14,7 @@ public class TransferReq {
     private Long roomId;
 
     @NotNull(message = "收款人不能为空")
-    @Schema(description = "收款人用户 ID", example = "1750000000000020")
+    @Schema(description = "接收人用户 ID", example = "1750000000000020")
     private Long toUserId;
 
     @NotNull(message = "金额不能为空")

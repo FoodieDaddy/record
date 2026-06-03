@@ -81,23 +81,6 @@ CREATE TABLE IF NOT EXISTS `score_image` (
   KEY `idx_room_round` (`room_id`, `round_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='得分图片表';
 
-CREATE TABLE IF NOT EXISTS `transfer` (
-  `id`            BIGINT      NOT NULL COMMENT '雪花 ID',
-  `room_id`       BIGINT      NOT NULL,
-  `session_id`    BIGINT      NOT NULL DEFAULT 0 COMMENT '关联场次',
-  `from_user_id`  BIGINT      NOT NULL COMMENT '转账人',
-  `to_user_id`    BIGINT      NOT NULL COMMENT '收款人',
-  `amount`        INT         NOT NULL COMMENT '金额(分)',
-  `remark`        VARCHAR(100) DEFAULT NULL COMMENT '备注',
-  `status`        TINYINT     NOT NULL DEFAULT 0 COMMENT '0-正常 1-已撤回',
-  `created_at`    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_room_id` (`room_id`),
-  KEY `idx_session_id` (`session_id`),
-  KEY `idx_from_user` (`from_user_id`),
-  KEY `idx_to_user` (`to_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='转账记录表';
-
 -- 用户对局汇总表（永久保留）
 CREATE TABLE IF NOT EXISTS `session_record` (
   `id`           BIGINT   NOT NULL COMMENT '雪花 ID',

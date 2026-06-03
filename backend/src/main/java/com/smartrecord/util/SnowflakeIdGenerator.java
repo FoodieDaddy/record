@@ -4,10 +4,13 @@ import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 雪花 ID 生成器
  * 结构: 1位符号位 + 41位时间戳 + 5位数据中心 + 5位工作机器 + 12位序列号
+ *
+ * 使用 ReentrantLock 而非 synchronized，避免虚拟线程 pin carrier thread
  */
 @Component
 public class SnowflakeIdGenerator {
@@ -29,30 +32,36 @@ public class SnowflakeIdGenerator {
     private final long workerId;
     private final AtomicLong sequence = new AtomicLong(0);
     private volatile long lastTimestamp = -1L;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public SnowflakeIdGenerator() {
         this.dataCenterId = getDataCenterId();
         this.workerId = getWorkerId();
     }
 
-    public synchronized long nextId() {
-        long timestamp = System.currentTimeMillis();
-        if (timestamp < lastTimestamp) {
-            throw new RuntimeException("时钟回拨，拒绝生成 ID");
-        }
-        if (timestamp == lastTimestamp) {
-            long seq = (sequence.incrementAndGet()) & SEQUENCE_MASK;
-            if (seq == 0) {
-                timestamp = waitNextMillis(lastTimestamp);
+    public long nextId() {
+        lock.lock();
+        try {
+            long timestamp = System.currentTimeMillis();
+            if (timestamp < lastTimestamp) {
+                throw new RuntimeException("时钟回拨，拒绝生成 ID");
             }
-        } else {
-            sequence.set(0);
+            if (timestamp == lastTimestamp) {
+                long seq = (sequence.incrementAndGet()) & SEQUENCE_MASK;
+                if (seq == 0) {
+                    timestamp = waitNextMillis(lastTimestamp);
+                }
+            } else {
+                sequence.set(0);
+            }
+            lastTimestamp = timestamp;
+            return ((timestamp - EPOCH) << TIMESTAMP_SHIFT)
+                    | (dataCenterId << DATA_CENTER_ID_SHIFT)
+                    | (workerId << WORKER_ID_SHIFT)
+                    | sequence.get();
+        } finally {
+            lock.unlock();
         }
-        lastTimestamp = timestamp;
-        return ((timestamp - EPOCH) << TIMESTAMP_SHIFT)
-                | (dataCenterId << DATA_CENTER_ID_SHIFT)
-                | (workerId << WORKER_ID_SHIFT)
-                | sequence.get();
     }
 
     private long waitNextMillis(long lastTs) {

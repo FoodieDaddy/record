@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-智能记分器微信小程序。后端 Java (Spring Boot 3.2.5) + 前端原生微信小程序。
+智能记分器微信小程序。后端 Java 21 (Spring Boot 3.2.5) + 前端原生微信小程序。
 
 ## 启动命令
 
@@ -25,6 +25,7 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 - **图片直传 MinIO**：后端签发预签名 PUT URL，前端压缩后直传，不经过后端中转
 - **实时推送**：WebSocket (`/ws/score`)，房间级广播，记分后推送给同房间所有玩家
 - **雪花 ID**：所有实体 ID 由 `SnowflakeIdGenerator` 生成，非数据库自增
+- **虚拟线程**：JDK 21 虚拟线程全面启用（`spring.threads.virtual.enabled=true`），异步任务池 `AsyncConfig` 使用 `VirtualThreadPerTaskExecutor`，TTS 合成、WebSocket 推送、OSS 操作等阻塞 I/O 自动卸载载体线程
 
 ## 代码规范
 

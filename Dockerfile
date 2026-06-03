@@ -1,5 +1,5 @@
-# 使用 Eclipse Temurin JRE 17 Alpine 版本，体积极小
-FROM eclipse-temurin:17-jre-alpine
+# 使用 Eclipse Temurin JRE 21 Alpine 版本，体积极小
+FROM eclipse-temurin:21-jre-alpine
 
 # 安装 TTS 依赖（ffmpeg + edge-tts）
 RUN apk add --no-cache ffmpeg python3 py3-pip && \

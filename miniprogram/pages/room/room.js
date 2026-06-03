@@ -443,6 +443,18 @@ Page({
     }
 
     if (data.type === 'SCORE_UPDATE' || data.type === 'MEMBER_UPDATE' || data.type === 'TRANSFER') {
+      // MEMBER_UPDATE：内存更新成员昵称头像，无需 HTTP 请求
+      if (data.type === 'MEMBER_UPDATE' && data.userId) {
+        const members = (this.data.currentRoom.members || []).map(m => {
+          if (String(m.userId) === String(data.userId)) {
+            return { ...m, nickname: data.nickname || m.nickname, avatarUrl: data.avatarUrl || m.avatarUrl };
+          }
+          return m;
+        });
+        this.setData({ 'currentRoom.members': members });
+        return;
+      }
+
       if (data.type === 'TRANSFER' && data.fromUserId && data.toUserId && data.amount) {
         console.log('[WS] TRANSFER:', JSON.stringify(data), 'myUserId:', app.globalData.userId, 'audioEnabled:', app.globalData.audioEnabled);
         const myId = String(app.globalData.userId);
@@ -892,12 +904,7 @@ Page({
     const targetSeatNo = toIndex + 1;
     const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
     if (!roomId) return;
-    wx.request({
-      url: `${app.globalData.baseUrl}/room/${roomId}/swap-seat`,
-      method: 'POST',
-      header: { 'Authorization': `Bearer ${wx.getStorageSync('token')}` },
-      data: { targetSeatNo }
-    });
+    post(`/room/${roomId}/swap-seat`, { targetSeatNo });
   },
 
   // ========== 座位编辑模式 ==========
@@ -944,12 +951,7 @@ Page({
   submitRearrange(assignments) {
     const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
     if (!roomId || assignments.length === 0) return;
-    wx.request({
-      url: `${app.globalData.baseUrl}/room/${roomId}/rearrange-seats`,
-      method: 'POST',
-      header: { 'Authorization': `Bearer ${wx.getStorageSync('token')}` },
-      data: { assignments }
-    });
+    post(`/room/${roomId}/rearrange-seats`, { assignments });
   },
 
   switchSeatLayout(e) {
@@ -958,12 +960,7 @@ Page({
     if (!roomId || !this.data.isOwner) return;
     this.setData({ seatLayoutType: layoutType });
     try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-    wx.request({
-      url: `${app.globalData.baseUrl}/room/${roomId}/layout`,
-      method: 'PUT',
-      header: { 'Authorization': `Bearer ${wx.getStorageSync('token')}` },
-      data: { layoutType }
-    });
+    put(`/room/${roomId}/layout`, { layoutType });
   },
 
   // ========== 动态积分样式（统一字号，颜色渐变） ==========

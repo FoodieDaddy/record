@@ -1,5 +1,6 @@
 const config = require('../../config')
 const voiceUtil = require('../../utils/voice')
+const { get } = require('../../utils/request')
 
 // 全局唯一音频实例，防止内存泄漏和多音频重叠
 const audioCtx = wx.createInnerAudioContext()
@@ -29,19 +30,13 @@ Page({
   },
 
   /** 从后端加载音色目录 */
-  loadCatalog() {
-    wx.request({
-      url: config.baseUrl + '/voice/catalog',
-      success: (res) => {
-        if (res.statusCode === 200 && res.data && res.data.data) {
-          const catalog = res.data.data
-          this.setData({ categories: catalog.categories || [] })
-        }
-      },
-      fail: () => {
-        wx.showToast({ title: '加载音色失败', icon: 'none' })
-      }
-    })
+  async loadCatalog() {
+    try {
+      const catalog = await get('/voice/catalog')
+      this.setData({ categories: catalog.categories || [] })
+    } catch (e) {
+      wx.showToast({ title: '加载音色失败', icon: 'none' })
+    }
   },
 
   /** 关闭抽屉 */

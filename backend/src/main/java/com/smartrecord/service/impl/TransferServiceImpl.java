@@ -9,11 +9,9 @@ import com.smartrecord.dto.transfer.TransferReq;
 import com.smartrecord.dto.transfer.TransferResp;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.Session;
-import com.smartrecord.entity.Transfer;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.SessionMapper;
-import com.smartrecord.mapper.TransferMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.TransferService;
@@ -27,7 +25,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -41,7 +41,7 @@ public class TransferServiceImpl implements TransferService {
     private static final String ROOM_PREFIX = "sr:room:";
 
     /**
-     * Lua 脚本：原子转账（扣分 + 加分 + 记录流水）
+     * Lua 脚本：原子计分（扣分 + 加分 + 记录流水）
      * KEYS[1] = 排行榜 Sorted Set (sr:session:{sid}:scores)
      * KEYS[2] = 流水 List (sr:session:{sid}:events)
      * ARGV[1] = fromUserId, ARGV[2] = toUserId
@@ -63,7 +63,6 @@ public class TransferServiceImpl implements TransferService {
 
     private static final DefaultRedisScript<Long> TRANSFER_SCRIPT = new DefaultRedisScript<>(TRANSFER_LUA, Long.class);
 
-    private final TransferMapper transferMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final SessionMapper sessionMapper;
     private final UserMapper userMapper;
@@ -77,9 +76,9 @@ public class TransferServiceImpl implements TransferService {
 
     @Override
     public TransferResp transfer(Long userId, TransferReq req) {
-        // 不能给自己转账
+        // 不能给自己计分
         if (userId.equals(req.getToUserId())) {
-            throw new BizException("不能给自己转账");
+            throw new BizException("不能给自己计分");
         }
 
         // 从 Redis 缓存验证双方都是房间成员
@@ -97,7 +96,7 @@ public class TransferServiceImpl implements TransferService {
             throw new BizException("当前没有进行中的场次");
         }
 
-        // 组装流水 JSON（结算时批量落盘用）
+        // 组装流水 JSON
         long now = System.currentTimeMillis();
         String eventJson = String.format("{\"from\":%d,\"to\":%d,\"amount\":%d,\"time\":%d,\"remark\":\"%s\"}",
                 userId, req.getToUserId(), req.getAmount(), now,
@@ -114,18 +113,15 @@ public class TransferServiceImpl implements TransferService {
                     String.valueOf(req.getAmount()),
                     eventJson);
             if (result == null || result == 0) {
-                throw new BizException("转账失败，请重试");
+                throw new BizException("计分失败，请重试");
             }
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            log.error("Lua 转账执行异常: roomId={}, from={}, to={}, amount={}",
+            log.error("Lua 计分执行异常: roomId={}, from={}, to={}, amount={}",
                     req.getRoomId(), userId, req.getToUserId(), req.getAmount(), e);
             throw new BizException("系统繁忙，请稍后重试");
         }
-
-        // 设置流水列表过期时间（每次续期 24h）
-        redisTemplate.expire(eventsKey, 24, TimeUnit.HOURS);
 
         // 更新最后活跃时间（供幽灵对局清扫器判断）
         redisTemplate.opsForValue().set(
@@ -151,10 +147,96 @@ public class TransferServiceImpl implements TransferService {
                 .amount(req.getAmount())
                 .amountDisplay(String.format("%.2f", req.getAmount() / 100.0))
                 .remark(req.getRemark())
-                .status(0)
                 .sessionId(sessionId)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    @Override
+    public PageResult<TransferResp> getRoomTransfers(Long roomId, int page, int size) {
+        return getRoomTransfers(roomId, null, page, size);
+    }
+
+    @Override
+    public PageResult<TransferResp> getRoomTransfers(Long roomId, Long sessionId, int page, int size) {
+        // 1. 查 session 表获取该房间的 sessionId 列表
+        LambdaQueryWrapper<Session> wrapper = new LambdaQueryWrapper<Session>()
+                .eq(Session::getRoomId, roomId);
+        if (sessionId != null) {
+            wrapper.eq(Session::getId, sessionId);
+        }
+        wrapper.orderByDesc(Session::getCreatedAt);
+        List<Session> sessions = sessionMapper.selectList(wrapper);
+        if (sessions.isEmpty()) {
+            return PageResult.of(0, List.of());
+        }
+
+        // 2. 批量读取 Redis events
+        List<JSONObject> allEvents = new ArrayList<>();
+        for (Session s : sessions) {
+            String eventsKey = SESSION_PREFIX + s.getId() + ":events";
+            List<String> rawEvents = redisTemplate.opsForList().range(eventsKey, 0, -1);
+            if (rawEvents == null) continue;
+            for (String raw : rawEvents) {
+                try {
+                    JSONObject obj = JSONUtil.parseObj(raw);
+                    obj.set("_sessionId", s.getId());
+                    allEvents.add(obj);
+                } catch (Exception e) {
+                    log.warn("解析计分流水失败: {}", raw, e);
+                }
+            }
+        }
+
+        // 3. 按时间倒序
+        allEvents.sort((a, b) -> Long.compare(
+                b.getLong("time", 0L), a.getLong("time", 0L)));
+
+        long total = allEvents.size();
+
+        // 4. 分页截取
+        int from = (page - 1) * size;
+        int to = Math.min(from + size, allEvents.size());
+        List<JSONObject> pageEvents = from < allEvents.size()
+                ? allEvents.subList(from, to) : List.of();
+
+        // 5. 批量加载用户信息
+        Set<Long> userIds = new HashSet<>();
+        for (JSONObject e : pageEvents) {
+            userIds.add(e.getLong("from"));
+            userIds.add(e.getLong("to"));
+        }
+        Map<Long, User> userMap = batchLoadUsersByIds(userIds);
+
+        // 6. 组装响应
+        List<TransferResp> records = pageEvents.stream().map(e -> {
+            Long fromId = e.getLong("from");
+            Long toId = e.getLong("to");
+            User fromUser = userMap.get(fromId);
+            User toUser = userMap.get(toId);
+            int amount = e.getInt("amount");
+            long ts = e.getLong("time", 0L);
+            return TransferResp.builder()
+                    .id(ts)
+                    .sessionId(e.getLong("_sessionId"))
+                    .fromUser(TransferResp.UserInfo.builder()
+                            .userId(fromId)
+                            .nickname(fromUser != null ? fromUser.getNickname() : "")
+                            .avatarUrl(fromUser != null ? fromUser.getAvatarUrl() : "")
+                            .build())
+                    .toUser(TransferResp.UserInfo.builder()
+                            .userId(toId)
+                            .nickname(toUser != null ? toUser.getNickname() : "")
+                            .avatarUrl(toUser != null ? toUser.getAvatarUrl() : "")
+                            .build())
+                    .amount(amount)
+                    .amountDisplay(String.format("%.2f", amount / 100.0))
+                    .remark(e.getStr("remark", ""))
+                    .createdAt(LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneId.systemDefault()))
+                    .build();
+        }).collect(Collectors.toList());
+
+        return PageResult.of(total, records);
     }
 
     /**
@@ -179,68 +261,10 @@ public class TransferServiceImpl implements TransferService {
         return null;
     }
 
-    @Override
-    public List<TransferResp> getRoomTransfers(Long roomId) {
-        List<Transfer> transfers = transferMapper.selectList(
-                new LambdaQueryWrapper<Transfer>()
-                        .eq(Transfer::getRoomId, roomId)
-                        .orderByDesc(Transfer::getCreatedAt));
-
-        Map<Long, User> userMap = batchLoadUsers(transfers);
-        return transfers.stream()
-                .map(t -> buildResp(t, userMap))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public PageResult<TransferResp> getRoomTransfers(Long roomId, int page, int size) {
-        return getRoomTransfers(roomId, null, page, size);
-    }
-
-    @Override
-    public PageResult<TransferResp> getRoomTransfers(Long roomId, Long sessionId, int page, int size) {
-        LambdaQueryWrapper<Transfer> wrapper = new LambdaQueryWrapper<Transfer>()
-                .eq(Transfer::getRoomId, roomId);
-        if (sessionId != null) {
-            wrapper.eq(Transfer::getSessionId, sessionId);
-        }
-        long total = transferMapper.selectCount(wrapper);
-        List<Transfer> transfers = transferMapper.selectList(
-                wrapper.orderByDesc(Transfer::getCreatedAt)
-                        .last("LIMIT " + size + " OFFSET " + (page - 1) * size));
-        Map<Long, User> userMap = batchLoadUsers(transfers);
-        List<TransferResp> records = transfers.stream()
-                .map(t -> buildResp(t, userMap))
-                .collect(Collectors.toList());
-        return PageResult.of(total, records);
-    }
-
-    @Override
-    public void revokeTransfer(Long userId, Long transferId) {
-        Transfer transfer = transferMapper.selectById(transferId);
-        if (transfer == null) throw new BizException("转账记录不存在");
-        if (!transfer.getFromUserId().equals(userId)) throw new BizException("只有转账人可以撤回");
-        if (transfer.getStatus() != 0) throw new BizException("该转账已撤回");
-
-        // 5 分钟内可撤回
-        LocalDateTime deadline = transfer.getCreatedAt().plusMinutes(5);
-        if (LocalDateTime.now().isAfter(deadline)) {
-            throw new BizException("超过 5 分钟无法撤回");
-        }
-
-        transfer.setStatus(1);
-        transferMapper.updateById(transfer);
-    }
-
     /**
-     * 批量预加载 transfer 列表中涉及的所有用户信息，避免 N+1 查询
+     * 批量加载用户信息（Redis 缓存优先，未命中查 MySQL）
      */
-    private Map<Long, User> batchLoadUsers(List<Transfer> transfers) {
-        Set<Long> userIds = new HashSet<>();
-        for (Transfer t : transfers) {
-            userIds.add(t.getFromUserId());
-            userIds.add(t.getToUserId());
-        }
+    private Map<Long, User> batchLoadUsersByIds(Set<Long> userIds) {
         if (userIds.isEmpty()) return Collections.emptyMap();
 
         List<String> keys = userIds.stream()
@@ -273,92 +297,5 @@ public class TransferServiceImpl implements TransferService {
             }
         }
         return userMap;
-    }
-
-    private TransferResp buildResp(Transfer t, Map<Long, User> userMap) {
-        User from = userMap.get(t.getFromUserId());
-        User to = userMap.get(t.getToUserId());
-        String fromNickname = from != null ? from.getNickname() : "";
-        String fromAvatarUrl = from != null ? from.getAvatarUrl() : "";
-        String toNickname = to != null ? to.getNickname() : "";
-        String toAvatarUrl = to != null ? to.getAvatarUrl() : "";
-
-        return TransferResp.builder()
-                .id(t.getId())
-                .fromUser(TransferResp.UserInfo.builder()
-                        .userId(t.getFromUserId())
-                        .nickname(fromNickname)
-                        .avatarUrl(fromAvatarUrl)
-                        .build())
-                .toUser(TransferResp.UserInfo.builder()
-                        .userId(t.getToUserId())
-                        .nickname(toNickname)
-                        .avatarUrl(toAvatarUrl)
-                        .build())
-                .amount(t.getAmount())
-                .amountDisplay(String.format("%.2f", t.getAmount() / 100.0))
-                .remark(t.getRemark())
-                .status(t.getStatus())
-                .sessionId(t.getSessionId())
-                .createdAt(t.getCreatedAt())
-                .build();
-    }
-
-    private TransferResp buildResp(Transfer t) {
-        // 从 Redis 缓存获取用户信息
-        String fromKey = "sr:user:" + t.getFromUserId();
-        String toKey = "sr:user:" + t.getToUserId();
-
-        String fromJson = redisTemplate.opsForValue().get(fromKey);
-        String toJson = redisTemplate.opsForValue().get(toKey);
-
-        String fromNickname = "";
-        String fromAvatarUrl = "";
-        String toNickname = "";
-        String toAvatarUrl = "";
-
-        if (fromJson != null) {
-            JSONObject fromObj = JSONUtil.parseObj(fromJson);
-            fromNickname = fromObj.getStr("nickname", "");
-            fromAvatarUrl = fromObj.getStr("avatarUrl", "");
-        } else {
-            User from = userMapper.selectById(t.getFromUserId());
-            if (from != null) {
-                fromNickname = from.getNickname();
-                fromAvatarUrl = from.getAvatarUrl();
-            }
-        }
-
-        if (toJson != null) {
-            JSONObject toObj = JSONUtil.parseObj(toJson);
-            toNickname = toObj.getStr("nickname", "");
-            toAvatarUrl = toObj.getStr("avatarUrl", "");
-        } else {
-            User to = userMapper.selectById(t.getToUserId());
-            if (to != null) {
-                toNickname = to.getNickname();
-                toAvatarUrl = to.getAvatarUrl();
-            }
-        }
-
-        return TransferResp.builder()
-                .id(t.getId())
-                .fromUser(TransferResp.UserInfo.builder()
-                        .userId(t.getFromUserId())
-                        .nickname(fromNickname)
-                        .avatarUrl(fromAvatarUrl)
-                        .build())
-                .toUser(TransferResp.UserInfo.builder()
-                        .userId(t.getToUserId())
-                        .nickname(toNickname)
-                        .avatarUrl(toAvatarUrl)
-                        .build())
-                .amount(t.getAmount())
-                .amountDisplay(String.format("%.2f", t.getAmount() / 100.0))
-                .remark(t.getRemark())
-                .status(t.getStatus())
-                .sessionId(t.getSessionId())
-                .createdAt(t.getCreatedAt())
-                .build();
     }
 }

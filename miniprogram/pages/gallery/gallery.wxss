@@ -67,6 +67,35 @@
   font-size: 56rpx;
 }
 
+.svg-icon--image {
+  width: 56rpx;
+  height: 56rpx;
+  position: relative;
+}
+
+.svg-icon--image::before {
+  content: '';
+  position: absolute;
+  left: 4rpx;
+  top: 4rpx;
+  width: 48rpx;
+  height: 48rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 8rpx;
+}
+
+.svg-icon--image::after {
+  content: '';
+  position: absolute;
+  left: 16rpx;
+  top: 28rpx;
+  width: 0;
+  height: 0;
+  border-left: 14rpx solid transparent;
+  border-right: 14rpx solid transparent;
+  border-bottom: 20rpx solid rgba(255, 255, 255, 0.3);
+}
+
 /* ===== 图片网格 ===== */
 .image-grid {
   display: flex;

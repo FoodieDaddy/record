@@ -28,6 +28,14 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10.5L12 3l9 7.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V10.5z'/%3E%3Cpath d='M9 22V12h6v10'/%3E%3C/svg%3E");
 }
 
+/* 右箭头图标 — 极简单线 Chevron */
+.svg-icon--arrow {
+  width: 24rpx;
+  height: 24rpx;
+  opacity: 0.3;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E");
+}
+
 /* 锁图标 — 未登录态 */
 .svg-icon--lock {
   width: 80rpx;
@@ -77,7 +85,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 48rpx 40rpx 40rpx;
+  padding: 64rpx 40rpx 48rpx;
 }
 
 .profile-card__avatar-btn {
@@ -186,6 +194,11 @@
 
 /* ===== Middle Card: 导航列表卡 ===== */
 .nav-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 24rpx;
   padding: 0;
   overflow: hidden;
 }
@@ -214,12 +227,6 @@
   color: var(--text-primary);
 }
 
-.nav-card__item-arrow {
-  font-size: 32rpx;
-  color: rgba(255, 255, 255, 0.3);
-  font-weight: 300;
-}
-
 .nav-card__divider {
   height: 1rpx;
   background: rgba(255, 255, 255, 0.05);
@@ -229,6 +236,11 @@
 
 /* ===== Bottom Card: 设置卡 ===== */
 .settings-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 24rpx;
   padding: 32rpx;
 }
 
@@ -281,63 +293,28 @@
   color: var(--text-tertiary);
 }
 
-.settings-card__value-arrow {
-  font-size: 28rpx;
-  color: var(--text-tertiary);
-  font-weight: 300;
+
+/* ===== 具体音色行折叠动画 ===== */
+.settings-card__row--collapse {
+  max-height: 120rpx;
+  opacity: 1;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.25s ease;
+}
+
+.settings-card__row--hidden {
+  max-height: 0;
+  opacity: 0.3;
+  padding-top: 0;
+  padding-bottom: 0;
+  pointer-events: none;
 }
 
 /* Switch 选中态覆盖为 #0A84FF */
 .settings-card__switch .wx-switch-input {
   background: #0A84FF !important;
   border-color: #0A84FF !important;
-}
-
-
-/* ===== Segmented Control（音色性别切换） ===== */
-.segment-control {
-  position: relative;
-  display: flex;
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
-  border-radius: 40rpx;
-  padding: 4rpx;
-  min-width: 200rpx;
-}
-
-.segment-control__slider {
-  position: absolute;
-  top: 4rpx;
-  left: 4rpx;
-  width: calc(50% - 4rpx);
-  height: calc(100% - 8rpx);
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 36rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-  z-index: 0;
-}
-
-.segment-control__slider--right {
-  transform: translateX(100%);
-}
-
-.segment-control__item {
-  flex: 1;
-  text-align: center;
-  padding: 12rpx 0;
-  font-size: 24rpx;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
-  position: relative;
-  z-index: 1;
-  transition: color 0.3s;
-}
-
-.segment-control__item--active {
-  color: var(--text-primary);
 }
 
 
@@ -497,9 +474,21 @@
 }
 
 .voice-sheet__check {
-  font-size: 32rpx;
-  color: var(--accent);
-  font-weight: 600;
+  width: 32rpx;
+  height: 32rpx;
+  position: relative;
+}
+
+.voice-sheet__check::after {
+  content: '';
+  position: absolute;
+  left: 6rpx;
+  top: 8rpx;
+  width: 14rpx;
+  height: 8rpx;
+  border-left: 3rpx solid var(--accent);
+  border-bottom: 3rpx solid var(--accent);
+  transform: rotate(-45deg);
 }
 
 /* 声浪波纹动画 */
@@ -570,13 +559,12 @@
 .reduce-motion .voice-sheet__wave-bar {
   animation: none !important;
 }
-.reduce-motion .segment-control__slider,
-.reduce-motion .segment-control__item,
 .reduce-motion .profile-card__avatar-ring,
 .reduce-motion .voice-sheet,
 .reduce-motion .voice-sheet-mask,
 .reduce-motion .nav-card__item,
 .reduce-motion .voice-sheet__cat-item,
-.reduce-motion .voice-sheet__voice-item {
+.reduce-motion .voice-sheet__voice-item,
+.reduce-motion .settings-card__row--collapse {
   transition: none !important;
 }
