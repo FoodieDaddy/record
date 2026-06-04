@@ -214,3 +214,48 @@
 
 # 输出要求
 请直接给出精细调校后的完整 `index.wxml` 和 `index.wxss` 代码。确保 CSS Grid 布局的 gap 优雅，组件结构清晰。
+
+# 角色设定
+你是一个精通微信原生小程序、CSS3 硬件加速动效，同时精通高并发 Java 后端架构（Spring Boot 体系）、大模型（LLM）API 对接的全栈架构师。深谙 Apple 级“极致极简主义（Extreme Minimalism）”与赛博朋克电竞视觉风格。
+
+# 任务目标
+为桌游/棋牌类小程序开发一个名为“每日状态监测（赛博运势）”的核心模块，小程序新增导航栏： 运势。放在房间右侧，导航栏第二个位置
+该模块包含极具科技感的 3D 悬浮 UI，且后端必须实现【实时大模型 + 本地画像标签兜底】的高可用双引擎架构。在保证千人千面个性化的同时，严格控制 API 延迟带来的体验降级。
+
+# 核心开发指令（请严格遵循）
+
+## 1. 前端视觉与交互：赛博玄学面板 (UI/UX Design)
+彻底抛弃传统黄历视觉，打造一个“高维状态监测面板”。
+* **全局布局**：纯黑背景 `#0A0A0A`。
+* **核心视觉 (3D 全息卡片)**：
+    * 页面中央悬浮一张深色毛玻璃卡片（`backdrop-filter: blur(40px); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15)`）。
+    * 包含内部发光感（光球颜色由后端返回，如 `#0A84FF`）。
+    * 动效：利用纯 CSS `@keyframes` 或微信小程序 `onAccelerometerChange`（重力感应），实现卡片在 3D 空间内的 `rotateX` 和 `rotateY` 极其平滑的悬浮呼吸感。
+* **数据区**：卡片下方陈列数据，全大写等宽字体（Monospace）。渲染【系统增益 (Buff)】和【风险警告 (Debuff)】字段。全靠纯文本与留白排版，禁用彩色 Icon。
+
+## 2. 前端动效：赛博朋克加载障眼法 (UX Masking)
+在发起 `wx.request` 到接口返回结果期间，必须有一个全屏的极简加载 UI，用于掩盖后端 API 的延迟。
+* 摒弃传统的 Loading 菊花图。
+* 使用等宽字体，通过 JS 定时器动态切换以下文案：
+  `"正在连接神经元节点..." -> "正在解析历史磁场波动..." -> "量子塌缩完成，正在生成日签..."`
+* 配合 CSS `@keyframes` 的文字微弱闪烁（flicker）特效。
+
+## 3. 后端架构：历史画像标签化 (User Profiling)
+在请求大模型之前，首先根据用户的积分数据（如近 10 场净积分 `netScore`），为其打上特征标签，枚举如下：
+* `HIGH_RISK` (大输大赢型)
+* `LOSING_STREAK` (近期连败/低迷)
+* `WINNING_STREAK` (近期连胜/高昂)
+* `STABLE` (稳健型)
+  这个标签将用于注入大模型 Prompt，并且是后续触发兜底缓存的核心 Key。
+
+## 4. 后端架构：超时熔断与双引擎编排 (CompletableFuture)
+* **主引擎**：使用 `CompletableFuture.supplyAsync()` 包装大模型的 HTTP 调用，将历史数据标签作为 Prompt 变量注入，请求生成极简判词。
+* **超时熔断**：使用 `orTimeout(2500, TimeUnit.MILLISECONDS)` 设置极其严格的 2.5 秒超时。
+* **备用引擎**：使用 `exceptionally(ex -> fallbackFortune(userTag))` 实现兜底降级。
+* **兜底方法 `fallbackFortune(userTag)`**：根据第一步算出的用户标签，从一个预先写好的本地静态 `Map<Tag, List<FortuneDTO>>`（或 Redis）中，极速抽取一条符合该画像的数据直接返回。确保即使 API 挂了，用户依然能得到贴合近期状态的结果。
+
+# 输出要求
+请直接输出生产级代码：
+1. **小程序端 WXML & WXSS**：重点展示 3D 全息毛玻璃卡片的 CSS 硬件加速样式，以及文字微弱闪烁（flicker）特效。
+2. **小程序端 JS**：重点展示“动态切换科技感加载文案”与接口请求的衔接逻辑。
+3. **Java 后端核心 Service**：重点展示 `CompletableFuture` 的超时编排代码、按标签分组的 `fallbackFortune` 兜底方法逻辑。

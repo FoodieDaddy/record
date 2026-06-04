@@ -557,7 +557,7 @@ Component({
       const d = new Date(ms);
       if (isNaN(d.getTime())) return '';
       const p = n => String(n).padStart(2, '0');
-      return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+      return `${p(d.getHours())}:${p(d.getMinutes())}`;
     }
   }
 });

@@ -1872,32 +1872,6 @@
 }
 
 /* ===== 积分表格 ===== */
-/* ===== 结束本轮按钮 ===== */
-.settle-bar {
-  position: fixed;
-  bottom: calc(32rpx + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 101;
-}
-
-.btn-settle {
-  min-width: 280rpx;
-  height: 80rpx;
-  line-height: 80rpx;
-  background: linear-gradient(135deg, var(--warning), #e67e22);
-  color: #fff;
-  font-size: 28rpx;
-  font-weight: 600;
-  border-radius: 40rpx;
-  border: none;
-  box-shadow: 0 8rpx 24rpx rgba(243, 156, 18, 0.3);
-  padding: 0 48rpx;
-}
-.btn-settle:active {
-  transform: scale(0.96);
-  opacity: 0.9;
-}
 
 /* ===== 通用工具 ===== */
 .score-number {
@@ -2312,4 +2286,193 @@
 .scroll-locked {
   overflow: hidden !important;
   pointer-events: none;
+}
+
+/* ===== 结算总览弹层 ===== */
+
+.settle-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #0A0A0A;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.settle-overlay--show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settle-overlay__inner {
+  padding: 0 32rpx 60rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.settle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0 16rpx;
+}
+
+.settle-header-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.settle-header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.settle-header-room {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 4rpx;
+}
+
+.settle-close-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settle-close-icon {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settle-section {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-top: 24rpx;
+}
+
+.settle-chart-card {
+  padding: 20rpx 12rpx;
+}
+
+.settle-section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 20rpx;
+  display: block;
+}
+
+.settle-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.settle-rank-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.settle-rank-item:last-child {
+  border-bottom: none;
+}
+
+.settle-rank-badge {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 10rpx;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.settle-rank-top3 {
+  background: rgba(10, 132, 255, 0.15);
+}
+
+.settle-rank-num {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.settle-rank-top3 .settle-rank-num {
+  color: #0A84FF;
+}
+
+.settle-rank-avatar {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.settle-rank-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.settle-rank-avatar-char {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.settle-rank-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settle-me-tag {
+  font-size: 20rpx;
+  color: #0A84FF;
+  margin-left: 8rpx;
+  vertical-align: middle;
+}
+
+.settle-rank-score {
+  font-size: 32rpx;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.settle-bottom-btn {
+  margin-top: 40rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
+  background: #0A84FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settle-bottom-btn-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fff;
 }

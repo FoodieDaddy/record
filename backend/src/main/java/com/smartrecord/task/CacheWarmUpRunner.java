@@ -63,12 +63,18 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                                     .eq(RoomMember::getRoomId, roomId)
                                     .isNull(RoomMember::getQuitTime));
 
+                    String metaKey = "sr:room:" + roomId + ":meta";
+
+                    // 写入房间信息字段
+                    redisTemplate.opsForHash().put(metaKey, "ownerId", String.valueOf(room.getOwnerId()));
+                    redisTemplate.opsForHash().put(metaKey, "status", "0");
+                    redisTemplate.opsForHash().put(metaKey, "layoutType", "circle");
+
                     if (!members.isEmpty()) {
                         List<Long> userIds = members.stream()
                                 .map(RoomMember::getUserId).collect(Collectors.toList());
                         Map<Long, String> userJsonMap = batchLoadUserJson(userIds);
 
-                        String membersKey = "sr:room:" + roomId + ":members";
                         for (RoomMember m : members) {
                             String userJson = userJsonMap.get(m.getUserId());
                             String nickname = "";
@@ -84,25 +90,17 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                                     "nickname", nickname,
                                     "avatarUrl", avatarUrl,
                                     "seatNo", m.getSeatNo()));
-                            redisTemplate.opsForHash().put(membersKey, String.valueOf(m.getUserId()), memberJson);
+                            redisTemplate.opsForHash().put(metaKey, "m:" + m.getUserId(), memberJson);
 
                             redisTemplate.opsForSet().add("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
                             redisTemplate.expire("sr:user:rooms:" + m.getUserId(), EXPIRE_HOURS, TimeUnit.HOURS);
                         }
-                        redisTemplate.expire(membersKey, EXPIRE_HOURS, TimeUnit.HOURS);
                     }
+                    redisTemplate.expire(metaKey, EXPIRE_HOURS, TimeUnit.HOURS);
 
                     // 恢复房间号映射
                     redisTemplate.opsForValue().set("sr:room_no:" + room.getRoomNo(),
                             String.valueOf(roomId), EXPIRE_HOURS, TimeUnit.HOURS);
-
-                    // 恢复房间信息缓存
-                    Map<String, String> info = new HashMap<>();
-                    info.put("ownerId", String.valueOf(room.getOwnerId()));
-                    info.put("status", "0");
-                    info.put("layoutType", "circle");
-                    redisTemplate.opsForHash().putAll("sr:room:" + roomId + ":info", info);
-                    redisTemplate.expire("sr:room:" + roomId + ":info", EXPIRE_HOURS, TimeUnit.HOURS);
 
                     // 恢复排行榜（从 score 表聚合）
                     warmupRoomScores(roomId);

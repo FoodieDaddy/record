@@ -17,6 +17,12 @@ app:
     access-key-id: LTAI5t8gKSckJYZjUqivuhPi
     access-key-secret: GfCTwLAUSFerci7Ov5NKGGYS5w8YoE
     bucket-name: smartrecord
+  llm:
+    api-url: https://token-plan-cn.xiaomimimo.com/v1/chat/completions
+    api-key: tp-cl8s6teu6pdyb2iquraslrka4zfpoc5an6e87isdffejcmnp
+    model: mimo-v2.5-pro
+  tts:
+    mimo-voice: 冰糖
 
 wechat:
   appid: wx9d93ece2b67f812b

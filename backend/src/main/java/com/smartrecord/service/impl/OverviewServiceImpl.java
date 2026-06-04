@@ -68,7 +68,12 @@ public class OverviewServiceImpl implements OverviewService {
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 
         if (room.getStatus() == 0) {
-            return buildChartFromRedis(roomId, roomPrefix);
+            // 活跃房间优先读 Redis；若 Redis 已被 settle 清理且 allRecord 有数据，降级读 allRecord
+            ChartDataResp redisResult = buildChartFromRedis(roomId, roomPrefix);
+            if (!redisResult.getTimestamps().isEmpty() || room.getAllRecord() == null || room.getAllRecord().isEmpty()) {
+                return redisResult;
+            }
+            return buildChartFromAllRecord(room);
         } else {
             return buildChartFromAllRecord(room);
         }

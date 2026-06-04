@@ -62,13 +62,6 @@ public class ScoreController {
         return Result.ok(scoreService.getRoomRecentScores(roomId, count));
     }
 
-    @Operation(summary = "获取房间图片列表")
-    @GetMapping("/room/{roomId}/images")
-    public Result<List<String>> getRoomImages(
-            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
-        return Result.ok(scoreService.getRoomImages(roomId));
-    }
-
     @Operation(summary = "发起计分", description = "自由流转模式，A 给 B 计分")
     @PostMapping("/transfer")
     public Result<TransferScoreResp> transferScore(

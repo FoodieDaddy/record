@@ -1,0 +1,101 @@
+<view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}">
+
+  <!-- 加载态：赛博终端 -->
+  <view class="loading-screen {{loadingFadeOut ? 'loading-fade-out' : ''}}" wx:if="{{loading}}">
+    <view class="cyber-loading-container">
+      <text class="loading-text">{{currentLoadingText}}</text>
+      <text class="blinking-cursor">█</text>
+    </view>
+  </view>
+
+  <!-- 运势卡片 -->
+  <view class="fortune-wrapper" wx:if="{{!loading && fortune}}">
+    <!-- 3D 全息卡片 -->
+    <view class="holo-card-float">
+      <view class="holo-card" style="transform: rotateX({{rotateX}}deg) rotateY({{rotateY}}deg); --glow-color: {{fortune.glowColor}}40;">
+      <!-- 内部光球 -->
+      <view class="glow-orb" style="background: radial-gradient(circle, {{fortune.glowColor}}40 0%, transparent 70%);"></view>
+      <view class="glow-border" style="border-color: {{fortune.glowColor}}30;"></view>
+
+      <!-- 导出情报按钮 -->
+      <view class="share-btn" bindtap="onExportSnapshot">
+        <image src="data:image/svg+xml,%3Csvg width='16' height='16' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 15V3m0 0L8.5 6.5M12 3l3.5 3.5M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" style="width: 32rpx; height: 32rpx;"></image>
+      </view>
+
+      <!-- 判词 -->
+      <view class="verdict-area">
+        <view class="verdict-label" wx:if="{{fortune.lunarDate}}">[ 场域监测 | {{currentDate}} · {{fortune.lunarDate}} ]</view>
+        <view class="verdict-label" wx:else>[ 场域监测 | {{currentDate}} ]</view>
+        <view class="verdict-text">{{fortune.verdict}}</view>
+      </view>
+
+      <!-- 标签 -->
+      <view class="tag-area">
+        <view class="tag {{fortune.userTag === 'WINNING_STREAK' ? 'tag-green' : fortune.userTag === 'LOSING_STREAK' ? 'tag-orange' : fortune.userTag === 'HIGH_RISK' ? 'tag-red' : 'tag-blue'}}">
+          {{fortune.tag || fortune.userTag}}
+        </view>
+        <view class="source-label">{{fortune.source === 'llm' ? '[ 量子推演 ]' : '[ 离线演算 ]'}}</view>
+        <view class="source-label env-tag" wx:if="{{fortune.solarTerm}}">[ {{fortune.solarTerm}} ]</view>
+      </view>
+      </view>
+    </view>
+
+    <!-- 数据区：Buff / Debuff -->
+    <view class="data-panel">
+      <!-- Buff -->
+      <view class="data-section">
+        <view class="section-header buff-header">[ 系统增益 ]</view>
+        <view class="data-item" wx:for="{{fortune.buffs}}" wx:key="index">
+          <view class="item-indicator buff-indicator"></view>
+          <view class="item-text">{{item}}</view>
+        </view>
+      </view>
+
+      <!-- Debuff -->
+      <view class="data-section">
+        <view class="section-header debuff-header">[ 风险预警 ]</view>
+        <view class="data-item" wx:for="{{fortune.debuffs}}" wx:key="index">
+          <view class="item-indicator debuff-indicator"></view>
+          <view class="item-text">{{item}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 建房接驳 -->
+    <view class="action-hook" bindtap="onInitializeMatrix">> 启动对战矩阵 [ 进入大厅 ]</view>
+
+    <!-- 底部刷新 -->
+    <view class="refresh-bar" bindtap="refreshFortune">
+      <view class="refresh-text">[ 重新校准 ]</view>
+    </view>
+
+    <!-- 磁场重置倒计时 -->
+    <view class="countdown-bar">
+      <view class="countdown-text">磁场重置于 {{countdownStr}} 后刷新</view>
+    </view>
+  </view>
+
+  <!-- 错误态 -->
+  <view class="error-screen" wx:if="{{!loading && error}}">
+    <view class="error-text">{{error}}</view>
+    <view class="refresh-bar" bindtap="refreshFortune">
+      <view class="refresh-text">[ 重新连接 ]</view>
+    </view>
+  </view>
+
+  <!-- 海报绘制用 Canvas（不可见） -->
+  <canvas type="2d" id="posterCanvas" style="position:fixed;left:-9999px;top:-9999px;width:750px;height:1334px;"></canvas>
+
+  <!-- 海报预览模态框 -->
+  <view class="poster-modal" wx:if="{{showPosterModal}}" catchtouchmove="preventTouchMove">
+    <view class="poster-overlay" bindtap="closePosterModal"></view>
+    <view class="poster-content">
+      <image class="poster-img" src="{{posterImagePath}}" mode="widthFix" show-menu-by-longpress="{{true}}"></image>
+      <view class="poster-actions">
+        <view class="poster-btn poster-btn-save" bindtap="saveToAlbum">[ SAVE INTEL ]</view>
+        <view class="poster-btn poster-btn-cancel" bindtap="closePosterModal">[ CANCEL ]</view>
+      </view>
+    </view>
+  </view>
+
+</view>

@@ -107,6 +107,13 @@
             <version>${hutool.version}</version>
         </dependency>
 
+        <!-- 农历/天干地支/节气 -->
+        <dependency>
+            <groupId>cn.6tail</groupId>
+            <artifactId>lunar</artifactId>
+            <version>1.3.13</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

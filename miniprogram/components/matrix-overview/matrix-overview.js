@@ -181,11 +181,11 @@ Component({
         if (data && data.series && data.series.length > 0) {
           const timestamps = data.timestamps || [];
           const myId = this.data.myUserId;
-          const mySeries = data.series.find(s => String(s.userId) === String(myId));
+          // 传入全部 series 用于 tooltip 解析对手昵称，visibleUsers 控制只画自己的线
           this.setData({
             chartTimestamps: timestamps,
-            chartSeries: mySeries ? [mySeries] : [],
-            chartVisibleUsers: mySeries ? [String(mySeries.userId)] : []
+            chartSeries: data.series,
+            chartVisibleUsers: [String(myId)]
           });
         } else {
           this.setData({ chartTimestamps: [], chartSeries: [], chartVisibleUsers: [] });

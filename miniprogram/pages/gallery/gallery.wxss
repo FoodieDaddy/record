@@ -1,201 +1,57 @@
 .gallery-page {
-  padding: var(--spacing-md);
   min-height: 100vh;
-}
-
-/* ===== 头部 ===== */
-.gallery-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24rpx;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.gallery-title {
-  font-size: 36rpx;
-  font-weight: 700;
-}
-
-/* ===== 骨架屏加载 ===== */
-.loading-state {
-  padding-top: 8rpx;
-}
-
-.skeleton-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
-
-.skeleton-item {
-  width: calc(33.33% - 6rpx);
-  aspect-ratio: 1;
-  border-radius: 8rpx;
-}
-
-/* ===== 空状态 ===== */
-.empty-gallery {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx 0;
 }
 
-.empty-illustration {
+.gallery-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gallery-empty-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.12);
+  border-radius: 24rpx;
   margin-bottom: 32rpx;
-}
-
-.empty-circle {
-  width: 140rpx;
-  height: 140rpx;
-  border-radius: 50%;
-  background: rgba(79, 140, 255, 0.06);
-  border: 1rpx solid rgba(79, 140, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.empty-icon {
-  font-size: 56rpx;
-}
-
-.svg-icon--image {
-  width: 56rpx;
-  height: 56rpx;
   position: relative;
 }
 
-.svg-icon--image::before {
+.gallery-empty-icon::before {
   content: '';
   position: absolute;
-  left: 4rpx;
-  top: 4rpx;
-  width: 48rpx;
-  height: 48rpx;
-  border: 3rpx solid rgba(255, 255, 255, 0.3);
-  border-radius: 8rpx;
-}
-
-.svg-icon--image::after {
-  content: '';
-  position: absolute;
-  left: 16rpx;
-  top: 28rpx;
-  width: 0;
-  height: 0;
-  border-left: 14rpx solid transparent;
-  border-right: 14rpx solid transparent;
-  border-bottom: 20rpx solid rgba(255, 255, 255, 0.3);
-}
-
-/* 锁图标 */
-.icon-lock-gallery {
-  width: 40rpx;
-  height: 32rpx;
-  border: 3rpx solid rgba(255, 255, 255, 0.25);
-  border-radius: 8rpx;
-  position: relative;
-}
-.icon-lock-gallery::before {
-  content: '';
-  position: absolute;
-  top: -20rpx;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: 24rpx;
-  height: 18rpx;
-  border: 3rpx solid rgba(255, 255, 255, 0.25);
-  border-bottom: none;
-  border-radius: 12rpx 12rpx 0 0;
+  transform: translate(-50%, -50%);
+  width: 40rpx;
+  height: 30rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.25);
+  border-radius: 4rpx;
 }
 
-/* ===== 图片网格 ===== */
-.image-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8rpx;
-}
-
-.grid-item {
-  position: relative;
-  width: calc(33.33% - 6rpx);
-  aspect-ratio: 1;
-  border-radius: 8rpx;
-  overflow: hidden;
-}
-.grid-item:active {
-  opacity: 0.85;
-}
-
-.grid-img {
-  width: 100%;
-  height: 100%;
-}
-
-.grid-overlay {
+.gallery-empty-icon::after {
+  content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 24rpx 10rpx 10rpx;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
-  text-align: center;
-}
-
-.grid-date {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.85);
-  text-shadow: 0 1rpx 4rpx rgba(0,0,0,0.3);
-}
-
-/* ===== 加载更多 ===== */
-.load-more {
-  text-align: center;
-  padding: 32rpx;
-}
-.load-more:active {
-  opacity: 0.7;
-}
-
-.loading-more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 32rpx;
-}
-
-.loading-spinner {
-  width: 32rpx;
-  height: 32rpx;
-  border: 3rpx solid var(--glass-border);
-  border-top-color: var(--accent);
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12rpx;
+  height: 12rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.25);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.gallery-empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 12rpx;
 }
 
-/* ===== 结束标记 ===== */
-.end-marker {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  padding: 32rpx 0;
-}
-
-.end-line {
-  flex: 1;
-  height: 1rpx;
-  background: var(--glass-border);
+.gallery-empty-desc {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.25);
 }

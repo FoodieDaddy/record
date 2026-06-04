@@ -21,9 +21,6 @@ public interface ScoreService {
     /** 获取房间折线图数据 */
     ChartDataResp getChartData(Long roomId);
 
-    /** 获取房间图片列表 */
-    List<String> getRoomImages(Long roomId);
-
     /** 自由流转计分 */
     TransferScoreResp transferScore(Long userId, TransferScoreReq req);
 

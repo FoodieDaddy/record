@@ -1,7 +1,0 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4f8cff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="6" y="6" width="12" height="12" rx="3" />
-  <circle cx="12" cy="3" r="1" fill="#4f8cff" stroke="none" />
-  <circle cx="12" cy="21" r="1" fill="#4f8cff" stroke="none" />
-  <circle cx="3" cy="12" r="1" fill="#4f8cff" stroke="none" />
-  <circle cx="21" cy="12" r="1" fill="#4f8cff" stroke="none" />
-</svg>

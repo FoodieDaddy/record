@@ -11,11 +11,9 @@ import com.smartrecord.dto.score.*;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.Score;
-import com.smartrecord.entity.ScoreImage;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
-import com.smartrecord.mapper.ScoreImageMapper;
 import com.smartrecord.mapper.ScoreMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.EmotionAudioPool;
@@ -25,6 +23,7 @@ import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import com.smartrecord.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -50,13 +49,13 @@ public class ScoreServiceImpl implements ScoreService {
     private final UserMapper userMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final ScoreMapper scoreMapper;
-    private final ScoreImageMapper scoreImageMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
     private final ScoreWebSocket scoreWebSocket;
     private final EmotionAudioPool emotionAudioPool;
     private final OverviewService overviewService;
+    @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
     private static final String ROOM_PREFIX = "sr:room:";
@@ -128,16 +127,7 @@ public class ScoreServiceImpl implements ScoreService {
             redisTemplate.opsForList().rightPush(batchesKey, String.valueOf(batchTs));
             redisTemplate.expire(batchesKey, 24, TimeUnit.HOURS);
 
-            // 4. 存储图片 URL
-            if (req.getImageUrls() != null && !req.getImageUrls().isEmpty()) {
-                String imagesKey = ROOM_PREFIX + roomId + ":images";
-                for (String url : req.getImageUrls()) {
-                    redisTemplate.opsForList().rightPush(imagesKey, url);
-                }
-                redisTemplate.expire(imagesKey, 24, TimeUnit.HOURS);
-            }
-
-            // 5. 为每个玩家生成情绪音频 URL
+            // 4. 为每个玩家生成情绪音频 URL
             List<Map<String, Object>> scoreWithEmotion = new ArrayList<>();
             for (SubmitScoreReq.PlayerScore ps : req.getScores()) {
                 Map<String, Object> entry = new HashMap<>();
@@ -322,24 +312,7 @@ public class ScoreServiceImpl implements ScoreService {
             log.info("持久化房间 {} 得分记录 {} 条", roomId, allScores.size());
         }
 
-        // 3. 写入 score_image 表
-        List<String> imageUrls = redisTemplate.opsForList().range(roomPrefix + "images", 0, -1);
-        if (imageUrls != null && !imageUrls.isEmpty()) {
-            List<ScoreImage> images = new ArrayList<>();
-            for (int i = 0; i < imageUrls.size(); i++) {
-                ScoreImage img = new ScoreImage();
-                img.setId(idGenerator.nextId());
-                img.setRoomId(roomId);
-                img.setUserId(0L);
-                img.setImageUrl(imageUrls.get(i));
-                img.setSortOrder(i);
-                images.add(img);
-            }
-            scoreImageMapper.insertBatch(images);
-            log.info("持久化房间 {} 图片 {} 张", roomId, imageUrls.size());
-        }
-
-        // 4. 持久化 transfer events 到 all_record
+        // 3. 持久化 transfer events 到 all_record
         Set<String> eventJsonSet = redisTemplate.opsForZSet().range(roomPrefix + "events", 0, -1);
         List<String> eventJsonList = eventJsonSet != null ? new ArrayList<>(eventJsonSet) : Collections.emptyList();
         if (eventJsonList != null && !eventJsonList.isEmpty()) {
@@ -376,9 +349,8 @@ public class ScoreServiceImpl implements ScoreService {
         List<String> keysToDelete = new ArrayList<>();
         keysToDelete.add(roomPrefix + "scores");
         keysToDelete.add(roomPrefix + "batches");
-        keysToDelete.add(roomPrefix + "images");
-        keysToDelete.add(roomPrefix + "last_active");
         keysToDelete.add(roomPrefix + "events");
+        keysToDelete.add(roomPrefix + "overview");
         if (batchTsList != null) {
             for (String ts : batchTsList) {
                 keysToDelete.add(roomPrefix + "batch:" + ts);
@@ -388,7 +360,7 @@ public class ScoreServiceImpl implements ScoreService {
         log.info("清理房间 {} Redis 键 {} 个", roomId, keysToDelete.size());
 
         // 清理成员缓存 + 每个成员的 user:rooms 映射
-        redisTemplate.delete(roomPrefix + "members");
+        redisTemplate.delete(roomPrefix + "meta");
         for (Long memberId : playerTotalMap.keySet()) {
             redisTemplate.opsForSet().remove("sr:user:rooms:" + memberId, String.valueOf(roomId));
         }
@@ -485,6 +457,8 @@ public class ScoreServiceImpl implements ScoreService {
                         .build())
                 .collect(Collectors.toList());
 
+        lastTtlRefresh.remove(roomId);
+
         return SettleResp.builder()
                 .roomId(roomId)
                 .roomNo(room.getRoomNo())
@@ -553,7 +527,9 @@ public class ScoreServiceImpl implements ScoreService {
             List<ScoreBatchResp.PlayerScoreVO> scoreVOs = new ArrayList<>();
             Set<Long> uids = new HashSet<>();
             for (Object v : entries.keySet()) {
-                uids.add(Long.parseLong(v.toString()));
+                String k = v.toString();
+                if ("_created_by".equals(k)) continue;
+                uids.add(Long.parseLong(k));
             }
 
             Map<Long, String> nicknameMap = new HashMap<>();
@@ -591,34 +567,6 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     @Override
-    public List<String> getRoomImages(Long roomId) {
-        Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
-
-        List<String> images = new ArrayList<>();
-
-        if (room.getStatus() == 0) {
-            // 活跃房间：从 Redis 读取
-            String imagesKey = ROOM_PREFIX + roomId + ":images";
-            List<String> redisImages = redisTemplate.opsForList().range(imagesKey, 0, -1);
-            if (redisImages != null) images.addAll(redisImages);
-        }
-
-        // 从 MySQL 读取（已归档的图片）
-        List<ScoreImage> dbImages = scoreImageMapper.selectList(
-                new LambdaQueryWrapper<ScoreImage>()
-                        .eq(ScoreImage::getRoomId, roomId)
-                        .orderByAsc(ScoreImage::getCreatedAt));
-        for (ScoreImage img : dbImages) {
-            if (!images.contains(img.getImageUrl())) {
-                images.add(img.getImageUrl());
-            }
-        }
-
-        return images;
-    }
-
-    @Override
     public TransferScoreResp transferScore(Long userId, TransferScoreReq req) {
         if (userId.equals(req.getToUserId())) {
             throw new BizException("不能给自己计分");
@@ -633,9 +581,9 @@ public class ScoreServiceImpl implements ScoreService {
         }
 
         // 从 Redis 缓存验证双方都是房间成员
-        String membersKey = ROOM_PREFIX + roomId + ":members";
-        Boolean isFromMember = redisTemplate.opsForHash().hasKey(membersKey, String.valueOf(userId));
-        Boolean isToMember = redisTemplate.opsForHash().hasKey(membersKey, String.valueOf(req.getToUserId()));
+        String metaKey = ROOM_PREFIX + roomId + ":meta";
+        Boolean isFromMember = redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId);
+        Boolean isToMember = redisTemplate.opsForHash().hasKey(metaKey, "m:" + req.getToUserId());
 
         if (!Boolean.TRUE.equals(isFromMember) || !Boolean.TRUE.equals(isToMember)) {
             throw new BizException("双方必须都是房间成员");
@@ -662,9 +610,9 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 节流刷新 TTL（每房间最多 30 秒一次，避免每次计分执行 11+ 次 EXPIRE）
         long now = System.currentTimeMillis();
-        Long lastRefresh = lastTtlRefresh.get(roomId);
-        if (lastRefresh == null || now - lastRefresh > 30_000) {
-            lastTtlRefresh.put(roomId, now);
+        boolean shouldRefresh = lastTtlRefresh.compute(roomId, (k, last) ->
+                (last == null || now - last > 30_000) ? now : last) == now;
+        if (shouldRefresh) {
             refreshRoomTtl(roomId);
         }
 
@@ -874,21 +822,21 @@ public class ScoreServiceImpl implements ScoreService {
         long ttl = 24;
         TimeUnit unit = TimeUnit.HOURS;
         List<String> keys = List.of(
-                prefix + "info",
-                prefix + "members",
+                prefix + "meta",
                 prefix + "scores",
                 prefix + "batches",
-                prefix + "images",
-                prefix + "events",
-                prefix + "last_active");
+                prefix + "events");
         for (String key : keys) {
             redisTemplate.expire(key, ttl, unit);
         }
-        // 用户房间映射也刷新
-        Set<Object> memberUids = redisTemplate.opsForHash().keys(prefix + "members");
-        if (memberUids != null) {
-            for (Object uid : memberUids) {
-                redisTemplate.expire("sr:user:rooms:" + uid, ttl, unit);
+        // 用户房间映射也刷新（从 meta 中提取 m: 前缀的成员字段）
+        Set<Object> metaFields = redisTemplate.opsForHash().keys(prefix + "meta");
+        if (metaFields != null) {
+            for (Object field : metaFields) {
+                String key = (String) field;
+                if (key.startsWith("m:")) {
+                    redisTemplate.expire("sr:user:rooms:" + key.substring(2), ttl, unit);
+                }
             }
         }
     }

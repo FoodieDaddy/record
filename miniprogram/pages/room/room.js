@@ -66,6 +66,13 @@ Page({
     noMore: false,
     // 积分总览弹窗
     showMatrixPanel: false,
+    // 结算弹层
+    showSettleOverlay: false,
+    settleTimestamps: [],
+    settleSeries: [],
+    settleVisibleUsers: [],
+    settleRankedMembers: [],
+    settleRoomNo: '',
     // 历史场次
     // 分享面板
     showShareSheet: false,
@@ -146,6 +153,8 @@ Page({
   // ========== 房间加载 ==========
 
   async loadMyRooms() {
+    // 结算弹层展示中，忽略房间列表刷新（避免覆盖结算状态）
+    if (this._showingSettle) return;
     this.setData({ loading: true });
     try {
       const rooms = await get('/room/my');
@@ -178,6 +187,7 @@ Page({
       avatarChar: m.avatarUrl ? '' : getFirstChar(m.nickname)
     }));
     this.setData({ currentRoom: room });
+    this._cellRectsCache = null;
     this.buildMemberGrid();
   },
 
@@ -218,7 +228,6 @@ Page({
     const seatScoreMap = {};
     grid.forEach(m => { seatScoreMap[m.userId] = m.score; });
     this.setData({ memberGrid: grid, seatScoreMap });
-    this._cellRectsCache = null;
   },
 
   async loadRoomData(roomId) {
@@ -263,7 +272,6 @@ Page({
 
       const myId = app.globalData.userId;
       const pageRecords = (res.records || [])
-        .filter(t => t.status === 0)
         .map(t => ({
           id: t.id,
           fromName: t.fromUser.nickname,
@@ -376,15 +384,50 @@ Page({
     if (!this.data.currentRoom) return;
     const roomId = this.data.currentRoom.roomId;
 
-    // 结算通知：刷新房间数据
+    // 结算通知：房主已在 quitRoom 中处理，其他人拉取结算数据展示弹层
     if (data.type === 'SETTLE') {
-      this.loadMyRooms();
+      if (!this._settling && !this.data.showSettleOverlay) {
+        this.fetchAndShowSettle(roomId);
+      }
       return;
     }
 
     // 布局更新
     if (data.type === 'LAYOUT_UPDATE' && data.layoutType) {
       this.setData({ seatLayoutType: data.layoutType });
+      return;
+    }
+
+    // 新成员加入
+    if (data.type === 'MEMBER_JOIN' && data.userId) {
+      const room = this.data.currentRoom;
+      const members = room.members || [];
+      const exists = members.some(m => String(m.userId) === String(data.userId));
+      if (!exists) {
+        members.push({
+          userId: data.userId,
+          nickname: data.nickname || '',
+          avatarUrl: data.avatarUrl || '',
+          seatNo: data.seatNo || 0
+        });
+        room.members = members;
+        this.enrichMembers(room);
+      }
+      return;
+    }
+
+    // 成员离开
+    if (data.type === 'MEMBER_LEAVE' && data.userId) {
+      const room = this.data.currentRoom;
+      room.members = (room.members || [])
+        .filter(m => String(m.userId) !== String(data.userId));
+      this.enrichMembers(room);
+      return;
+    }
+
+    // 座位变更（换座/重排），刷新全部数据
+    if (data.type === 'SEAT_UPDATE') {
+      this.updateAllData(roomId);
       return;
     }
 
@@ -422,8 +465,17 @@ Page({
 
         // 优先用 WS 推送的权威分数更新本地，避免额外 HTTP 请求
         if (data.fromNewScore !== undefined && data.toNewScore !== undefined) {
+          // 先冻结旧分数（粒子动画期间保持显示旧值）
+          const g = this.data.memberGrid;
+          const fM = g.find(m => String(m.userId) === String(data.fromUserId));
+          const tM = g.find(m => String(m.userId) === String(data.toUserId));
+          this._animatingScores = {};
+          this._animatingScores[data.fromUserId] = fM ? fM.displayScore : 0;
+          this._animatingScores[data.toUserId] = tM ? tM.displayScore : 0;
           this._optimisticScoreUpdateFromWS(data.fromUserId, data.toUserId, data.fromNewScore, data.toNewScore);
-          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, null);
+          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
+            return this.loadScoreRecords(roomId, true).finally(() => this.buildMemberGrid());
+          });
         } else {
           // 兼容：旧版后端未携带分数时，走 updateAllData
           this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
@@ -577,9 +629,10 @@ Page({
         seatLayoutType: room.layoutType || 'circle'
       });
       this.resetOtpState();
-      // 加入后重新加载完整房间信息（确保成员列表完整）
-      await this.reloadRoomInfo(room.roomId);
-      this.loadRoomData(room.roomId);
+      // 先加载排名数据（含成员信息），再构建成员网格，避免 0 分闪烁
+      await this.loadRoomData(room.roomId);
+      // 刷新完整房间信息（成员列表可能比 join 响应更完整）
+      this.reloadRoomInfo(room.roomId);
       this.connectWS(room.roomId);
       wx.showToast({ title: '已加入房间', icon: 'success' });
     } catch (e) {
@@ -708,7 +761,9 @@ Page({
     this._animatingScores[transferTo] = toMember ? toMember.displayScore : 0;
     this._optimisticScoreUpdate(fromUserId, transferTo, amount);
     this.cancelTransfer();
-    this.playTransferAnimation(fromUserId, transferTo, amount, null);
+    this.playTransferAnimation(fromUserId, transferTo, amount, () => {
+      return this.loadScoreRecords(room.roomId, true).finally(() => this.buildMemberGrid());
+    });
 
     // API 请求并行执行
     try {
@@ -725,27 +780,6 @@ Page({
       wx.showToast({ title: '计分失败，请重试', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
-    }
-  },
-
-  // ========== 结算 ==========
-
-  async settleRoom() {
-    const room = this.data.currentRoom;
-    if (!room) return;
-
-    const { confirm } = await wx.showModal({
-      title: '结束本轮？',
-      content: '当前轮次记分将被锁定，开始新一轮'
-    });
-    if (!confirm) return;
-
-    try {
-      await post(`/score/room/${room.roomId}/settle`);
-      wx.showToast({ title: '本轮结束', icon: 'success' });
-      this.loadMyRooms();
-    } catch (e) {
-      console.error('结算失败', e);
     }
   },
 
@@ -840,15 +874,126 @@ Page({
   async quitRoom() {
     const isOwner = this.data.isOwner;
     const title = isOwner ? '确认解散房间？' : '确认退出？';
-    const content = isOwner ? '退出将解散房间，所有成员将被移除' : '';
+    const content = isOwner ? '解散后将归档所有计分数据并展示积分总览' : '';
     const { confirm } = await wx.showModal({ title, content });
     if (!confirm) return;
+    const roomId = this.data.currentRoom.roomId;
     try {
-      await del(`/room/${this.data.currentRoom.roomId}/quit`);
-      app.disconnectWS();
-      this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
-      wx.showToast({ title: isOwner ? '已解散' : '已退出', icon: 'success' });
-    } catch (e) {}
+      if (isOwner) {
+        this._settling = true;
+        wx.showLoading({ title: '正在归档...' });
+        // 1. 先归档数据
+        const settleResp = await post(`/score/room/${roomId}/settle`);
+        // 2. 解散房间（必须 await，确保后端清理完成）
+        await del(`/room/${roomId}/quit`);
+        wx.hideLoading();
+        // 3. 断开 WS
+        app.disconnectWS();
+        this._settling = false;
+        // 4. 有记分数据则展示结算弹层，否则直接回到房间列表
+        const hasData = settleResp && settleResp.memberScores && settleResp.memberScores.length > 0;
+        if (hasData) {
+          this.showSettleFromResp(settleResp);
+        } else {
+          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+        }
+      } else {
+        await del(`/room/${roomId}/quit`);
+        app.disconnectWS();
+        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+        wx.showToast({ title: '已退出', icon: 'success' });
+      }
+    } catch (e) {
+      this._settling = false;
+      wx.hideLoading();
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
+  /** 从 SettleResp 构建结算弹层数据并展示 */
+  showSettleFromResp(resp) {
+    this._showingSettle = true;
+    const timestamps = resp.timestamps || [];
+    const series = resp.series || [];
+    const visibleUsers = series.map(s => String(s.userId));
+    const rankedMembers = (resp.memberScores || []).map(m => ({
+      userId: m.userId,
+      nickname: m.nickname || '?',
+      avatarChar: getFirstChar(m.nickname),
+      avatarUrl: m.avatarUrl || '',
+      finalScore: m.finalScore || 0,
+      avatarColor: getColor(m.nickname)
+    }));
+    this.setData({
+      showSettleOverlay: true,
+      settleTimestamps: timestamps,
+      settleSeries: series,
+      settleVisibleUsers: visibleUsers,
+      settleRankedMembers: rankedMembers,
+      settleRoomNo: resp.roomNo || ''
+    });
+  },
+
+  /** 非房主收到 SETTLE WS 通知后拉取结算数据 */
+  async fetchAndShowSettle(roomId) {
+    try {
+      const [chartData, roomData] = await Promise.all([
+        get(`/score/room/${roomId}/chart`),
+        get(`/room/${roomId}`)
+      ]);
+      const timestamps = chartData.timestamps || [];
+      const series = chartData.series || [];
+      if (series.length === 0) return;
+      const visibleUsers = series.map(s => String(s.userId));
+      const memberMap = {};
+      (roomData.members || []).forEach(m => { memberMap[String(m.userId)] = m; });
+      const rankedMembers = series.map(s => {
+        const scores = s.scores || [];
+        const finalScore = scores.length > 0 ? scores[scores.length - 1] : 0;
+        const member = memberMap[String(s.userId)] || {};
+        const nickname = s.nickname || member.nickname || '?';
+        return {
+          userId: s.userId,
+          nickname,
+          avatarChar: getFirstChar(nickname),
+          avatarUrl: member.avatarUrl || '',
+          finalScore,
+          avatarColor: getColor(nickname)
+        };
+      }).sort((a, b) => b.finalScore - a.finalScore);
+
+      this._showingSettle = true;
+      this.setData({
+        showSettleOverlay: true,
+        settleTimestamps: timestamps,
+        settleSeries: series,
+        settleVisibleUsers: visibleUsers,
+        settleRankedMembers: rankedMembers,
+        settleRoomNo: roomData.roomNo || ''
+      });
+    } catch (e) {
+      console.error('加载结算数据失败', e);
+    }
+  },
+
+  /** 关闭结算弹层，回到房间列表 */
+  closeSettleOverlay() {
+    this._showingSettle = false;
+    this._settling = false;
+    this.setData({
+      showSettleOverlay: false,
+      settleTimestamps: [],
+      settleSeries: [],
+      settleVisibleUsers: [],
+      settleRankedMembers: [],
+      settleRoomNo: '',
+      currentRoom: null,
+      viewingRoom: false,
+      ranking: [],
+      scoreRecords: [],
+      memberGrid: [],
+      matrixData: []
+    });
   },
 
   // ========== 音效开关 ==========
@@ -1012,6 +1157,7 @@ Page({
 
   playTransferAnimation(fromUserId, toUserId, amount, onParticleDone) {
     if (!app.globalData.animationEnabled) {
+      this._animatingScores = {};
       if (onParticleDone) onParticleDone();
       return;
     }

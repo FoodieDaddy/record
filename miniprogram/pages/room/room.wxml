@@ -161,11 +161,11 @@
             <text class="top-card-value">{{currentRoom.roomNo}}</text>
           </view>
           <view class="top-card-actions">
+            <view class="tc-action" bindtap="copyRoomNo">
+              <view class="icon-clip"></view>
+            </view>
             <view class="tc-action" bindtap="openShareSheet">
               <view class="icon-share"></view>
-            </view>
-            <view class="tc-action {{audioEnabled ? 'tc-audio-on' : ''}}" bindtap="toggleAudioSwitch">
-              <view class="{{audioEnabled ? 'icon-audio-on' : 'icon-audio-off'}}"></view>
             </view>
             <view class="tc-action tc-danger" bindtap="quitRoom">
               <view class="icon-door"></view>
@@ -300,10 +300,6 @@
         </view>
       </view>
 
-      <!-- 结束本轮按钮（房主） -->
-      <view class="settle-bar" wx:if="{{isOwner && ranking.length > 0}}">
-        <button class="btn-settle" bindtap="settleRoom">结束本轮</button>
-      </view>
     </scroll-view>
 
     <!-- 数字键盘弹窗 -->
@@ -407,6 +403,70 @@
           <view class="icon-cam share-action-svg"></view>
           <text class="share-action-text">扫码加入</text>
         </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 结算总览弹层 -->
+  <view class="settle-overlay {{showSettleOverlay ? 'settle-overlay--show' : ''}}" catchtouchmove="preventClose">
+    <view class="settle-overlay__inner">
+      <!-- 顶部栏 -->
+      <view class="settle-header">
+        <view class="settle-header-info">
+          <text class="settle-header-title">结算详情</text>
+          <text class="settle-header-room" wx:if="{{settleRoomNo}}">房间 {{settleRoomNo}}</text>
+        </view>
+        <view class="settle-close-btn" bindtap="closeSettleOverlay">
+          <view class="settle-close-icon">✕</view>
+        </view>
+      </view>
+
+      <!-- 折线图卡片 -->
+      <view class="settle-section settle-chart-card" wx:if="{{settleSeries.length > 0}}">
+        <score-chart
+          timestamps="{{settleTimestamps}}"
+          series="{{settleSeries}}"
+          visibleUsers="{{settleVisibleUsers}}"
+          highlightUser="{{myUserId}}" />
+      </view>
+
+      <!-- 玩家总分卡牌 -->
+      <view class="settle-section" wx:if="{{settleRankedMembers.length > 0}}">
+        <text class="settle-section-title">总分一览</text>
+        <settle-table
+          memberScores="{{settleRankedMembers}}"
+          myUserId="{{myUserId}}" />
+      </view>
+
+      <!-- 排名列表 -->
+      <view class="settle-section" wx:if="{{settleRankedMembers.length > 0}}">
+        <text class="settle-section-title">排名</text>
+        <view class="settle-rank-list">
+          <view class="settle-rank-item {{index === 0 ? 'settle-rank-first' : ''}}"
+            wx:for="{{settleRankedMembers}}"
+            wx:key="userId">
+            <view class="settle-rank-badge {{index < 3 ? 'settle-rank-top3' : ''}}">
+              <text class="settle-rank-num">{{index + 1}}</text>
+            </view>
+            <view class="settle-rank-avatar" style="background: {{item.avatarColor}}">
+              <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="settle-rank-avatar-img" mode="aspectFill" />
+              <text wx:else class="settle-rank-avatar-char">{{item.avatarChar}}</text>
+            </view>
+            <text class="settle-rank-name" style="color: {{item.userId == myUserId ? '#0A84FF' : 'rgba(255,255,255,0.85)'}}">
+              {{item.nickname}}
+              <text wx:if="{{item.userId == myUserId}}" class="settle-me-tag">我</text>
+            </text>
+            <text class="settle-rank-score"
+              style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.5)'}}">
+              {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部关闭按钮 -->
+      <view class="settle-bottom-btn" bindtap="closeSettleOverlay">
+        <text class="settle-bottom-btn-text">完成</text>
       </view>
     </view>
   </view>

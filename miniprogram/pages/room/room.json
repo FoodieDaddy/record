@@ -2,6 +2,8 @@
   "navigationBarTitleText": "房间",
   "usingComponents": {
     "seat-mode": "/components/seat-mode/seat-mode",
-    "matrix-overview": "/components/matrix-overview/matrix-overview"
+    "matrix-overview": "/components/matrix-overview/matrix-overview",
+    "score-chart": "/components/score-chart/score-chart",
+    "settle-table": "/components/settle-table/settle-table"
   }
 }

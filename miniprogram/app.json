@@ -2,6 +2,7 @@
   "pages": [
     "pages/login/login",
     "pages/room/room",
+    "pages/fortune/fortune",
     "pages/gallery/gallery",
     "pages/profile/profile",
     "pages/voice-select/voice-select",
@@ -26,6 +27,12 @@
         "text": "房间",
         "iconPath": "images/tab-room.png",
         "selectedIconPath": "images/tab-room-active.png"
+      },
+      {
+        "pagePath": "pages/fortune/fortune",
+        "text": "运势",
+        "iconPath": "images/tab-fortune.png",
+        "selectedIconPath": "images/tab-fortune-active.png"
       },
       {
         "pagePath": "pages/gallery/gallery",

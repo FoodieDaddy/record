@@ -60,6 +60,10 @@ app:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     no-length: 6
     expire-hours: 24
+  llm:
+    api-url: ${LLM_API_URL:}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:deepseek-chat}
 
 wechat:
   appid: ${WECHAT_APPID:}
