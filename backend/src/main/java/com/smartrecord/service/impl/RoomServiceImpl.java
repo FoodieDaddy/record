@@ -4,6 +4,7 @@ import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.config.OssConfig;
 import com.smartrecord.dto.room.CreateRoomReq;
@@ -17,6 +18,7 @@ import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.RoomService;
+import com.smartrecord.service.StorageService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import com.smartrecord.util.SnowflakeIdGenerator;
 import com.aliyun.oss.OSS;
@@ -29,7 +31,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+
 import java.io.ByteArrayInputStream;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -50,6 +56,8 @@ public class RoomServiceImpl implements RoomService {
     private final OSS ossClient;
     private final OssConfig ossConfig;
     private final ScoreWebSocket scoreWebSocket;
+    private final RedissonClient redissonClient;
+    private final StorageService storageService;
     @org.springframework.beans.factory.annotation.Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -140,59 +148,81 @@ public class RoomServiceImpl implements RoomService {
             throw new BizException("房间已关闭");
         }
 
-        // 4. 从 Redis 缓存分配座位
-        Map<Object, Object> memberEntries = redisTemplate.opsForHash().entries(membersKey);
-        Set<Integer> usedSeats = new HashSet<>();
-        for (Object value : memberEntries.values()) {
-            String memberJson = (String) value;
-            JSONObject memberObj = JSONUtil.parseObj(memberJson);
-            usedSeats.add(memberObj.getInt("seatNo"));
+        // 4. 分布式锁：防止并发加入导致座位冲突
+        String lockKey = "sr:room:" + rid + ":join_lock";
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            if (!lock.tryLock(5, 10, TimeUnit.SECONDS)) {
+                throw new BizException("系统繁忙，请稍后重试");
+            }
+
+            // 再次检查是否已在房间（锁内）
+            Boolean isMemberNow = redisTemplate.opsForHash().hasKey(membersKey, String.valueOf(userId));
+            if (Boolean.TRUE.equals(isMemberNow)) {
+                return getRoomDetail(rid);
+            }
+
+            // 5. 从 Redis 缓存分配座位
+            Map<Object, Object> memberEntries = redisTemplate.opsForHash().entries(membersKey);
+            Set<Integer> usedSeats = new HashSet<>();
+            for (Object value : memberEntries.values()) {
+                String memberJson = (String) value;
+                JSONObject memberObj = JSONUtil.parseObj(memberJson);
+                usedSeats.add(memberObj.getInt("seatNo"));
+            }
+            int nextSeat = 1;
+            while (usedSeats.contains(nextSeat)) nextSeat++;
+            if (nextSeat > 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
+
+            // 6. 加入房间
+            RoomMember member = new RoomMember();
+            member.setId(idGenerator.nextId());
+            member.setRoomId(rid);
+            member.setUserId(userId);
+            member.setSeatNo(nextSeat);
+            roomMemberMapper.insert(member);
+
+            // 7. 从 Redis 缓存获取用户信息
+            String userKey = "sr:user:" + userId;
+            String userJson = redisTemplate.opsForValue().get(userKey);
+            String nickname;
+            String avatarUrl;
+            if (userJson != null) {
+                JSONObject userObj = JSONUtil.parseObj(userJson);
+                nickname = userObj.getStr("nickname");
+                avatarUrl = userObj.getStr("avatarUrl");
+            } else {
+                // 降级查数据库
+                User user = userMapper.selectById(userId);
+                if (user == null) throw new BizException("用户不存在，请重新登录");
+                nickname = user.getNickname();
+                avatarUrl = user.getAvatarUrl();
+            }
+
+            // 8. 更新房间成员缓存
+            String memberJson = JSONUtil.toJsonStr(Map.of(
+                    "userId", userId,
+                    "nickname", nickname,
+                    "avatarUrl", avatarUrl != null ? avatarUrl : "",
+                    "seatNo", nextSeat));
+            redisTemplate.opsForHash().put("sr:room:" + rid + ":members", String.valueOf(userId), memberJson);
+            redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
+
+            // 9. 异步 WebSocket 广播 MEMBER_UPDATE
+            asyncPushMemberUpdate(rid, userId);
+
+            List<RoomMember> allMembers = new ArrayList<>();
+            allMembers.add(member);
+            String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
+            return buildRoomResp(room, allMembers, qrCodeUrl);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException("操作被中断");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-        int nextSeat = 1;
-        while (usedSeats.contains(nextSeat)) nextSeat++;
-        if (nextSeat > 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
-
-        // 5. 加入房间
-        RoomMember member = new RoomMember();
-        member.setId(idGenerator.nextId());
-        member.setRoomId(rid);
-        member.setUserId(userId);
-        member.setSeatNo(nextSeat);
-        roomMemberMapper.insert(member);
-
-        // 6. 从 Redis 缓存获取用户信息
-        String userKey = "sr:user:" + userId;
-        String userJson = redisTemplate.opsForValue().get(userKey);
-        String nickname;
-        String avatarUrl;
-        if (userJson != null) {
-            JSONObject userObj = JSONUtil.parseObj(userJson);
-            nickname = userObj.getStr("nickname");
-            avatarUrl = userObj.getStr("avatarUrl");
-        } else {
-            // 降级查数据库
-            User user = userMapper.selectById(userId);
-            if (user == null) throw new BizException("用户不存在，请重新登录");
-            nickname = user.getNickname();
-            avatarUrl = user.getAvatarUrl();
-        }
-
-        // 7. 更新房间成员缓存
-        String memberJson = JSONUtil.toJsonStr(Map.of(
-                "userId", userId,
-                "nickname", nickname,
-                "avatarUrl", avatarUrl != null ? avatarUrl : "",
-                "seatNo", nextSeat));
-        redisTemplate.opsForHash().put("sr:room:" + rid + ":members", String.valueOf(userId), memberJson);
-        redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
-
-        // 8. 异步 WebSocket 广播 MEMBER_UPDATE
-        asyncPushMemberUpdate(rid, userId);
-
-        List<RoomMember> allMembers = new ArrayList<>();
-        allMembers.add(member);
-        String qrCodeUrl = "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/qrcode/" + room.getRoomNo() + ".png";
-        return buildRoomResp(room, allMembers, qrCodeUrl);
     }
 
     @Override
@@ -223,7 +253,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         // 构建二维码 URL（OSS 中的固定路径）
-        String qrCodeUrl = "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/qrcode/" + room.getRoomNo() + ".png";
+        String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
         return buildRoomResp(room, members, qrCodeUrl);
     }
 
@@ -240,12 +270,75 @@ public class RoomServiceImpl implements RoomService {
                     .collect(Collectors.toSet());
         }
 
+        if (roomIds.isEmpty()) return Collections.emptyList();
+
+        List<Long> roomIdList = roomIds.stream().map(Long::parseLong).collect(Collectors.toList());
+
+        // 过滤：只保留当前用户 quit_time IS NULL 的房间
+        List<RoomMember> myActive = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getUserId, userId)
+                        .in(RoomMember::getRoomId, roomIdList)
+                        .isNull(RoomMember::getQuitTime));
+        Set<Long> activeRoomIds = myActive.stream()
+                .map(RoomMember::getRoomId).collect(Collectors.toSet());
+        if (activeRoomIds.isEmpty()) return Collections.emptyList();
+
+        // 批量加载房间（一次 MySQL IN 查询）
+        List<Room> rooms = roomMapper.selectBatchIds(activeRoomIds);
+        Map<Long, Room> roomMap = rooms.stream().collect(Collectors.toMap(Room::getId, r -> r));
+
+        // 批量加载活跃房间的成员
+        List<RoomMember> allMembers = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .in(RoomMember::getRoomId, activeRoomIds)
+                        .isNull(RoomMember::getQuitTime));
+        Map<Long, List<RoomMember>> membersByRoom = allMembers.stream()
+                .collect(Collectors.groupingBy(RoomMember::getRoomId));
+
         List<RoomResp> result = new ArrayList<>();
-        for (String rid : roomIds) {
+        for (Long rid : activeRoomIds) {
+            Room room = roomMap.get(rid);
+            if (room == null) continue;
             try {
-                result.add(getRoomDetail(Long.parseLong(rid)));
+                List<RoomMember> members = membersByRoom.getOrDefault(rid, Collections.emptyList());
+                String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
+                result.add(buildRoomResp(room, members, qrCodeUrl));
             } catch (Exception e) {
                 log.warn("获取房间详情失败: roomId={}", rid, e);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public List<RoomResp> getHistory(Long userId) {
+        // 查询用户参与过的已结算房间
+        List<RoomMember> memberships = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getUserId, userId)
+                        .isNotNull(RoomMember::getQuitTime));
+        if (memberships.isEmpty()) return Collections.emptyList();
+
+        List<Long> roomIds = memberships.stream()
+                .map(RoomMember::getRoomId).collect(Collectors.toList());
+        List<Room> rooms = roomMapper.selectList(
+                new LambdaQueryWrapper<Room>()
+                        .in(Room::getId, roomIds)
+                        .eq(Room::getStatus, 1)
+                        .orderByDesc(Room::getUpdatedAt));
+
+        List<RoomResp> result = new ArrayList<>();
+        for (Room room : rooms) {
+            try {
+                // 从 allRecord 中提取成员信息
+                List<RoomMember> allMembers = roomMemberMapper.selectList(
+                        new LambdaQueryWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, room.getId()));
+                String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
+                result.add(buildRoomResp(room, allMembers, qrCodeUrl));
+            } catch (Exception e) {
+                log.warn("获取历史房间详情失败: roomId={}", room.getId(), e);
             }
         }
         return result;
@@ -264,11 +357,11 @@ public class RoomServiceImpl implements RoomService {
             return;
         }
 
-        // 普通成员退出
-        roomMemberMapper.delete(
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, roomId)
-                        .eq(RoomMember::getUserId, userId));
+        // 普通成员退出（软删除）
+        roomMemberMapper.update(null, new LambdaUpdateWrapper<RoomMember>()
+                .eq(RoomMember::getRoomId, roomId)
+                .eq(RoomMember::getUserId, userId)
+                .set(RoomMember::getQuitTime, LocalDateTime.now()));
 
         // 清理 Redis
         redisTemplate.opsForHash().delete("sr:room:" + roomId + ":members", String.valueOf(userId));
@@ -537,6 +630,10 @@ public class RoomServiceImpl implements RoomService {
         redisTemplate.opsForValue().set(userKey, userJson, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
     }
 
+    private String getQrCodeUrlFromRedis(String roomNo) {
+        return redisTemplate.opsForValue().get("sr:room:" + roomNo + ":qr");
+    }
+
     private String generateQrCode(String roomNo) {
         try {
             String tokenUrl = String.format(
@@ -575,20 +672,33 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private RoomResp buildRoomResp(Room room, List<RoomMember> members, String qrCodeUrl) {
-        Set<Long> userIds = members.stream().map(RoomMember::getUserId).collect(Collectors.toSet());
+        List<Long> userIds = members.stream().map(RoomMember::getUserId).distinct().collect(Collectors.toList());
         Map<Long, String> nicknameMap = new HashMap<>();
         Map<Long, String> avatarUrlMap = new HashMap<>();
-        for (Long uid : userIds) {
-            String userKey = "sr:user:" + uid;
-            String userJson = redisTemplate.opsForValue().get(userKey);
-            if (userJson != null) {
-                JSONObject userObj = JSONUtil.parseObj(userJson);
-                nicknameMap.put(uid, userObj.getStr("nickname", ""));
-                avatarUrlMap.put(uid, buildFullUrl(userObj.getStr("avatarUrl", "")));
+
+        // 批量从 Redis 加载用户信息
+        List<String> keys = userIds.stream().map(uid -> "sr:user:" + uid).collect(Collectors.toList());
+        List<String> cached = redisTemplate.opsForValue().multiGet(keys);
+        List<Long> missedIds = new ArrayList<>();
+        for (int i = 0; i < userIds.size(); i++) {
+            String json = cached != null ? cached.get(i) : null;
+            if (json != null) {
+                JSONObject userObj = JSONUtil.parseObj(json);
+                nicknameMap.put(userIds.get(i), userObj.getStr("nickname", ""));
+                avatarUrlMap.put(userIds.get(i), storageService.buildFullUrl(userObj.getStr("avatarUrl", "")));
             } else {
-                User u = userMapper.selectById(uid);
-                nicknameMap.put(uid, u != null ? u.getNickname() : "");
-                avatarUrlMap.put(uid, u != null ? buildFullUrl(u.getAvatarUrl()) : "");
+                missedIds.add(userIds.get(i));
+            }
+        }
+        if (!missedIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(missedIds);
+            for (User u : users) {
+                nicknameMap.put(u.getId(), u.getNickname());
+                avatarUrlMap.put(u.getId(), storageService.buildFullUrl(u.getAvatarUrl()));
+            }
+            for (Long uid : missedIds) {
+                nicknameMap.putIfAbsent(uid, "");
+                avatarUrlMap.putIfAbsent(uid, "");
             }
         }
 
@@ -616,9 +726,4 @@ public class RoomServiceImpl implements RoomService {
                 .build();
     }
 
-    private String buildFullUrl(String objectKey) {
-        if (objectKey == null || objectKey.isEmpty()) return "";
-        if (objectKey.startsWith("http")) return objectKey;
-        return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
-    }
 }
