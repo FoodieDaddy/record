@@ -17,6 +17,7 @@ import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.RoomService;
+import com.smartrecord.service.StorageService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import com.smartrecord.util.SnowflakeIdGenerator;
 import com.aliyun.oss.OSS;
@@ -50,6 +51,7 @@ public class RoomServiceImpl implements RoomService {
     private final OSS ossClient;
     private final OssConfig ossConfig;
     private final ScoreWebSocket scoreWebSocket;
+    private final StorageService storageService;
     @org.springframework.beans.factory.annotation.Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -305,6 +307,10 @@ public class RoomServiceImpl implements RoomService {
                 prefix + "images",
                 prefix + "last_active"));
         redisTemplate.delete("sr:room_no:" + room.getRoomNo());
+
+        // 清理二维码
+        storageService.deleteObjectAsync("qrcode/" + room.getRoomNo() + ".png");
+        redisTemplate.delete("sr:room:" + room.getRoomNo() + ":qr");
 
         // 清理批次 Hash key（通配符删除）
         Set<Object> batchKeys = redisTemplate.opsForHash().keys(prefix + "batch:*");
