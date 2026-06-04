@@ -191,7 +191,7 @@ public class RoomServiceImpl implements RoomService {
 
         List<RoomMember> allMembers = new ArrayList<>();
         allMembers.add(member);
-        String qrCodeUrl = "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/qrcode/" + room.getRoomNo() + ".png";
+        String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
         return buildRoomResp(room, allMembers, qrCodeUrl);
     }
 
@@ -223,7 +223,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         // 构建二维码 URL（OSS 中的固定路径）
-        String qrCodeUrl = "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/qrcode/" + room.getRoomNo() + ".png";
+        String qrCodeUrl = getQrCodeUrlFromRedis(room.getRoomNo());
         return buildRoomResp(room, members, qrCodeUrl);
     }
 
@@ -535,6 +535,10 @@ public class RoomServiceImpl implements RoomService {
                 "nickname", owner.getNickname(),
                 "avatarUrl", owner.getAvatarUrl() != null ? owner.getAvatarUrl() : ""));
         redisTemplate.opsForValue().set(userKey, userJson, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+    }
+
+    private String getQrCodeUrlFromRedis(String roomNo) {
+        return redisTemplate.opsForValue().get("sr:room:" + roomNo + ":qr");
     }
 
     private String generateQrCode(String roomNo) {
