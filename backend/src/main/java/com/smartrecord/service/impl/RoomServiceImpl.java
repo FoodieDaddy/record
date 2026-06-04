@@ -99,10 +99,10 @@ public class RoomServiceImpl implements RoomService {
         // 4. Redis 初始化房间状态
         initRoomRedis(room, userId);
 
-        // 5. 生成专属小程序码
-        String qrCodeUrl = generateQrCode(roomNo);
+        // 5. 异步生成专属小程序码
+        generateQrCodeAsync(roomNo);
 
-        return buildRoomResp(room, Collections.singletonList(member), qrCodeUrl);
+        return buildRoomResp(room, Collections.singletonList(member), null);
     }
 
     @Override
@@ -539,6 +539,22 @@ public class RoomServiceImpl implements RoomService {
 
     private String getQrCodeUrlFromRedis(String roomNo) {
         return redisTemplate.opsForValue().get("sr:room:" + roomNo + ":qr");
+    }
+
+    private void generateQrCodeAsync(String roomNo) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                String url = generateQrCode(roomNo);
+                if (url != null) {
+                    redisTemplate.opsForValue().set("sr:room:" + roomNo + ":qr", url, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+                    log.info("异步生成二维码成功: roomNo={}", roomNo);
+                } else {
+                    log.warn("异步生成二维码失败: roomNo={}", roomNo);
+                }
+            } catch (Exception e) {
+                log.error("异步生成二维码异常: roomNo={}", roomNo, e);
+            }
+        }, asyncExecutor);
     }
 
     private String generateQrCode(String roomNo) {
