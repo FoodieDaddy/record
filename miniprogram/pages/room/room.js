@@ -218,6 +218,7 @@ Page({
     const seatScoreMap = {};
     grid.forEach(m => { seatScoreMap[m.userId] = m.score; });
     this.setData({ memberGrid: grid, seatScoreMap });
+    this._cellRectsCache = null;
   },
 
   async loadRoomData(roomId) {
@@ -418,10 +419,17 @@ Page({
           const toName = toMember ? toMember.nickname : '未知';
           speakTransfer(fromName, toName, String(data.amount));
         }
-        // 粒子动画结束后再刷新数据，避免 buildMemberGrid 打断滚动动画
-        this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-          return this.updateAllData(roomId);
-        });
+
+        // 优先用 WS 推送的权威分数更新本地，避免额外 HTTP 请求
+        if (data.fromNewScore !== undefined && data.toNewScore !== undefined) {
+          this._optimisticScoreUpdateFromWS(data.fromUserId, data.toUserId, data.fromNewScore, data.toNewScore);
+          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, null);
+        } else {
+          // 兼容：旧版后端未携带分数时，走 updateAllData
+          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
+            return this.updateAllData(roomId);
+          });
+        }
       } else {
         this.updateAllData(roomId);
       }
@@ -689,21 +697,32 @@ Page({
     }
 
     this.setData({ submitting: true });
+    const fromUserId = app.globalData.userId;
+
+    // 先冻结旧分数（粒子动画期间保持显示旧值），再更新 ranking
+    const grid = this.data.memberGrid;
+    const fromMember = grid.find(m => String(m.userId) === String(fromUserId));
+    const toMember = grid.find(m => String(m.userId) === String(transferTo));
+    this._animatingScores = {};
+    this._animatingScores[fromUserId] = fromMember ? fromMember.displayScore : 0;
+    this._animatingScores[transferTo] = toMember ? toMember.displayScore : 0;
+    this._optimisticScoreUpdate(fromUserId, transferTo, amount);
+    this.cancelTransfer();
+    this.playTransferAnimation(fromUserId, transferTo, amount, null);
+
+    // API 请求并行执行
     try {
       await post('/score/transfer', {
         roomId: room.roomId,
         toUserId: transferTo,
         amount
       });
-
       this.showToast('计分成功');
-      this.cancelTransfer();
-      // 粒子动画结束后再刷新数据，避免 buildMemberGrid 打断滚动动画
-      this.playTransferAnimation(app.globalData.userId, transferTo, amount, () => {
-        return this.updateAllData(room.roomId);
-      });
     } catch (e) {
       console.error('计分失败', e);
+      // 回滚：重新拉取权威数据
+      this.updateAllData(room.roomId);
+      wx.showToast({ title: '计分失败，请重试', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
     }
@@ -959,13 +978,45 @@ Page({
 
   // ========== 计分动画 ==========
 
+  /** 乐观更新本地分数（发送者路径） */
+  _optimisticScoreUpdate(fromUserId, toUserId, amount) {
+    const ranking = this.data.ranking.map(r => {
+      const uid = String(r.userId);
+      if (uid === String(fromUserId)) {
+        return { ...r, score: (r.score || 0) - amount };
+      }
+      if (uid === String(toUserId)) {
+        return { ...r, score: (r.score || 0) + amount };
+      }
+      return r;
+    });
+    this.setData({ ranking });
+    this.buildMemberGrid();
+  },
+
+  /** 用 WebSocket 推送的权威分数更新本地（观察者路径） */
+  _optimisticScoreUpdateFromWS(fromUserId, toUserId, fromNewScore, toNewScore) {
+    const ranking = this.data.ranking.map(r => {
+      const uid = String(r.userId);
+      if (uid === String(fromUserId)) {
+        return { ...r, score: fromNewScore };
+      }
+      if (uid === String(toUserId)) {
+        return { ...r, score: toNewScore };
+      }
+      return r;
+    });
+    this.setData({ ranking });
+    this.buildMemberGrid();
+  },
+
   playTransferAnimation(fromUserId, toUserId, amount, onParticleDone) {
     if (!app.globalData.animationEnabled) {
       if (onParticleDone) onParticleDone();
       return;
     }
 
-    // 快照动画前的分数，用于滚动动画（必须在 updateAllData 之前）
+    // 快照动画前的分数，用于滚动动画
     const grid = this.data.memberGrid;
     const fromMember = grid.find(m => String(m.userId) === String(fromUserId));
     const toMember = grid.find(m => String(m.userId) === String(toUserId));
@@ -982,132 +1033,130 @@ Page({
     this._animatingScores[fromUserId] = oldFromScore;
     this._animatingScores[toUserId] = oldToScore;
 
-    // 根据视图模式查询对应的元素
+    // 优先使用缓存的 DOM 位置，避免每次动画都触发布局查询
     const cellSelector = this.data.viewMode === 'seat' ? '.seat-item' : '.mg-cell';
-    wx.createSelectorQuery()
-      .selectAll(cellSelector)
-      .boundingClientRect()
-      .exec((res) => {
-        if (!res || !res[0]) {
-          if (onParticleDone) onParticleDone();
-          return;
-        }
-        const rects = res[0];
-        const members = this.data.memberGrid;
-        const fromIdx = members.findIndex(m => String(m.userId) === String(fromUserId));
-        const toIdx = members.findIndex(m => String(m.userId) === String(toUserId));
-        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) {
-          if (onParticleDone) onParticleDone();
-          return;
-        }
-
-        const fromRect = rects[fromIdx];
-        const toRect = rects[toIdx];
-        const startX = fromRect.left + fromRect.width / 2;
-        const startY = fromRect.top + fromRect.height * 0.3;
-        const endX = toRect.left + toRect.width / 2;
-        const endY = toRect.top + toRect.height * 0.3;
-
-        const duration = 900;
-        const startTime = Date.now();
-        const midX = (startX + endX) / 2;
-        const midY = Math.min(startY, endY) - 80;
-
-        // 贝塞尔曲线求值
-        const bezier = (p0, p1, p2, t) => {
-          const u = 1 - t;
-          return u * u * p0 + 2 * u * t * p1 + t * t * p2;
-        };
-
-        // 初始化
-        this.setData({
-          animActive: true,
-          animAmount: '+' + amount,
-          animFlashOpacity: 0.6,
-          animCurX: startX - 10,
-          animCurY: startY - 10,
-          animCurOpacity: 1,
-          animCurScale: 0.5,
-          animTrail1X: startX - 6,
-          animTrail1Y: startY - 6,
-          animTrail1Opacity: 0.7,
-          animTrail1Scale: 0.5,
-          animTrail2X: startX - 4,
-          animTrail2Y: startY - 4,
-          animTrail2Opacity: 0.5,
-          animTrail2Scale: 0.4
-        });
-
-        // 闪屏快速消失
-        setTimeout(() => this.setData({ animFlashOpacity: 0 }), 120);
-
-        const animate = () => {
-          const elapsed = Date.now() - startTime;
-          const t = Math.min(elapsed / duration, 1);
-
-          // 缓出曲线
-          const ease = 1 - Math.pow(1 - t, 3);
-
-          // 主粒子位置
-          const cx = bezier(startX, midX, endX, ease);
-          const cy = bezier(startY, midY, endY, ease);
-
-          // 主粒子缩放：先放大再缩小，峰值 1.8
-          const scale = 0.5 + 1.3 * Math.sin(t * Math.PI);
-
-          // 主粒子透明度
-          const opacity = t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
-
-          // 拖尾1（延迟 80ms）
-          const t1 = Math.max(0, (elapsed - 80) / duration);
-          const ease1 = 1 - Math.pow(1 - Math.min(t1, 1), 3);
-          const t1x = bezier(startX, midX, endX, ease1);
-          const t1y = bezier(startY, midY, endY, ease1);
-
-          // 拖尾2（延迟 160ms）
-          const t2 = Math.max(0, (elapsed - 160) / duration);
-          const ease2 = 1 - Math.pow(1 - Math.min(t2, 1), 3);
-          const t2x = bezier(startX, midX, endX, ease2);
-          const t2y = bezier(startY, midY, endY, ease2);
-
-          this.setData({
-            animCurX: cx - 10,
-            animCurY: cy - 10,
-            animCurOpacity: opacity,
-            animCurScale: scale,
-            animTrail1X: t1x - 6,
-            animTrail1Y: t1y - 6,
-            animTrail1Opacity: t1 < 1 ? Math.max(0, 0.6 - t1 * 0.5) : 0,
-            animTrail1Scale: 0.3 + 0.4 * Math.sin(Math.min(t1, 1) * Math.PI),
-            animTrail2X: t2x - 4,
-            animTrail2Y: t2y - 4,
-            animTrail2Opacity: t2 < 1 ? Math.max(0, 0.4 - t2 * 0.4) : 0,
-            animTrail2Scale: 0.2 + 0.3 * Math.sin(Math.min(t2, 1) * Math.PI)
-          });
-
-          if (t < 1) {
-            setTimeout(animate, 16);
-          } else {
-            this.setData({ animActive: false });
-            // 粒子动画结束后：先等数据刷新完成，再触发分数滚动动画
-            const afterUpdate = () => {
-              this.playScoreRollAnimation(this._rollFromUserId, this._rollToUserId, this._rollAmount);
-            };
-            if (onParticleDone) {
-              const result = onParticleDone();
-              if (result && typeof result.then === 'function') {
-                result.then(afterUpdate);
-              } else {
-                afterUpdate();
-              }
-            } else {
-              afterUpdate();
-            }
+    const cacheKey = this.data.viewMode + ':' + (this.data.memberGrid || []).length;
+    if (this._cellRectsCache && this._cellRectsCacheKey === cacheKey) {
+      this._runParticleWithRects(fromUserId, toUserId, amount, this._cellRectsCache, onParticleDone);
+    } else {
+      wx.createSelectorQuery()
+        .selectAll(cellSelector)
+        .boundingClientRect()
+        .exec((res) => {
+          if (!res || !res[0]) {
+            if (onParticleDone) onParticleDone();
+            return;
           }
-        };
+          this._cellRectsCache = res[0];
+          this._cellRectsCacheKey = cacheKey;
+          this._runParticleWithRects(fromUserId, toUserId, amount, res[0], onParticleDone);
+        });
+    }
+  },
 
-        animate();
+  /** 粒子动画核心逻辑（使用已获取的 DOM 位置信息） */
+  _runParticleWithRects(fromUserId, toUserId, amount, rects, onParticleDone) {
+    const members = this.data.memberGrid;
+    const fromIdx = members.findIndex(m => String(m.userId) === String(fromUserId));
+    const toIdx = members.findIndex(m => String(m.userId) === String(toUserId));
+    if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) {
+      if (onParticleDone) onParticleDone();
+      return;
+    }
+
+    const fromRect = rects[fromIdx];
+    const toRect = rects[toIdx];
+    const startX = fromRect.left + fromRect.width / 2;
+    const startY = fromRect.top + fromRect.height * 0.3;
+    const endX = toRect.left + toRect.width / 2;
+    const endY = toRect.top + toRect.height * 0.3;
+
+    const duration = 900;
+    const startTime = Date.now();
+    const midX = (startX + endX) / 2;
+    const midY = Math.min(startY, endY) - 80;
+
+    const bezier = (p0, p1, p2, t) => {
+      const u = 1 - t;
+      return u * u * p0 + 2 * u * t * p1 + t * t * p2;
+    };
+
+    this.setData({
+      animActive: true,
+      animAmount: '+' + amount,
+      animFlashOpacity: 0.6,
+      animCurX: startX - 10,
+      animCurY: startY - 10,
+      animCurOpacity: 1,
+      animCurScale: 0.5,
+      animTrail1X: startX - 6,
+      animTrail1Y: startY - 6,
+      animTrail1Opacity: 0.7,
+      animTrail1Scale: 0.5,
+      animTrail2X: startX - 4,
+      animTrail2Y: startY - 4,
+      animTrail2Opacity: 0.5,
+      animTrail2Scale: 0.4
+    });
+
+    setTimeout(() => this.setData({ animFlashOpacity: 0 }), 120);
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      const cx = bezier(startX, midX, endX, ease);
+      const cy = bezier(startY, midY, endY, ease);
+      const scale = 0.5 + 1.3 * Math.sin(t * Math.PI);
+      const opacity = t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
+
+      const t1 = Math.max(0, (elapsed - 80) / duration);
+      const ease1 = 1 - Math.pow(1 - Math.min(t1, 1), 3);
+      const t1x = bezier(startX, midX, endX, ease1);
+      const t1y = bezier(startY, midY, endY, ease1);
+
+      const t2 = Math.max(0, (elapsed - 160) / duration);
+      const ease2 = 1 - Math.pow(1 - Math.min(t2, 1), 3);
+      const t2x = bezier(startX, midX, endX, ease2);
+      const t2y = bezier(startY, midY, endY, ease2);
+
+      this.setData({
+        animCurX: cx - 10,
+        animCurY: cy - 10,
+        animCurOpacity: opacity,
+        animCurScale: scale,
+        animTrail1X: t1x - 6,
+        animTrail1Y: t1y - 6,
+        animTrail1Opacity: t1 < 1 ? Math.max(0, 0.6 - t1 * 0.5) : 0,
+        animTrail1Scale: 0.3 + 0.4 * Math.sin(Math.min(t1, 1) * Math.PI),
+        animTrail2X: t2x - 4,
+        animTrail2Y: t2y - 4,
+        animTrail2Opacity: t2 < 1 ? Math.max(0, 0.4 - t2 * 0.4) : 0,
+        animTrail2Scale: 0.2 + 0.3 * Math.sin(Math.min(t2, 1) * Math.PI)
       });
+
+      if (t < 1) {
+        setTimeout(animate, 16);
+      } else {
+        this.setData({ animActive: false });
+        const afterUpdate = () => {
+          this.playScoreRollAnimation(this._rollFromUserId, this._rollToUserId, this._rollAmount);
+        };
+        if (onParticleDone) {
+          const result = onParticleDone();
+          if (result && typeof result.then === 'function') {
+            result.then(afterUpdate);
+          } else {
+            afterUpdate();
+          }
+        } else {
+          afterUpdate();
+        }
+      }
+    };
+
+    animate();
   },
 
   /** 分数滚动动画：从旧值逐步滚动到新值 */

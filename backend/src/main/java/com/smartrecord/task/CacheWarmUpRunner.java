@@ -16,6 +16,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +57,11 @@ public class CacheWarmUpRunner implements ApplicationRunner {
             for (Room room : activeRooms) {
                 Long roomId = room.getId();
                 try {
-                    // 恢复房间成员
+                    // 恢复房间成员（仅未退出的）
                     List<RoomMember> members = roomMemberMapper.selectList(
                             new LambdaQueryWrapper<RoomMember>()
-                                    .eq(RoomMember::getRoomId, roomId));
+                                    .eq(RoomMember::getRoomId, roomId)
+                                    .isNull(RoomMember::getQuitTime));
 
                     if (!members.isEmpty()) {
                         List<Long> userIds = members.stream()
@@ -104,6 +106,12 @@ public class CacheWarmUpRunner implements ApplicationRunner {
 
                     // 恢复排行榜（从 score 表聚合）
                     warmupRoomScores(roomId);
+
+                    // 回填 lastActiveAt（旧房间可能为 null）
+                    if (room.getLastActiveAt() == null) {
+                        room.setLastActiveAt(LocalDateTime.now());
+                        roomMapper.updateById(room);
+                    }
 
                     roomCount++;
                 } catch (Exception e) {

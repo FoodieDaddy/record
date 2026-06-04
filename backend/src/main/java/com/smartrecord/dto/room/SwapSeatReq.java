@@ -12,7 +12,7 @@ public class SwapSeatReq {
 
     @NotNull(message = "目标座位号不能为空")
     @Min(value = 1, message = "座位号最小为 1")
-    @Max(value = 8, message = "座位号最大为 8")
-    @Schema(description = "目标座位号（1-8）", example = "3")
+    @Max(value = 16, message = "座位号最大为 16")
+    @Schema(description = "目标座位号（1-16）", example = "3")
     private Integer targetSeatNo;
 }

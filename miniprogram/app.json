@@ -4,7 +4,9 @@
     "pages/room/room",
     "pages/gallery/gallery",
     "pages/profile/profile",
-    "pages/voice-select/voice-select"
+    "pages/voice-select/voice-select",
+    "pages/settle/settle",
+    "pages/history/history"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",

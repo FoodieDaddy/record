@@ -7,15 +7,15 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.config.interceptor.JwtInterceptor;
-import com.smartrecord.dto.user.LoginReq;
-import com.smartrecord.dto.user.LoginResp;
-import com.smartrecord.dto.user.UserInfoResp;
+import com.smartrecord.dto.user.*;
 import com.smartrecord.entity.User;
+import com.smartrecord.entity.UserDetail;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.config.OssConfig;
+import com.smartrecord.mapper.UserDetailMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.StorageService;
 import com.smartrecord.service.UserService;
@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final UserDetailMapper userDetailMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final RoomMapper roomMapper;
     private final SnowflakeIdGenerator idGenerator;
@@ -51,6 +53,7 @@ public class UserServiceImpl implements UserService {
     private final ScoreWebSocket scoreWebSocket;
     private final StorageService storageService;
     private final OssConfig ossConfig;
+    private final TransactionTemplate transactionTemplate;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -77,14 +80,32 @@ public class UserServiceImpl implements UserService {
         User user = userMapper.selectOne(
                 new LambdaQueryWrapper<User>().eq(User::getOpenid, openid));
 
+        if (user != null) {
+            // 检查账号状态
+            if (user.getStatus() != null && user.getStatus() == 1) {
+                throw new BizException(4003, "账号已被封禁");
+            }
+            if (user.getStatus() != null && user.getStatus() == 2) {
+                throw new BizException(4003, "账号已注销");
+            }
+        }
+
         if (user == null) {
             user = new User();
             user.setId(idGenerator.nextId());
             user.setOpenid(openid);
             user.setUnionid(resp.getStr("unionid"));
-            user.setNickname(req.getNickname() != null ? req.getNickname() : NicknameGenerator.generate());
+            // 静默截断：微信授权昵称可能超长，不抛异常直接截取
+            String rawNickname = req.getNickname() != null ? req.getNickname() : NicknameGenerator.generate();
+            user.setNickname(truncateNickname(rawNickname));
             user.setAvatarUrl(req.getAvatarUrl() != null ? req.getAvatarUrl() : "");
-            userMapper.insert(user);
+            final User newUser = user;
+            transactionTemplate.executeWithoutResult(status -> {
+                userMapper.insert(newUser);
+                UserDetail detail = new UserDetail();
+                detail.setId(newUser.getId());
+                userDetailMapper.insert(detail);
+            });
         }
 
         // 3. 缓存用户信息到 Redis
@@ -92,7 +113,8 @@ public class UserServiceImpl implements UserService {
         String userJson = JSONUtil.toJsonStr(Map.of(
                 "userId", user.getId(),
                 "nickname", user.getNickname(),
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
+                "status", user.getStatus() != null ? user.getStatus() : 0));
         redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
 
         // 4. 签发 JWT
@@ -102,20 +124,44 @@ public class UserServiceImpl implements UserService {
                 .token(token)
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .avatarUrl(buildFullUrl(user.getAvatarUrl()))
+                .avatarUrl(storageService.buildFullUrl(user.getAvatarUrl()))
                 .build();
     }
 
     @Override
     public UserInfoResp getUserInfo(Long userId) {
+        // 优先读 Redis 缓存，避免每次打开"我的"页面都查库
+        String cacheKey = "sr:user:info:" + userId;
+        String cached = redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            JSONObject obj = JSONUtil.parseObj(cached);
+            return UserInfoResp.builder()
+                    .userId(obj.getLong("userId"))
+                    .nickname(obj.getStr("nickname"))
+                    .avatarUrl(obj.getStr("avatarUrl"))
+                    .userDetail(getUserDetail(userId))
+                    .build();
+        }
+
+        // 缓存未命中，查库并回写
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BizException("用户不存在");
         }
+        String fullAvatarUrl = storageService.buildFullUrl(user.getAvatarUrl());
+
+        // 写入缓存（24 小时 TTL）
+        String json = JSONUtil.toJsonStr(Map.of(
+                "userId", userId,
+                "nickname", user.getNickname() != null ? user.getNickname() : "",
+                "avatarUrl", fullAvatarUrl != null ? fullAvatarUrl : ""));
+        redisTemplate.opsForValue().set(cacheKey, json, 24, TimeUnit.HOURS);
+
         return UserInfoResp.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .avatarUrl(buildFullUrl(user.getAvatarUrl()))
+                .avatarUrl(fullAvatarUrl)
+                .userDetail(getUserDetail(userId))
                 .build();
     }
 
@@ -126,10 +172,12 @@ public class UserServiceImpl implements UserService {
         String cachedJson = redisTemplate.opsForValue().get(userKey);
         String oldAvatarUrl = null;
         String oldNickname = null;
+        int oldStatus = 0;
         if (cachedJson != null) {
             JSONObject obj = JSONUtil.parseObj(cachedJson);
             oldAvatarUrl = obj.getStr("avatarUrl", "");
             oldNickname = obj.getStr("nickname", "");
+            oldStatus = obj.getInt("status", 0);
         }
 
         // 头像变更时，异步删除旧的 OSS 文件
@@ -138,7 +186,8 @@ public class UserServiceImpl implements UserService {
             deleteOldAvatarAsync(oldAvatarUrl);
         }
 
-        String newNickname = nickname != null ? nickname : oldNickname;
+        // 静默截断：防止绕过前端直接调接口传超长昵称
+        String newNickname = nickname != null ? truncateNickname(nickname) : oldNickname;
         if (newNickname == null) {
             throw new BizException("用户不存在");
         }
@@ -155,30 +204,69 @@ public class UserServiceImpl implements UserService {
         String userJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", newNickname,
-                "avatarUrl", newAvatarUrl != null ? newAvatarUrl : ""));
+                "avatarUrl", newAvatarUrl != null ? newAvatarUrl : "",
+                "status", oldStatus));
         redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
 
-        // 推送 MEMBER_UPDATE 给用户所在的活跃房间（携带更新后的昵称头像）
-        pushMemberUpdateToRooms(userId, newNickname, newAvatarUrl);
+        // 淘汰 getUserInfo 缓存，强制下次读取回源数据库
+        redisTemplate.delete("sr:user:info:" + userId);
+
+        // 仅在昵称变更时推送 MEMBER_UPDATE；纯头像更新跳过（避免新用户登录时的冗余 room_member 查询）
+        if (nickname != null) {
+            pushMemberUpdateToRooms(userId, newNickname, newAvatarUrl);
+        }
     }
 
-    /**
-     * 将 objectKey 拼接为完整访问 URL
-     */
-    private String buildFullUrl(String objectKey) {
-        if (objectKey == null || objectKey.isEmpty()) return "";
-        if (objectKey.startsWith("http")) return objectKey; // 兼容旧数据
-        return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
+    @Override
+    public UserDetailResp getUserDetail(Long userId) {
+        UserDetail detail = userDetailMapper.selectById(userId);
+        return UserDetailResp.builder()
+                .voiceEnabled(detail.getVoiceEnabled() == 1)
+                .voiceId(detail.getVoiceId())
+                .animEnabled(detail.getAnimEnabled() == 1)
+                .vibrateEnabled(detail.getVibrateEnabled() == 1)
+                .build();
+    }
+
+    @Override
+    public void updateUserDetail(Long userId, UpdateUserDetailReq req) {
+        LambdaUpdateWrapper<UserDetail> wrapper = new LambdaUpdateWrapper<UserDetail>()
+                .eq(UserDetail::getId, userId)
+                .set(req.getVoiceEnabled() != null, UserDetail::getVoiceEnabled, Boolean.TRUE.equals(req.getVoiceEnabled()) ? 1 : 0)
+                .set(req.getVoiceId() != null, UserDetail::getVoiceId, req.getVoiceId())
+                .set(req.getAnimEnabled() != null, UserDetail::getAnimEnabled, Boolean.TRUE.equals(req.getAnimEnabled()) ? 1 : 0)
+                .set(req.getVibrateEnabled() != null, UserDetail::getVibrateEnabled, Boolean.TRUE.equals(req.getVibrateEnabled()) ? 1 : 0);
+        userDetailMapper.update(null, wrapper);
+        // 淘汰 getUserInfo 缓存（userDetail 嵌套在其中）
+        redisTemplate.delete("sr:user:info:" + userId);
     }
 
     /**
      * 异步删除旧头像文件
      */
-    private void deleteOldAvatarAsync(String objectKey) {
-        if (objectKey == null || objectKey.isEmpty()) return;
-        if (objectKey.startsWith("images/")) {
-            storageService.deleteObjectAsync(objectKey);
+    private void deleteOldAvatarAsync(String objectKeyOrUrl) {
+        if (objectKeyOrUrl == null || objectKeyOrUrl.isEmpty()) return;
+        // 兼容完整 URL 和纯 objectKey 两种格式
+        String key = objectKeyOrUrl;
+        if (objectKeyOrUrl.startsWith("http")) {
+            int idx = objectKeyOrUrl.indexOf("/images/");
+            if (idx >= 0) {
+                key = objectKeyOrUrl.substring(idx + 1);
+            } else {
+                return;
+            }
         }
+        if (key.startsWith("images/")) {
+            storageService.deleteObjectAsync(key);
+        }
+    }
+
+    /**
+     * 截断昵称到最大 6 个字符
+     */
+    private String truncateNickname(String nickname) {
+        if (nickname == null) return null;
+        return nickname.length() > 6 ? nickname.substring(0, 6) : nickname;
     }
 
     /**

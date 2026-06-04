@@ -189,62 +189,37 @@
   transform: translateY(0);
 }
 
-.panel-scroll {
-  height: calc(85vh - 120rpx);
+/* 两段式退场：先隐藏 canvas，再收起面板 */
+.mp-closing .matrix-panel-sheet {
+  transform: translateY(100%);
+}
+
+/* 面板主体：图表固定 + 列表滚动 */
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.relation-scroll {
+  flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .panel-divider {
   height: 1rpx;
-  margin: 24rpx 0;
+  margin: 16rpx 0;
   background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
-/* ===== 折线图筛选 ===== */
+/* ===== 折线图 ===== */
 .chart-section {
+  flex-shrink: 0;
   margin-bottom: 0;
-  transform: translateZ(0);
-  will-change: opacity;
-  transition: opacity 0.2s ease;
-}
-
-.chart-hidden {
-  opacity: 0;
-  pointer-events: none;
-  height: 0;
-  overflow: hidden;
-}
-
-.chart-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
-  margin-top: 12rpx;
-}
-
-.cf-item {
-  padding: 6rpx 16rpx;
-  border-radius: 20rpx;
-  background: rgba(255,255,255,0.04);
-  border: 1rpx solid rgba(255,255,255,0.08);
-  opacity: 0.4;
-  transition: all 0.2s ease;
-}
-
-.cf-item.cf-active {
-  opacity: 1;
-  background: rgba(79, 140, 255, 0.12);
-  border-color: rgba(79, 140, 255, 0.3);
-}
-
-.cf-name {
-  font-size: 22rpx;
-  color: var(--text-secondary);
-}
-
-.cf-active .cf-name {
-  color: var(--accent);
 }
 
 /* ===== 积分明细弹窗 ===== */

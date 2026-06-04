@@ -20,6 +20,8 @@ public class User {
 
     private String avatarUrl;
 
+    private Integer status;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

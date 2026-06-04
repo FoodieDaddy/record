@@ -92,27 +92,25 @@ async function batchUpload(filePaths) {
   });
 
   // 并行直传
-  const urls = [];
-  for (let i = 0; i < filePaths.length; i++) {
-    await new Promise((resolve, reject) => {
+  const uploadTasks = filePaths.map((filePath, i) =>
+    new Promise((resolve, reject) => {
       wx.uploadFile({
         url: presigns[i].uploadUrl,
-        filePath: filePaths[i],
+        filePath,
         name: 'file',
         header: { 'Content-Type': contentTypes[i] },
         success: res => {
           if (res.statusCode === 200) {
-            urls.push(presigns[i].accessUrl);
-            resolve();
+            resolve(presigns[i].accessUrl);
           } else {
             reject(new Error('上传失败'));
           }
         },
         fail: reject
       });
-    });
-  }
-  return urls;
+    })
+  );
+  return Promise.all(uploadTasks);
 }
 
 module.exports = { compressImage, chooseAndCompress, uploadToOSS, batchUpload };

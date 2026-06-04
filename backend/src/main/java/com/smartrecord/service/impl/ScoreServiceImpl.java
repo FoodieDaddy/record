@@ -27,8 +27,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -38,6 +36,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -56,12 +56,11 @@ public class ScoreServiceImpl implements ScoreService {
     private final RedissonClient redissonClient;
     private final ScoreWebSocket scoreWebSocket;
     private final EmotionAudioPool emotionAudioPool;
-
-    @Lazy
-    @Autowired
-    private OverviewService overviewService;
+    private final OverviewService overviewService;
+    private final Executor asyncExecutor;
 
     private static final String ROOM_PREFIX = "sr:room:";
+    private final ConcurrentHashMap<Long, Long> lastTtlRefresh = new ConcurrentHashMap<>();
 
     private static final String TRANSFER_LUA = """
             local scoresKey = KEYS[1]
@@ -159,10 +158,10 @@ public class ScoreServiceImpl implements ScoreService {
             pushData.put("scores", scoreWithEmotion);
             scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
 
-            // 7. 更新最后活跃时间
-            redisTemplate.opsForValue().set(
-                    ROOM_PREFIX + roomId + ":last_active",
-                    LocalDateTime.now().toString(), 48, TimeUnit.HOURS);
+            // 7. 更新最后活跃时间 + 滑动刷新 TTL
+            refreshRoomTtl(roomId);
+            room.setLastActiveAt(LocalDateTime.now());
+            roomMapper.updateById(room);
 
             // 8. 异步更新总览缓存
             overviewService.computeOverview(roomId);
@@ -234,12 +233,31 @@ public class ScoreServiceImpl implements ScoreService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public void settleRoom(Long userId, Long roomId) {
+    public SettleResp settleRoom(Long userId, Long roomId, boolean autoSettled) {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("房间不存在");
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可结束对局");
+        if (!autoSettled && !room.getOwnerId().equals(userId)) throw new BizException("仅房主可结束对局");
         if (room.getStatus() != 0) throw new BizException("房间已结束");
 
+        // 分布式锁：防止结算期间并发记分丢数据
+        String lockKey = ROOM_PREFIX + roomId + ":lock";
+        RLock lock = redissonClient.getLock(lockKey);
+        try {
+            if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
+                throw new BizException("系统繁忙，请稍后重试");
+            }
+            return doSettleRoom(userId, roomId, room, autoSettled);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException("操作被中断");
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private SettleResp doSettleRoom(Long userId, Long roomId, Room room, boolean autoSettled) {
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 
         // 1. 读取所有批次时间戳
@@ -321,7 +339,24 @@ public class ScoreServiceImpl implements ScoreService {
             log.info("持久化房间 {} 图片 {} 张", roomId, imageUrls.size());
         }
 
-        // 4. 更新 room.all_record
+        // 4. 持久化 transfer events 到 all_record
+        Set<String> eventJsonSet = redisTemplate.opsForZSet().range(roomPrefix + "events", 0, -1);
+        List<String> eventJsonList = eventJsonSet != null ? new ArrayList<>(eventJsonSet) : Collections.emptyList();
+        if (eventJsonList != null && !eventJsonList.isEmpty()) {
+            List<Map<String, Object>> events = new ArrayList<>();
+            for (String eventJson : eventJsonList) {
+                try {
+                    events.add(JSONUtil.parseObj(eventJson));
+                } catch (Exception e) {
+                    log.warn("解析 transfer event 失败: {}", eventJson, e);
+                }
+            }
+            Map<String, Object> recordMeta = new HashMap<>();
+            recordMeta.put("transferEvents", events);
+            allRecord.add(recordMeta);
+        }
+
+        // 5. 更新 room.all_record
         room.setAllRecord(allRecord);
         roomMapper.updateById(room);
 
@@ -343,6 +378,7 @@ public class ScoreServiceImpl implements ScoreService {
         keysToDelete.add(roomPrefix + "batches");
         keysToDelete.add(roomPrefix + "images");
         keysToDelete.add(roomPrefix + "last_active");
+        keysToDelete.add(roomPrefix + "events");
         if (batchTsList != null) {
             for (String ts : batchTsList) {
                 keysToDelete.add(roomPrefix + "batch:" + ts);
@@ -351,24 +387,117 @@ public class ScoreServiceImpl implements ScoreService {
         redisTemplate.delete(keysToDelete);
         log.info("清理房间 {} Redis 键 {} 个", roomId, keysToDelete.size());
 
+        // 清理成员缓存 + 每个成员的 user:rooms 映射
+        redisTemplate.delete(roomPrefix + "members");
+        for (Long memberId : playerTotalMap.keySet()) {
+            redisTemplate.opsForSet().remove("sr:user:rooms:" + memberId, String.valueOf(roomId));
+        }
+
         // 7. WebSocket 通知
         scoreWebSocket.pushToRoom(String.valueOf(roomId), Map.of("type", "SETTLE"));
+
+        // 8. 构建结算响应
+        // 8.1 加载用户信息（昵称 + 头像）
+        List<Long> userIdList = new ArrayList<>(playerTotalMap.keySet());
+        Map<Long, User> userMap = batchLoadUsersByIds(new HashSet<>(userIdList));
+
+        // 8.2 构建 memberScores
+        List<SettleResp.MemberScore> memberScores = userIdList.stream()
+                .map(uid -> {
+                    User u = userMap.get(uid);
+                    return SettleResp.MemberScore.builder()
+                            .userId(uid)
+                            .nickname(u != null ? u.getNickname() : "玩家")
+                            .avatarUrl(u != null ? u.getAvatarUrl() : "")
+                            .finalScore(playerTotalMap.get(uid))
+                            .build();
+                })
+                .sorted(Comparator.comparingInt(SettleResp.MemberScore::getFinalScore).reversed())
+                .collect(Collectors.toList());
+
+        // 8.3 构建 timestamps 和 series（从 allRecord 提取）
+        List<Long> timestamps = new ArrayList<>();
+        Map<Long, List<Integer>> userScoreSequences = new HashMap<>();
+        userIdList.forEach(uid -> userScoreSequences.put(uid, new ArrayList<>()));
+        Map<Long, Integer> cumulative = new HashMap<>();
+        userIdList.forEach(uid -> cumulative.put(uid, 0));
+
+        // 收集全部用户 ID（allRecord 中可能有更多用户）
+        Set<Long> allUserIds = new LinkedHashSet<>(userIdList);
+        for (Map<String, Object> batch : allRecord) {
+            List<Map<String, Object>> scores = (List<Map<String, Object>>) batch.get("scores");
+            if (scores != null) {
+                for (Map<String, Object> ps : scores) {
+                    allUserIds.add(((Number) ps.get("userId")).longValue());
+                }
+            }
+        }
+        List<Long> chartUserIds = new ArrayList<>(allUserIds);
+        // 确保序列 map 包含所有用户
+        for (Long uid : chartUserIds) {
+            userScoreSequences.putIfAbsent(uid, new ArrayList<>());
+            cumulative.putIfAbsent(uid, 0);
+        }
+
+        for (Map<String, Object> batch : allRecord) {
+            Object batchTimeObj = batch.get("batchTime");
+            if (batchTimeObj == null) continue;
+            long batchTime = ((Number) batchTimeObj).longValue();
+            timestamps.add(batchTime);
+
+            List<Map<String, Object>> scores = (List<Map<String, Object>>) batch.get("scores");
+            if (scores != null) {
+                for (Map<String, Object> ps : scores) {
+                    long uid = ((Number) ps.get("userId")).longValue();
+                    int score = ((Number) ps.get("score")).intValue();
+                    cumulative.merge(uid, score, Integer::sum);
+                }
+            }
+
+            for (Long uid : chartUserIds) {
+                userScoreSequences.get(uid).add(cumulative.getOrDefault(uid, 0));
+            }
+        }
+
+        Map<Long, String> nicknameMap = new HashMap<>();
+        for (Long uid : chartUserIds) {
+            User u = userMap.get(uid);
+            if (u != null) {
+                nicknameMap.put(uid, u.getNickname());
+            }
+        }
+        // 补充可能缺失的用户
+        Set<Long> missingUsers = chartUserIds.stream()
+                .filter(uid -> !nicknameMap.containsKey(uid))
+                .collect(Collectors.toSet());
+        if (!missingUsers.isEmpty()) {
+            Map<Long, User> extraUsers = batchLoadUsersByIds(missingUsers);
+            for (Map.Entry<Long, User> entry : extraUsers.entrySet()) {
+                nicknameMap.put(entry.getKey(), entry.getValue().getNickname());
+            }
+        }
+
+        List<ChartDataResp.Series> seriesList = chartUserIds.stream()
+                .map(uid -> ChartDataResp.Series.builder()
+                        .userId(uid)
+                        .nickname(nicknameMap.getOrDefault(uid, "玩家"))
+                        .scores(userScoreSequences.get(uid))
+                        .build())
+                .collect(Collectors.toList());
+
+        return SettleResp.builder()
+                .roomId(roomId)
+                .roomNo(room.getRoomNo())
+                .timestamps(timestamps)
+                .series(seriesList)
+                .memberScores(memberScores)
+                .autoSettled(autoSettled)
+                .build();
     }
 
     @Override
     public ChartDataResp getChartData(Long roomId) {
-        Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
-
-        String roomPrefix = ROOM_PREFIX + roomId + ":";
-
-        if (room.getStatus() == 0) {
-            // 进行中 → 从 Redis 构建
-            return buildChartFromRedis(roomId, roomPrefix);
-        } else {
-            // 已结算 → 从 all_record 构建
-            return buildChartFromAllRecord(room);
-        }
+        return overviewService.getChartData(roomId);
     }
 
     // ===== 私有方法 =====
@@ -461,125 +590,6 @@ public class ScoreServiceImpl implements ScoreService {
         return result;
     }
 
-    private ChartDataResp buildChartFromRedis(Long roomId, String roomPrefix) {
-        List<String> batchTsList = redisTemplate.opsForList().range(roomPrefix + "batches", 0, -1);
-        if (batchTsList == null || batchTsList.isEmpty()) {
-            return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
-        }
-
-        Set<ZSetOperations.TypedTuple<String>> members =
-                redisTemplate.opsForZSet().rangeWithScores(roomPrefix + "scores", 0, -1);
-        if (members == null || members.isEmpty()) {
-            return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
-        }
-
-        List<Long> userIds = members.stream()
-                .map(ZSetOperations.TypedTuple::getValue)
-                .filter(v -> !"init".equals(v))
-                .map(Long::parseLong)
-                .collect(Collectors.toList());
-
-        Map<Long, String> nicknameMap = loadNicknameMap(userIds);
-
-        List<Long> timestamps = new ArrayList<>();
-        Map<Long, List<Integer>> userScores = new HashMap<>();
-        userIds.forEach(uid -> userScores.put(uid, new ArrayList<>()));
-
-        Map<Long, Integer> cumulative = new HashMap<>();
-        userIds.forEach(uid -> cumulative.put(uid, 0));
-
-        for (String tsStr : batchTsList) {
-            long ts = Long.parseLong(tsStr);
-            timestamps.add(ts);
-
-            String batchKey = roomPrefix + "batch:" + tsStr;
-            Map<Object, Object> batchEntries = redisTemplate.opsForHash().entries(batchKey);
-
-            for (Map.Entry<Object, Object> entry : batchEntries.entrySet()) {
-                String key = (String) entry.getKey();
-                if ("_created_by".equals(key)) continue;
-                long uid = Long.parseLong(key);
-                int score = Integer.parseInt((String) entry.getValue());
-                cumulative.merge(uid, score, Integer::sum);
-            }
-
-            for (Long uid : userIds) {
-                userScores.get(uid).add(cumulative.getOrDefault(uid, 0));
-            }
-        }
-
-        List<ChartDataResp.Series> seriesList = userIds.stream()
-                .map(uid -> ChartDataResp.Series.builder()
-                        .userId(uid)
-                        .nickname(nicknameMap.getOrDefault(uid, "玩家"))
-                        .scores(userScores.get(uid))
-                        .build())
-                .collect(Collectors.toList());
-
-        return ChartDataResp.builder()
-                .timestamps(timestamps)
-                .series(seriesList)
-                .build();
-    }
-
-    private ChartDataResp buildChartFromAllRecord(Room room) {
-        List<Map<String, Object>> allRecord = room.getAllRecord();
-        if (allRecord == null || allRecord.isEmpty()) {
-            return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
-        }
-
-        // 收集所有 userId
-        Set<Long> userIdSet = new LinkedHashSet<>();
-        for (Map<String, Object> batch : allRecord) {
-            List<Map<String, Object>> scores = (List<Map<String, Object>>) batch.get("scores");
-            if (scores != null) {
-                for (Map<String, Object> ps : scores) {
-                    userIdSet.add(((Number) ps.get("userId")).longValue());
-                }
-            }
-        }
-        List<Long> userIds = new ArrayList<>(userIdSet);
-        Map<Long, String> nicknameMap = loadNicknameMap(userIds);
-
-        List<Long> timestamps = new ArrayList<>();
-        Map<Long, List<Integer>> userScores = new HashMap<>();
-        userIds.forEach(uid -> userScores.put(uid, new ArrayList<>()));
-
-        Map<Long, Integer> cumulative = new HashMap<>();
-        userIds.forEach(uid -> cumulative.put(uid, 0));
-
-        for (Map<String, Object> batch : allRecord) {
-            long batchTime = ((Number) batch.get("batchTime")).longValue();
-            timestamps.add(batchTime);
-
-            List<Map<String, Object>> scores = (List<Map<String, Object>>) batch.get("scores");
-            if (scores != null) {
-                for (Map<String, Object> ps : scores) {
-                    long uid = ((Number) ps.get("userId")).longValue();
-                    int score = ((Number) ps.get("score")).intValue();
-                    cumulative.merge(uid, score, Integer::sum);
-                }
-            }
-
-            for (Long uid : userIds) {
-                userScores.get(uid).add(cumulative.getOrDefault(uid, 0));
-            }
-        }
-
-        List<ChartDataResp.Series> seriesList = userIds.stream()
-                .map(uid -> ChartDataResp.Series.builder()
-                        .userId(uid)
-                        .nickname(nicknameMap.getOrDefault(uid, "玩家"))
-                        .scores(userScores.get(uid))
-                        .build())
-                .collect(Collectors.toList());
-
-        return ChartDataResp.builder()
-                .timestamps(timestamps)
-                .series(seriesList)
-                .build();
-    }
-
     @Override
     public List<String> getRoomImages(Long roomId) {
         Room room = roomMapper.selectById(roomId);
@@ -650,31 +660,56 @@ public class ScoreServiceImpl implements ScoreService {
             throw new BizException("系统繁忙，请稍后重试");
         }
 
-        // 更新最后活跃时间
-        redisTemplate.opsForValue().set(
-                ROOM_PREFIX + roomId + ":last_active",
-                LocalDateTime.now().toString(), 48, TimeUnit.HOURS);
-
-        // 记录流水到 Redis events 列表
+        // 节流刷新 TTL（每房间最多 30 秒一次，避免每次计分执行 11+ 次 EXPIRE）
         long now = System.currentTimeMillis();
+        Long lastRefresh = lastTtlRefresh.get(roomId);
+        if (lastRefresh == null || now - lastRefresh > 30_000) {
+            lastTtlRefresh.put(roomId, now);
+            refreshRoomTtl(roomId);
+        }
+
+        // 异步更新最后活跃时间（非关键路径，不阻塞响应）
+        asyncExecutor.execute(() -> {
+            try {
+                room.setLastActiveAt(LocalDateTime.now());
+                roomMapper.updateById(room);
+            } catch (Exception e) {
+                log.warn("异步更新 lastActiveAt 失败: roomId={}", roomId, e);
+            }
+        });
+
+        // 记录流水到 Redis events Sorted Set（timestamp 为 score，支持分页）
         Map<String, Object> event = new HashMap<>();
         event.put("from", userId);
         event.put("to", req.getToUserId());
         event.put("amount", req.getAmount());
         event.put("time", now);
         if (req.getRemark() != null) event.put("remark", req.getRemark());
-        redisTemplate.opsForList().rightPush(
-                ROOM_PREFIX + roomId + ":events", JSONUtil.toJsonStr(event));
+        redisTemplate.opsForZSet().add(
+                ROOM_PREFIX + roomId + ":events", JSONUtil.toJsonStr(event), now);
         redisTemplate.expire(ROOM_PREFIX + roomId + ":events", 48, TimeUnit.HOURS);
 
-        // WebSocket 推送
+        // 读取双方最新分数（一次 Redis 调用，附加到 WS 推送供观察者本地更新）
+        Double fromScore = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(userId));
+        Double toScore = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(req.getToUserId()));
+
+        // 异步 WebSocket 推送（含最新分数，避免慢客户端阻塞响应）
+        String roomIdStr = String.valueOf(roomId);
         Map<String, Object> pushData = new HashMap<>();
         pushData.put("type", "TRANSFER");
-        pushData.put("roomId", String.valueOf(roomId));
+        pushData.put("roomId", roomIdStr);
         pushData.put("fromUserId", String.valueOf(userId));
         pushData.put("toUserId", String.valueOf(req.getToUserId()));
         pushData.put("amount", req.getAmount());
-        scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+        pushData.put("fromNewScore", fromScore != null ? fromScore.intValue() : 0);
+        pushData.put("toNewScore", toScore != null ? toScore.intValue() : 0);
+        asyncExecutor.execute(() -> {
+            try {
+                scoreWebSocket.pushToRoom(roomIdStr, pushData);
+            } catch (Exception e) {
+                log.warn("异步 WebSocket 推送失败: roomId={}", roomId, e);
+            }
+        });
 
         // 异步更新总览缓存
         overviewService.computeOverview(roomId);
@@ -693,31 +728,31 @@ public class ScoreServiceImpl implements ScoreService {
     @Override
     public PageResult<TransferScoreResp> getRoomTransfers(Long roomId, int page, int size) {
         String eventsKey = ROOM_PREFIX + roomId + ":events";
-        List<String> rawEvents = redisTemplate.opsForList().range(eventsKey, 0, -1);
-        if (rawEvents == null || rawEvents.isEmpty()) {
+
+        // 使用 Sorted Set 分页查询（按 score 倒序，即时间倒序）
+        Long total = redisTemplate.opsForZSet().zCard(eventsKey);
+        if (total == null || total == 0) {
             return PageResult.of(0, List.of());
         }
 
-        List<JSONObject> allEvents = new ArrayList<>();
+        long start = (long) (page - 1) * size;
+        if (start >= total) {
+            return PageResult.of(total, List.of());
+        }
+
+        Set<String> rawEvents = redisTemplate.opsForZSet().reverseRange(eventsKey, start, start + size - 1);
+        if (rawEvents == null || rawEvents.isEmpty()) {
+            return PageResult.of(total, List.of());
+        }
+
+        List<JSONObject> pageEvents = new ArrayList<>();
         for (String raw : rawEvents) {
             try {
-                allEvents.add(JSONUtil.parseObj(raw));
+                pageEvents.add(JSONUtil.parseObj(raw));
             } catch (Exception e) {
                 log.warn("解析计分流水失败: {}", raw, e);
             }
         }
-
-        // 按时间倒序
-        allEvents.sort((a, b) -> Long.compare(
-                b.getLong("time", 0L), a.getLong("time", 0L)));
-
-        long total = allEvents.size();
-
-        // 分页截取
-        int from = (page - 1) * size;
-        int to = Math.min(from + size, allEvents.size());
-        List<JSONObject> pageEvents = from < allEvents.size()
-                ? allEvents.subList(from, to) : List.of();
 
         // 批量加载用户信息
         Set<Long> userIds = new HashSet<>();
@@ -793,25 +828,68 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     private Map<Long, String> loadNicknameMap(List<Long> userIds) {
+        if (userIds.isEmpty()) return Collections.emptyMap();
+
+        // 批量从 Redis 加载
+        List<String> keys = userIds.stream()
+                .map(uid -> "sr:user:" + uid)
+                .collect(Collectors.toList());
+        List<String> cached = redisTemplate.opsForValue().multiGet(keys);
+
         Map<Long, String> map = new HashMap<>();
-        for (Long uid : userIds) {
-            String userKey = "sr:user:" + uid;
-            String userJson = redisTemplate.opsForValue().get(userKey);
-            if (userJson != null) {
-                JSONObject userObj = JSONUtil.parseObj(userJson);
-                map.put(uid, userObj.getStr("nickname", "玩家"));
+        List<Long> missedIds = new ArrayList<>();
+        for (int i = 0; i < userIds.size(); i++) {
+            String json = cached != null ? cached.get(i) : null;
+            if (json != null) {
+                JSONObject userObj = JSONUtil.parseObj(json);
+                map.put(userIds.get(i), userObj.getStr("nickname", "玩家"));
             } else {
-                User user = userMapper.selectById(uid);
-                map.put(uid, user != null ? user.getNickname() : "玩家");
-                if (user != null) {
-                    String json = JSONUtil.toJsonStr(Map.of(
-                            "userId", user.getId(),
-                            "nickname", user.getNickname(),
-                            "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
-                    redisTemplate.opsForValue().set(userKey, json, 24, TimeUnit.HOURS);
-                }
+                missedIds.add(userIds.get(i));
+            }
+        }
+
+        // 降级查数据库并回写缓存
+        if (!missedIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(missedIds);
+            for (User user : users) {
+                map.put(user.getId(), user.getNickname());
+                String json = JSONUtil.toJsonStr(Map.of(
+                        "userId", user.getId(),
+                        "nickname", user.getNickname(),
+                        "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
+                redisTemplate.opsForValue().set("sr:user:" + user.getId(), json, 24, TimeUnit.HOURS);
+            }
+            for (Long uid : missedIds) {
+                map.putIfAbsent(uid, "玩家");
             }
         }
         return map;
+    }
+
+    /**
+     * 滑动刷新房间所有 Redis key 的 TTL，统一 24 小时
+     */
+    private void refreshRoomTtl(Long roomId) {
+        String prefix = ROOM_PREFIX + roomId + ":";
+        long ttl = 24;
+        TimeUnit unit = TimeUnit.HOURS;
+        List<String> keys = List.of(
+                prefix + "info",
+                prefix + "members",
+                prefix + "scores",
+                prefix + "batches",
+                prefix + "images",
+                prefix + "events",
+                prefix + "last_active");
+        for (String key : keys) {
+            redisTemplate.expire(key, ttl, unit);
+        }
+        // 用户房间映射也刷新
+        Set<Object> memberUids = redisTemplate.opsForHash().keys(prefix + "members");
+        if (memberUids != null) {
+            for (Object uid : memberUids) {
+                redisTemplate.expire("sr:user:rooms:" + uid, ttl, unit);
+            }
+        }
     }
 }

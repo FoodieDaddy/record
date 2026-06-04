@@ -1,0 +1,72 @@
+<view class="page-container">
+
+  <!-- 顶部栏 -->
+  <view class="header">
+    <view class="header-info">
+      <text class="header-title">结算详情</text>
+      <text class="header-room" wx:if="{{roomNo}}">房间 {{roomNo}}</text>
+    </view>
+    <view class="close-btn" bindtap="handleClose">
+      <view class="close-icon">✕</view>
+    </view>
+  </view>
+
+  <!-- 加载态 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:else>
+    <!-- 折线图卡片 -->
+    <view class="section-card chart-card">
+      <score-chart
+        timestamps="{{timestamps}}"
+        series="{{series}}"
+        visibleUsers="{{visibleUsers}}"
+        highlightUser="{{myUserId}}" />
+    </view>
+
+    <!-- 玩家总分卡牌 -->
+    <view class="section-card">
+      <text class="section-title">总分一览</text>
+      <settle-table
+        memberScores="{{rankedMembers}}"
+        myUserId="{{myUserId}}" />
+    </view>
+
+    <!-- 排名列表 -->
+    <view class="section-card">
+      <text class="section-title">排名</text>
+      <view class="rank-list">
+        <view class="rank-item {{index === 0 ? 'rank-first' : ''}}"
+          wx:for="{{rankedMembers}}"
+          wx:key="userId">
+
+          <!-- 排名序号 -->
+          <view class="rank-badge {{index < 3 ? 'rank-top3' : ''}}">
+            <text class="rank-num">{{index + 1}}</text>
+          </view>
+
+          <!-- 头像 -->
+          <view class="rank-avatar" style="background: {{item.avatarColor}}">
+            <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="rank-avatar-img" mode="aspectFill" />
+            <text wx:else class="rank-avatar-char">{{item.avatarChar}}</text>
+          </view>
+
+          <!-- 昵称 -->
+          <text class="rank-name" style="color: {{item.userId == myUserId ? '#0A84FF' : 'rgba(255,255,255,0.85)'}}">
+            {{item.nickname}}
+            <text wx:if="{{item.userId == myUserId}}" class="me-tag">我</text>
+          </text>
+
+          <!-- 分数 -->
+          <text class="rank-score"
+            style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.5)'}}">
+            {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
+          </text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

@@ -20,12 +20,14 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 
 ## 架构要点
 
-- **实时数据走 Redis**：场次排行榜 (Sorted Set)、批次得分 (Hash)、分布式锁 (Redisson)
-- **持久化走 MySQL**：场次结算时 @Async 异步批量落库（ScoreSettleTask）
+- **一个房间 = 一次对局**：无 session/轮次概念，settle 时数据归档到 room.all_record JSON
+- **实时数据走 Redis**：排行榜 (Sorted Set)、批次得分 (Hash)、流水 (List)、分布式锁 (Redisson)
+- **持久化走 MySQL**：settle 时同步写入 score 表 + room.all_record + room_member.final_score
 - **图片直传 MinIO**：后端签发预签名 PUT URL，前端压缩后直传，不经过后端中转
 - **实时推送**：WebSocket (`/ws/score`)，房间级广播，记分后推送给同房间所有玩家
 - **雪花 ID**：所有实体 ID 由 `SnowflakeIdGenerator` 生成，非数据库自增
-- **虚拟线程**：JDK 21 虚拟线程全面启用（`spring.threads.virtual.enabled=true`），异步任务池 `AsyncConfig` 使用 `VirtualThreadPerTaskExecutor`，TTS 合成、WebSocket 推送、OSS 操作等阻塞 I/O 自动卸载载体线程
+- **虚拟线程**：JDK 21 虚拟线程全面启用（`spring.threads.virtual.enabled=true`）
+- **用户设置持久化**：user_detail 表存储语音/动画/震动设置，通过 `PUT /user/detail` 防抖保存
 
 ## 代码规范
 
@@ -39,10 +41,12 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 ## 非显而易见的模式
 
 - 房间号生成：Redis SETNX，32 字符集（去 O/0/I/L），6 位，碰撞重试最多 10 次
-- 记分并发控制：Redisson `tryLock(5s, 30s)`，锁 key 为 `sr:session:{sid}:lock`
-- 场次得分聚合：session 表不存总分，进行中读 Redis Sorted Set，已结算读 MySQL GROUP BY
-- 2 分钟聚合：前端同一次提交的多条 score 记录共享相同秒级 `created_at`，前端按此分组渲染
+- 记分并发控制：Redisson `tryLock(5s, 30s)`，锁 key 为 `sr:room:{rid}:lock`
+- Redis key 前缀：`sr:room:{rid}:scores` (ZSet)、`sr:room:{rid}:batch:{ts}` (Hash)、`sr:room:{rid}:batches` (List)、`sr:room:{rid}:images` (List)、`sr:room:{rid}:events` (List)、`sr:room:{rid}:members` (Hash)
+- 得分聚合：进行中读 Redis Sorted Set，已结算读 MySQL GROUP BY 或 room.all_record
 - 小程序码：后端调微信 `getUnlimited` API → 字节流 → MinIO PUT → 返回访问 URL
+- 前端设置防抖：昵称/头像/语音/动画/震动统一 2 秒防抖 + onHide 刷盘，本地缓存即时生效，服务端延迟持久化
+- 震动守卫：所有 `wx.vibrateShort` 通过 `utils/haptic.js` 封装，`vibrateEnabled=false` 时跳过
 
 ## 安全注意
 
@@ -95,9 +99,3 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 ## 5. 前端性能最佳实践
 - **音频单例模式**：音色试听必须维护单例 `InnerAudioContext`，执行 `stop() -> src替换 -> play()`，严禁重复创建实例。
 - **组件化交互**：记分键盘、成员卡片、底部抽屉，必须具备高级弹性动效（`cubic-bezier`），但在 `reduce-motion` 类名作用下必须实现 0 延迟的静默展示。
-
----
-**执行准则**：在编写任何代码前，若需求与上述规范冲突，必须优先纠正规范方向，确保应用架构的“小而美、快而稳”。
-
-## 5. 前端性能最佳实践
-- **音频单例模式**：在处理 多种音色试听时，禁止频繁 `new` 新的 `InnerAudioContext`。必须在顶层使用单例，通过 `stop()` -> 替换 `src` -> `play()` 来防止内存泄漏和声音重叠。

@@ -27,4 +27,6 @@ public interface RoomService {
     void rearrangeSeats(Long userId, Long roomId, List<RearrangeSeatsReq.SeatAssignment> assignments);
 
     void updateLayout(Long userId, Long roomId, String layoutType);
+
+    List<RoomResp> getHistory(Long userId);
 }

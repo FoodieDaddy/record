@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -75,11 +76,20 @@ public class StorageServiceImpl implements StorageService {
 
     @Override
     public void deleteObjectAsync(String objectKey) {
-        try {
-            ossClient.deleteObject(ossConfig.getBucketName(), objectKey);
-        } catch (Exception e) {
-            log.warn("异步删除 OSS 文件失败: {}", objectKey, e);
-        }
+        CompletableFuture.runAsync(() -> {
+            try {
+                ossClient.deleteObject(ossConfig.getBucketName(), objectKey);
+            } catch (Exception e) {
+                log.warn("异步删除 OSS 文件失败: {}", objectKey, e);
+            }
+        });
+    }
+
+    @Override
+    public String buildFullUrl(String objectKey) {
+        if (objectKey == null || objectKey.isEmpty()) return "";
+        if (objectKey.startsWith("http")) return objectKey;
+        return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
     }
 
     private static final Map<String, String> MIME_TO_EXT = Map.of(

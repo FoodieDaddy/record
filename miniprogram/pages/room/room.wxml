@@ -1,5 +1,13 @@
 <wxs src="./room.wxs" module="fmt" />
+<wxs src="../../utils/truncate.wxs" module="t" />
 <view class="room-page">
+  <!-- WS 断线遮罩 -->
+  <view class="ws-mask {{wsReconnecting ? 'ws-mask--show' : ''}}" catchtap catchtouchmove="preventClose">
+    <view class="ws-mask__card glass-card">
+      <view class="ws-mask__dot"></view>
+      <text class="ws-mask__text">网络不太稳定，正在重试...</text>
+    </view>
+  </view>
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
@@ -34,8 +42,8 @@
           随时记录分数流转</text>
           <view class="mode-check" wx:if="{{scoreMode === 1}}"></view>
         </view>
-        <view class="mode-card {{scoreMode === 2 ? 'mode-card-active' : 'mode-card-inactive'}}"
-              bindtap="selectScoreMode" data-mode="2">
+        <view class="mode-card disabled-card" bindtap="onDisabledModeTap" data-mode="2">
+          <view class="coming-soon-badge">即将上线</view>
           <view class="mode-icon-wrap">
             <!-- 顶部大圆点向下发散连接三个小圆点 -->
             <view class="mode-icon mode-icon-winner">
@@ -53,7 +61,6 @@
           <text class="mode-card-title">赢家统录</text>
           <text class="mode-card-desc">由单局胜者统一录入全盘分数
           可上传图片</text>
-          <view class="mode-check" wx:if="{{scoreMode === 2}}"></view>
         </view>
       </view>
 
@@ -144,7 +151,7 @@
     </view>
 
     <!-- 可滚动区域（积分总览打开时禁止滚动） -->
-    <scroll-view scroll-y="{{!showMatrixPanel && !showNumpad}}" style="height:100vh;" bindscrolltolower="onScoreScrollToLower" lower-threshold="200">
+    <scroll-view scroll-y="{{!showMatrixPanel && !showNumpad}}" class="{{showMatrixPanel || showNumpad ? 'scroll-locked' : ''}}" style="height:100vh;" bindscrolltolower="onScoreScrollToLower" lower-threshold="200">
       <!-- 顶部信息卡片 -->
       <view class="glass-card-glow room-top-card">
         <view class="hero-glow"></view>
@@ -192,42 +199,20 @@
                 <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
                 <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
               </view>
-              <text class="mg-name">{{item.nickname}}</text>
+              <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
               <text class="mg-score score-number" style="color:{{item.scoreColor}};">
                 {{fmt.formatScore(item.displayScore)}}
               </text>
             </view>
           </view>
         </scroll-view>
-        <!-- 座位模式 -->
+        <!-- 座位模式（全屏） -->
         <view class="seat-container" wx:if="{{viewMode === 'seat'}}">
-          <!-- 编辑工具栏（仅房主可见） -->
-          <view class="seat-edit-bar" wx:if="{{isOwner}}">
-            <block wx:if="{{!seatEditMode}}">
-              <view class="seat-edit-btn" bindtap="enterSeatEditMode">
-                <text class="seat-edit-text">调整座位</text>
-              </view>
-              <view class="layout-switcher">
-                <view class="layout-opt {{seatLayoutType === 'circle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="circle">
-                  <text>圆桌</text>
-                </view>
-                <view class="layout-opt {{seatLayoutType === 'rectangle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="rectangle">
-                  <text>长桌</text>
-                </view>
-                <view class="layout-opt {{seatLayoutType === 'arc' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="arc">
-                  <text>半弧</text>
-                </view>
-              </view>
-            </block>
-            <block wx:else>
-              <view class="seat-edit-active-bar">
-                <view class="seat-edit-btn seat-edit-done" bindtap="exitSeatEditMode">
-                  <text class="seat-edit-text">完成</text>
-                </view>
-                <text class="seat-edit-hint">点击玩家，再点击目标位置</text>
-              </view>
-            </block>
+          <!-- 关闭按钮 -->
+          <view class="seat-close-btn" bindtap="toggleViewMode">
+            <view class="seat-close-icon"></view>
           </view>
+          <!-- 座位组件 -->
           <seat-mode
             members="{{memberGrid}}"
             score-map="{{seatScoreMap}}"
@@ -235,11 +220,27 @@
             max-seats="{{currentRoom.maxSeats || 16}}"
             table-label="{{currentRoom.roomNo}}"
             layout-type="{{seatLayoutType}}"
-            edit-mode="{{seatEditMode}}"
-            edit-selected-user-id="{{editSelectedUserId}}"
+            is-owner="{{isOwner}}"
+            waiting-list="{{waitingList}}"
             bindtapseat="onSeatTap"
-            bindeditseat="onEditSeatTap"
+            bindassignseat="onAssignSeat"
+            bindtransfer="onSeatTransfer"
+            bindremoveseat="onRemoveSeat"
           />
+          <!-- 底部布局切换 -->
+          <view class="seat-bottom-bar">
+            <view class="layout-switcher">
+              <view class="layout-opt {{seatLayoutType === 'circle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="circle">
+                <text>圆桌</text>
+              </view>
+              <view class="layout-opt {{seatLayoutType === 'rectangle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="rectangle">
+                <text>长桌</text>
+              </view>
+              <view class="layout-opt {{seatLayoutType === 'arc' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="arc">
+                <text>半弧</text>
+              </view>
+            </view>
+          </view>
         </view>
       </view>
 
@@ -309,7 +310,7 @@
     <view class="numpad-overlay {{showNumpad ? 'numpad-show' : ''}}" catchtap="closeNumpad">
       <view class="numpad-sheet" catchtap="preventClose">
         <view class="numpad-header">
-          <text class="numpad-player-name">{{transferToInfo.nickname || '输入积分'}}</text>
+          <text class="numpad-player-name">{{t.truncateName(transferToInfo.nickname) || '输入积分'}}</text>
           <view class="numpad-display">
             <text class="numpad-display-value">{{numpadValue || '0'}}</text>
             <text class="numpad-unit">积分</text>

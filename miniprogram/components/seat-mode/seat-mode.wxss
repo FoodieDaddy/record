@@ -1,203 +1,168 @@
-/* ===== 座位模式 — 绝对定位舞台 ===== */
+/* ===== 2.5D 座位模式 — 纯 CSS3 透视架构 ===== */
 
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== 根容器 ===== */
 .seat-arena {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 560rpx;
-  /* 不裁剪，让头像光环可以溢出 */
-  overflow: visible;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 给边缘座位留出发光空间 */
-  padding: 16rpx;
+  overflow: hidden;
   box-sizing: border-box;
+  background: #0a0a0a;
 }
 
-/* ===== 桌面中央（极简质感） ===== */
-.table-center {
+/* ===== Layer 1: 环境光底座 ===== */
+.ambient-layer {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 160rpx;
-  height: 160rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 1;
   pointer-events: none;
 }
 
-.table-glow {
+.ambient-glow {
   position: absolute;
-  width: 140rpx;
-  height: 140rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
-  filter: blur(16rpx);
+  filter: blur(80px);
+  opacity: 0.6;
 }
 
-.table-ring {
+.glow-1 {
+  width: 600rpx; height: 600rpx;
+  top: -200rpx; left: -100rpx;
+  background: rgba(10, 132, 255, 0.06);
+}
+
+.glow-2 {
+  width: 500rpx; height: 500rpx;
+  bottom: -150rpx; right: -100rpx;
+  background: rgba(10, 132, 255, 0.04);
+}
+
+/* ===== Layer 2: 2.5D 核心舞台 ===== */
+.stage {
   position: absolute;
-  width: 120rpx;
-  height: 120rpx;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-perspective {
+  position: relative;
+  width: 90%;
+  max-width: 750rpx;
+  aspect-ratio: 1;
+  max-height: 80%;
+  perspective: 1000px;
+  perspective-origin: 50% 40%;
+}
+
+/* ===== 桌面 ===== */
+.table-surface {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotateX(60deg);
+  transform-style: preserve-3d;
+}
+
+.table-felt {
   border-radius: 50%;
-  border: 1rpx dashed rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-/* 长桌：矩形桌面（缩小） */
-.table-rectangle .table-glow {
-  border-radius: 12rpx;
-  width: 200rpx;
-  height: 130rpx;
-  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
-}
-
-.table-rectangle .table-ring {
-  border-radius: 12rpx;
-  width: 170rpx;
-  height: 100rpx;
-  border: 1rpx dashed rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-/* 半弧：扁椭圆桌面（缩小） */
-.table-arc .table-glow {
+.table-circle .table-felt {
+  width: 500rpx; height: 500rpx;
   border-radius: 50%;
-  width: 220rpx;
-  height: 120rpx;
-  background: radial-gradient(ellipse, rgba(79, 140, 255, 0.04) 0%, transparent 70%);
 }
 
-.table-arc .table-ring {
-  border-radius: 50%;
-  width: 190rpx;
-  height: 90rpx;
-  border: 1rpx dashed rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.02);
+.table-rectangle .table-felt {
+  width: 600rpx; height: 360rpx;
+  border-radius: 24rpx;
+}
+
+.table-arc .table-felt {
+  width: 520rpx; height: 300rpx;
+  border-radius: 260rpx 260rpx 40rpx 40rpx;
 }
 
 .table-label {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.15);
-  letter-spacing: 6rpx;
-  font-weight: 300;
-  z-index: 1;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 40rpx;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.06);
+  letter-spacing: 8rpx;
+  pointer-events: none;
+  user-select: none;
 }
 
-/* ===== 座位列表 ===== */
-.seat-list {
+/* ===== 座位节点（绝对定位在透视容器上） ===== */
+.seat-node {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  transform: translate(-50%, -50%);
+  z-index: 11;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* ===== 单个座位 ===== */
-.seat-item {
-  position: absolute;
+.seat-empty {
+  z-index: 10;
+}
+
+/* ===== 广告牌反向旋转 ===== */
+.seat-billboard {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
-  /* 核心：只用 transform + opacity，零 reflow */
-  will-change: transform, opacity;
-  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 0.35s ease;
-  /* 默认尺寸（由 JS 计算后覆盖位置） */
-  width: 120rpx;
-  padding: 16rpx 8rpx;
-  border-radius: 20rpx;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 禁止动画时：移除过渡 */
-.seat-no-anim .seat-item,
-.seat-no-anim .seat-item {
-  transition: none !important;
-}
-
-.seat-item:active {
-  transform: scale(0.92) !important;
-}
-
-/* 主视角标记（自己） */
-.seat-me {
-  /* 微弱底光 */
-}
-
-.seat-me::after {
-  content: '';
-  position: absolute;
-  bottom: -4rpx;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 2rpx;
-  background: linear-gradient(90deg, transparent, rgba(79, 140, 255, 0.5), transparent);
-  border-radius: 1rpx;
-}
-
-/* 空座位 */
-.seat-empty {
-  opacity: 0.4;
-}
-
-.seat-empty:active {
-  opacity: 0.7;
-}
-
-/* 高亮座位 */
-.seat-highlight {
-  opacity: 1;
+  transform: rotateX(-60deg);
+  transform-origin: center center;
 }
 
 /* ===== 头像 ===== */
 .seat-avatar-ring {
-  position: relative;
-  width: 96rpx;
-  height: 96rpx;
+  width: 96rpx; height: 96rpx;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* 毛玻璃外环 */
-  background: rgba(255, 255, 255, 0.04);
-  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  padding: 4rpx;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 空座位：虚线圆圈 */
-.seat-empty .seat-avatar-ring {
-  border: 1rpx dashed rgba(255, 255, 255, 0.15);
-  background: transparent;
+.seat-me .seat-avatar-ring {
+  border-color: rgba(10, 132, 255, 0.5);
+  box-shadow: 0 0 20rpx rgba(10, 132, 255, 0.15);
 }
 
-.seat-avatar-ring.ring-me {
-  border-color: rgba(79, 140, 255, 0.35);
-  box-shadow: 0 0 20rpx rgba(79, 140, 255, 0.15);
+.seat-highlight .seat-avatar-ring {
+  border-color: rgba(255, 138, 101, 0.5);
+  box-shadow: 0 0 24rpx rgba(255, 138, 101, 0.2);
 }
 
 .seat-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 100%; height: 100%;
   border-radius: 50%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .seat-avatar-img {
-  border: none;
-  display: block;
-}
-
-.seat-avatar-fallback {
-  /* 背景色由 JS 动态设置 */
+  width: 100%; height: 100%;
 }
 
 .seat-avatar-char {
@@ -206,69 +171,76 @@
   color: #fff;
 }
 
-.seat-avatar-empty {
-  font-size: 36rpx;
+/* ===== 空位虚线框 ===== */
+.seat-empty-ring {
+  width: 96rpx; height: 96rpx;
+  border-radius: 50%;
+  border: 2rpx dashed rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.seat-empty-ring:active {
+  border-color: rgba(10, 132, 255, 0.4);
+}
+
+.seat-empty-plus {
+  font-size: 40rpx;
   color: rgba(255, 255, 255, 0.2);
   font-weight: 300;
 }
 
-/* 选中光环 */
-.seat-ring-glow {
-  position: absolute;
-  inset: -8rpx;
-  border-radius: 50%;
-  border: 2rpx solid rgba(79, 140, 255, 0.5);
-  animation: seatPulseGlow 1.5s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes seatPulseGlow {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(1.06); }
-}
-
 /* ===== 昵称 ===== */
 .seat-name {
-  font-size: 22rpx;
+  font-size: 20rpx;
   color: rgba(255, 255, 255, 0.55);
-  max-width: 120rpx;
+  max-width: 140rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+  text-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.6);
 }
 
 .seat-me .seat-name {
-  color: rgba(79, 140, 255, 0.8);
+  color: rgba(10, 132, 255, 0.85);
   font-weight: 500;
 }
 
-/* ===== 分数 ===== */
-.seat-score-wrap {
-  min-height: 36rpx;
+/* ===== 积分牌 ===== */
+.seat-score-pill {
+  min-width: 72rpx;
+  height: 36rpx;
+  padding: 0 14rpx;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .seat-score {
-  font-size: 28rpx;
+  font-size: 22rpx;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  letter-spacing: 0.5rpx;
-  /* 等宽字体保证数字不跳动 */
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
+  letter-spacing: 0.5rpx;
 }
 
 .score-pos {
-  /* 正数：高饱和橙 */
   color: #ff8a65;
   text-shadow: 0 0 12rpx rgba(255, 138, 101, 0.25);
 }
 
 .score-neg {
-  /* 负数：亮红 */
   color: #ff6b6b;
   text-shadow: 0 0 12rpx rgba(255, 107, 107, 0.25);
 }
@@ -277,7 +249,6 @@
   color: rgba(255, 255, 255, 0.25);
 }
 
-/* 主视角分数加粗高亮 */
 .seat-me .score-pos {
   color: #ffab91;
   text-shadow: 0 0 16rpx rgba(255, 171, 145, 0.3);
@@ -288,128 +259,283 @@
   text-shadow: 0 0 16rpx rgba(255, 138, 138, 0.3);
 }
 
-/* ===== 座位编号（调试） ===== */
-.seat-idx {
+/* ===== Layer 3: HUD ===== */
+.hud-layer {
   position: absolute;
-  top: -4rpx;
-  right: -4rpx;
-  width: 28rpx;
-  height: 28rpx;
-  border-radius: 50%;
-  background: rgba(79, 140, 255, 0.3);
+  bottom: 40rpx;
+  left: 0; right: 0;
+  z-index: 50;
   display: flex;
-  align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
-.seat-idx-text {
-  font-size: 16rpx;
-  color: #fff;
-  font-weight: 600;
-}
-
-/* ===== 底部操作栏 ===== */
-.seat-actions {
-  position: absolute;
-  bottom: 16rpx;
-  left: 50%;
-  transform: translateX(-50%);
+.hud-actions {
   display: flex;
   gap: 16rpx;
-  z-index: 5;
+  pointer-events: auto;
 }
 
-.seat-action-btn {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: 12rpx 24rpx;
+.hud-btn {
+  padding: 12rpx 28rpx;
   background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1rpx solid rgba(255, 255, 255, 0.08);
-  border-radius: 32rpx;
+  border-radius: 999px;
   transition: all 0.2s ease;
 }
 
-.seat-action-btn:active {
+.hud-btn:active {
   background: rgba(255, 255, 255, 0.12);
   transform: scale(0.95);
 }
 
-.seat-action-icon {
-  width: 24rpx;
-  height: 24rpx;
+.hud-btn-active {
+  background: rgba(10, 132, 255, 0.15);
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.hud-btn-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hud-btn-active .hud-btn-text {
+  color: rgba(10, 132, 255, 0.9);
+}
+
+/* ===== Layer 4: 模态层 ===== */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(10, 10, 10, 0.6);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.modal-mask.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ===== 成员选择器 ===== */
+.modal-sheet {
+  position: fixed;
+  left: 0; bottom: 0;
+  width: 100%;
+  max-height: 75vh;
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 32rpx 32rpx 0 0;
+  z-index: 101;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-sheet.visible {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx 32rpx 24rpx;
   position: relative;
+  flex-shrink: 0;
 }
 
-.icon-animation-on::after,
-.icon-animation-off::after {
-  content: '';
-  position: absolute;
-  left: 2rpx;
-  top: 2rpx;
-  width: 20rpx;
-  height: 20rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.6);
-  border-radius: 4rpx;
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
 }
 
-.icon-animation-on::before {
-  content: '';
+.modal-close {
   position: absolute;
-  left: 8rpx;
-  top: 6rpx;
-  width: 8rpx;
-  height: 8rpx;
-  background: rgba(255, 255, 255, 0.6);
+  right: 32rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56rpx; height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  z-index: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
 }
 
-.icon-animation-off::before {
+.modal-close::before,
+.modal-close::after {
   content: '';
   position: absolute;
-  left: 4rpx;
-  top: 10rpx;
-  width: 16rpx;
-  height: 2rpx;
-  background: rgba(255, 255, 255, 0.6);
-  transform: rotate(-45deg);
-  z-index: 1;
+  width: 24rpx; height: 2rpx;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 1rpx;
 }
 
-.seat-action-text {
+.modal-close::before { transform: rotate(45deg); }
+.modal-close::after { transform: rotate(-45deg); }
+
+.modal-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 32rpx 48rpx;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-empty {
+  text-align: center;
+  padding: 80rpx 0;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 28rpx;
+}
+
+.modal-member {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16rpx;
+  transition: background 0.2s ease;
+}
+
+.modal-member:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-avatar {
+  width: 72rpx; height: 72rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-avatar image {
+  width: 100%; height: 100%;
+}
+
+.modal-avatar-char {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.modal-nickname {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 操作菜单 ===== */
+.action-menu {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  min-width: 320rpx;
+  background: rgba(20, 20, 20, 0.92);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 24rpx;
+  z-index: 101;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.25s ease;
+  overflow: hidden;
+}
+
+.action-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.action-header {
+  padding: 28rpx 32rpx 20rpx;
+  text-align: center;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.action-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.action-score {
+  display: block;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 4rpx;
+  font-family: "SF Mono", "Menlo", monospace;
 }
 
-/* ===== 呼吸灯动画（空座位吸引点击） ===== */
-.seat-empty .seat-avatar-ring {
-  animation: emptyBreath 3s ease-in-out infinite;
+.action-item {
+  padding: 28rpx 32rpx;
+  transition: background 0.15s ease;
 }
 
-/* ===== 编辑模式 ===== */
-.seat-editable {
-  cursor: grab;
+.action-item:active {
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.seat-editable:active {
-  transform: scale(0.95) !important;
+.action-item + .action-item {
+  border-top: 1rpx solid rgba(255, 255, 255, 0.04);
 }
 
-.seat-edit-selected .seat-avatar-ring {
-  border-color: rgba(255, 200, 0, 0.7);
-  box-shadow: 0 0 24rpx rgba(255, 200, 0, 0.3);
-  animation: editPulse 1.2s ease-in-out infinite;
+.action-item-text {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-@keyframes editPulse {
-  0%, 100% { box-shadow: 0 0 24rpx rgba(255, 200, 0, 0.3); }
-  50% { box-shadow: 0 0 40rpx rgba(255, 200, 0, 0.5); }
+.action-item-text.danger {
+  color: #ff6b6b;
 }
 
-@keyframes emptyBreath {
-  0%, 100% { border-color: rgba(255, 255, 255, 0.1); }
-  50% { border-color: rgba(255, 255, 255, 0.25); }
+.action-cancel {
+  padding: 24rpx;
+  text-align: center;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.action-cancel-text {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ===== 动效静默 ===== */
+.reduce-motion .seat-node,
+.reduce-motion .seat-billboard,
+.reduce-motion .seat-avatar-ring,
+.reduce-motion .seat-score-pill,
+.reduce-motion .modal-mask,
+.reduce-motion .modal-sheet,
+.reduce-motion .modal-member,
+.reduce-motion .action-menu,
+.reduce-motion .action-item,
+.reduce-motion .hud-btn {
+  animation: none !important;
+  transition: none !important;
 }

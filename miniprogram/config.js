@@ -3,7 +3,7 @@
  */
 const ENV = {
   local: {
-    baseUrl: 'http://localhost:18080/api'
+    baseUrl: 'http://192.168.31.166:18080/api'
   },
   dev: {
     baseUrl: 'http://8.148.245.54:18080/api'

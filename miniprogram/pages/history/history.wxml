@@ -1,0 +1,40 @@
+<view class="page-container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:elif="{{rooms.length === 0}}">
+    <text class="empty-text">暂无历史记录</text>
+    <text class="empty-hint">结算后的房间会出现在这里</text>
+  </view>
+
+  <!-- 房间列表 -->
+  <view class="room-list" wx:else>
+    <view
+      class="room-card"
+      wx:for="{{rooms}}"
+      wx:key="roomId"
+      data-room-id="{{item.roomId}}"
+      bindtap="onRoomTap"
+    >
+      <view class="room-header">
+        <text class="room-no">{{item.roomNo}}</text>
+        <text class="room-time">{{item.updatedAt}}</text>
+      </view>
+      <view class="room-members">
+        <view
+          class="member-tag"
+          wx:for="{{item.members}}"
+          wx:for-item="m"
+          wx:key="userId"
+        >
+          <text class="member-name">{{m.nickname}}</text>
+          <text class="member-score {{m.finalScore > 0 ? 'positive' : m.finalScore < 0 ? 'negative' : ''}}">{{m.finalScore > 0 ? '+' : ''}}{{m.finalScore || 0}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

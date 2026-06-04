@@ -31,6 +31,10 @@ public class TtsService {
     }
 
     private byte[] doSynthesize(String text, String activeVoice, String rate, String pitch) {
+        // 输入白名单过滤：仅允许中文、字母、数字、常见标点和空格
+        String sanitized = text.replaceAll("[^\\u4e00-\\u9fa5a-zA-Z0-9\\s,\\.!?;:()\\-+*/=]", "");
+        if (sanitized.isBlank()) return null;
+
         String id = UUID.randomUUID().toString();
         String tmpDir = System.getProperty("java.io.tmpdir");
         String rawFile = tmpDir + "/tts_raw_" + id + ".mp3";
@@ -43,7 +47,7 @@ public class TtsService {
             cmd.add("--voice");
             cmd.add(activeVoice);
             cmd.add("--text");
-            cmd.add(text);
+            cmd.add(sanitized);
             cmd.add("--write-media");
             cmd.add(rawFile);
             if (rate != null && !rate.isBlank()) {

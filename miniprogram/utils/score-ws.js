@@ -65,11 +65,16 @@ class ScoreWS {
       }
     });
 
-    this.socketTask.onClose(() => {
+    this.socketTask.onClose((res) => {
       console.log('[WS] 已断开');
       this.isConnected = false;
       this.isConnecting = false;
       this.socketTask = null;
+      // 被服务器踢出（封禁/注销）
+      if (res && res.code === 4003) {
+        this._emit('kicked', res);
+        return;
+      }
       this._emit('close');
       // 自动重连（仅在非手动关闭时）
       if (!this.manualClose && this.roomId) {
@@ -81,6 +86,7 @@ class ScoreWS {
       console.error('[WS] 错误', err);
       this.isConnected = false;
       this.isConnecting = false;
+      this._emit('error', err);
     });
   }
 

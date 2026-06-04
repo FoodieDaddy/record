@@ -16,7 +16,7 @@ public interface ScoreService {
     List<ScoreBatchResp> getRoomRecentScores(Long roomId, Integer count);
 
     /** 结束对局，数据归档 */
-    void settleRoom(Long userId, Long roomId);
+    SettleResp settleRoom(Long userId, Long roomId, boolean autoSettled);
 
     /** 获取房间折线图数据 */
     ChartDataResp getChartData(Long roomId);

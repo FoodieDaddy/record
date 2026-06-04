@@ -2,8 +2,8 @@
   <!-- 头部统计 -->
   <view class="gallery-header">
     <view class="header-left">
-      <text class="gallery-title">图库</text>
-      <text class="text-secondary text-sm" wx:if="{{images.length > 0}}">共 {{images.length}} 张凭证</text>
+      <text class="gallery-title"></text>
+      <text class="text-secondary text-sm" wx:if="{{images.length > 0}}">共 {{images.length}} 张</text>
     </view>
   </view>
 
@@ -14,15 +14,15 @@
     </view>
   </view>
 
-  <!-- 空状态 -->
+  <!-- 空状态：开发中 -->
   <view wx:elif="{{images.length === 0 && !loading}}" class="empty-gallery">
     <view class="empty-illustration">
       <view class="empty-circle">
-        <view class="svg-icon svg-icon--image"></view>
+        <view class="icon-lock-gallery"></view>
       </view>
     </view>
-    <text class="text-lg text-bold" style="margin-bottom:8rpx;">暂无图片</text>
-    <text class="text-secondary text-sm">开始记分后自动生成</text>
+    <text class="text-lg text-bold" style="margin-bottom:8rpx;color:rgba(255,255,255,0.5);">图库 开发中</text>
+    <text class="text-secondary text-sm" style="color:rgba(255,255,255,0.35);">未来将支持全局战绩长图与高光时刻导出</text>
   </view>
 
   <!-- 图片网格 -->

@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 音色目录 API
@@ -37,12 +39,13 @@ public class VoiceController {
     @GetMapping("/preview")
     @Operation(summary = "试听音色", description = "返回预录制的音色试听音频")
     public void preview(@RequestParam String file, HttpServletResponse response) throws IOException {
-        // 防止路径穿越
-        if (file.contains("..") || file.contains("/") || file.contains("\\")) {
+        // 防止路径穿越（先 URL decode 再检查）
+        String decoded = URLDecoder.decode(file, StandardCharsets.UTF_8);
+        if (decoded.contains("..") || decoded.contains("/") || decoded.contains("\\")) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
-        Resource resource = new ClassPathResource("static/voices/" + file);
+        Resource resource = new ClassPathResource("static/voices/" + decoded);
         if (!resource.exists()) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;

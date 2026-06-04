@@ -1,8 +1,6 @@
 package com.smartrecord.service;
 
-import com.smartrecord.dto.user.LoginReq;
-import com.smartrecord.dto.user.LoginResp;
-import com.smartrecord.dto.user.UserInfoResp;
+import com.smartrecord.dto.user.*;
 
 public interface UserService {
 
@@ -11,4 +9,8 @@ public interface UserService {
     UserInfoResp getUserInfo(Long userId);
 
     void updateUserInfo(Long userId, String nickname, String avatarUrl);
+
+    UserDetailResp getUserDetail(Long userId);
+
+    void updateUserDetail(Long userId, UpdateUserDetailReq req);
 }

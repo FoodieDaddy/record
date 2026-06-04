@@ -17,4 +17,7 @@ public class UserInfoResp {
 
     @Schema(description = "头像 URL", example = "https://bucket.oss-cn-hangzhou.aliyuncs.com/avatar/abc.jpg")
     private String avatarUrl;
+
+    @Schema(description = "用户设置")
+    private UserDetailResp userDetail;
 }

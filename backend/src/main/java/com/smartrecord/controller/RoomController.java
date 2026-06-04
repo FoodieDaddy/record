@@ -90,6 +90,13 @@ public class RoomController {
         return Result.ok();
     }
 
+    @Operation(summary = "历史房间", description = "当前用户参与过的已结算房间")
+    @GetMapping("/history")
+    public Result<List<RoomResp>> getHistory(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(roomService.getHistory(userId));
+    }
+
     @Operation(summary = "更新座位布局", description = "仅房主可操作，切换座位排列方式")
     @PutMapping("/{roomId}/layout")
     public Result<Void> updateLayout(

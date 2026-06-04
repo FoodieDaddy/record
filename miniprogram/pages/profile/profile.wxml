@@ -11,6 +11,9 @@
 
   <!-- 已登录 -->
   <view wx:else>
+    <!-- 底层环境光晕（绝对定位，不参与滚动） -->
+    <view class="profile-card__glow" aria-hidden="true"></view>
+
     <!-- Top Card: 个人资料区 -->
     <view class="glass-card-glow profile-card">
       <button class="profile-card__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
@@ -28,7 +31,7 @@
           type="nickname"
           value="{{nickname}}"
           placeholder="输入昵称"
-          maxlength="20"
+          maxlength="6"
           bindinput="onNicknameInput"
           bindblur="onNicknameBlur"
         />
@@ -70,7 +73,11 @@
           <text class="settings-card__row-label">计分语音播报</text>
           <text class="settings-card__row-desc">计分后自动语音通知</text>
         </view>
-        <switch class="settings-card__switch" checked="{{voiceEnabled}}" bindchange="onVoiceToggle" color="#0A84FF" />
+        <view class="custom-switch {{voiceEnabled ? 'custom-switch--on' : ''}}" bindtap="onVoiceToggle">
+          <view class="custom-switch__track">
+            <view class="custom-switch__thumb"></view>
+          </view>
+        </view>
       </view>
 
       <!-- 具体音色选择入口（随开关折叠） -->
@@ -85,12 +92,29 @@
       </view>
 
       <!-- 计分动画 -->
-      <view class="settings-card__row settings-card__row--last">
+      <view class="settings-card__row">
         <view class="settings-card__row-info">
           <text class="settings-card__row-label">计分动画</text>
           <text class="settings-card__row-desc">计分时显示积分飞行动画</text>
         </view>
-        <switch class="settings-card__switch" checked="{{animationEnabled}}" bindchange="onAnimationToggle" color="#0A84FF" />
+        <view class="custom-switch {{animationEnabled ? 'custom-switch--on' : ''}}" bindtap="onAnimationToggle">
+          <view class="custom-switch__track">
+            <view class="custom-switch__thumb"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 震动反馈 -->
+      <view class="settings-card__row settings-card__row--last">
+        <view class="settings-card__row-info">
+          <text class="settings-card__row-label">震动反馈</text>
+          <text class="settings-card__row-desc">操作时触发轻微震动</text>
+        </view>
+        <view class="custom-switch {{vibrateEnabled ? 'custom-switch--on' : ''}}" bindtap="onVibrateToggle">
+          <view class="custom-switch__track">
+            <view class="custom-switch__thumb"></view>
+          </view>
+        </view>
       </view>
     </view>
 

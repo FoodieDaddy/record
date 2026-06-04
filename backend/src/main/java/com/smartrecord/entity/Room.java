@@ -29,6 +29,9 @@ public class Room {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private List<Map<String, Object>> allRecord;
 
+    /** 最后一次记分/转账时间（超时判断依据） */
+    private LocalDateTime lastActiveAt;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 

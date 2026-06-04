@@ -2,109 +2,91 @@ const { getColor, getFirstChar } = require('../../utils/avatar')
 const app = getApp()
 
 /**
- * 座位模式自定义组件
+ * 2.5D 座位模式组件 — 纯 CSS3 透视架构
  *
  * 核心算法：第一人称主视角锚定
- *   相对偏移 = (absoluteIndex - myIndex + N) % N
- *   当前用户永远在 6 点钟方向（relIndex == 0）
+ *   relIndex = (absoluteIndex - myIndex + N) % N
+ *   当前用户永远渲染在 relIndex == 0（屏幕正下方）
  *
- * 性能约束：
- *   - 坐标仅初始化计算一次，后续只改 transform
- *   - 所有位移用 translate3d + will-change 触发 GPU 加速
- *   - 数字滚动走 WXS 视图层，避免 setData
- *   - wx:key="userId" 确保节点高效复用
+ * 布局：百分比坐标定位在 perspective 容器上
+ *   桌面 rotateX(60deg) + 座位 counter-rotateX(-60deg) = 广告牌效应
  */
 
-// 圆桌半径比例（相对容器短边）
-const TABLE_RADIUS_RATIO = 0.30
-// 最大座位数
-const MAX_SEATS = 8
-// 座位宽度的一半（rpx），用于居中偏移
-const HALF_SEAT_RPX = 60
-// 分数滚动动画时长
 const SCORE_ROLL_DURATION = 600
 
 Component({
   properties: {
-    /** 成员列表 [{ userId, nickname, avatarUrl }] */
     members: { type: Array, value: [] },
-    /** 分数映射 { [userId]: score } */
     scoreMap: { type: Object, value: {} },
-    /** 当前用户 ID */
     myUserId: { type: String, value: '' },
-    /** 房间最大座位数（默认 16） */
     maxSeats: { type: Number, value: 16 },
-    /** 表面标签文字 */
     tableLabel: { type: String, value: '' },
-    /** 显示调试信息 */
-    showDebug: { type: Boolean, value: false },
-    /** 显示底部操作栏 */
-    showActions: { type: Boolean, value: false },
-    /** 布局类型: 'circle' | 'rectangle' | 'arc' */
     layoutType: { type: String, value: 'circle' },
-    /** 是否处于编辑模式（房主调整座位） */
-    editMode: { type: Boolean, value: false },
-    /** 编辑模式中被选中的用户 ID */
-    editSelectedUserId: { type: String, value: '' }
+    showDebug: { type: Boolean, value: false },
+    showActions: { type: Boolean, value: false },
+    isOwner: { type: Boolean, value: false },
+    waitingList: { type: Array, value: [] }
   },
 
   data: {
     seats: [],
-    animationEnabled: true
+    animationEnabled: true,
+    editMode: false,
+    showPicker: false,
+    pickerSeatIndex: -1,
+    showActionMenu: false,
+    actionTarget: { userId: '', nickname: '', score: 0 }
   },
 
   observers: {
     'members, scoreMap, myUserId, maxSeats': function (members, scoreMap, myUserId, maxSeats) {
       if (!members || members.length === 0) return
-      this._buildSeats(members, scoreMap, myUserId, maxSeats)
-    },
-    'layoutType': function () {
-      this._seatCoords = []
-      this._coordContainerW = 0
-      this._coordLayout = ''
-      const N = (this.data.members || []).length
-      const M = Math.max(N, this.data.maxSeats || N)
-      if (N > 0) this._calcCoords(M)
+      try {
+        this._buildSeats(members, scoreMap, myUserId, maxSeats)
+      } catch (err) {
+        console.error('[seat-mode] observer 异常', err)
+      }
     }
   },
 
   lifetimes: {
     attached() {
-      this._seatCoords = []
       this._animTimers = {}
       this._myIndex = -1
       this.setData({
         animationEnabled: app.globalData.animationEnabled !== false
       })
     },
-
+    ready() {
+      try {
+        const { members, scoreMap, myUserId, maxSeats } = this.data
+        if (members && members.length > 0 && (!this.data.seats || this.data.seats.length === 0)) {
+          this._buildSeats(members, scoreMap, myUserId, maxSeats)
+        }
+      } catch (err) {
+        console.error('[seat-mode] ready 异常', err)
+      }
+    },
     detached() {
-      // 清理所有动画定时器
       Object.values(this._animTimers).forEach(t => clearTimeout(t))
       this._animTimers = {}
-      if (this._scoreRaf) {
-        clearTimeout(this._scoreRaf)
-        this._scoreRaf = null
-      }
+      if (this._scoreRaf) { clearTimeout(this._scoreRaf); this._scoreRaf = null }
     }
   },
 
   methods: {
-    /**
-     * 构建座位数据
-     * 核心：第一人称视角转换算法
-     * 坐标按 maxSeats 布局，空位渲染为虚线占位
-     */
+    // ========== 座位构建 ==========
+
     _buildSeats(members, scoreMap, myUserId, maxSeats) {
       const N = members.length
       const M = Math.max(N, maxSeats || N)
       const myIndex = members.findIndex(m => String(m.userId) === String(myUserId))
       this._myIndex = myIndex
 
-      // 布局坐标基于 maxSeats，保证空位也有坐标
-      this._calcCoords(M)
+      // 计算 2D 百分比坐标
+      const positions = this._layoutSeats(this.data.layoutType || 'circle', M)
 
-      // 构建成员按相对位置的映射
+      // 第一人称映射：relIndex = (i - myIndex + M) % M
       const memberMap = {}
       members.forEach((member, i) => {
         const relIndex = (i - myIndex + M) % M
@@ -113,7 +95,7 @@ Component({
 
       const seats = []
       for (let rel = 0; rel < M; rel++) {
-        const coord = this._seatCoords[rel] || { x: 0, y: 0 }
+        const pos = positions[rel] || { x: 50, y: 50 }
         const member = memberMap[rel]
 
         if (member) {
@@ -135,12 +117,10 @@ Component({
             isHighlight: false,
             absIndex: members.indexOf(member),
             index: members.indexOf(member),
-            x: coord.x,
-            y: coord.y,
-            transform: `translate3d(${coord.x}px,${coord.y}px,0)`
+            posX: pos.x,
+            posY: pos.y
           })
         } else {
-          // 空座位占位
           seats.push({
             userId: `_empty_${rel}`,
             nickname: '',
@@ -155,185 +135,96 @@ Component({
             isHighlight: false,
             absIndex: -1,
             index: -1,
-            x: coord.x,
-            y: coord.y,
-            transform: `translate3d(${coord.x}px,${coord.y}px,0)`
+            posX: pos.x,
+            posY: pos.y
           })
         }
       }
 
       this._prevSeats = seats
       this.setData({ seats })
-
-      // 触发分数滚动动画
       this._animateScores(members, scoreMap)
     },
 
-    /**
-     * 计算座位坐标（容器中心为原点）
-     * 仅在座位数变化、布局变化或首次渲染时计算
-     */
-    _calcCoords(N) {
-      if (!this._seatCoords) this._seatCoords = []
-      // 缓存命中：同 N、同布局、容器尺寸未变
-      if (this._seatCoords.length === N && this._coordContainerW && this._coordLayout === this.data.layoutType) return
+    // ========== 布局算法（百分比坐标） ==========
 
-      const query = this.createSelectorQuery()
-      query.select('#seatArena').boundingClientRect()
-      query.exec((res) => {
-        if (!res || !res[0] || !res[0].width) {
-          if (!this._coordRetryCount) this._coordRetryCount = 0
-          if (this._coordRetryCount < 10) {
-            this._coordRetryCount++
-            setTimeout(() => this._calcCoords(N), 100)
-          }
-          return
-        }
-        this._coordRetryCount = 0
-        const rect = res[0]
-        this._coordContainerW = rect.width
-        this._coordLayout = this.data.layoutType
-        this._seatCoords = this._layoutCoords(this.data.layoutType, N, rect)
-
-        // 坐标就绪后重新渲染
-        const members = this.data.members
-        const scoreMap = this.data.scoreMap
-        const myUserId = this.data.myUserId
-        if (members && members.length > 0) {
-          this._buildSeats(members, scoreMap, myUserId, this.data.maxSeats)
-        }
-      })
+    _layoutSeats(type, N) {
+      if (type === 'rectangle') return this._rectangleLayout(N)
+      if (type === 'arc') return this._arcLayout(N)
+      return this._circleLayout(N)
     },
 
-    /**
-     * rpx 转换为 CSS px
-     */
-    _rpx2px(rpx) {
-      if (!this._pxPerRpx) {
-        const deviceInfo = wx.getDeviceInfo()
-        this._pxPerRpx = deviceInfo.screenWidth / 750
-      }
-      return rpx * this._pxPerRpx
-    },
-
-    /**
-     * 布局算法分派
-     */
-    _layoutCoords(type, N, rect) {
-      const cx = rect.width / 2
-      const cy = rect.height / 2
-      const halfSeat = this._rpx2px(HALF_SEAT_RPX)
-
-      if (type === 'rectangle') {
-        return this._rectangleLayout(N, rect, cx, cy, halfSeat)
-      }
-      if (type === 'arc') {
-        return this._arcLayout(N, rect, cx, cy, halfSeat)
-      }
-      // 默认圆形
-      return this._circleLayout(N, rect, cx, cy, halfSeat)
-    },
-
-    /** 圆桌布局：均匀环形分布 */
-    _circleLayout(N, rect, cx, cy, halfSeat) {
-      const radius = Math.min(rect.width, rect.height) * TABLE_RADIUS_RATIO
+    _circleLayout(N) {
+      const R = 38 // 半径百分比
+      const cx = 50, cy = 50
       const coords = []
       for (let i = 0; i < N; i++) {
-        const angle = (90 + i * (360 / N)) * Math.PI / 180
+        // 从底部（6 点钟）开始顺时针
+        const angle = (Math.PI / 2) + i * (2 * Math.PI / N)
         coords.push({
-          x: Math.round(cx + radius * Math.cos(angle) - halfSeat),
-          y: Math.round(cy + radius * Math.sin(angle) - halfSeat)
+          x: cx + R * Math.cos(angle),
+          y: cy + R * Math.sin(angle)
         })
       }
       return coords
     },
 
-    /**
-     * 长桌布局：矩形围坐
-     * 座位沿矩形四边分布，底边（靠近自己）座多人少，对面座少人多
-     * N=2: 上下各1  N=4: 上下各2  N=6: 上下各2+左右各1  N=8: 上下各2+左右各2
-     */
-    _rectangleLayout(N, rect, cx, cy, halfSeat) {
+    _rectangleLayout(N) {
       const coords = []
-      const padX = rect.width * 0.12
-      const padY = rect.height * 0.1
-      const left = padX
-      const right = rect.width - padX
-      const top = padY
-      const bottom = rect.height - padY
+      const hw = 36, hd = 30 // 半宽、半深百分比
+      const cx = 50, cy = 50
 
-      // 计算每边分配的座位数
-      // 优先底边和顶边，多余放左右
       let bottomN, topN, leftN, rightN
-      if (N <= 2) {
-        bottomN = 1; topN = N - 1; leftN = 0; rightN = 0
-      } else if (N <= 4) {
-        bottomN = Math.ceil(N / 2); topN = N - bottomN; leftN = 0; rightN = 0
-      } else if (N <= 6) {
-        bottomN = 2; topN = 2; leftN = Math.floor((N - 4) / 2); rightN = N - 4 - leftN
-      } else {
-        bottomN = 2; topN = 2; leftN = Math.floor((N - 4) / 2); rightN = N - 4 - leftN
-      }
+      if (N <= 2) { bottomN = 1; topN = N - 1; leftN = 0; rightN = 0 }
+      else if (N <= 4) { bottomN = Math.ceil(N / 2); topN = N - bottomN; leftN = 0; rightN = 0 }
+      else { bottomN = 2; topN = 2; leftN = Math.floor((N - 4) / 2); rightN = N - 4 - leftN }
 
-      // 底边：从左到右（靠近用户）
+      // 底边（近摄像机）
       for (let i = 0; i < bottomN; i++) {
-        const x = bottomN === 1 ? cx : left + (right - left) * i / (bottomN - 1)
-        coords.push({ x: Math.round(x - halfSeat), y: Math.round(bottom - halfSeat) })
+        const x = bottomN === 1 ? cx : cx - hw + 2 * hw * i / (bottomN - 1)
+        coords.push({ x, y: cy + hd })
       }
-      // 右边：从下到上
+      // 右边
       for (let i = 0; i < rightN; i++) {
-        const y = rightN === 1 ? cy : bottom - (bottom - top) * i / (rightN - 1)
-        coords.push({ x: Math.round(right - halfSeat), y: Math.round(y - halfSeat) })
+        const y = rightN === 1 ? cy : cy + hd - 2 * hd * i / (rightN - 1)
+        coords.push({ x: cx + hw, y })
       }
-      // 顶边：从右到左（对面）
+      // 顶边
       for (let i = 0; i < topN; i++) {
-        const x = topN === 1 ? cx : right - (right - left) * i / (topN - 1)
-        coords.push({ x: Math.round(x - halfSeat), y: Math.round(top - halfSeat) })
+        const x = topN === 1 ? cx : cx + hw - 2 * hw * i / (topN - 1)
+        coords.push({ x, y: cy - hd })
       }
-      // 左边：从上到下
+      // 左边
       for (let i = 0; i < leftN; i++) {
-        const y = leftN === 1 ? cy : top + (bottom - top) * i / (leftN - 1)
-        coords.push({ x: Math.round(left - halfSeat), y: Math.round(y - halfSeat) })
+        const y = leftN === 1 ? cy : cy - hd + 2 * hd * i / (leftN - 1)
+        coords.push({ x: cx - hw, y })
       }
       return coords
     },
 
-    /**
-     * 半弧布局：底部宽弧展开
-     * 自己在弧底中央，其他人向两侧展开
-     * 弧度随人数增多而变宽
-     */
-    _arcLayout(N, rect, cx, cy, halfSeat) {
+    _arcLayout(N) {
+      const R = 40
+      const cx = 50, cy = 55
       const coords = []
-      const radius = Math.min(rect.width, rect.height) * 0.42
       if (N === 1) {
-        coords.push({ x: Math.round(cx - halfSeat), y: Math.round(cy + radius * 0.3 - halfSeat) })
+        coords.push({ x: cx, y: cy - R * 0.3 })
         return coords
       }
-      // 根据人数调整弧的跨度：人少窄弧，人多宽弧
-      // N=2: ±20°  N=4: ±50°  N=6: ±70°  N=8: ±80°
-      const halfSpan = Math.min(20 + (N - 2) * 10, 80)
-      const startAngle = 270 - halfSpan
-      const endAngle = 270 + halfSpan
+      const halfSpan = Math.min(20 + (N - 2) * 10, 80) * Math.PI / 180
       for (let i = 0; i < N; i++) {
-        const angle = (startAngle + (endAngle - startAngle) * (i / (N - 1))) * Math.PI / 180
+        const angle = (Math.PI / 2 - halfSpan) + 2 * halfSpan * i / (N - 1)
         coords.push({
-          x: Math.round(cx + radius * Math.cos(angle) - halfSeat),
-          y: Math.round(cy + radius * Math.sin(angle) - halfSeat)
+          x: cx + R * Math.cos(angle),
+          y: cy - R * Math.sin(angle)
         })
       }
       return coords
     },
 
-    /**
-     * 分数滚动动画
-     * 分两阶段：
-     * 1. 粒子动画阶段 — 保持旧分（由外部 transfer 动画控制）
-     * 2. 滚动阶段 — 从旧值缓动到新值
-     */
+    // ========== 分数动画 ==========
+
     _animateScores(members, scoreMap) {
       if (!this.data.animationEnabled) {
-        // 非动画模式，直接设置最终值
         const seats = this.data.seats.map(s => {
           if (s.isEmpty) return s
           const score = scoreMap[s.userId] || 0
@@ -343,7 +234,6 @@ Component({
         return
       }
 
-      // 找出分数变化的座位
       const changed = []
       const prevSeats = this._prevSeats || []
       members.forEach(m => {
@@ -357,7 +247,6 @@ Component({
 
       if (changed.length === 0) return
 
-      // 启动滚动动画
       const startTime = Date.now()
       const roll = () => {
         const elapsed = Date.now() - startTime
@@ -365,7 +254,6 @@ Component({
         const seats = this.data.seats.map(s => {
           const ch = changed.find(c => c.userId === s.userId)
           if (!ch) return s
-          // easeOutExpo
           const ease = progress >= 1 ? 1 : 1 - Math.pow(2, -10 * progress)
           const current = Math.round(ch.from + (ch.to - ch.from) * ease)
           return { ...s, animValue: current }
@@ -375,7 +263,6 @@ Component({
         if (progress < 1) {
           this._scoreRaf = setTimeout(roll, 16)
         } else {
-          // 确保最终值精确
           const finalSeats = this.data.seats.map(s => {
             const ch = changed.find(c => c.userId === s.userId)
             if (!ch) return s
@@ -389,66 +276,14 @@ Component({
       this._scoreRaf = setTimeout(roll, 16)
     },
 
-    /**
-     * 点击座位
-     * - 编辑模式：触发 editseat（房主调整座位）
-     * - 普通模式：触发 tapseat（计分等）
-     */
-    onTapSeat(e) {
-      const { userId, index } = e.currentTarget.dataset
-      try { wx.vibrateShort({ type: 'light' }) } catch (err) {}
+    // ========== 外部方法 ==========
 
-      if (this.data.editMode) {
-        this.triggerEvent('editseat', { userId, index })
-        return
-      }
-
-      this.triggerEvent('tapseat', { userId, index })
-    },
-
-
-    /**
-     * 头像加载失败兜底
-     */
-    onAvatarError(e) {
-      const userId = e.currentTarget.dataset.userId
-      const seats = this.data.seats.map(s => {
-        if (s.userId === userId) {
-          return {
-            ...s,
-            avatarUrl: '',
-            avatarColor: getColor(s.nickname),
-            avatarChar: getFirstChar(s.nickname)
-          }
-        }
-        return s
-      })
-      this.setData({ seats })
-    },
-
-    /**
-     * 切换动画开关
-     */
-    onToggleAnimation() {
-      const enabled = !this.data.animationEnabled
-      app.globalData.animationEnabled = enabled
-      wx.setStorageSync('animationEnabled', enabled)
-      this.setData({ animationEnabled: enabled })
-      this.triggerEvent('animationchange', { enabled })
-    },
-
-    /**
-     * 外部调用：更新分数（带滚动动画）
-     */
     updateScores(scoreMap) {
       const members = this.data.members
       if (!members || members.length === 0) return
       this._animateScores(members, scoreMap)
     },
 
-    /**
-     * 外部调用：触发分数滚动（粒子动画结束后调用）
-     */
     rollScore(userId, fromScore, toScore) {
       if (!this.data.animationEnabled) {
         const seats = this.data.seats.map(s => {
@@ -490,6 +325,78 @@ Component({
       }
 
       this._animTimers[`roll_${userId}`] = setTimeout(roll, 16)
+    },
+
+    // ========== UI 交互 ==========
+
+    onSeatTap(e) {
+      const { userId, isEmpty } = e.currentTarget.dataset
+      if (isEmpty) {
+        // 空位点击 → 打开成员选择器（仅房主）
+        if (!this.data.isOwner) return
+        const index = Number(e.currentTarget.dataset.index)
+        this.setData({ showPicker: true, pickerSeatIndex: index })
+        return
+      }
+      // 已入座点击 → 触发 tapseat 事件（非自己）
+      if (String(userId) === String(this.data.myUserId)) return
+      try { wx.vibrateShort({ type: 'light' }) } catch (err) {}
+      this.triggerEvent('tapseat', { userId, index: Number(e.currentTarget.dataset.index) })
+    },
+
+    onSeatLongPress(e) {
+      const { userId, isEmpty } = e.currentTarget.dataset
+      if (isEmpty) return
+      if (String(userId) === String(this.data.myUserId)) return
+      try { wx.vibrateShort({ type: 'medium' }) } catch (err) {}
+      const seat = (this.data.seats || []).find(s => String(s.userId) === String(userId))
+      if (!seat) return
+      this.setData({
+        showActionMenu: true,
+        actionTarget: { userId: seat.userId, nickname: seat.nickname, score: seat.score }
+      })
+    },
+
+    toggleEditMode() {
+      if (!this.data.isOwner) return
+      const editMode = !this.data.editMode
+      this.setData({ editMode })
+      this.triggerEvent('editmodechange', { editMode })
+    },
+
+    onPickMember(e) {
+      const userId = e.currentTarget.dataset.userId
+      const seatIndex = this.data.pickerSeatIndex
+      this.setData({ showPicker: false, pickerSeatIndex: -1 })
+      this.triggerEvent('assignseat', { userId, seatIndex })
+    },
+
+    closePicker() {
+      this.setData({ showPicker: false, pickerSeatIndex: -1 })
+    },
+
+    onTransfer() {
+      const targetUserId = this.data.actionTarget.userId
+      this.setData({ showActionMenu: false })
+      this.triggerEvent('transfer', { targetUserId })
+    },
+
+    onRemoveSeat() {
+      const targetUserId = this.data.actionTarget.userId
+      this.setData({ showActionMenu: false })
+      this.triggerEvent('removeseat', { targetUserId })
+    },
+
+    closeActionMenu() {
+      this.setData({ showActionMenu: false })
+    },
+
+    onToggleAnimation() {
+      const enabled = !this.data.animationEnabled
+      app.globalData.animationEnabled = enabled
+      wx.setStorageSync('animationEnabled', enabled)
+      this.setData({ animationEnabled: enabled })
+      this.triggerEvent('animationchange', { enabled })
     }
   }
 })

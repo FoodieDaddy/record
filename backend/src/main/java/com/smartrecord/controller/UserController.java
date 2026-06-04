@@ -1,10 +1,7 @@
 package com.smartrecord.controller;
 
 import com.smartrecord.common.Result;
-import com.smartrecord.dto.user.LoginReq;
-import com.smartrecord.dto.user.LoginResp;
-import com.smartrecord.dto.user.UpdateUserReq;
-import com.smartrecord.dto.user.UserInfoResp;
+import com.smartrecord.dto.user.*;
 import com.smartrecord.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,7 +36,7 @@ public class UserController {
     @PutMapping("/me")
     public Result<Void> updateCurrentUser(
             HttpServletRequest request,
-            @RequestBody(required = false) UpdateUserReq body,
+            @Valid @RequestBody(required = false) UpdateUserReq body,
             @Parameter(description = "昵称（query 方式）") @RequestParam(required = false) String nickname,
             @Parameter(description = "头像 URL（query 方式）") @RequestParam(required = false) String avatarUrl) {
         Long userId = (Long) request.getAttribute("currentUserId");
@@ -47,6 +44,23 @@ public class UserController {
         String finalNickname = (body != null && body.getNickname() != null) ? body.getNickname() : nickname;
         String finalAvatarUrl = (body != null && body.getAvatarUrl() != null) ? body.getAvatarUrl() : avatarUrl;
         userService.updateUserInfo(userId, finalNickname, finalAvatarUrl);
+        return Result.ok();
+    }
+
+    @Operation(summary = "获取用户设置")
+    @GetMapping("/detail")
+    public Result<UserDetailResp> getUserDetail(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(userService.getUserDetail(userId));
+    }
+
+    @Operation(summary = "更新用户设置")
+    @PutMapping("/detail")
+    public Result<Void> updateUserDetail(
+            HttpServletRequest request,
+            @RequestBody UpdateUserDetailReq req) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        userService.updateUserDetail(userId, req);
         return Result.ok();
     }
 }

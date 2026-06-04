@@ -1,0 +1,116 @@
+.matrix-wrap {
+  width: 100%;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.matrix-scroll {
+  width: 100%;
+  max-height: 600rpx;
+}
+
+.matrix-table {
+  display: inline-flex;
+  flex-direction: column;
+  min-width: 100%;
+}
+
+.matrix-row {
+  display: inline-flex;
+  flex-direction: row;
+}
+
+.matrix-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 100rpx;
+  height: 80rpx;
+  padding: 8rpx;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* 左上角空格 */
+.corner-cell {
+  min-width: 80rpx;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* 表头列 */
+.header-cell {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.header-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-char {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 行头 */
+.row-header-cell {
+  min-width: 80rpx;
+  background: rgba(255, 255, 255, 0.02);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.row-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-char {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 数据单元格 */
+.data-cell {
+  background: transparent;
+}
+
+/* 对角线单元格 — 高亮 */
+.data-cell.diagonal {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8rpx;
+  margin: 4rpx;
+}
+
+.diagonal-score {
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+/* 分数颜色 */
+.cell-positive .diagonal-score {
+  color: #32D74B;
+}
+
+.cell-negative .diagonal-score {
+  color: #FF453A;
+}
+
+.cell-zero .diagonal-score {
+  color: rgba(255, 255, 255, 0.35);
+}

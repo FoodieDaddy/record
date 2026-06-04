@@ -9,8 +9,8 @@ Page({
   },
 
   onShow() {
-    this.setData({ images: [], page: 1, hasMore: true });
-    this.loadImages();
+    // 图库功能开发中，暂不加载数据
+    this.setData({ images: [], page: 1, hasMore: false, loading: false });
   },
 
   async loadImages() {

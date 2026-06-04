@@ -1,5 +1,6 @@
-const { get, post, put } = require('../../utils/request');
+const { get, post } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
+const nicknameGen = require('../../utils/nickname-generator');
 const app = getApp();
 
 Page({
@@ -22,16 +23,17 @@ Page({
         wx.login({ success: resolve, fail: reject });
       });
 
-      // 后端自动生成昵称（NickNameGenerator），无需前端传入
-      const data = await post('/user/login', { code });
-      app.setLoginInfo(data);
-
-      // 首次登录且无头像时，自动生成头像并上传
-      if (!data.avatarUrl && data.nickname) {
-        this.generateAndUploadAvatar(data.nickname).catch(err => {
-          console.warn('自动生成头像失败', err);
-        });
+      // 前端预生成昵称 + 头像，一并传给登录接口，省掉登录后的单独 UPDATE
+      const nickname = nicknameGen.generate();
+      let avatarUrl = '';
+      try {
+        avatarUrl = await this.generateAndUploadAvatar(nickname);
+      } catch (err) {
+        console.warn('自动生成头像失败，使用默认', err);
       }
+
+      const data = await post('/user/login', { code, nickname, avatarUrl });
+      app.setLoginInfo(data);
 
       wx.showToast({ title: '登录成功', icon: 'success' });
       setTimeout(() => {
@@ -46,7 +48,7 @@ Page({
   },
 
   /**
-   * 用 canvas 根据昵称生成头像，上传到后端，更新用户信息
+   * 用 canvas 根据昵称生成头像，上传到 OSS，返回 avatarUrl
    */
   async generateAndUploadAvatar(nickname) {
     const query = wx.createSelectorQuery();
@@ -61,7 +63,6 @@ Page({
     canvas.height = size;
     const ctx = canvas.getContext('2d');
 
-    // 绘制彩色圆形 + 首字
     const color = getColor(nickname);
     const char = getFirstChar(nickname);
     const radius = size / 2;
@@ -77,7 +78,6 @@ Page({
     ctx.textBaseline = 'middle';
     ctx.fillText(char, radius, radius);
 
-    // 导出为临时文件
     const tempPath = await new Promise((resolve, reject) => {
       wx.canvasToTempFilePath({
         canvas,
@@ -87,15 +87,7 @@ Page({
       });
     });
 
-    // 上传到后端
-    const avatarUrl = await this.uploadToBackend(tempPath);
-
-    // 更新用户信息
-    await put('/user/me', { avatarUrl });
-
-    // 更新全局缓存
-    app.globalData.userInfo = app.globalData.userInfo || {};
-    app.globalData.userInfo.avatarUrl = avatarUrl;
+    return this.uploadToBackend(tempPath);
   },
 
   async uploadToBackend(filePath) {
@@ -128,7 +120,7 @@ Page({
       });
     });
 
-    // 3. 返回 objectKey（不存完整 URL，节省空间）
-    return presignData.objectKey;
+    // 3. 返回完整公开 URL（objectKey 由后端存储，前端需完整 URL 用于图片加载）
+    return presignData.accessUrl || presignData.objectKey;
   }
 });

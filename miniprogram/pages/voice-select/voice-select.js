@@ -27,6 +27,7 @@ Page({
 
   onUnload() {
     audioCtx.stop()
+    audioCtx.destroy()
   },
 
   /** 从后端加载音色目录 */

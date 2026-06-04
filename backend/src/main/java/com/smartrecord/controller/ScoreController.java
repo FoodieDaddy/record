@@ -89,11 +89,10 @@ public class ScoreController {
 
     @Operation(summary = "结束对局", description = "房主操作，数据归档到房间")
     @PostMapping("/room/{roomId}/settle")
-    public Result<Void> settleRoom(
+    public Result<SettleResp> settleRoom(
             HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        scoreService.settleRoom(userId, roomId);
-        return Result.ok();
+        return Result.ok(scoreService.settleRoom(userId, roomId, false));
     }
 }

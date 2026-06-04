@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "结算详情",
+  "usingComponents": {
+    "score-chart": "/components/score-chart/score-chart",
+    "settle-table": "/components/settle-table/settle-table"
+  }
+}

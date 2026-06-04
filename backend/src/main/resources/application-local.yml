@@ -9,5 +9,18 @@ spring:
       host: localhost
       port: 16379
 
+app:
+  jwt:
+    secret: your-256-bit-secret-key-here-change-in-production
+  oss:
+    endpoint: oss-cn-guangzhou.aliyuncs.com
+    access-key-id: LTAI5t8gKSckJYZjUqivuhPi
+    access-key-secret: GfCTwLAUSFerci7Ov5NKGGYS5w8YoE
+    bucket-name: smartrecord
+
+wechat:
+  appid: wx9d93ece2b67f812b
+  secret: 5bcbb76c58c59b466acc90a86e4864c6
+
 tts:
   edge-tts-cmd: /Users/happy/.local/bin/edge-tts

@@ -1,0 +1,31 @@
+<view class="matrix-wrap" wx:if="{{players.length > 0}}">
+  <!-- 水平+垂直可滚动的矩阵容器 -->
+  <scroll-view scroll-x scroll-y class="matrix-scroll" enhanced show-scrollbar="{{false}}">
+    <view class="matrix-table">
+      <!-- 表头行：左上角空格 + 各列玩家头像 -->
+      <view class="matrix-row header-row">
+        <view class="matrix-cell corner-cell"></view>
+        <view class="matrix-cell header-cell" wx:for="{{players}}" wx:key="userId">
+          <view class="header-avatar" style="background: {{item.isMe ? 'rgba(10,132,255,0.3)' : 'rgba(255,255,255,0.08)'}}">
+            <text class="header-char">{{item.firstChar}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 数据行：每行 = 一个玩家 -->
+      <view class="matrix-row" wx:for="{{matrix}}" wx:for-index="rowIdx" wx:key="rowIdx">
+        <!-- 行头：玩家昵称 -->
+        <view class="matrix-cell row-header-cell">
+          <view class="row-avatar" style="background: {{players[rowIdx].isMe ? 'rgba(10,132,255,0.3)' : 'rgba(255,255,255,0.08)'}}">
+            <text class="row-char">{{players[rowIdx].firstChar}}</text>
+          </view>
+        </view>
+        <!-- 各列单元格 -->
+        <view class="matrix-cell data-cell {{cell.isDiagonal ? 'diagonal' : ''}} {{cell.colorClass}}"
+          wx:for="{{item}}" wx:for-item="cell" wx:key="index">
+          <text wx:if="{{cell.isDiagonal}}" class="diagonal-score">{{cell.display}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

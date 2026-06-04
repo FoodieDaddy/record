@@ -1,0 +1,12 @@
+/**
+ * 昵称截断过滤器：超过 6 字符截取前 5 位并补 "..."
+ */
+function truncateName(name) {
+  if (!name) return '';
+  if (name.length > 6) {
+    return name.substring(0, 5) + '...';
+  }
+  return name;
+}
+
+module.exports = { truncateName: truncateName };

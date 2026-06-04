@@ -96,6 +96,27 @@
   border-bottom: 20rpx solid rgba(255, 255, 255, 0.3);
 }
 
+/* 锁图标 */
+.icon-lock-gallery {
+  width: 40rpx;
+  height: 32rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.25);
+  border-radius: 8rpx;
+  position: relative;
+}
+.icon-lock-gallery::before {
+  content: '';
+  position: absolute;
+  top: -20rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24rpx;
+  height: 18rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.25);
+  border-bottom: none;
+  border-radius: 12rpx 12rpx 0 0;
+}
+
 /* ===== 图片网格 ===== */
 .image-grid {
   display: flex;

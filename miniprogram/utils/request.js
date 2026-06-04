@@ -19,18 +19,24 @@ function request(options) {
       data: options.data,
       header,
       success(res) {
-        if (res.statusCode === 401) {
+        const errCode = res.data && res.data.code;
+        // 4001: token 无效/过期/用户不存在 | 4003: 账号已注销/已封禁
+        if (res.statusCode === 401 || errCode === 4001 || errCode === 4003) {
+          const msg = errCode === 4003 ? (res.data.message || '账号异常') : '登录已过期';
           app.logout();
           wx.redirectTo({ url: '/pages/login/login' });
-          reject(new Error('未登录'));
+          if (errCode === 4003) {
+            wx.showToast({ title: msg, icon: 'none', duration: 3000 });
+          }
+          reject(new Error(msg));
           return;
         }
-        if (res.data && res.data.code === 200) {
+        if (errCode === 200) {
           resolve(res.data.data);
         } else {
           const msg = (res.data && res.data.message) || '请求失败';
           const err = new Error(msg);
-          err.code = res.data && res.data.code;
+          err.code = errCode;
           wx.showToast({ title: msg, icon: 'none' });
           reject(err);
         }

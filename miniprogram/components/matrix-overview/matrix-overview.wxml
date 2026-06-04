@@ -1,8 +1,9 @@
 <wxs src="./matrix-overview.wxs" module="fmt" />
+<wxs src="../../utils/truncate.wxs" module="t" />
 
-<view wx:if="{{active}}">
+<view wx:if="{{active}}" catchtouchmove="preventClose" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:90;">
   <!-- 积分总览弹窗 -->
-  <view class="matrix-panel-overlay {{visible ? 'mp-show' : ''}}" catchtap="closePanel" catchtouchmove="preventClose">
+  <view class="matrix-panel-overlay {{visible ? 'mp-show' : ''}}" catchtap="closePanel">
     <view class="matrix-panel-sheet" catchtap="preventClose" catchtouchmove="preventClose">
       <view class="detail-header">
         <text class="section-title" style="margin-bottom:0;">积分总览</text>
@@ -11,80 +12,28 @@
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
         <text class="text-tertiary">至少需要 2 名成员</text>
       </view>
-      <scroll-view scroll-y="{{true}}" scroll-x="{{false}}" class="panel-scroll" wx:else catchtouchmove="preventClose">
+      <view wx:else class="panel-body">
 
-        <!-- ===== 模式一：≤4人 矩阵模式 ===== -->
-        <block wx:if="{{playerCount <= 4}}">
-          <!-- 折线图 -->
-          <view wx:if="{{chartSeries.length > 0}}" class="chart-section {{chartHidden || showMatrixDetail ? 'chart-hidden' : ''}}">
-            <score-chart timestamps="{{chartTimestamps}}" series="{{chartSeries}}" visible-users="{{chartVisibleUsers}}" />
-            <view class="chart-filter">
-              <view class="cf-item {{chartVisibleUsers.indexOf('' + item.userId) >= 0 ? 'cf-active' : ''}}"
-                    wx:for="{{chartSeries}}" wx:key="userId"
-                    bindtap="toggleChartMember" data-user-id="{{item.userId}}">
-                <text class="cf-name">{{item.nickname}}</text>
-              </view>
-            </view>
-          </view>
-          <!-- 分割线 -->
-          <view class="panel-divider" wx:if="{{chartSeries.length > 0}}"></view>
-          <!-- 关系矩阵 -->
-          <view class="matrix-wrap">
-            <view class="matrix-row matrix-header">
-              <view class="matrix-corner"></view>
-              <view class="matrix-th" wx:for="{{matrixMembers}}" wx:key="userId">
-                <view class="matrix-th-avatar">
-                  <view class="auto-avatar-xxs" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
-                    <text class="auto-avatar-char-xxs">{{item.avatarChar}}</text>
-                  </view>
-                  <image class="matrix-th-img" src="{{item.avatarUrl}}" wx:else></image>
-                </view>
-                <text class="matrix-th-name">{{item.nickname}}</text>
-              </view>
-            </view>
-            <view class="matrix-row" wx:for="{{matrixData}}" wx:for-item="row" wx:key="fromUserId">
-              <view class="matrix-row-header">
-                <view class="auto-avatar-xxs" style="background:{{row.fromColor}};" wx:if="{{!row.fromAvatarUrl}}">
-                  <text class="auto-avatar-char-xxs">{{row.fromChar}}</text>
-                </view>
-                <image class="matrix-rh-img" src="{{row.fromAvatarUrl}}" wx:else></image>
-              </view>
-              <!-- 对角线：总分高亮 / 非对角线：普通转分 -->
-              <view class="matrix-cell {{cell.isDiagonal ? 'mc-diagonal' : (cell.value > 0 ? 'mc-pos' : cell.value < 0 ? 'mc-neg' : '')}}"
-                    wx:for="{{row.cells}}" wx:for-item="cell" wx:key="toUserId"
-                    bindtap="onMatrixCell" data-from="{{row.fromUserId}}" data-to="{{cell.toUserId}}">
-                <text class="matrix-cell-val {{cell.isDiagonal ? 'mc-diagonal-val' : ''}}">{{cell.display}}</text>
-              </view>
-            </view>
-          </view>
-        </block>
+        <!-- 折线图：固定在顶部，不随列表滚动（明细弹窗打开时 hidden 防 Canvas 穿透） -->
+        <view wx:if="{{chartSeries.length > 0 && !chartHidden}}" hidden="{{showMatrixDetail}}" class="chart-section">
+          <score-chart timestamps="{{chartTimestamps}}" series="{{chartSeries}}" visible-users="{{chartVisibleUsers}}" />
+        </view>
+        <!-- 分割线 -->
+        <view class="panel-divider" wx:if="{{chartSeries.length > 0 && !chartHidden}}"></view>
 
-        <!-- ===== 模式二：>4人 一维关系列表 ===== -->
-        <block wx:else>
-          <!-- 折线图聚焦模式：只显示第一名、最后一名、我、平均分 -->
-          <view wx:if="{{chartSeries.length > 0}}" class="chart-section {{chartHidden || showMatrixDetail ? 'chart-hidden' : ''}}">
-            <score-chart timestamps="{{chartTimestamps}}" series="{{chartSeries}}" visible-users="{{chartVisibleUsers}}" />
-            <view class="chart-filter">
-              <view class="cf-item {{chartVisibleUsers.indexOf('' + item.userId) >= 0 ? 'cf-active' : ''}}"
-                    wx:for="{{chartSeries}}" wx:key="userId"
-                    bindtap="toggleChartMember" data-user-id="{{item.userId}}">
-                <text class="cf-name">{{item.nickname}}</text>
-              </view>
-            </view>
-          </view>
-          <!-- 分割线 -->
-          <view class="panel-divider" wx:if="{{chartSeries.length > 0}}"></view>
-          <!-- 一维关系列表 -->
+        <!-- 关系列表：独立滚动区域 -->
+        <scroll-view scroll-y="{{true}}" scroll-x="{{false}}" class="relation-scroll" catchtouchmove="preventClose"
+          bindscrolltolower="onRelationScrollLower" lower-threshold="100">
           <view class="relation-section">
             <view class="relation-header">
               <text class="relation-title">我与他人的积分往来</text>
               <text class="relation-count text-tertiary">{{relationList.length}}人</text>
             </view>
-            <view wx:if="{{relationList.length === 0}}" class="empty-batches">
+            <view wx:if="{{relationListDisplay.length === 0}}" class="empty-batches">
               <text class="text-tertiary">暂无积分往来</text>
             </view>
             <view class="relation-list" wx:else>
-              <view class="relation-item" wx:for="{{relationList}}" wx:key="userId"
+              <view class="relation-item" wx:for="{{relationListDisplay}}" wx:key="userId"
                     bindtap="onRelationTap" data-user-id="{{item.userId}}">
                 <view class="relation-left">
                   <view class="relation-avatar-wrap">
@@ -93,15 +42,14 @@
                     </view>
                     <image class="relation-avatar" src="{{item.avatarUrl}}" wx:else></image>
                   </view>
-                  <text class="relation-name">{{item.nickname}}</text>
+                  <text class="relation-name">{{t.truncateName(item.nickname)}}</text>
                 </view>
                 <text class="relation-score {{item.netScore > 0 ? 'rs-pos' : 'rs-neg'}}">{{item.display}}</text>
               </view>
             </view>
           </view>
-        </block>
-
-      </scroll-view>
+        </scroll-view>
+      </view>
     </view>
   </view>
 
@@ -118,7 +66,7 @@
             <text class="auto-avatar-char-sm">{{detailFrom.avatarChar}}</text>
           </view>
           <image class="detail-avatar" src="{{detailFrom.avatarUrl}}" wx:else></image>
-          <text class="detail-name">{{detailFrom.nickname}}</text>
+          <text class="detail-name">{{t.truncateName(detailFrom.nickname)}}</text>
         </view>
         <view class="detail-arrow-wrap">
           <view class="detail-arrow-line"></view>
@@ -129,7 +77,7 @@
             <text class="auto-avatar-char-sm">{{detailTo.avatarChar}}</text>
           </view>
           <image class="detail-avatar" src="{{detailTo.avatarUrl}}" wx:else></image>
-          <text class="detail-name">{{detailTo.nickname}}</text>
+          <text class="detail-name">{{t.truncateName(detailTo.nickname)}}</text>
         </view>
       </view>
       <view class="detail-total">

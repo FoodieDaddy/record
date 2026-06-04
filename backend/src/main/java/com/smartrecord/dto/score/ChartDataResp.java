@@ -30,5 +30,11 @@ public class ChartDataResp {
 
         @Schema(description = "各时间点累计积分")
         private List<Integer> scores;
+
+        @Schema(description = "各时间点变动额（可选，仅 events 路径填充）")
+        private List<Integer> deltas;
+
+        @Schema(description = "各时间点交易对手用户 ID（可选，仅 events 路径填充）")
+        private List<Long> targets;
     }
 }

@@ -12,14 +12,14 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root123
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root123}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: localhost
-      port: 16379
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:16379}
       database: 0
   servlet:
     multipart:
@@ -49,24 +49,24 @@ springdoc:
 # 自定义配置
 app:
   jwt:
-    secret: your-256-bit-secret-key-here-change-in-production
+    secret: ${JWT_SECRET:your-256-bit-secret-key-here-change-in-production}
     expiration: 604800000  # 7 天
   oss:
-    endpoint: oss-cn-guangzhou.aliyuncs.com
-    access-key-id: LTAI5t8gKSckJYZjUqivuhPi
-    access-key-secret: GfCTwLAUSFerci7Ov5NKGGYS5w8YoE
-    bucket-name: smartrecord
+    endpoint: ${OSS_ENDPOINT:oss-cn-guangzhou.aliyuncs.com}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:smartrecord}
   room:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     no-length: 6
     expire-hours: 24
 
 wechat:
-  appid: wx9d93ece2b67f812b
-  secret: 5bcbb76c58c59b466acc90a86e4864c6
+  appid: ${WECHAT_APPID:}
+  secret: ${WECHAT_SECRET:}
 
 tts:
-  edge-tts-cmd: /Users/happy/.local/bin/edge-tts
+  edge-tts-cmd: ${TTS_EDGE_TTS_CMD:edge-tts}
   voice: zh-CN-XiaoxiaoNeural
 
 emotion:

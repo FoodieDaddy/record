@@ -30,7 +30,8 @@ function _speakOnce(text, onDone) {
         return;
       }
       // 校验返回的是音频文件而非错误 JSON
-      const ct = (res.header && (res.header['content-type'] || res.header['Content-Type'])) || '';
+      const rawCt = res.header && (res.header['content-type'] || res.header['Content-Type']);
+      const ct = Array.isArray(rawCt) ? rawCt.join(',') : (rawCt || '');
       if (!ct.includes('audio')) {
         console.warn('[TTS] 非音频响应:', ct);
         onDone();
@@ -60,25 +61,16 @@ function _playAudio(src, onDone) {
     try { wx.getFileSystemManager().unlinkSync(src); } catch (e) {}
   };
 
-  let played = false;
-  audio.onCanplay(() => {
-    if (played) return;
-    played = true;
-    audio.play();
-  });
   audio.onEnded(() => {
     cleanup();
     onDone();
   });
-  audio.onError(() => {
+  audio.onError((err) => {
+    console.error('[TTS] 播放失败:', err);
     cleanup();
     onDone();
   });
-  setTimeout(() => {
-    if (played) return;
-    played = true;
-    audio.play();
-  }, 300);
+  audio.play();
 }
 
 /**
@@ -95,6 +87,8 @@ function speakTransfer(fromName, toName, amount) {
 
 function speak(text) {
   if (!text) return;
+  const settings = getSettings();
+  if (!settings.enabled) return;
   _queue.push(text);
   if (!_speaking) _dequeue();
 }
@@ -108,9 +102,7 @@ function getSettings() {
   const saved = wx.getStorageSync('voiceSettings');
   return {
     enabled: saved.enabled !== undefined ? saved.enabled : true,
-    voiceId: saved.voiceId || 'std_01',
-    voiceName: saved.voiceName || '晓晓',
-    voice: saved.voice || 'zh-CN-XiaoxiaoNeural'
+    voiceId: saved.voiceId || 'std_01'
   };
 }
 
@@ -119,4 +111,12 @@ function saveSettings(partial) {
   wx.setStorageSync('voiceSettings', { ...current, ...partial });
 }
 
-module.exports = { speakTransfer, speak, stop, getSettings, saveSettings };
+function syncFromServer(detail) {
+  if (!detail) return;
+  saveSettings({
+    enabled: detail.voiceEnabled !== false,
+    voiceId: detail.voiceId || 'std_01'
+  });
+}
+
+module.exports = { speakTransfer, speak, stop, getSettings, saveSettings, syncFromServer };
