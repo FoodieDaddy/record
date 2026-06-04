@@ -1,8 +1,10 @@
-const { get, post, del } = require('../../utils/request');
+const { get, post, put, del } = require('../../utils/request');
 const scoreWS = require('../../utils/score-ws');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
+const { vibrateShort } = require('../../utils/haptic');
+const { retryWithBackoff } = require('../../utils/retry');
 const app = getApp();
 
 Page({
@@ -23,6 +25,7 @@ Page({
     otpRawValue: '',
     creating: false,
     loading: false,
+    wsReconnecting: false,
     ranking: [],
     submitting: false,
     audioEnabled: true,
@@ -36,6 +39,7 @@ Page({
     seatEditMode: false,
     editSelectedUserId: '',
     seatLayoutType: 'circle',
+    waitingList: [],
     // 计分目标
     transferTo: '',
     transferToInfo: null,
@@ -89,6 +93,27 @@ Page({
       this._onWsMessage = this.onWsMessage.bind(this);
     }
     scoreWS.on('message', this._onWsMessage);
+    if (!this._onWsError) {
+      this._onWsError = () => this.setData({ wsReconnecting: true });
+      this._onWsOpen = () => {
+        this.setData({ wsReconnecting: false });
+        // 重连后立即拉取最新数据，补全断线期间的分数变动
+        const room = this.data.currentRoom;
+        if (room && this.data.viewingRoom) {
+          this.updateAllData(room.roomId);
+        }
+      };
+      this._onWsKicked = (res) => {
+        const msg = (res && res.reason) || '账号异常';
+        app.logout();
+        wx.redirectTo({ url: '/pages/login/login' });
+        wx.showToast({ title: msg, icon: 'none', duration: 3000 });
+      };
+    }
+    scoreWS.on('error', this._onWsError);
+    scoreWS.on('close', this._onWsError);
+    scoreWS.on('open', this._onWsOpen);
+    scoreWS.on('kicked', this._onWsKicked);
     if (app.globalData.token && !this.data.viewingRoom) {
       this.loadMyRooms();
     }
@@ -107,6 +132,12 @@ Page({
     // 仅取消订阅，不销毁全局连接
     if (this._onWsMessage) {
       scoreWS.off('message', this._onWsMessage);
+    }
+    if (this._onWsError) {
+      scoreWS.off('error', this._onWsError);
+      scoreWS.off('close', this._onWsError);
+      scoreWS.off('open', this._onWsOpen);
+      scoreWS.off('kicked', this._onWsKicked);
     }
     // 清理定时器
     if (this._rollTimer) {
@@ -147,6 +178,7 @@ Page({
   async loadMyRooms() {
     this.setData({ loading: true });
     try {
+      const prevRoomId = this.data.currentRoom ? this.data.currentRoom.roomId : null;
       const rooms = await get('/room/my');
       if (rooms && rooms.length > 0) {
         const room = rooms[0];
@@ -160,6 +192,12 @@ Page({
         this.loadRoomData(room.roomId);
         this.connectWS(room.roomId);
       } else {
+        // 之前在房间但现在查不到了 → 可能被结算，跳转结算页
+        if (prevRoomId) {
+          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+          wx.navigateTo({ url: '/pages/settle/settle?roomId=' + prevRoomId });
+          return;
+        }
         this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
       }
     } catch (e) {
@@ -217,6 +255,23 @@ Page({
     const seatScoreMap = {};
     grid.forEach(m => { seatScoreMap[m.userId] = m.score; });
     this.setData({ memberGrid: grid, seatScoreMap });
+
+    // 计算 waitingList：所有成员中未入座的
+    const seatedUserIds = new Set(
+      (this.data.currentRoom.members || [])
+        .filter(m => m.seatNo != null && m.seatNo > 0)
+        .map(m => String(m.userId))
+    )
+    const waitingList = (this.data.currentRoom.members || [])
+      .filter(m => !seatedUserIds.has(String(m.userId)))
+      .map(m => ({
+        userId: m.userId,
+        nickname: m.nickname,
+        avatarUrl: m.avatarUrl || '',
+        avatarColor: m.avatarUrl ? '' : getColor(m.nickname),
+        avatarChar: m.avatarUrl ? '' : getFirstChar(m.nickname)
+      }))
+    this.setData({ waitingList })
   },
 
   async loadRoomData(roomId) {
@@ -261,7 +316,6 @@ Page({
 
       const myId = app.globalData.userId;
       const pageRecords = (res.records || [])
-        .filter(t => t.status === 0)
         .map(t => ({
           id: t.id,
           fromName: t.fromUser.nickname,
@@ -374,9 +428,13 @@ Page({
     if (!this.data.currentRoom) return;
     const roomId = this.data.currentRoom.roomId;
 
-    // 结算通知：刷新房间数据
+    // 结算通知：跳转结算页
     if (data.type === 'SETTLE') {
-      this.loadMyRooms();
+      const roomId = this.data.currentRoom ? this.data.currentRoom.roomId : null;
+      this.setData({ currentRoom: null, viewingRoom: false });
+      if (roomId) {
+        wx.navigateTo({ url: '/pages/settle/settle?roomId=' + roomId });
+      }
       return;
     }
 
@@ -387,39 +445,24 @@ Page({
     }
 
     if (data.type === 'SCORE_UPDATE' || data.type === 'MEMBER_UPDATE' || data.type === 'TRANSFER') {
-      // MEMBER_UPDATE：内存更新成员昵称头像，无需 HTTP 请求
-      if (data.type === 'MEMBER_UPDATE' && data.userId) {
-        const members = (this.data.currentRoom.members || []).map(m => {
-          if (String(m.userId) === String(data.userId)) {
-            return { ...m, nickname: data.nickname || m.nickname, avatarUrl: data.avatarUrl || m.avatarUrl };
-          }
-          return m;
-        });
-        this.setData({ 'currentRoom.members': members });
+      // MEMBER_UPDATE：刷新完整房间数据（含新成员）
+      if (data.type === 'MEMBER_UPDATE') {
+        this.updateAllData(roomId);
         return;
       }
 
       if (data.type === 'TRANSFER' && data.fromUserId && data.toUserId && data.amount) {
-        console.log('[WS] TRANSFER:', JSON.stringify(data), 'myUserId:', app.globalData.userId, 'audioEnabled:', app.globalData.audioEnabled);
+        console.log('[WS] TRANSFER:', JSON.stringify(data));
         const myId = String(app.globalData.userId);
         const isSender = String(data.fromUserId) === myId;
-
-        // 出分方已在 submitTransfer 中本地处理动画和数据刷新，跳过
         if (isSender) return;
 
-        // 仅收分方语音播报（旁观者不播放）
-        const isReceiver = String(data.toUserId) === myId;
-        if (isReceiver && app.globalData.audioEnabled) {
-          const members = this.data.currentRoom.members || [];
-          const fromMember = members.find(m => String(m.userId) === String(data.fromUserId));
-          const toMember = members.find(m => String(m.userId) === myId);
-          const fromName = fromMember ? fromMember.nickname : '未知';
-          const toName = toMember ? toMember.nickname : '未知';
-          speakTransfer(fromName, toName, String(data.amount));
-        }
-        // 粒子动画结束后再刷新数据，避免 buildMemberGrid 打断滚动动画
-        this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-          return this.updateAllData(roomId);
+        this._enqueueTransfer({
+          fromUserId: data.fromUserId,
+          toUserId: data.toUserId,
+          amount: data.amount,
+          roomId,
+          speakTTS: String(data.toUserId) === myId && app.globalData.audioEnabled
         });
       } else {
         this.updateAllData(roomId);
@@ -479,8 +522,16 @@ Page({
   // ========== 记分模式选择 ==========
   selectScoreMode(e) {
     const mode = Number(e.currentTarget.dataset.mode);
+    if (mode === 2) {
+      wx.showToast({ title: '功能开发中，敬请期待', icon: 'none', duration: 2000 });
+      return;
+    }
     if (mode === this.data.scoreMode) return;
     this.setData({ scoreMode: mode });
+  },
+
+  onDisabledModeTap() {
+    wx.showToast({ title: '功能开发中，敬请期待', icon: 'none', duration: 2000 });
   },
 
   // ========== 6 格 OTP 输入 ==========
@@ -615,7 +666,7 @@ Page({
     if (String(userId) === String(app.globalData.userId)) return;
     const info = this.data.memberGrid.find(m => String(m.userId) === String(userId));
     if (!info) return;
-    try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
+    vibrateShort('light');
     this.setData({
       transferTo: userId,
       transferToInfo: info,
@@ -697,9 +748,12 @@ Page({
 
       this.showToast('计分成功');
       this.cancelTransfer();
-      // 粒子动画结束后再刷新数据，避免 buildMemberGrid 打断滚动动画
-      this.playTransferAnimation(app.globalData.userId, transferTo, amount, () => {
-        return this.updateAllData(room.roomId);
+      this._enqueueTransfer({
+        fromUserId: app.globalData.userId,
+        toUserId: transferTo,
+        amount,
+        roomId: room.roomId,
+        speakTTS: false
       });
     } catch (e) {
       console.error('计分失败', e);
@@ -722,8 +776,8 @@ Page({
 
     try {
       await post(`/score/room/${room.roomId}/settle`);
-      wx.showToast({ title: '本轮结束', icon: 'success' });
-      this.loadMyRooms();
+      this.setData({ currentRoom: null, viewingRoom: false });
+      wx.navigateTo({ url: '/pages/settle/settle?roomId=' + room.roomId });
     } catch (e) {
       console.error('结算失败', e);
     }
@@ -741,8 +795,39 @@ Page({
 
   // ========== 分享面板 ==========
 
-  openShareSheet() {
+  async getQrCodeUrl(roomNo, roomId) {
+    const cacheKey = `qr:${roomNo}`;
+    const cached = wx.getStorageSync(cacheKey);
+    if (cached && Date.now() - cached.ts < 3600000) {
+      return cached.url;
+    }
+
+    const fetchUrl = async () => {
+      const resp = await get(`/room/${roomId}`);
+      return resp?.data?.qrCodeUrl || null;
+    };
+
+    const url = await retryWithBackoff(fetchUrl, 3, 1000);
+    if (url) {
+      wx.setStorageSync(cacheKey, { url, ts: Date.now() });
+    }
+    return url;
+  },
+
+  async openShareSheet() {
+    const roomNo = this.data.currentRoom?.roomNo;
+    const roomId = this.data.currentRoom?.roomId;
+    if (!roomNo || !roomId) return;
+
     this.setData({ showShareSheet: true });
+
+    // 已有二维码则跳过
+    if (this.data.currentRoom.qrCodeUrl) return;
+
+    const url = await this.getQrCodeUrl(roomNo, roomId);
+    if (url) {
+      this.setData({ 'currentRoom.qrCodeUrl': url });
+    }
   },
 
   closeShareSheet() {
@@ -807,7 +892,7 @@ Page({
     app.globalData.audioEnabled = enabled;
     wx.setStorageSync('audioEnabled', enabled);
     this.setData({ audioEnabled: enabled });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    vibrateShort('light');
     if (!enabled) {
       getAudioManager().stop();
     }
@@ -818,7 +903,7 @@ Page({
   toggleViewMode() {
     const next = this.data.viewMode === 'grid' ? 'seat' : 'grid';
     this.setData({ viewMode: next });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    vibrateShort('light');
   },
 
   onSeatTap(e) {
@@ -826,7 +911,7 @@ Page({
     if (!userId || String(userId) === String(app.globalData.userId)) return;
     const info = this.data.memberGrid.find(m => String(m.userId) === String(userId));
     if (!info) return;
-    try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
+    vibrateShort('light');
     this.setData({
       transferTo: info.userId,
       transferToInfo: info,
@@ -848,11 +933,55 @@ Page({
   enterSeatEditMode() {
     if (!this.data.isOwner) return;
     this.setData({ seatEditMode: true, editSelectedUserId: '' });
-    try { wx.vibrateShort({ type: 'medium' }); } catch (e) {}
+    vibrateShort('medium');
   },
 
   exitSeatEditMode() {
     this.setData({ seatEditMode: false, editSelectedUserId: '' });
+  },
+
+  /**
+   * 分配座位（全屏选择器回调）
+   */
+  onAssignSeat(e) {
+    const { userId, seatIndex } = e.detail
+    if (!userId) return
+    console.log('分配座位:', userId, '→ seatIndex:', seatIndex)
+    wx.showToast({ title: '座位已分配', icon: 'success' })
+  },
+
+  /**
+   * 转让积分（操作菜单回调）
+   */
+  onSeatTransfer(e) {
+    const { targetUserId } = e.detail
+    if (!targetUserId) return
+    const info = this.data.memberGrid.find(m => String(m.userId) === String(targetUserId))
+    if (!info) return
+    this.setData({
+      transferTo: info.userId,
+      transferToInfo: info,
+      showNumpad: true,
+      numpadValue: 0
+    })
+  },
+
+  /**
+   * 移出座位（操作菜单回调）
+   */
+  onRemoveSeat(e) {
+    const { targetUserId } = e.detail
+    if (!targetUserId) return
+    wx.showModal({
+      title: '确认移出',
+      content: '确定将该成员移出座位吗？',
+      success: (res) => {
+        if (res.confirm) {
+          // TODO: 需要后端支持"移出座位"API（设置 seatNo 为 0）
+          wx.showToast({ title: '功能开发中', icon: 'none' })
+        }
+      }
+    })
   },
 
   onEditSeatTap(e) {
@@ -863,7 +992,7 @@ Page({
       // 第一次点击：选中一个玩家
       if (userId && !String(userId).startsWith('empty_')) {
         this.setData({ editSelectedUserId: String(userId) });
-        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+        vibrateShort('light');
       }
     } else if (String(userId) === selected) {
       // 点击已选中的玩家：取消选中
@@ -895,7 +1024,7 @@ Page({
     const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
     if (!roomId || !this.data.isOwner) return;
     this.setData({ seatLayoutType: layoutType });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    vibrateShort('light');
     put(`/room/${roomId}/layout`, { layoutType });
   },
 
@@ -925,49 +1054,73 @@ Page({
     return { fontSize, color };
   },
 
-  // ========== 计分动画 ==========
+  // ========== 计分动画队列 ==========
 
-  playTransferAnimation(fromUserId, toUserId, amount, onParticleDone) {
+  _enqueueTransfer(item) {
+    const grid = this.data.memberGrid;
+    const fromMember = grid.find(m => String(m.userId) === String(item.fromUserId));
+    const toMember = grid.find(m => String(m.userId) === String(item.toUserId));
+    item.fromOldScore = fromMember ? fromMember.displayScore : 0;
+    item.toOldScore = toMember ? toMember.displayScore : 0;
+    if (!this._animQueue) this._animQueue = [];
+    this._animQueue.push(item);
+    if (!this._animBusy) this._processAnimQueue();
+  },
+
+  _processAnimQueue() {
+    if (!this._animQueue || this._animQueue.length === 0) {
+      this._animBusy = false;
+      return;
+    }
+    this._animBusy = true;
+    const item = this._animQueue.shift();
+
     if (!app.globalData.animationEnabled) {
-      if (onParticleDone) onParticleDone();
+      this.updateAllData(item.roomId).then(() => this._processAnimQueue());
       return;
     }
 
-    // 快照动画前的分数，用于滚动动画（必须在 updateAllData 之前）
-    const grid = this.data.memberGrid;
-    const fromMember = grid.find(m => String(m.userId) === String(fromUserId));
-    const toMember = grid.find(m => String(m.userId) === String(toUserId));
-    this._rollFromUserId = fromUserId;
-    this._rollToUserId = toUserId;
-    this._rollAmount = amount;
-    const oldFromScore = fromMember ? fromMember.displayScore : 0;
-    const oldToScore = toMember ? toMember.displayScore : 0;
-    this._rollOldFromScore = oldFromScore;
-    this._rollOldToScore = oldToScore;
+    // 1. TTS（仅收分方）
+    if (item.speakTTS) {
+      const members = this.data.currentRoom.members || [];
+      const myId = String(app.globalData.userId);
+      const fromMember = members.find(m => String(m.userId) === String(item.fromUserId));
+      const toMember = members.find(m => String(m.userId) === myId);
+      speakTransfer(
+        fromMember ? fromMember.nickname : '未知',
+        toMember ? toMember.nickname : '未知',
+        String(item.amount)
+      );
+    }
 
-    // 立即标记动画中（页面级 map，不依赖 setData 异步更新）
+    // 2. 粒子动画 → 3. 刷新数据 → 4. 分数滚动 → 5. 下一个
+    this._playParticle(item, () => {
+      this.updateAllData(item.roomId).then(() => {
+        this._playScoreRoll(item, () => {
+          this._processAnimQueue();
+        });
+      });
+    });
+  },
+
+  _playParticle(item, onDone) {
+    const { fromUserId, toUserId, amount } = item;
+    const cellSelector = this.data.viewMode === 'seat' ? '.seat-node' : '.mg-cell';
+
     this._animatingScores = {};
-    this._animatingScores[fromUserId] = oldFromScore;
-    this._animatingScores[toUserId] = oldToScore;
+    this._animatingScores[fromUserId] = item.fromOldScore;
+    this._animatingScores[toUserId] = item.toOldScore;
 
-    // 根据视图模式查询对应的元素
-    const cellSelector = this.data.viewMode === 'seat' ? '.seat-item' : '.mg-cell';
     wx.createSelectorQuery()
       .selectAll(cellSelector)
       .boundingClientRect()
       .exec((res) => {
-        if (!res || !res[0]) {
-          if (onParticleDone) onParticleDone();
-          return;
-        }
+        if (!res || !res[0]) { onDone(); return; }
         const rects = res[0];
         const members = this.data.memberGrid;
         const fromIdx = members.findIndex(m => String(m.userId) === String(fromUserId));
         const toIdx = members.findIndex(m => String(m.userId) === String(toUserId));
-        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) {
-          if (onParticleDone) onParticleDone();
-          return;
-        }
+        if (fromIdx < 0 || toIdx < 0 || !rects[fromIdx] || !rects[toIdx]) { onDone(); return; }
 
         const fromRect = rects[fromIdx];
         const toRect = rects[toIdx];
@@ -975,80 +1128,53 @@ Page({
         const startY = fromRect.top + fromRect.height * 0.3;
         const endX = toRect.left + toRect.width / 2;
         const endY = toRect.top + toRect.height * 0.3;
-
-        const duration = 900;
-        const startTime = Date.now();
         const midX = (startX + endX) / 2;
         const midY = Math.min(startY, endY) - 80;
+        const duration = 900;
+        const startTime = Date.now();
 
-        // 贝塞尔曲线求值
         const bezier = (p0, p1, p2, t) => {
           const u = 1 - t;
           return u * u * p0 + 2 * u * t * p1 + t * t * p2;
         };
 
-        // 初始化
         this.setData({
           animActive: true,
           animAmount: '+' + amount,
           animFlashOpacity: 0.6,
-          animCurX: startX - 10,
-          animCurY: startY - 10,
-          animCurOpacity: 1,
-          animCurScale: 0.5,
-          animTrail1X: startX - 6,
-          animTrail1Y: startY - 6,
-          animTrail1Opacity: 0.7,
-          animTrail1Scale: 0.5,
-          animTrail2X: startX - 4,
-          animTrail2Y: startY - 4,
-          animTrail2Opacity: 0.5,
-          animTrail2Scale: 0.4
+          animCurX: startX - 10, animCurY: startY - 10,
+          animCurOpacity: 1, animCurScale: 0.5,
+          animTrail1X: startX - 6, animTrail1Y: startY - 6,
+          animTrail1Opacity: 0.7, animTrail1Scale: 0.5,
+          animTrail2X: startX - 4, animTrail2Y: startY - 4,
+          animTrail2Opacity: 0.5, animTrail2Scale: 0.4
         });
-
-        // 闪屏快速消失
         setTimeout(() => this.setData({ animFlashOpacity: 0 }), 120);
 
         const animate = () => {
           const elapsed = Date.now() - startTime;
           const t = Math.min(elapsed / duration, 1);
-
-          // 缓出曲线
           const ease = 1 - Math.pow(1 - t, 3);
-
-          // 主粒子位置
           const cx = bezier(startX, midX, endX, ease);
           const cy = bezier(startY, midY, endY, ease);
-
-          // 主粒子缩放：先放大再缩小，峰值 1.8
           const scale = 0.5 + 1.3 * Math.sin(t * Math.PI);
-
-          // 主粒子透明度
           const opacity = t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
-
-          // 拖尾1（延迟 80ms）
           const t1 = Math.max(0, (elapsed - 80) / duration);
           const ease1 = 1 - Math.pow(1 - Math.min(t1, 1), 3);
           const t1x = bezier(startX, midX, endX, ease1);
           const t1y = bezier(startY, midY, endY, ease1);
-
-          // 拖尾2（延迟 160ms）
           const t2 = Math.max(0, (elapsed - 160) / duration);
           const ease2 = 1 - Math.pow(1 - Math.min(t2, 1), 3);
           const t2x = bezier(startX, midX, endX, ease2);
           const t2y = bezier(startY, midY, endY, ease2);
 
           this.setData({
-            animCurX: cx - 10,
-            animCurY: cy - 10,
-            animCurOpacity: opacity,
-            animCurScale: scale,
-            animTrail1X: t1x - 6,
-            animTrail1Y: t1y - 6,
+            animCurX: cx - 10, animCurY: cy - 10,
+            animCurOpacity: opacity, animCurScale: scale,
+            animTrail1X: t1x - 6, animTrail1Y: t1y - 6,
             animTrail1Opacity: t1 < 1 ? Math.max(0, 0.6 - t1 * 0.5) : 0,
             animTrail1Scale: 0.3 + 0.4 * Math.sin(Math.min(t1, 1) * Math.PI),
-            animTrail2X: t2x - 4,
-            animTrail2Y: t2y - 4,
+            animTrail2X: t2x - 4, animTrail2Y: t2y - 4,
             animTrail2Opacity: t2 < 1 ? Math.max(0, 0.4 - t2 * 0.4) : 0,
             animTrail2Scale: 0.2 + 0.3 * Math.sin(Math.min(t2, 1) * Math.PI)
           });
@@ -1057,58 +1183,37 @@ Page({
             setTimeout(animate, 16);
           } else {
             this.setData({ animActive: false });
-            // 粒子动画结束后：先等数据刷新完成，再触发分数滚动动画
-            const afterUpdate = () => {
-              this.playScoreRollAnimation(this._rollFromUserId, this._rollToUserId, this._rollAmount);
-            };
-            if (onParticleDone) {
-              const result = onParticleDone();
-              if (result && typeof result.then === 'function') {
-                result.then(afterUpdate);
-              } else {
-                afterUpdate();
-              }
-            } else {
-              afterUpdate();
-            }
+            this._animatingScores = {};
+            onDone();
           }
         };
-
         animate();
       });
   },
 
-  /** 分数滚动动画：从旧值逐步滚动到新值 */
-  playScoreRollAnimation(fromUserId, toUserId, amount) {
-    // 已有动画在播放，跳过（等待当前动画结束）
-    if (this._rollTimer) return;
-
+  _playScoreRoll(item, onDone) {
+    const { fromUserId, toUserId, fromOldScore, toOldScore } = item;
     const grid = this.data.memberGrid;
     const fromIdx = grid.findIndex(m => String(m.userId) === String(fromUserId));
     const toIdx = grid.findIndex(m => String(m.userId) === String(toUserId));
-    if (fromIdx < 0 || toIdx < 0) return;
+    if (fromIdx < 0 || toIdx < 0) { onDone(); return; }
 
-    // 使用快照的旧分数（在 playTransferAnimation 开头保存）
-    const fromOld = this._rollOldFromScore;
-    const toOld = this._rollOldToScore;
     const fromNew = grid[fromIdx].score;
     const toNew = grid[toIdx].score;
+    if (fromOldScore === fromNew && toOldScore === toNew) { onDone(); return; }
 
-    // 分数没有变化，跳过
-    if (fromOld === fromNew && toOld === toNew) {
-      this._animatingScores = {};
-      return;
-    }
-
-    // 非动画模式，直接设置最终值
     if (!app.globalData.animationEnabled) {
-      const updates = {};
-      updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-      updates[`memberGrid[${toIdx}].displayScore`] = toNew;
-      this.setData(updates);
-      this._animatingScores = {};
+      const u = {};
+      u[`memberGrid[${fromIdx}].displayScore`] = fromNew;
+      u[`memberGrid[${toIdx}].displayScore`] = toNew;
+      this.setData(u);
+      onDone();
       return;
     }
+
+    this._animatingScores = {};
+    this._animatingScores[fromUserId] = fromOldScore;
+    this._animatingScores[toUserId] = toOldScore;
 
     const duration = 600;
     const startTime = Date.now();
@@ -1116,27 +1221,30 @@ Page({
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
-      // easeOutExpo: 前期快后期慢
       const ease = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+      const fromDisplay = Math.round(fromOldScore + (fromNew - fromOldScore) * ease);
+      const toDisplay = Math.round(toOldScore + (toNew - toOldScore) * ease);
 
-      const updates = {};
-      updates[`memberGrid[${fromIdx}].displayScore`] = Math.round(fromOld + (fromNew - fromOld) * ease);
-      updates[`memberGrid[${toIdx}].displayScore`] = Math.round(toOld + (toNew - toOld) * ease);
-      this.setData(updates);
+      this._animatingScores[fromUserId] = fromDisplay;
+      this._animatingScores[toUserId] = toDisplay;
+
+      const u = {};
+      u[`memberGrid[${fromIdx}].displayScore`] = fromDisplay;
+      u[`memberGrid[${toIdx}].displayScore`] = toDisplay;
+      this.setData(u);
 
       if (t < 1) {
         this._rollTimer = setTimeout(animate, 16);
       } else {
-        // 动画结束：确保最终值精确
-        const finalUpdates = {};
-        finalUpdates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-        finalUpdates[`memberGrid[${toIdx}].displayScore`] = toNew;
-        this.setData(finalUpdates);
+        const f = {};
+        f[`memberGrid[${fromIdx}].displayScore`] = fromNew;
+        f[`memberGrid[${toIdx}].displayScore`] = toNew;
+        this.setData(f);
         this._rollTimer = null;
         this._animatingScores = {};
+        onDone();
       }
     };
-
     this._rollTimer = setTimeout(animate, 16);
   },
 
