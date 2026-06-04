@@ -1,4 +1,5 @@
 const { get, post, del } = require('../../utils/request');
+const { retryWithBackoff } = require('../../utils/retry');
 const scoreWS = require('../../utils/score-ws');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { speakTransfer } = require('../../utils/voice');
@@ -741,8 +742,39 @@ Page({
 
   // ========== 分享面板 ==========
 
-  openShareSheet() {
+  async getQrCodeUrl(roomNo, roomId) {
+    const cacheKey = `qr:${roomNo}`;
+    const cached = wx.getStorageSync(cacheKey);
+    if (cached && Date.now() - cached.ts < 3600000) {
+      return cached.url;
+    }
+
+    const fetchUrl = async () => {
+      const resp = await get(`/room/${roomId}`);
+      return resp?.data?.qrCodeUrl || null;
+    };
+
+    const url = await retryWithBackoff(fetchUrl, 3, 1000);
+    if (url) {
+      wx.setStorageSync(cacheKey, { url, ts: Date.now() });
+    }
+    return url;
+  },
+
+  async openShareSheet() {
+    const roomNo = this.data.currentRoom?.roomNo;
+    const roomId = this.data.currentRoom?.roomId;
+    if (!roomNo || !roomId) return;
+
     this.setData({ showShareSheet: true });
+
+    // 已有二维码则跳过
+    if (this.data.currentRoom.qrCodeUrl) return;
+
+    const url = await this.getQrCodeUrl(roomNo, roomId);
+    if (url) {
+      this.setData({ 'currentRoom.qrCodeUrl': url });
+    }
   },
 
   closeShareSheet() {
