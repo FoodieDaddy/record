@@ -1,40 +1,27 @@
 package com.smartrecord.service;
 
-import com.smartrecord.dto.mirror.BirthProfileReq;
 import com.smartrecord.dto.mirror.MbtiTestReq;
-import com.smartrecord.dto.mirror.MirrorDashboardResp.ProfileInfo;
-import com.smartrecord.entity.MirrorBirthProfile;
+import com.smartrecord.dto.mirror.MirrorProfileResp;
+import com.smartrecord.dto.mirror.MirrorProfileResp.ProfileInfo;
 import com.smartrecord.entity.UserMirrorProfile;
 
 public interface MirrorProfileService {
 
-    /**
-     * 提交 MBTI 20题测试
-     */
+    /** 获取完整镜像画像（MBTI + 战绩画像 + 维度 + 判读） */
+    MirrorProfileResp getFullProfile(Long userId);
+
+    /** 提交 MBTI 20题测试 */
     ProfileInfo submitMbtiTest(Long userId, MbtiTestReq req);
 
-    /**
-     * 直接设置 MBTI 类型
-     */
-    ProfileInfo submitMbtiDirect(Long userId, String mbtiType);
+    /** 直接设置 MBTI 类型 */
+    ProfileInfo submitMbtiDirect(Long userId, int mbtiCode);
 
-    /**
-     * 保存出生档案
-     */
-    void saveBirthProfile(Long userId, BirthProfileReq req);
-
-    /**
-     * 获取出生档案
-     */
-    BirthProfileReq getBirthProfile(Long userId);
-
-    /**
-     * 获取用户 MBTI profile（内部使用）
-     */
+    /** 获取用户 MBTI profile（内部使用） */
     UserMirrorProfile getProfile(Long userId);
 
-    /**
-     * 获取用户出生档案实体（内部使用）
-     */
-    MirrorBirthProfile getBirthProfileEntity(Long userId);
+    /** 构建 ProfileInfo DTO */
+    ProfileInfo toProfileInfo(Long userId);
+
+    /** 清除画像缓存 */
+    void clearProfileCache(Long userId);
 }

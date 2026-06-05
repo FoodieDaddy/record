@@ -4,12 +4,9 @@
 const { get, post } = require('./request');
 
 module.exports = {
-  getMirrorDashboard: () => get('/mirror/dashboard'),
+  getMirrorProfile: () => get('/mirror/profile'),
+  refreshMirrorProfile: () => post('/mirror/profile/refresh'),
   submitMbtiTest: (data) => post('/mirror/mbti/test', data),
   submitMbtiDirect: (data) => post('/mirror/mbti/direct', data),
-  runMirrorTool: (data) => post('/mirror/tool/run', data),
-  getMirrorReport: (id) => get('/mirror/report/' + id),
-  getMirrorArchive: (params) => get('/mirror/archive', params),
-  saveBirthProfile: (data) => post('/mirror/birth-profile', data),
-  getBirthProfile: () => get('/mirror/birth-profile'),
+  getMirrorStats: () => get('/mirror/stats'),
 };

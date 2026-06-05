@@ -1,0 +1,30 @@
+<view class="mask" bindtap="onClose">
+  <view class="modal" catchtap>
+    <view class="header">
+      <text class="title">确认本局积分</text>
+    </view>
+
+    <view class="detail-list">
+      <view class="detail-row" wx:for="{{round.details}}" wx:key="userId">
+        <text class="detail-name">{{item.nickname}}</text>
+        <text class="detail-score {{item.score > 0 ? 'positive' : (item.score < 0 ? 'negative' : 'zero')}}">
+          {{item.score == null ? '未录入' : (item.score > 0 ? '+' : '')}}{{item.score == null ? '' : item.score}}
+        </text>
+        <text class="detail-status {{item.confirmed ? 'confirmed' : 'pending'}}">
+          {{item.confirmed ? '已确认' : '等待确认'}}
+        </text>
+      </view>
+    </view>
+
+    <view class="summary">
+      <text class="total-label">合计</text>
+      <text class="total-value">{{round.totalScore != null ? round.totalScore : 0}}</text>
+      <text class="progress">{{round.confirmCount || 0}} / {{round.confirmTotal || 0}} 已同意</text>
+    </view>
+
+    <view class="actions">
+      <button class="reject-btn" bindtap="onReject">有异议</button>
+      <button class="agree-btn" bindtap="onAgree">同意</button>
+    </view>
+  </view>
+</view>

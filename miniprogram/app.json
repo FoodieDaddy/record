@@ -4,13 +4,11 @@
     "pages/room/room",
     "pages/fortune/fortune",
     "pages/mirror/index",
-    "pages/mirror/tool/index",
-    "pages/mirror/report/index",
-    "pages/mirror/archive/index",
     "pages/profile/profile",
+    "pages/settings/settings",
     "pages/voice-select/voice-select",
     "pages/settle/settle",
-    "pages/history/history"
+    "pages/score-records/score-records"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",
@@ -33,15 +31,15 @@
       },
       {
         "pagePath": "pages/fortune/fortune",
-        "text": "运势",
+        "text": "灵感",
         "iconPath": "images/tab-fortune.png",
         "selectedIconPath": "images/tab-fortune-active.png"
       },
       {
         "pagePath": "pages/mirror/index",
         "text": "镜像",
-        "iconPath": "images/tab-gallery.png",
-        "selectedIconPath": "images/tab-gallery-active.png"
+        "iconPath": "images/tab-mirror.png",
+        "selectedIconPath": "images/tab-mirror-active.png"
       },
       {
         "pagePath": "pages/profile/profile",

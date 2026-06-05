@@ -4,7 +4,6 @@ import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
 import com.smartrecord.config.OssConfig;
-import com.smartrecord.dto.storage.BatchPresignReq;
 import com.smartrecord.dto.storage.PresignUrlResp;
 import com.smartrecord.service.StorageService;
 import com.smartrecord.util.SnowflakeIdGenerator;
@@ -12,9 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -56,17 +53,6 @@ public class StorageServiceImpl implements StorageService {
             throw new RuntimeException("生成上传凭证失败");
         }
     }
-
-    @Override
-    public List<PresignUrlResp> batchGeneratePresignUrls(BatchPresignReq req) {
-        List<PresignUrlResp> results = new ArrayList<>();
-        for (String contentType : req.getContentTypes()) {
-            results.add(generatePresignUrl(contentType));
-        }
-        return results;
-    }
-
-
 
     private String buildAccessUrl(String objectKey) {
         // 前端直传使用 uploadUrl，后续存储到数据库用 objectUrl

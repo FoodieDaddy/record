@@ -1,9 +1,12 @@
 {
   "navigationBarTitleText": "房间",
   "usingComponents": {
-    "seat-mode": "/components/seat-mode/seat-mode",
     "matrix-overview": "/components/matrix-overview/matrix-overview",
     "score-chart": "/components/score-chart/score-chart",
-    "settle-table": "/components/settle-table/settle-table"
+    "settle-table": "/components/settle-table/settle-table",
+    "round-status-bar": "/components/round-status-bar/round-status-bar",
+    "host-fill-modal": "/components/host-fill-modal/host-fill-modal",
+    "member-fill-modal": "/components/member-fill-modal/member-fill-modal",
+    "round-confirm-modal": "/components/round-confirm-modal/round-confirm-modal"
   }
 }

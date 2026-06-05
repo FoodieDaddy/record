@@ -1,0 +1,75 @@
+.mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  width: 560rpx;
+  background: #1c1c1e;
+  border-radius: 24rpx;
+  padding: 40rpx;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+.title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #fff;
+}
+.close-btn {
+  font-size: 36rpx;
+  color: #8e8e93;
+  padding: 8rpx;
+}
+.label {
+  font-size: 28rpx;
+  color: #8e8e93;
+  margin-bottom: 24rpx;
+}
+.score-input {
+  width: 100%;
+  height: 80rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12rpx;
+  text-align: center;
+  color: #fff;
+  font-size: 36rpx;
+  margin-bottom: 32rpx;
+}
+.submit-btn {
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #0a84ff;
+  color: #fff;
+  font-size: 30rpx;
+  border-radius: 16rpx;
+  border: none;
+  box-shadow: 0 4px 20px rgba(10, 132, 255, 0.35);
+}
+.submit-btn::after {
+  border: none;
+}
+.submitted-state {
+  text-align: center;
+  padding: 32rpx 0;
+}
+.submitted-text {
+  font-size: 32rpx;
+  color: #fff;
+  display: block;
+  margin-bottom: 16rpx;
+}
+.submitted-hint {
+  font-size: 24rpx;
+  color: #8e8e93;
+}

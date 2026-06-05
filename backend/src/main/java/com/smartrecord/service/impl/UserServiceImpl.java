@@ -139,6 +139,7 @@ public class UserServiceImpl implements UserService {
                     .userId(obj.getLong("userId"))
                     .nickname(obj.getStr("nickname"))
                     .avatarUrl(obj.getStr("avatarUrl"))
+                    .createdAt(obj.getStr("createdAt"))
                     .userDetail(getUserDetail(userId))
                     .build();
         }
@@ -146,21 +147,26 @@ public class UserServiceImpl implements UserService {
         // 缓存未命中，查库并回写
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BizException("用户不存在");
+            throw new BizException(4001, "用户不存在");
         }
         String fullAvatarUrl = storageService.buildFullUrl(user.getAvatarUrl());
 
         // 写入缓存（24 小时 TTL）
+        String createdAtStr = user.getCreatedAt() != null
+                ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                : "";
         String json = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", user.getNickname() != null ? user.getNickname() : "",
-                "avatarUrl", fullAvatarUrl != null ? fullAvatarUrl : ""));
+                "avatarUrl", fullAvatarUrl != null ? fullAvatarUrl : "",
+                "createdAt", createdAtStr));
         redisTemplate.opsForValue().set(cacheKey, json, 24, TimeUnit.HOURS);
 
         return UserInfoResp.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
                 .avatarUrl(fullAvatarUrl)
+                .createdAt(createdAtStr)
                 .userDetail(getUserDetail(userId))
                 .build();
     }
@@ -189,7 +195,7 @@ public class UserServiceImpl implements UserService {
         // 静默截断：防止绕过前端直接调接口传超长昵称
         String newNickname = nickname != null ? truncateNickname(nickname) : oldNickname;
         if (newNickname == null) {
-            throw new BizException("用户不存在");
+            throw new BizException(4001, "用户不存在");
         }
 
         // 使用 LambdaUpdateWrapper 直接更新，省掉 SELECT

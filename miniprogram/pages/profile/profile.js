@@ -1,20 +1,12 @@
 const { get, put } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { generateNickname } = require('../../utils/nickname');
-const { getSettings, saveSettings, syncFromServer } = require('../../utils/voice');
-const { vibrateShort } = require('../../utils/haptic');
-const config = require('../../config');
+const { getMirrorProfile } = require('../../utils/mirror-api');
+const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
 const app = getApp();
 
-const SAVE_DELAY = 2000; // 自动保存防抖延迟（毫秒）
-// 音频单例 — 全局唯一，避免内存泄漏和重叠播放
-const audioCtx = wx.createInnerAudioContext();
-audioCtx.obeyMuteSwitch = false;
-
-// 防抖定时器（页面实例变量，不进 data 避免渲染开销）
+const SAVE_DELAY = 2000;
 let _saveTimer = null;
-let _settingsTimer = null;
-let _pendingSettings = {};
 let _uploadingAvatar = false;
 
 Page({
@@ -24,31 +16,44 @@ Page({
     avatarUrl: '',
     avatarColor: '',
     avatarChar: '',
-    voiceEnabled: true,
-    voiceName: '晓晓',
-    selectedVoiceId: 'std_01',
-    animationEnabled: true,
-    vibrateEnabled: true,
     saving: false,
-    // 音色抽屉
-    voiceSheetVisible: false,
-    voiceCategories: [],
-    activeVoiceCatId: 'female',
-    scrollToCat: '',
-    playingVoiceId: '',
-    // 待保存的音色（关闭抽屉时才持久化）
-    pendingVoice: null,
-    // 自动保存：记录上次保存的值，避免冗余请求
     _lastSavedNickname: '',
-    _lastSavedAvatar: ''
+    _lastSavedAvatar: '',
+
+    // 身份信息
+    playerTag: '',       // #SR-1234
+    daysSinceJoined: 0,
+
+    // 积分统计（来自 /score/trend）
+    totalScore: 0,
+    winRate: 0,
+    matchCount: 0,
+
+    // 镜像数据（来自 /mirror/profile）
+    mbtiType: '',
+    mbtiTitle: '',
+    mbtiCalibrated: false,
+    traits: [],
+
+    // 战斗人格维度
+    battleDimensions: [],
+
+    // 成就
+    achievements: [],
+
+    // 动画开关（用于 reduce-motion 类）
+    animationEnabled: true
   },
 
   onShow() {
     const loggedIn = !!app.globalData.token;
-    this.setData({ isLoggedIn: loggedIn });
+    this.setData({
+      isLoggedIn: loggedIn,
+      animationEnabled: app.globalData.animationEnabled !== false
+    });
     if (!loggedIn) return;
 
-    // 缓存优先：globalData 或 Storage 中有 userInfo 则直接渲染，不发请求
+    // 缓存优先
     const cached = app.globalData.userInfo;
     if (cached && cached.nickname) {
       const rawAvatar = cached.avatarUrl || '';
@@ -61,33 +66,25 @@ Page({
       });
       this.updateAvatar();
     } else {
-      // 首次冷启动（login 后 globalData 已有，这里兜底）
       this.loadUserInfo();
     }
 
-    this.loadVoiceSettings();
-    this.setData({
-      animationEnabled: app.globalData.animationEnabled,
-      vibrateEnabled: app.globalData.vibrateEnabled !== false
-    });
-    // 预加载音色分类（供音色抽屉使用），加载完成后重新解析音色名
-    this.loadVoiceCatalog().then(() => {
-      this.resolveVoiceName(this.data.selectedVoiceId);
-    });
+    // 并行加载镜像和积分数据
+    this.loadMirrorData();
+    this.loadScoreStats();
   },
 
-  goLogin() {
-    wx.navigateTo({ url: '/pages/login/login' });
-  },
-
-  /** 下拉刷新：强制从服务端拉取最新数据 */
   async onPullDownRefresh() {
     if (!app.globalData.token) {
       wx.stopPullDownRefresh();
       return;
     }
     try {
-      await this.loadUserInfo();
+      await Promise.all([
+        this.loadUserInfo(),
+        this.loadMirrorData(),
+        this.loadScoreStats()
+      ]);
     } finally {
       wx.stopPullDownRefresh();
     }
@@ -98,7 +95,6 @@ Page({
       const user = await get('/user/me');
       if (user) {
         const loadedNick = user.nickname || '';
-        // 过滤非远程 URL（旧数据可能存了 objectKey 或本地临时路径）
         const rawAvatar = user.avatarUrl || '';
         const loadedAvatar = rawAvatar.startsWith('http') ? rawAvatar : '';
         this.setData({
@@ -112,21 +108,16 @@ Page({
           avatarUrl: loadedAvatar
         });
         this.updateAvatar();
-        // 同步服务端设置到本地
-        if (user.userDetail) {
-          syncFromServer(user.userDetail);
-          const d = user.userDetail;
-          this.setData({
-            voiceEnabled: d.voiceEnabled !== false,
-            selectedVoiceId: d.voiceId || 'std_01',
-            animationEnabled: d.animEnabled !== false,
-            vibrateEnabled: d.vibrateEnabled !== false
-          });
-          this.resolveVoiceName(d.voiceId || 'std_01');
-          app.globalData.animationEnabled = d.animEnabled !== false;
-          app.globalData.vibrateEnabled = d.vibrateEnabled !== false;
-          wx.setStorageSync('animationEnabled', d.animEnabled !== false);
-          wx.setStorageSync('vibrateEnabled', d.vibrateEnabled !== false);
+
+        // 玩家标签
+        const uid = String(user.userId || '');
+        this.setData({ playerTag: '#SR-' + uid.slice(-4) });
+
+        // 注册天数
+        if (user.createdAt) {
+          const created = new Date(user.createdAt).getTime();
+          const days = Math.floor((Date.now() - created) / 86400000);
+          this.setData({ daysSinceJoined: days });
         }
       }
     } catch (e) {
@@ -134,30 +125,61 @@ Page({
     }
   },
 
-  loadVoiceSettings() {
-    const settings = getSettings();
-    this.setData({
-      voiceEnabled: settings.enabled,
-      selectedVoiceId: settings.voiceId
-    });
-    this.resolveVoiceName(settings.voiceId);
+  async loadMirrorData() {
+    try {
+      const res = await getMirrorProfile();
+      if (!res) return;
+
+      const mbti = res.mbti || {};
+      const mbtiInfo = mbti.mbtiCode ? MBTI_MAP[mbti.mbtiCode] : null;
+      const traits = (res.traits && res.traits.length > 0)
+        ? res.traits
+        : (mbtiInfo ? (MBTI_TRAITS[mbtiInfo.type] || []) : []);
+
+      const dimensions = (res.battlePersona && res.battlePersona.generated)
+        ? (res.dimensions || [])
+        : [];
+
+      this.setData({
+        mbtiType: mbtiInfo ? mbtiInfo.type : '',
+        mbtiTitle: mbtiInfo ? mbtiInfo.title : '',
+        mbtiCalibrated: !!mbti.calibrated,
+        traits: traits,
+        battleDimensions: dimensions
+      });
+      this.computeAchievements();
+    } catch (e) {
+      console.error('加载镜像数据失败', e);
+    }
   },
 
-  resolveVoiceName(voiceId) {
-    const cats = this.data.voiceCategories;
-    if (!cats.length) {
-      // 目录未加载，先用 ID 兜底，等 loadVoiceCatalog 完成后再解析
-      this.setData({ voiceName: voiceId });
-      return;
+  async loadScoreStats() {
+    try {
+      const resp = await get('/score/trend?limit=50');
+      const points = (resp && resp.points) || [];
+      const totalScore = points.reduce((sum, p) => sum + (p.netScore || 0), 0);
+      const wins = points.filter(p => p.netScore > 0).length;
+      const matchCount = points.length;
+      const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
+
+      this.setData({ totalScore, winRate, matchCount });
+      this.computeAchievements();
+    } catch (e) {
+      console.error('加载积分数据失败', e);
     }
-    for (const cat of cats) {
-      const found = (cat.voices || []).find(v => v.id === voiceId);
-      if (found) {
-        this.setData({ voiceName: found.name });
-        return;
-      }
-    }
-    this.setData({ voiceName: voiceId });
+  },
+
+  computeAchievements() {
+    const { matchCount, totalScore, winRate, mbtiCalibrated } = this.data;
+    const achievements = [
+      { key: 'first_game',  label: '首局完成', unlocked: matchCount >= 1 },
+      { key: 'century',     label: '百分玩家', unlocked: totalScore >= 100 },
+      { key: 'score_1000',  label: '积分破千', unlocked: totalScore >= 1000 },
+      { key: 'ten_streak',  label: '连续十局', unlocked: matchCount >= 10 },
+      { key: 'win_half',    label: '胜率过半', unlocked: winRate >= 50 },
+      { key: 'mirror_sync', label: '镜像同步', unlocked: mbtiCalibrated }
+    ];
+    this.setData({ achievements });
   },
 
   updateAvatar() {
@@ -170,13 +192,12 @@ Page({
     }
   },
 
-  // ========== 头像（选择后自动保存） ==========
+  // ========== 头像 ==========
 
   async onChooseAvatar(e) {
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
-    // 立即上传临时文件，防止被系统清理
     _uploadingAvatar = true;
     try {
       const ossUrl = await this.uploadToOSS(tempPath);
@@ -189,7 +210,7 @@ Page({
     this.debouncedSave();
   },
 
-  // ========== 昵称（防抖保存，失焦立即刷盘） ==========
+  // ========== 昵称 ==========
 
   onNicknameInput(e) {
     let val = e.detail.value || '';
@@ -210,112 +231,30 @@ Page({
     this.debouncedSave();
   },
 
-  // ========== 语音设置 ==========
-
-  onVoiceToggle() {
-    const enabled = !this.data.voiceEnabled;
-    this.setData({ voiceEnabled: enabled });
-    saveSettings({ enabled });
-    app.globalData.audioEnabled = enabled;
-    wx.setStorageSync('audioEnabled', enabled);
-    this.debouncedSaveSettings({ voiceEnabled: enabled });
-    vibrateShort('light');
-  },
-
-  async loadVoiceCatalog() {
-    if (this.data.voiceCategories.length > 0) return;
-    try {
-      const catalog = await get('/voice/catalog');
-      const categories = catalog.categories || [];
-      this.setData({ voiceCategories: categories });
-      // 确保 activeVoiceCatId 在分类列表中有效
-      if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
-        this.setData({ activeVoiceCatId: categories[0].id });
-      }
-    } catch (e) {
-      console.error('加载音色目录失败', e);
-    }
-  },
-
-  openVoiceSheet() {
-    this.loadVoiceCatalog();
-    this.setData({ voiceSheetVisible: true });
-  },
-
-  closeVoiceSheet() {
-    if (this.data.pendingVoice) {
-      const pv = this.data.pendingVoice;
-      saveSettings({ voiceId: pv.voiceId });
-      this.debouncedSaveSettings({ voiceId: pv.voiceId });
-      this.setData({ pendingVoice: null });
-    }
-    this.setData({ voiceSheetVisible: false });
-    audioCtx.stop();
-    this.setData({ playingVoiceId: '' });
-  },
-
-  onCatTap(e) {
-    const catId = e.currentTarget.dataset.catId;
-    this.setData({
-      activeVoiceCatId: catId,
-      scrollToCat: 'cat-' + catId
-    });
-  },
-
-  onVoiceTap(e) {
-    const voice = e.currentTarget.dataset.voice;
-    const catId = e.currentTarget.dataset.catId;
-
-    this.setData({
-      selectedVoiceId: voice.id,
-      voiceName: voice.name,
-      activeVoiceCatId: catId,
-      pendingVoice: { voiceId: voice.id }
-    });
-
-    // 试听：stop → src → play
-    audioCtx.stop();
-    this.setData({ playingVoiceId: voice.id });
-    audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
-    audioCtx.play();
-
-    audioCtx.offEnded();
-    audioCtx.onEnded(() => {
-      this.setData({ playingVoiceId: '' });
-    });
-  },
-
-  onAnimationToggle() {
-    const enabled = !this.data.animationEnabled;
-    this.setData({ animationEnabled: enabled });
-    app.globalData.animationEnabled = enabled;
-    wx.setStorageSync('animationEnabled', enabled);
-    this.debouncedSaveSettings({ animEnabled: enabled });
-    vibrateShort('light');
-  },
-
-  onVibrateToggle() {
-    const enabled = !this.data.vibrateEnabled;
-    this.setData({ vibrateEnabled: enabled });
-    app.globalData.vibrateEnabled = enabled;
-    wx.setStorageSync('vibrateEnabled', enabled);
-    this.debouncedSaveSettings({ vibrateEnabled: enabled });
-    vibrateShort('light');
-  },
-
   // ========== 导航 ==========
 
+  goLogin() {
+    wx.navigateTo({ url: '/pages/login/login' });
+  },
+
+  goSettings() {
+    wx.navigateTo({ url: '/pages/settings/settings' });
+  },
+
   goScoreRecords() {
-    wx.switchTab({ url: '/pages/room/room' });
+    wx.navigateTo({ url: '/pages/score-records/score-records' });
   },
 
-  goHistoryRooms() {
-    wx.navigateTo({ url: '/pages/history/history' });
+  goBattleFile() {
+    wx.switchTab({ url: '/pages/mirror/index' });
   },
 
-  // ========== 自动保存（防抖 + 刷盘） ==========
+  goExportData() {
+    wx.showToast({ title: '功能开发中', icon: 'none' });
+  },
 
-  // 防抖：延迟 2 秒，重复调用重置计时
+  // ========== 自动保存 ==========
+
   debouncedSave() {
     if (_saveTimer) clearTimeout(_saveTimer);
     _saveTimer = setTimeout(() => {
@@ -324,56 +263,30 @@ Page({
     }, SAVE_DELAY);
   },
 
-  // 刷盘：取消防抖，立即保存
   flushSave() {
     if (_saveTimer) {
       clearTimeout(_saveTimer);
       _saveTimer = null;
     }
     this.saveProfile();
-    this.flushSaveSettings();
-  },
-
-  // 设置防抖
-  debouncedSaveSettings(partial) {
-    Object.assign(_pendingSettings, partial);
-    if (_settingsTimer) clearTimeout(_settingsTimer);
-    _settingsTimer = setTimeout(() => {
-      _settingsTimer = null;
-      this.flushSaveSettings();
-    }, SAVE_DELAY);
-  },
-
-  flushSaveSettings() {
-    if (_settingsTimer) {
-      clearTimeout(_settingsTimer);
-      _settingsTimer = null;
-    }
-    if (Object.keys(_pendingSettings).length === 0) return;
-    const payload = { ..._pendingSettings };
-    _pendingSettings = {};
-    put('/user/detail', payload).catch(() => {});
   },
 
   async saveProfile() {
     if (this.data.saving || _uploadingAvatar) return;
     const { nickname, avatarUrl } = this.data;
-
     if (!nickname || !nickname.trim()) return;
 
-    // 值未变化时跳过保存
     const trimmed = nickname.trim();
     if (trimmed === this.data._lastSavedNickname && avatarUrl === this.data._lastSavedAvatar) return;
 
     this.setData({ saving: true });
     try {
       let finalAvatarUrl = avatarUrl;
-      // 非远程 URL 视为本地临时文件，需上传（正常情况 onChooseAvatar 已立即上传）
       if (avatarUrl && !avatarUrl.startsWith('http')) {
         try {
           finalAvatarUrl = await this.uploadToOSS(avatarUrl);
         } catch (uploadErr) {
-          console.error('头像补传失败，跳过头像保存', uploadErr);
+          console.error('头像补传失败', uploadErr);
           finalAvatarUrl = this.data._lastSavedAvatar || '';
         }
       }
@@ -383,7 +296,6 @@ Page({
         avatarUrl: finalAvatarUrl || ''
       });
 
-      // 乐观更新：同步写入 globalData + Storage，不发额外请求
       app.updateUserInfo({
         nickname: nickname.trim().substring(0, 6),
         avatarUrl: finalAvatarUrl || ''
@@ -402,11 +314,8 @@ Page({
     }
   },
 
-  // ========== 上传 ==========
-
   async uploadToOSS(filePath) {
     const presignData = await get('/storage/presign?contentType=' + encodeURIComponent('image/jpeg'));
-
     if (!presignData || !presignData.uploadUrl) {
       throw new Error('获取预签名 URL 失败');
     }
@@ -424,18 +333,15 @@ Page({
         url: presignData.uploadUrl,
         method: 'PUT',
         data: fileData,
-        header: {
-          'Content-Type': 'image/jpeg'
-        },
+        header: { 'Content-Type': 'image/jpeg' },
         success(res) {
           if (res.statusCode === 200) resolve();
-          else reject(new Error('上传到 OSS 失败, statusCode: ' + res.statusCode));
+          else reject(new Error('上传失败: ' + res.statusCode));
         },
         fail: reject
       });
     });
 
-    // 返回完整公开 URL，而非 objectKey（避免相对路径被当作本地文件）
     return presignData.accessUrl || presignData.objectKey;
   },
 
@@ -447,22 +353,15 @@ Page({
       content: '退出后需要重新登录'
     });
     if (!confirm) return;
-
     app.logout();
     wx.reLaunch({ url: '/pages/login/login' });
   },
 
   onHide() {
-    // 页面切后台时刷盘，防止丢失未保存的修改
     this.flushSave();
   },
 
   onUnload() {
     this.flushSave();
-    if (this.data.pendingVoice) {
-      saveSettings(this.data.pendingVoice);
-    }
-    audioCtx.stop();
-    audioCtx.destroy();
   }
 });

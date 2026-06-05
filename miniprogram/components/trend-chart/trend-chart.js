@@ -83,7 +83,7 @@ Component({
             return;
           }
 
-          const dpr = wx.getWindowInfo().pixelRatio;
+          const dpr = wx.getSystemInfoSync().pixelRatio;
           canvas.width = cssW * dpr;
           canvas.height = cssH * dpr;
           ctx.scale(dpr, dpr);

@@ -1,0 +1,21 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  background: rgba(10,132,255,0.12);
+  border-radius: 12rpx;
+  margin: 16rpx 24rpx;
+}
+.status-text {
+  font-size: 26rpx;
+  color: #0a84ff;
+}
+.status-text.rejected {
+  color: #ff453a;
+}
+.cancel-btn {
+  font-size: 26rpx;
+  color: #8e8e93;
+  padding: 8rpx 16rpx;
+}

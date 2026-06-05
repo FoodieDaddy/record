@@ -1,14 +1,15 @@
 package com.smartrecord.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartrecord.common.BizException;
-import com.smartrecord.dto.mirror.BirthProfileReq;
 import com.smartrecord.dto.mirror.MbtiTestReq;
-import com.smartrecord.dto.mirror.MirrorDashboardResp.ProfileInfo;
-import com.smartrecord.entity.MirrorBirthProfile;
+import com.smartrecord.dto.mirror.MirrorProfileResp;
+import com.smartrecord.dto.mirror.MirrorProfileResp.*;
 import com.smartrecord.entity.UserMirrorProfile;
-import com.smartrecord.mapper.MirrorBirthProfileMapper;
+import com.smartrecord.enums.MbtiType;
 import com.smartrecord.mapper.UserMirrorProfileMapper;
+import com.smartrecord.service.BattlePersonaService;
 import com.smartrecord.service.MirrorProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +17,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -27,11 +28,116 @@ import java.util.concurrent.TimeUnit;
 public class MirrorProfileServiceImpl implements MirrorProfileService {
 
     private final UserMirrorProfileMapper profileMapper;
-    private final MirrorBirthProfileMapper birthMapper;
+    private final BattlePersonaService battlePersonaService;
     private final StringRedisTemplate redisTemplate;
+    private final ObjectMapper objectMapper;
 
-    private static final String CACHE_KEY_PROFILE = "sr:mirror:profile:";
-    private static final String CACHE_KEY_DASHBOARD = "sr:mirror:dashboard:";
+    private static final String CACHE_KEY = "sr:mirror:profile:";
+    private static final long CACHE_TTL_MINUTES = 30;
+
+    /** MBTI 认知特征标签 */
+    private static final Map<String, List<String>> MBTI_TRAITS = Map.ofEntries(
+            Map.entry("INTJ", List.of("战略思维", "长期主义", "独立决策", "风险克制")),
+            Map.entry("INTP", List.of("模式识别", "逻辑推演", "灵活变通", "深度分析")),
+            Map.entry("ENTJ", List.of("节奏主导", "高压决策", "目标驱动", "结构化执行")),
+            Map.entry("ENTP", List.of("机会捕捉", "多线程思维", "扰动试探", "快速切换")),
+            Map.entry("INFJ", List.of("远距阅读", "模式感知", "隐性节奏", "直觉判断")),
+            Map.entry("INFP", List.of("价值驱动", "低频高质", "模式识别", "原则坚守")),
+            Map.entry("ENFJ", List.of("节奏组织", "协同驱动", "情绪感知", "团队节奏")),
+            Map.entry("ENFP", List.of("机会游走", "高频切换", "情绪带动", "灵活应变")),
+            Map.entry("ISTJ", List.of("纪律执行", "稳定节奏", "规则遵循", "低失误率")),
+            Map.entry("ISFJ", List.of("防守稳固", "稳定输出", "风险规避", "持久耐力")),
+            Map.entry("ESTJ", List.of("规则压制", "节奏控制", "高压执行", "结构化打法")),
+            Map.entry("ESFJ", List.of("协同支援", "团队配合", "节奏感知", "稳定贡献")),
+            Map.entry("ISTP", List.of("冷启动分析", "精准出手", "独立决策", "效率优先")),
+            Map.entry("ISFP", List.of("低频感知", "直觉捕捉", "柔韧应变", "安静观察")),
+            Map.entry("ESTP", List.of("高压突击", "即时反应", "冒险决策", "高频进攻")),
+            Map.entry("ESFP", List.of("现场爆发", "即时反应", "高频决策", "情绪驱动"))
+    );
+
+    /** MBTI → 人格预测倾向描述 */
+    private static final Map<String, String> MBTI_PREDICTION = Map.ofEntries(
+            Map.entry("INTJ", "偏控场"),
+            Map.entry("INTP", "偏防守"),
+            Map.entry("ENTJ", "偏进攻"),
+            Map.entry("ENTP", "偏扰动"),
+            Map.entry("INFJ", "偏观察"),
+            Map.entry("INFP", "偏防守"),
+            Map.entry("ENFJ", "偏控场"),
+            Map.entry("ENFP", "偏波动"),
+            Map.entry("ISTJ", "偏稳健"),
+            Map.entry("ISFJ", "偏防守"),
+            Map.entry("ESTJ", "偏控场"),
+            Map.entry("ESFJ", "偏协同"),
+            Map.entry("ISTP", "偏防守"),
+            Map.entry("ISFP", "偏观察"),
+            Map.entry("ESTP", "偏进攻"),
+            Map.entry("ESFP", "偏波动")
+    );
+
+    @Override
+    public MirrorProfileResp getFullProfile(Long userId) {
+        // 尝试读缓存
+        String cacheKey = CACHE_KEY + userId;
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, MirrorProfileResp.class);
+            }
+        } catch (Exception e) {
+            log.warn("读取镜像缓存失败: userId={}", userId);
+        }
+
+        // 构建完整画像
+        UserMirrorProfile profile = getProfile(userId);
+        ProfileInfo mbti = toProfileInfo(profile);
+
+        // 计算战绩画像
+        BattlePersonaService.BattlePersonaResult personaResult = battlePersonaService.calculate(userId);
+        BattlePersonaInfo battlePersona = personaResult.persona();
+
+        // 持久化画像到数据库
+        savePersonaToProfile(userId, battlePersona);
+
+        // 生成判读
+        String mbtiTypeStr = profile != null && profile.getMbtiCode() != null
+                ? MbtiType.fromCode(profile.getMbtiCode()).map(MbtiType::getType).orElse(null)
+                : null;
+        ReadingInfo reading = battlePersonaService.generateReading(
+                mbtiTypeStr,
+                battlePersona.getTag());
+
+        // 认知特征标签
+        List<String> traits = (mbtiTypeStr != null)
+                ? MBTI_TRAITS.getOrDefault(mbtiTypeStr, List.of())
+                : List.of();
+
+        // 人格与战绩匹配度
+        PersonaMatchInfo personaMatch = computePersonaMatch(
+                mbtiTypeStr, battlePersona, personaResult.dimensions());
+
+        MirrorProfileResp resp = MirrorProfileResp.builder()
+                .mbti(mbti)
+                .battlePersona(battlePersona)
+                .dimensions(personaResult.dimensions())
+                .reading(reading)
+                .traits(traits)
+                .personaMatch(personaMatch)
+                .build();
+
+        // 写缓存
+        try {
+            redisTemplate.opsForValue().set(cacheKey,
+                    objectMapper.writeValueAsString(resp),
+                    CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.warn("序列化镜像缓存失败: userId={}", userId);
+        } catch (Exception e) {
+            log.warn("写入镜像缓存失败: userId={}", userId);
+        }
+
+        return resp;
+    }
 
     @Override
     public ProfileInfo submitMbtiTest(Long userId, MbtiTestReq req) {
@@ -43,73 +149,35 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
 
         UserMirrorProfile profile = new UserMirrorProfile();
         profile.setUserId(userId);
-        profile.setMbtiType(result.type());
+        profile.setMbtiCode(result.code());
         profile.setMbtiSource("test");
         profile.setMbtiConfidence(BigDecimal.valueOf(result.confidence()));
         profile.setMbtiTestVersion(req.getTestVersion());
         profile.setMbtiAnswersJson(java.util.List.copyOf(
                 req.getAnswers().stream().map(a -> (Object) a).toList()));
-        profile.setMbtiTitle(result.title());
         profile.setCalibratedAt(LocalDateTime.now());
 
         saveProfile(profile);
+        clearProfileCache(userId);
         return toProfileInfo(profile);
     }
 
     @Override
-    public ProfileInfo submitMbtiDirect(Long userId, String mbtiType) {
-        String upperType = mbtiType.toUpperCase();
-        if (!MbtiCalculator.isValidType(upperType)) {
-            throw new BizException("非法MBTI类型: " + mbtiType);
+    public ProfileInfo submitMbtiDirect(Long userId, int mbtiCode) {
+        if (!MbtiType.isValidCode(mbtiCode)) {
+            throw new BizException("非法MBTI类型编号: " + mbtiCode);
         }
 
         UserMirrorProfile profile = new UserMirrorProfile();
         profile.setUserId(userId);
-        profile.setMbtiType(upperType);
+        profile.setMbtiCode(mbtiCode);
         profile.setMbtiSource("direct");
         profile.setMbtiConfidence(BigDecimal.valueOf(100));
-        profile.setMbtiTitle(MbtiCalculator.getTitle(upperType));
         profile.setCalibratedAt(LocalDateTime.now());
 
         saveProfile(profile);
+        clearProfileCache(userId);
         return toProfileInfo(profile);
-    }
-
-    @Override
-    public void saveBirthProfile(Long userId, BirthProfileReq req) {
-        MirrorBirthProfile entity = new MirrorBirthProfile();
-        entity.setUserId(userId);
-        entity.setCalendarType(req.getCalendarType() != null ? req.getCalendarType() : "solar");
-        entity.setBirthDate(req.getBirthDate() != null ? LocalDate.parse(req.getBirthDate()) : null);
-        entity.setBirthTime(req.getBirthTime());
-        entity.setBirthPlace(req.getBirthPlace());
-        entity.setTimezone(req.getTimezone() != null ? req.getTimezone() : "Asia/Shanghai");
-        entity.setGender(req.getGender());
-
-        MirrorBirthProfile existing = birthMapper.selectById(userId);
-        if (existing != null) {
-            birthMapper.updateById(entity);
-        } else {
-            birthMapper.insert(entity);
-        }
-
-        clearDashboardCache(userId);
-        log.info("出生档案已保存: userId={}", userId);
-    }
-
-    @Override
-    public BirthProfileReq getBirthProfile(Long userId) {
-        MirrorBirthProfile entity = getBirthProfileEntity(userId);
-        if (entity == null) return null;
-
-        BirthProfileReq req = new BirthProfileReq();
-        req.setCalendarType(entity.getCalendarType());
-        req.setBirthDate(entity.getBirthDate() != null ? entity.getBirthDate().toString() : null);
-        req.setBirthTime(entity.getBirthTime());
-        req.setBirthPlace(entity.getBirthPlace());
-        req.setTimezone(entity.getTimezone());
-        req.setGender(entity.getGender());
-        return req;
     }
 
     @Override
@@ -118,8 +186,119 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     }
 
     @Override
-    public MirrorBirthProfile getBirthProfileEntity(Long userId) {
-        return birthMapper.selectById(userId);
+    public ProfileInfo toProfileInfo(Long userId) {
+        UserMirrorProfile profile = getProfile(userId);
+        return toProfileInfo(profile);
+    }
+
+    @Override
+    public void clearProfileCache(Long userId) {
+        try {
+            redisTemplate.delete(CACHE_KEY + userId);
+        } catch (Exception e) {
+            log.warn("清除镜像缓存失败: userId={}", userId);
+        }
+    }
+
+    // ---- 内部方法 ----
+
+    private ProfileInfo toProfileInfo(UserMirrorProfile p) {
+        if (p == null) {
+            return ProfileInfo.builder().calibrated(false).build();
+        }
+        return ProfileInfo.builder()
+                .calibrated(p.getMbtiCode() != null && p.getMbtiCode() > 0)
+                .mbtiCode(p.getMbtiCode())
+                .confidence(p.getMbtiConfidence())
+                .mbtiSource(p.getMbtiSource())
+                .calibratedAt(p.getCalibratedAt() != null
+                        ? p.getCalibratedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                        : null)
+                .build();
+    }
+
+    /**
+     * 计算人格与战绩匹配度
+     * 对比 MBTI 预测的维度倾向 vs 实际雷达维度分值
+     */
+    private PersonaMatchInfo computePersonaMatch(String mbtiType,
+                                                  BattlePersonaInfo battlePersona,
+                                                  List<DimensionInfo> dimensions) {
+        if (mbtiType == null || mbtiType.isEmpty() || !battlePersona.isGenerated()) {
+            return PersonaMatchInfo.builder().available(false).build();
+        }
+
+        // MBTI 预测的维度倾向 (stability, aggression, drawdownControl, volatilityRisk)
+        // 值表示该 MBTI 类型在这维度上的预期高低（0-100 基准）
+        Map<String, int[]> predictedMap = Map.ofEntries(
+                // 稳健控场型
+                Map.entry("INTJ", new int[]{85, 40, 85, 25}),
+                Map.entry("ISTJ", new int[]{90, 35, 90, 20}),
+                Map.entry("ISFJ", new int[]{85, 30, 85, 20}),
+                Map.entry("INFJ", new int[]{80, 35, 80, 30}),
+                Map.entry("ESTJ", new int[]{80, 55, 75, 30}),
+                Map.entry("ENFJ", new int[]{75, 50, 70, 35}),
+                // 高压进攻型
+                Map.entry("ENTJ", new int[]{60, 80, 55, 45}),
+                Map.entry("ESTP", new int[]{45, 85, 40, 55}),
+                // 波动爆发型
+                Map.entry("ENTP", new int[]{40, 75, 35, 70}),
+                Map.entry("ENFP", new int[]{35, 70, 35, 70}),
+                Map.entry("ESFP", new int[]{30, 75, 30, 75}),
+                // 防守反击型
+                Map.entry("ISTP", new int[]{70, 35, 75, 30}),
+                Map.entry("INTP", new int[]{65, 30, 70, 35}),
+                Map.entry("ISFP", new int[]{65, 30, 70, 35}),
+                // 慢热观察型
+                Map.entry("INFP", new int[]{70, 25, 65, 30})
+        );
+
+        int[] predicted = predictedMap.getOrDefault(mbtiType, new int[]{50, 50, 50, 50});
+
+        // 提取实际维度值
+        Map<String, Integer> actualMap = new HashMap<>();
+        for (DimensionInfo d : dimensions) {
+            actualMap.put(d.getKey(), d.getValue());
+        }
+        int actualStability = actualMap.getOrDefault("stability", 0);
+        int actualAggression = actualMap.getOrDefault("aggression", 0);
+        int actualDrawdown = actualMap.getOrDefault("drawdownControl", 0);
+        int actualVolatility = actualMap.getOrDefault("volatilityRisk", 0);
+
+        // 计算各维度匹配度（差距越小匹配越高）
+        int matchS = 100 - Math.abs(actualStability - predicted[0]) * 2;
+        int matchA = 100 - Math.abs(actualAggression - predicted[1]) * 2;
+        int matchD = 100 - Math.abs(actualDrawdown - predicted[2]) * 2;
+        int matchV = 100 - Math.abs(actualVolatility - predicted[3]) * 2;
+
+        int overall = Math.max(0, Math.min(100,
+                (matchS * 3 + matchA * 3 + matchD * 2 + matchV * 2) / 10));
+
+        // 预测倾向
+        String prediction = MBTI_PREDICTION.getOrDefault(mbtiType, "均衡型");
+
+        // 实际表现摘要
+        String actualSummary = String.format("控场力 %d / 稳定性 %d / 进攻性 %d",
+                actualMap.getOrDefault("dominance", actualDrawdown),
+                actualStability, actualAggression);
+
+        // 总结
+        String summary;
+        if (overall >= 80) {
+            summary = "人格预测与实际表现高度一致";
+        } else if (overall >= 60) {
+            summary = "人格预测与实际表现基本吻合";
+        } else {
+            summary = "人格预测与实际表现存在差异，打法可能更灵活";
+        }
+
+        return PersonaMatchInfo.builder()
+                .available(true)
+                .matchPercentage(overall)
+                .prediction(prediction)
+                .actualSummary(actualSummary)
+                .summary(summary)
+                .build();
     }
 
     private void saveProfile(UserMirrorProfile profile) {
@@ -129,36 +308,28 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
         } else {
             profileMapper.insert(profile);
         }
-
-        clearProfileCache(profile.getUserId());
-        clearDashboardCache(profile.getUserId());
-        log.info("MBTI已保存: userId={}, type={}, source={}", profile.getUserId(), profile.getMbtiType(), profile.getMbtiSource());
+        log.info("MBTI已保存: userId={}, code={}, source={}",
+                profile.getUserId(), profile.getMbtiCode(), profile.getMbtiSource());
     }
 
-    private ProfileInfo toProfileInfo(UserMirrorProfile p) {
-        return ProfileInfo.builder()
-                .calibrated(p.getMbtiType() != null)
-                .mbtiType(p.getMbtiType())
-                .mbtiTitle(p.getMbtiTitle())
-                .confidence(p.getMbtiConfidence())
-                .mbtiSource(p.getMbtiSource())
-                .calibratedAt(p.getCalibratedAt() != null ? p.getCalibratedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : null)
-                .build();
-    }
-
-    private void clearProfileCache(Long userId) {
-        try {
-            redisTemplate.delete(CACHE_KEY_PROFILE + userId);
-        } catch (Exception e) {
-            log.warn("清除profile缓存失败: userId={}", userId);
-        }
-    }
-
-    private void clearDashboardCache(Long userId) {
-        try {
-            redisTemplate.delete(CACHE_KEY_DASHBOARD + userId);
-        } catch (Exception e) {
-            log.warn("清除dashboard缓存失败: userId={}", userId);
+    private void savePersonaToProfile(Long userId, BattlePersonaInfo persona) {
+        UserMirrorProfile existing = profileMapper.selectById(userId);
+        if (existing == null) {
+            UserMirrorProfile p = new UserMirrorProfile();
+            p.setUserId(userId);
+            p.setBattlePersonaTag(persona.getTag());
+            p.setBattlePersonaTitle(persona.getTitle());
+            p.setBattlePersonaSummary(persona.getSummary());
+            p.setSampleSize(persona.getSampleSize());
+            p.setPersonaCalculatedAt(LocalDateTime.now());
+            profileMapper.insert(p);
+        } else {
+            existing.setBattlePersonaTag(persona.getTag());
+            existing.setBattlePersonaTitle(persona.getTitle());
+            existing.setBattlePersonaSummary(persona.getSummary());
+            existing.setSampleSize(persona.getSampleSize());
+            existing.setPersonaCalculatedAt(LocalDateTime.now());
+            profileMapper.updateById(existing);
         }
     }
 }

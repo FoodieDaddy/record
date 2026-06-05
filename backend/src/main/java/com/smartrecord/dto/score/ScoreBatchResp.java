@@ -21,9 +21,6 @@ public class ScoreBatchResp {
     @Schema(description = "本轮各玩家得分")
     private List<PlayerScoreVO> scores;
 
-    @Schema(description = "本轮图片 URL 列表")
-    private List<String> imageUrls;
-
     @Data
     @Builder
     @Schema(description = "玩家得分详情")

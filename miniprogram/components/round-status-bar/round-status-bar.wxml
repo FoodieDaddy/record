@@ -1,0 +1,15 @@
+<view class="status-bar" wx:if="{{round}}" bindtap="onTap">
+  <block wx:if="{{round.status === 1}}">
+    <text class="status-text">本局录入中：{{round.memberSubmitted}} / {{round.memberTotal}} 已填写</text>
+  </block>
+  <block wx:elif="{{round.status === 2}}">
+    <text class="status-text">本局积分待确认：{{round.confirmCount}} / {{round.confirmTotal}} 已同意</text>
+  </block>
+  <block wx:elif="{{round.status === 4}}">
+    <text class="status-text rejected">本局录入已被驳回</text>
+  </block>
+
+  <view class="cancel-btn" wx:if="{{isOwner && (round.status === 1 || round.status === 2)}}" catchtap="onCancel">
+    取消
+  </view>
+</view>

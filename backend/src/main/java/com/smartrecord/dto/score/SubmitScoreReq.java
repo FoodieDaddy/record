@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -21,10 +20,6 @@ public class SubmitScoreReq {
     @Valid
     @Schema(description = "各玩家得分列表")
     private List<PlayerScore> scores;
-
-    @Size(max = 9, message = "最多上传 9 张图片")
-    @Schema(description = "图片 URL 列表（已通过直传上传到 OSS 的 URL）")
-    private List<String> imageUrls;
 
     @Data
     @Schema(description = "单个玩家得分")

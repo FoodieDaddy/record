@@ -10,17 +10,16 @@ import com.smartrecord.common.PageResult;
 import com.smartrecord.dto.score.*;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
-import com.smartrecord.entity.Score;
+import com.smartrecord.entity.RoundRecord;
+import com.smartrecord.entity.RoundRecordDetail;
 import com.smartrecord.entity.User;
-import com.smartrecord.mapper.RoomMapper;
-import com.smartrecord.mapper.RoomMemberMapper;
-import com.smartrecord.mapper.ScoreMapper;
-import com.smartrecord.mapper.UserMapper;
+import com.smartrecord.enums.RoundRecordStatus;
+import com.smartrecord.enums.ScoreMode;
+import com.smartrecord.mapper.*;
 import com.smartrecord.service.EmotionAudioPool;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.ScoreService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
-import com.smartrecord.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,8 +47,8 @@ public class ScoreServiceImpl implements ScoreService {
     private final RoomMapper roomMapper;
     private final UserMapper userMapper;
     private final RoomMemberMapper roomMemberMapper;
-    private final ScoreMapper scoreMapper;
-    private final SnowflakeIdGenerator idGenerator;
+    private final RoundRecordMapper roundRecordMapper;
+    private final RoundRecordDetailMapper roundRecordDetailMapper;
     private final StringRedisTemplate redisTemplate;
     private final RedissonClient redissonClient;
     private final ScoreWebSocket scoreWebSocket;
@@ -250,6 +249,11 @@ public class ScoreServiceImpl implements ScoreService {
     private SettleResp doSettleRoom(Long userId, Long roomId, Room room, boolean autoSettled) {
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 
+        // 本局录模式：从 MySQL 读取已生效的 round records
+        if (ScoreMode.ROUND_RECORD.getCode() == (room.getScoreMode() != null ? room.getScoreMode() : 1)) {
+            return doSettleRoundRecordRoom(userId, roomId, room, autoSettled, roomPrefix);
+        }
+
         // 0. 读取成员元数据快照（结档前，Redis 清理前）
         String metaKey = roomPrefix + "meta";
         Map<Object, Object> metaFields = redisTemplate.opsForHash().entries(metaKey);
@@ -265,7 +269,6 @@ public class ScoreServiceImpl implements ScoreService {
         // 1. 读取所有批次时间戳
         List<String> batchTsList = redisTemplate.opsForList().range(roomPrefix + "batches", 0, -1);
 
-        List<Score> allScores = new ArrayList<>();
         Map<Long, Integer> playerTotalMap = new HashMap<>();
         List<Map<String, Object>> allRecord = new ArrayList<>();
 
@@ -360,15 +363,6 @@ public class ScoreServiceImpl implements ScoreService {
                     Long uid = Long.parseLong((String) entry.getKey());
                     int scoreVal = Integer.parseInt((String) entry.getValue());
 
-                    Score score = new Score();
-                    score.setId(idGenerator.nextId());
-                    score.setRoomId(roomId);
-                    score.setUserId(uid);
-                    score.setScore(scoreVal);
-                    score.setCreatedBy(createdBy);
-                    score.setCreatedAt(createdAt);
-                    allScores.add(score);
-
                     playerTotalMap.merge(uid, scoreVal, Integer::sum);
 
                     Map<String, Object> ps = new HashMap<>();
@@ -384,16 +378,7 @@ public class ScoreServiceImpl implements ScoreService {
             }
         }
 
-        // 2. 写入 score 表
-        if (!allScores.isEmpty()) {
-            for (int i = 0; i < allScores.size(); i += 500) {
-                List<Score> batch = allScores.subList(i, Math.min(i + 500, allScores.size()));
-                scoreMapper.insertBatch(batch);
-            }
-            log.info("持久化房间 {} 得分记录 {} 条", roomId, allScores.size());
-        }
-
-        // 3. 持久化 transfer events 到 all_record
+        // 2. 持久化 transfer events 到 all_record
         Set<String> eventJsonSet = redisTemplate.opsForZSet().range(roomPrefix + "events", 0, -1);
         List<String> eventJsonList = eventJsonSet != null ? new ArrayList<>(eventJsonSet) : Collections.emptyList();
         if (eventJsonList != null && !eventJsonList.isEmpty()) {
@@ -550,6 +535,154 @@ public class ScoreServiceImpl implements ScoreService {
                 .build();
     }
 
+    /**
+     * 本局录模式结算：从 MySQL round_record 表读取已生效记录
+     */
+    private SettleResp doSettleRoundRecordRoom(Long userId, Long roomId, Room room, boolean autoSettled, String roomPrefix) {
+        // 1. 读取所有已生效的 round records
+        List<RoundRecord> records = roundRecordMapper.selectList(
+                new LambdaQueryWrapper<RoundRecord>()
+                        .eq(RoundRecord::getRoomId, roomId)
+                        .eq(RoundRecord::getStatus, RoundRecordStatus.APPLIED.getCode())
+                        .orderByAsc(RoundRecord::getCreatedAt));
+
+        List<Map<String, Object>> allRecord = new ArrayList<>();
+        Map<Long, Integer> playerTotalMap = new HashMap<>();
+
+        for (RoundRecord record : records) {
+            List<RoundRecordDetail> details = roundRecordDetailMapper.selectList(
+                    new LambdaQueryWrapper<RoundRecordDetail>()
+                            .eq(RoundRecordDetail::getRoundRecordId, record.getId()));
+
+            Map<String, Object> batchRecord = new HashMap<>();
+            batchRecord.put("type", "ROUND_RECORD");
+            batchRecord.put("batchTime", record.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            batchRecord.put("roundId", record.getId());
+            batchRecord.put("inputMethod", record.getInputMethod());
+            batchRecord.put("trustMode", record.getTrustMode());
+            batchRecord.put("zeroSumRequired", record.getZeroSumRequired());
+
+            List<Map<String, Object>> playerScores = new ArrayList<>();
+            for (RoundRecordDetail detail : details) {
+                playerTotalMap.merge(detail.getUserId(), detail.getScore(), Integer::sum);
+
+                Map<String, Object> ps = new HashMap<>();
+                ps.put("userId", detail.getUserId());
+                ps.put("score", detail.getScore());
+                playerScores.add(ps);
+            }
+            batchRecord.put("scores", playerScores);
+            batchRecord.put("totalScore", record.getTotalScore());
+            allRecord.add(batchRecord);
+        }
+
+        // 2. 确保所有房间成员都在 playerTotalMap 中
+        List<RoomMember> members = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+        for (RoomMember m : members) {
+            playerTotalMap.putIfAbsent(m.getUserId(), 0);
+        }
+
+        // 3. 更新 room.all_record
+        room.setAllRecord(allRecord);
+        roomMapper.updateById(room);
+
+        // 4. 更新 room_member.final_score 和 quit_time
+        LocalDateTime now = LocalDateTime.now();
+        for (Map.Entry<Long, Integer> entry : playerTotalMap.entrySet()) {
+            roomMemberMapper.update(null,
+                    new LambdaUpdateWrapper<RoomMember>()
+                            .eq(RoomMember::getRoomId, roomId)
+                            .eq(RoomMember::getUserId, entry.getKey())
+                            .set(RoomMember::getFinalScore, entry.getValue())
+                            .set(RoomMember::getQuitTime, now));
+        }
+
+        // 5. 清理 Redis（round 相关 key + 房间基础 key）
+        List<String> keysToDelete = new ArrayList<>(List.of(
+                roomPrefix + "round", roomPrefix + "round:details",
+                roomPrefix + "round:members", roomPrefix + "round:confirms",
+                roomPrefix + "roundConfig", roomPrefix + "scores",
+                roomPrefix + "meta", roomPrefix + "overview"));
+        redisTemplate.delete(keysToDelete);
+        for (Long memberId : playerTotalMap.keySet()) {
+            redisTemplate.opsForSet().remove("sr:user:rooms:" + memberId, String.valueOf(roomId));
+        }
+
+        // 6. WebSocket 通知
+        scoreWebSocket.pushToRoom(String.valueOf(roomId), Map.of("type", "SETTLE"));
+
+        // 7. 构建结算响应
+        List<SettleResp.MemberScore> memberScores = new ArrayList<>();
+        List<Long> userIdList = new ArrayList<>(playerTotalMap.keySet());
+        Map<Long, String> nicknameMap = new HashMap<>();
+        Map<Long, String> avatarUrlMap = new HashMap<>();
+        for (Long uid : userIdList) {
+            String userJson = redisTemplate.opsForValue().get("sr:user:" + uid);
+            if (userJson != null) {
+                JSONObject userObj = JSONUtil.parseObj(userJson);
+                nicknameMap.put(uid, userObj.getStr("nickname", ""));
+                avatarUrlMap.put(uid, userObj.getStr("avatarUrl", ""));
+            } else {
+                User u = userMapper.selectById(uid);
+                nicknameMap.put(uid, u != null ? u.getNickname() : "");
+                avatarUrlMap.put(uid, u != null ? u.getAvatarUrl() : "");
+            }
+        }
+        for (Map.Entry<Long, Integer> entry : playerTotalMap.entrySet()) {
+            memberScores.add(SettleResp.MemberScore.builder()
+                    .userId(entry.getKey())
+                    .nickname(nicknameMap.getOrDefault(entry.getKey(), ""))
+                    .avatarUrl(avatarUrlMap.getOrDefault(entry.getKey(), ""))
+                    .finalScore(entry.getValue())
+                    .build());
+        }
+        memberScores.sort((a, b) -> Integer.compare(b.getFinalScore(), a.getFinalScore()));
+
+        // 构建图表数据
+        List<Long> timestamps = new ArrayList<>();
+        Map<Long, List<Integer>> userScoreSequences = new HashMap<>();
+        Map<Long, Integer> cumulative = new HashMap<>();
+        for (Long uid : userIdList) {
+            userScoreSequences.put(uid, new ArrayList<>());
+            cumulative.put(uid, 0);
+        }
+        for (Map<String, Object> batch : allRecord) {
+            Object batchTimeObj = batch.get("batchTime");
+            if (batchTimeObj == null) continue;
+            timestamps.add(((Number) batchTimeObj).longValue());
+            List<Map<String, Object>> scores = (List<Map<String, Object>>) batch.get("scores");
+            if (scores != null) {
+                for (Map<String, Object> ps : scores) {
+                    long uid = ((Number) ps.get("userId")).longValue();
+                    int score = ((Number) ps.get("score")).intValue();
+                    cumulative.merge(uid, score, Integer::sum);
+                }
+            }
+            for (Long uid : userIdList) {
+                userScoreSequences.get(uid).add(cumulative.getOrDefault(uid, 0));
+            }
+        }
+        List<ChartDataResp.Series> seriesList = userIdList.stream()
+                .map(uid -> ChartDataResp.Series.builder()
+                        .userId(uid)
+                        .nickname(nicknameMap.getOrDefault(uid, "玩家"))
+                        .scores(userScoreSequences.get(uid))
+                        .build())
+                .collect(Collectors.toList());
+
+        lastTtlRefresh.remove(roomId);
+
+        return SettleResp.builder()
+                .roomId(roomId)
+                .roomNo(room.getRoomNo())
+                .timestamps(timestamps)
+                .series(seriesList)
+                .memberScores(memberScores)
+                .autoSettled(autoSettled)
+                .build();
+    }
+
     @Override
     public ChartDataResp getChartData(Long roomId) {
         return overviewService.getChartData(roomId);
@@ -557,7 +690,7 @@ public class ScoreServiceImpl implements ScoreService {
 
     @Override
     public TrendResp getTrend(Long userId, int limit) {
-        List<Map<String, Object>> rows = scoreMapper.selectTrendByUserId(userId, limit);
+        List<Map<String, Object>> rows = roomMemberMapper.selectTrendByUserId(userId, limit);
         if (rows.isEmpty()) {
             return TrendResp.builder().points(Collections.emptyList()).build();
         }
@@ -606,7 +739,7 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     private Map<Long, Integer> getPlayerTotalsFromMySQL(Long roomId) {
-        List<Map<String, Object>> rows = scoreMapper.selectAggregatedScores(roomId);
+        List<Map<String, Object>> rows = roomMemberMapper.selectFinalScoresByRoomId(roomId);
         Map<Long, Integer> result = new HashMap<>();
         for (Map<String, Object> row : rows) {
             Long userId = ((Number) row.get("user_id")).longValue();

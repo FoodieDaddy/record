@@ -1,0 +1,21 @@
+<view class="radar-wrap">
+  <canvas
+    type="2d"
+    id="radarCanvas"
+    class="radar-canvas"
+    style="width:{{size}}rpx;height:{{size}}rpx;"
+    bindtap="onCanvasTap"
+  ></canvas>
+
+  <!-- 浮窗 -->
+  <view
+    class="tooltip"
+    wx:if="{{tooltipVisible}}"
+    style="left:{{tooltipX}}px;top:{{tooltipY}}px;"
+    bindtap="closeTooltip"
+  >
+    <text class="tooltip-label">{{tooltipLabel}}</text>
+    <text class="tooltip-value">{{tooltipValue}}/100</text>
+    <text class="tooltip-desc">{{tooltipDesc}}</text>
+  </view>
+</view>

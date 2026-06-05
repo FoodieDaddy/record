@@ -19,8 +19,17 @@ public class Room {
 
     private Long ownerId;
 
-    /** 记分模式：1-自由流转 2-赢家统录 */
+    /** 记分模式：1-自由流转 2-本局录入 */
     private Integer scoreMode;
+
+    /** 本局录入方式：1-房主填写 2-成员自填 */
+    private Integer roundInputMethod;
+
+    /** 信任模式：0-关闭 1-开启 */
+    private Integer trustMode;
+
+    /** 零和模式：0-关闭 1-开启 */
+    private Integer zeroSumRequired;
 
     /** 0-使用中 1-已归档 */
     private Integer status;

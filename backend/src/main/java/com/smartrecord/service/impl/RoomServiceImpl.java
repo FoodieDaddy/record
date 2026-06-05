@@ -6,10 +6,8 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.config.OssConfig;
-import com.smartrecord.dto.room.CreateRoomReq;
-import com.smartrecord.dto.room.JoinRoomReq;
-import com.smartrecord.dto.room.RearrangeSeatsReq;
-import com.smartrecord.dto.room.RoomResp;
+import com.smartrecord.dto.room.*;
+import com.smartrecord.enums.ScoreMode;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.User;
@@ -88,19 +86,23 @@ public class RoomServiceImpl implements RoomService {
         room.setRoomNo(roomNo);
         room.setOwnerId(userId);
         room.setScoreMode(req.getScoreMode() != null ? req.getScoreMode() : 1);
+        if (ScoreMode.ROUND_RECORD.getCode() == room.getScoreMode()) {
+            room.setRoundInputMethod(req.getRoundInputMethod() != null ? req.getRoundInputMethod() : 1);
+            room.setTrustMode(req.getTrustMode() != null ? req.getTrustMode() : 1);
+            room.setZeroSumRequired(req.getZeroSumRequired() != null ? req.getZeroSumRequired() : 1);
+        }
         room.setStatus(0);
         roomMapper.insert(room);
 
-        // 3. 房主自动加入（座位 1）
+        // 3. 房主自动加入
         RoomMember member = new RoomMember();
         member.setId(idGenerator.nextId());
         member.setRoomId(room.getId());
         member.setUserId(userId);
-        member.setSeatNo(1);
         roomMemberMapper.insert(member);
 
         // 4. Redis 初始化房间状态
-        initRoomRedis(room, userId);
+        initRoomRedis(room, userId, req);
 
         // 5. 异步生成专属小程序码
         generateQrCodeAsync(roomNo);
@@ -143,18 +145,10 @@ public class RoomServiceImpl implements RoomService {
             throw new BizException("房间已关闭");
         }
 
-        // 4. 从 Redis 缓存分配座位
+        // 4. 检查房间人数上限
         Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
-        Set<Integer> usedSeats = new HashSet<>();
-        for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
-            String key = (String) entry.getKey();
-            if (!key.startsWith("m:")) continue;
-            JSONObject memberObj = JSONUtil.parseObj((String) entry.getValue());
-            usedSeats.add(memberObj.getInt("seatNo"));
-        }
-        int nextSeat = 1;
-        while (usedSeats.contains(nextSeat)) nextSeat++;
-        if (nextSeat > 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
+        long memberCount = allFields.keySet().stream().filter(k -> ((String) k).startsWith("m:")).count();
+        if (memberCount >= 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
 
         // 5. 加载用户信息并检查重名
         String userKey = "sr:user:" + userId;
@@ -187,20 +181,18 @@ public class RoomServiceImpl implements RoomService {
         member.setId(idGenerator.nextId());
         member.setRoomId(rid);
         member.setUserId(userId);
-        member.setSeatNo(nextSeat);
         roomMemberMapper.insert(member);
 
         // 7. 更新 Redis 房间成员缓存
         String memberJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", nickname,
-                "avatarUrl", avatarUrl != null ? avatarUrl : "",
-                "seatNo", nextSeat));
+                "avatarUrl", avatarUrl != null ? avatarUrl : ""));
         redisTemplate.opsForHash().put(metaKey, "m:" + userId, memberJson);
         redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
 
         // 8. 异步 WebSocket 广播 MEMBER_JOIN（通知房间内已有成员）
-        asyncPushMemberJoin(rid, userId, nickname, avatarUrl, nextSeat);
+        asyncPushMemberJoin(rid, userId, nickname, avatarUrl);
 
         List<RoomMember> allMembers = new ArrayList<>();
         allMembers.add(member);
@@ -227,7 +219,6 @@ public class RoomServiceImpl implements RoomService {
                 RoomMember member = new RoomMember();
                 member.setRoomId(roomId);
                 member.setUserId(memberObj.getLong("userId"));
-                member.setSeatNo(memberObj.getInt("seatNo"));
                 members.add(member);
             }
         } else {
@@ -257,7 +248,11 @@ public class RoomServiceImpl implements RoomService {
         List<RoomResp> result = new ArrayList<>();
         for (String rid : roomIds) {
             try {
-                result.add(getRoomDetail(Long.parseLong(rid)));
+                RoomResp resp = getRoomDetail(Long.parseLong(rid));
+                // 只返回进行中的房间，已结束的通过历史房间查看
+                if (resp.getStatus() != null && resp.getStatus() == 0) {
+                    result.add(resp);
+                }
             } catch (Exception e) {
                 log.warn("获取房间详情失败: roomId={}", rid, e);
             }
@@ -270,7 +265,16 @@ public class RoomServiceImpl implements RoomService {
     public void quitRoom(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("房间不存在");
-        if (room.getStatus() != 0) throw new BizException("房间已关闭");
+
+        // 已结束的房间：跳过解散/广播，仅清理关联数据
+        if (room.getStatus() != 0) {
+            roomMemberMapper.delete(
+                    new LambdaQueryWrapper<RoomMember>()
+                            .eq(RoomMember::getRoomId, roomId)
+                            .eq(RoomMember::getUserId, userId));
+            redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
+            return;
+        }
 
         if (room.getOwnerId().equals(userId)) {
             // 房主退出 = 解散房间
@@ -323,7 +327,12 @@ public class RoomServiceImpl implements RoomService {
                 prefix + "scores",
                 prefix + "batches",
                 prefix + "events",
-                prefix + "overview"));
+                prefix + "overview",
+                prefix + "roundConfig",
+                prefix + "round",
+                prefix + "round:details",
+                prefix + "round:members",
+                prefix + "round:confirms"));
         if (batchTsList != null) {
             for (String ts : batchTsList) {
                 keysToDelete.add(prefix + "batch:" + ts);
@@ -336,160 +345,6 @@ public class RoomServiceImpl implements RoomService {
         // 清理二维码
         storageService.deleteObjectAsync("qrcode/" + room.getRoomNo() + ".png");
         redisTemplate.delete("sr:room:" + room.getRoomNo() + ":qr");
-    }
-
-    @Override
-    @Transactional
-    public void swapSeat(Long userId, Long roomId, Integer targetSeatNo) {
-        // 1. 校验房间
-        Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间不存在或已关闭");
-        }
-
-        // 2. 校验用户在房间内
-        String metaKey = "sr:room:" + roomId + ":meta";
-        String userMemberJson = (String) redisTemplate.opsForHash().get(metaKey, "m:" + userId);
-        if (userMemberJson == null) {
-            throw new BizException("您不在此房间内");
-        }
-
-        // 3. 校验目标座位未被占用
-        Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
-        for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
-            String key = (String) entry.getKey();
-            if (!key.startsWith("m:") || key.equals("m:" + userId)) continue;
-            JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
-            if (targetSeatNo.equals(obj.getInt("seatNo"))) {
-                throw new BizException("该座位已被占用");
-            }
-        }
-
-        // 4. 更新 Redis
-        JSONObject memberObj = JSONUtil.parseObj(userMemberJson);
-        memberObj.set("seatNo", targetSeatNo);
-        redisTemplate.opsForHash().put(metaKey, "m:" + userId, memberObj.toString());
-
-        // 5. 更新 MySQL
-        RoomMember updateMember = new RoomMember();
-        updateMember.setSeatNo(targetSeatNo);
-        roomMemberMapper.update(updateMember,
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, roomId)
-                        .eq(RoomMember::getUserId, userId));
-
-        // 6. 异步广播座位变更
-        asyncPushSeatUpdate(roomId);
-    }
-
-    @Override
-    @Transactional
-    public void rearrangeSeats(Long userId, Long roomId, List<RearrangeSeatsReq.SeatAssignment> assignments) {
-        // 1. 校验房间
-        Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间不存在或已关闭");
-        }
-
-        // 2. 权限校验：仅房主可操作
-        if (!room.getOwnerId().equals(userId)) {
-            throw new BizException("仅房主可调整座位");
-        }
-
-        // 3. 读取全部成员
-        String metaKey = "sr:room:" + roomId + ":meta";
-        Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
-        if (allFields.isEmpty()) {
-            throw new BizException("房间内无成员");
-        }
-
-        // 4. 构建当前座位映射：seatNo → userId, userId → memberJson
-        Map<Integer, Long> currentSeatMap = new HashMap<>();
-        Map<Long, String> memberJsonMap = new HashMap<>();
-        for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
-            String key = (String) entry.getKey();
-            if (!key.startsWith("m:")) continue;
-            long uid = Long.parseLong(key.substring(2));
-            String json = (String) entry.getValue();
-            JSONObject obj = JSONUtil.parseObj(json);
-            memberJsonMap.put(uid, json);
-            currentSeatMap.put(obj.getInt("seatNo"), uid);
-        }
-
-        // 5. 校验所有 userId 在房间内
-        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            if (!memberJsonMap.containsKey(a.getUserId())) {
-                throw new BizException("用户 " + a.getUserId() + " 不在房间内");
-            }
-        }
-
-        // 6. 校验目标座位号无重复
-        Set<Integer> targetSeats = new HashSet<>();
-        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            if (!targetSeats.add(a.getTargetSeatNo())) {
-                throw new BizException("目标座位号 " + a.getTargetSeatNo() + " 重复");
-            }
-        }
-
-        // 7. 虚拟应用，检查座位冲突
-        Map<Integer, Long> finalSeatMap = new HashMap<>(currentSeatMap);
-        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            finalSeatMap.values().removeIf(v -> v.equals(a.getUserId()));
-        }
-        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            if (finalSeatMap.containsKey(a.getTargetSeatNo())) {
-                throw new BizException("座位 " + a.getTargetSeatNo() + " 已被占用");
-            }
-            finalSeatMap.put(a.getTargetSeatNo(), a.getUserId());
-        }
-
-        // 8. 更新 Redis 和 MySQL
-        for (RearrangeSeatsReq.SeatAssignment a : assignments) {
-            String json = memberJsonMap.get(a.getUserId());
-            JSONObject obj = JSONUtil.parseObj(json);
-            obj.set("seatNo", a.getTargetSeatNo());
-            redisTemplate.opsForHash().put(metaKey, "m:" + a.getUserId(), obj.toString());
-
-            RoomMember updateMember = new RoomMember();
-            updateMember.setSeatNo(a.getTargetSeatNo());
-            roomMemberMapper.update(updateMember,
-                    new LambdaQueryWrapper<RoomMember>()
-                            .eq(RoomMember::getRoomId, roomId)
-                            .eq(RoomMember::getUserId, a.getUserId()));
-        }
-
-        // 9. 异步广播座位变更
-        asyncPushSeatUpdate(roomId);
-    }
-
-    @Override
-    public void updateLayout(Long userId, Long roomId, String layoutType) {
-        // 1. 校验房间
-        Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间不存在或已关闭");
-        }
-
-        // 2. 权限校验
-        if (!room.getOwnerId().equals(userId)) {
-            throw new BizException("仅房主可切换布局");
-        }
-
-        // 3. 更新 Redis
-        redisTemplate.opsForHash().put("sr:room:" + roomId + ":meta", "layoutType", layoutType);
-
-        // 4. 异步广播 LAYOUT_UPDATE
-        CompletableFuture.runAsync(() -> {
-            try {
-                Map<String, Object> pushData = new HashMap<>();
-                pushData.put("type", "LAYOUT_UPDATE");
-                pushData.put("roomId", roomId);
-                pushData.put("layoutType", layoutType);
-                scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
-            } catch (Exception e) {
-                log.warn("推送 LAYOUT_UPDATE 失败: roomId={}", roomId, e);
-            }
-        }, asyncExecutor);
     }
 
     @Override
@@ -549,7 +404,6 @@ public class RoomServiceImpl implements RoomService {
                             .userId(m.getUserId())
                             .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
                             .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
-                            .seatNo(m.getSeatNo())
                             .finalScore(m.getFinalScore())
                             .build())
                     .collect(Collectors.toList());
@@ -559,6 +413,9 @@ public class RoomServiceImpl implements RoomService {
                     .roomNo(room.getRoomNo())
                     .ownerId(room.getOwnerId())
                     .scoreMode(room.getScoreMode())
+                    .roundInputMethod(room.getRoundInputMethod())
+                    .trustMode(room.getTrustMode())
+                    .zeroSumRequired(room.getZeroSumRequired())
                     .status(room.getStatus())
                     .members(memberVOs)
                     .createdAt(room.getCreatedAt())
@@ -566,9 +423,73 @@ public class RoomServiceImpl implements RoomService {
         }).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public void updateSettings(Long userId, Long roomId, UpdateSettingsReq req) {
+        Room room = roomMapper.selectById(roomId);
+        if (room == null) throw new BizException("房间不存在");
+        if (room.getStatus() != 0) throw new BizException("房间已结算，不能修改记分设置");
+        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可修改记分设置");
+
+        // 检查是否有待处理录
+        String roundKey = "sr:room:" + roomId + ":round";
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(roundKey))) {
+            throw new BizException("当前有待处理录入，不能修改记分设置");
+        }
+
+        // 更新 MySQL
+        boolean changed = false;
+        if (req.getRoundInputMethod() != null) {
+            room.setRoundInputMethod(req.getRoundInputMethod());
+            changed = true;
+        }
+        if (req.getTrustMode() != null) {
+            room.setTrustMode(req.getTrustMode());
+            changed = true;
+        }
+        if (req.getZeroSumRequired() != null) {
+            room.setZeroSumRequired(req.getZeroSumRequired());
+            changed = true;
+        }
+        if (changed) {
+            roomMapper.updateById(room);
+        }
+
+        // 更新 Redis roundConfig（超时设置仅信任关闭时可修改）
+        String configKey = "sr:room:" + roomId + ":roundConfig";
+        Map<String, String> configUpdates = new HashMap<>();
+        int trustMode = room.getTrustMode() != null ? room.getTrustMode() : 1;
+        if (trustMode == 0) {
+            if (req.getAutoTimeoutSeconds() != null) {
+                configUpdates.put("autoTimeoutSeconds", String.valueOf(req.getAutoTimeoutSeconds()));
+            }
+            if (req.getAutoTimeoutAction() != null) {
+                configUpdates.put("autoTimeoutAction", String.valueOf(req.getAutoTimeoutAction()));
+            }
+        }
+        if (!configUpdates.isEmpty()) {
+            redisTemplate.opsForHash().putAll(configKey, configUpdates);
+        }
+
+        // 广播 SETTINGS_CHANGED
+        Map<String, Object> pushData = new HashMap<>();
+        pushData.put("type", "SETTINGS_CHANGED");
+        pushData.put("roomId", roomId);
+        pushData.put("roundInputMethod", room.getRoundInputMethod());
+        pushData.put("trustMode", room.getTrustMode());
+        pushData.put("zeroSumRequired", room.getZeroSumRequired());
+        if (trustMode == 0) {
+            String seconds = (String) redisTemplate.opsForHash().get(configKey, "autoTimeoutSeconds");
+            String action = (String) redisTemplate.opsForHash().get(configKey, "autoTimeoutAction");
+            pushData.put("autoTimeoutSeconds", seconds != null ? Integer.parseInt(seconds) : 30);
+            pushData.put("autoTimeoutAction", action != null ? Integer.parseInt(action) : 1);
+        }
+        scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+    }
+
     // ===== 私有方法 =====
 
-    private void asyncPushMemberJoin(Long roomId, Long userId, String nickname, String avatarUrl, int seatNo) {
+    private void asyncPushMemberJoin(Long roomId, Long userId, String nickname, String avatarUrl) {
         CompletableFuture.runAsync(() -> {
             try {
                 Map<String, Object> pushData = new HashMap<>();
@@ -577,21 +498,9 @@ public class RoomServiceImpl implements RoomService {
                 pushData.put("userId", String.valueOf(userId));
                 pushData.put("nickname", nickname);
                 pushData.put("avatarUrl", avatarUrl != null ? avatarUrl : "");
-                pushData.put("seatNo", seatNo);
                 scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
             } catch (Exception e) {
                 log.warn("推送 MEMBER_JOIN 失败: roomId={}, userId={}", roomId, userId, e);
-            }
-        }, asyncExecutor);
-    }
-
-    /** 座位变更广播（换座/重排），通知客户端刷新成员列表 */
-    private void asyncPushSeatUpdate(Long roomId) {
-        CompletableFuture.runAsync(() -> {
-            try {
-                scoreWebSocket.pushToRoom(String.valueOf(roomId), Map.of("type", "SEAT_UPDATE"));
-            } catch (Exception e) {
-                log.warn("推送 SEAT_UPDATE 失败: roomId={}", roomId, e);
             }
         }, asyncExecutor);
     }
@@ -626,7 +535,7 @@ public class RoomServiceImpl implements RoomService {
         throw new BizException("房间号生成失败，请重试");
     }
 
-    private void initRoomRedis(Room room, Long ownerId) {
+    private void initRoomRedis(Room room, Long ownerId, CreateRoomReq req) {
         User owner = userMapper.selectById(ownerId);
         if (owner == null) throw new BizException("用户不存在，请重新登录");
         String roomId = String.valueOf(room.getId());
@@ -636,12 +545,10 @@ public class RoomServiceImpl implements RoomService {
         Map<String, String> meta = new HashMap<>();
         meta.put("ownerId", String.valueOf(ownerId));
         meta.put("status", "0");
-        meta.put("layoutType", "circle");
         meta.put("m:" + ownerId, JSONUtil.toJsonStr(Map.of(
                 "userId", ownerId,
                 "nickname", owner.getNickname(),
-                "avatarUrl", owner.getAvatarUrl(),
-                "seatNo", 1)));
+                "avatarUrl", owner.getAvatarUrl())));
         redisTemplate.opsForHash().putAll(metaKey, meta);
         redisTemplate.expire(metaKey, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
@@ -659,6 +566,16 @@ public class RoomServiceImpl implements RoomService {
                 "nickname", owner.getNickname(),
                 "avatarUrl", owner.getAvatarUrl() != null ? owner.getAvatarUrl() : ""));
         redisTemplate.opsForValue().set(userKey, userJson, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        // 本局录模式：初始化 roundConfig
+        if (ScoreMode.ROUND_RECORD.getCode() == room.getScoreMode() && req != null) {
+            String configKey = "sr:room:" + roomId + ":roundConfig";
+            Map<String, String> config = new HashMap<>();
+            config.put("autoTimeoutSeconds", String.valueOf(req.getAutoTimeoutSeconds() != null ? req.getAutoTimeoutSeconds() : 30));
+            config.put("autoTimeoutAction", String.valueOf(req.getAutoTimeoutAction() != null ? req.getAutoTimeoutAction() : 1));
+            redisTemplate.opsForHash().putAll(configKey, config);
+            redisTemplate.expire(configKey, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+        }
     }
 
     private String getQrCodeUrlFromRedis(String roomNo) {
@@ -741,20 +658,32 @@ public class RoomServiceImpl implements RoomService {
                         .userId(m.getUserId())
                         .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
                         .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
-                        .seatNo(m.getSeatNo())
                         .build()
         ).collect(Collectors.toList());
 
-        String layoutType = (String) redisTemplate.opsForHash().get("sr:room:" + room.getId() + ":meta", "layoutType");
+        // 读取 roundConfig（仅本局录模式）
+        Integer autoTimeoutSeconds = null;
+        Integer autoTimeoutAction = null;
+        if (ScoreMode.ROUND_RECORD.getCode() == (room.getScoreMode() != null ? room.getScoreMode() : 1)) {
+            String configKey = "sr:room:" + room.getId() + ":roundConfig";
+            String seconds = (String) redisTemplate.opsForHash().get(configKey, "autoTimeoutSeconds");
+            String action = (String) redisTemplate.opsForHash().get(configKey, "autoTimeoutAction");
+            autoTimeoutSeconds = seconds != null ? Integer.parseInt(seconds) : 30;
+            autoTimeoutAction = action != null ? Integer.parseInt(action) : 1;
+        }
 
         return RoomResp.builder()
                 .roomId(room.getId())
                 .roomNo(room.getRoomNo())
                 .ownerId(room.getOwnerId())
                 .scoreMode(room.getScoreMode() != null ? room.getScoreMode() : 1)
+                .roundInputMethod(room.getRoundInputMethod())
+                .trustMode(room.getTrustMode())
+                .zeroSumRequired(room.getZeroSumRequired())
+                .autoTimeoutSeconds(autoTimeoutSeconds)
+                .autoTimeoutAction(autoTimeoutAction)
                 .status(room.getStatus())
                 .qrCodeUrl(qrCodeUrl)
-                .layoutType(layoutType != null ? layoutType : "circle")
                 .members(memberVOs)
                 .createdAt(room.getCreatedAt())
                 .build();

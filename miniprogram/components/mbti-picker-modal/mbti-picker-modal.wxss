@@ -1,18 +1,22 @@
+/* ---- 遮罩层：强力毛玻璃 ---- */
 .picker-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: #0a0a0a;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   padding: 0 48rpx;
 }
 
+/* ---- 头部 ---- */
 .picker-header {
-  padding: 80rpx 0 40rpx;
+  padding: 80rpx 0 24rpx;
   position: relative;
 }
 
@@ -23,19 +27,12 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-.picker-subtitle {
-  display: block;
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.34);
-  margin-top: 8rpx;
-}
-
 .picker-close {
   position: absolute;
   top: 80rpx;
   right: 0;
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,88 +40,157 @@
 
 .close-icon {
   font-size: 40rpx;
-  color: rgba(255, 255, 255, 0.34);
+  color: #888888;
 }
 
+/* ---- 主体 ---- */
 .picker-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32rpx;
+  justify-content: center;
+  gap: 36rpx;
+  padding-bottom: 60rpx;
 }
 
-.dim-group {
-  width: 100%;
-}
-
-.dim-options {
+/* ---- 翻牌矩阵 ---- */
+.flip-row {
   display: flex;
-  gap: 20rpx;
+  gap: 28rpx;
+  justify-content: center;
 }
 
-.dim-btn {
-  flex: 1;
-  text-align: center;
-  padding: 32rpx 0;
-  border: 1rpx solid rgba(255, 255, 255, 0.1);
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.dim-btn.active {
-  border-color: #0A84FF;
-  background: rgba(10, 132, 255, 0.1);
-}
-
-.dim-letter {
-  font-size: 48rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.52);
-  font-family: 'SF Mono', monospace;
-}
-
-.dim-btn.active .dim-letter {
-  color: #0A84FF;
-}
-
-.preview {
-  margin: 48rpx 0;
+.flip-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16rpx;
 }
 
+.flip-perspective {
+  perspective: 800rpx;
+  width: 120rpx;
+  height: 140rpx;
+}
+
+.flip-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.flip-animating {
+  transform: rotateY(180deg);
+}
+
+.flip-done {
+  transition: none;
+}
+
+/* 正反面公共 */
+.flip-face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20rpx;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 正面 */
+.flip-front {
+  background: rgba(0, 191, 255, 0.10);
+  border: 1rpx solid rgba(0, 191, 255, 0.25);
+  box-shadow:
+    0 0 20rpx rgba(0, 191, 255, 0.12),
+    inset 0 0 12rpx rgba(0, 191, 255, 0.06);
+}
+
+/* 背面 */
+.flip-back {
+  background: rgba(0, 191, 255, 0.10);
+  border: 1rpx solid rgba(0, 191, 255, 0.25);
+  box-shadow:
+    0 0 20rpx rgba(0, 191, 255, 0.12),
+    inset 0 0 12rpx rgba(0, 191, 255, 0.06);
+  transform: rotateY(180deg);
+}
+
+.flip-letter {
+  font-size: 56rpx;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  color: #00D4FF;
+  text-shadow: 0 0 16rpx rgba(0, 212, 255, 0.50);
+}
+
+/* 维度小字 */
+.flip-dim-label {
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.20);
+  letter-spacing: 2rpx;
+}
+
+/* ---- 结果预览 ---- */
+.preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .preview-type {
-  font-size: 80rpx;
+  font-size: 64rpx;
   font-weight: 700;
   color: #0A84FF;
   letter-spacing: 12rpx;
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  text-shadow: 0 0 24rpx rgba(10, 132, 255, 0.30);
 }
 
 .preview-title {
-  font-size: 32rpx;
-  color: rgba(255, 255, 255, 0.92);
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.72);
 }
 
-.picker-confirm {
-  width: 100%;
-  text-align: center;
-  padding: 28rpx 0;
-  background: #0A84FF;
-  border-radius: 20rpx;
-  margin-top: auto;
-  margin-bottom: 80rpx;
+/* ---- 悬浮胶囊确认按钮 ---- */
+.capsule-btn {
+  width: 60%;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 40rpx;
+  background: linear-gradient(135deg, #0A84FF, #0070E0);
+  box-shadow:
+    0 0 24rpx rgba(10, 132, 255, 0.30),
+    0 8rpx 32rpx rgba(0, 0, 0, 0.40);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.confirm-text {
-  font-size: 32rpx;
+.capsule-btn:active {
+  transform: scale(0.97);
+  box-shadow:
+    0 0 12rpx rgba(10, 132, 255, 0.20),
+    0 4rpx 16rpx rgba(0, 0, 0, 0.30);
+}
+
+.capsule-text {
+  font-size: 30rpx;
+  font-weight: 600;
   color: #fff;
-  font-weight: 500;
+  letter-spacing: 4rpx;
 }
 
-.reduce-motion .dim-btn {
+/* ---- Reduce Motion ---- */
+.reduce-motion .flip-card {
   transition: none;
 }

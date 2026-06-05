@@ -1,4 +1,9 @@
 <view class="swipe-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
+  <!-- 进度光线 -->
+  <view class="progress-track">
+    <view class="progress-bar" style="width: {{progressPercent}}%;"></view>
+  </view>
+
   <!-- 顶部栏 -->
   <view class="swipe-top">
     <text class="swipe-progress">{{progress}}</text>

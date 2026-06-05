@@ -1,13 +1,10 @@
 {
-    "navigationBarTitleText": "镜像",
-    "navigationBarBackgroundColor": "#0a0a0a",
-    "navigationBarTextStyle": "white",
-    "enablePullDownRefresh": true,
-    "usingComponents": {
-        "mirror-personality-card": "/components/mirror-personality-card/mirror-personality-card",
-        "mirror-today-field": "/components/mirror-today-field/mirror-today-field",
-        "mirror-tool-card": "/components/mirror-tool-card/mirror-tool-card",
-        "mbti-swipe-test": "/components/mbti-swipe-test/mbti-swipe-test",
-        "mbti-picker-modal": "/components/mbti-picker-modal/mbti-picker-modal"
-    }
+  "navigationBarTitleText": "镜像",
+  "navigationBarBackgroundColor": "#0a0a0a",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "radar-chart": "/components/radar-chart/radar-chart",
+    "mbti-swipe-test": "/components/mbti-swipe-test/mbti-swipe-test",
+    "mbti-picker-modal": "/components/mbti-picker-modal/mbti-picker-modal"
+  }
 }

@@ -32,6 +32,7 @@ Component({
   data: {
     currentIndex: 0,
     progress: '01 / 20',
+    progressPercent: 0,
     currentQuestion: null,
     totalQuestions: 20,
     answers: [],
@@ -71,6 +72,8 @@ Component({
       const answers = [...this.data.answers, answer];
       const nextIndex = this.data.currentIndex + 1;
 
+      var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
+
       if (this.data.reduceMotion) {
         // 无动画直接切换
         if (nextIndex >= QUESTIONS.length) {
@@ -79,6 +82,7 @@ Component({
           this.setData({
             currentIndex: nextIndex,
             progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
+            progressPercent: percent,
             currentQuestion: QUESTIONS[nextIndex],
             answers
           });
@@ -94,6 +98,7 @@ Component({
             this.setData({
               currentIndex: nextIndex,
               progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
+              progressPercent: percent,
               currentQuestion: QUESTIONS[nextIndex],
               answers,
               animating: false,

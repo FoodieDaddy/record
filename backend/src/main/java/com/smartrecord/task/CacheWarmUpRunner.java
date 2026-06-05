@@ -7,7 +7,6 @@ import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
-import com.smartrecord.mapper.ScoreMapper;
 import com.smartrecord.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +34,6 @@ public class CacheWarmUpRunner implements ApplicationRunner {
 
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
-    private final ScoreMapper scoreMapper;
     private final UserMapper userMapper;
     private final StringRedisTemplate redisTemplate;
 
@@ -68,7 +66,6 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                     // 写入房间信息字段
                     redisTemplate.opsForHash().put(metaKey, "ownerId", String.valueOf(room.getOwnerId()));
                     redisTemplate.opsForHash().put(metaKey, "status", "0");
-                    redisTemplate.opsForHash().put(metaKey, "layoutType", "circle");
 
                     if (!members.isEmpty()) {
                         List<Long> userIds = members.stream()
@@ -88,8 +85,7 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                             String memberJson = JSONUtil.toJsonStr(Map.of(
                                     "userId", m.getUserId(),
                                     "nickname", nickname,
-                                    "avatarUrl", avatarUrl,
-                                    "seatNo", m.getSeatNo()));
+                                    "avatarUrl", avatarUrl));
                             redisTemplate.opsForHash().put(metaKey, "m:" + m.getUserId(), memberJson);
 
                             redisTemplate.opsForSet().add("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
@@ -102,7 +98,7 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                     redisTemplate.opsForValue().set("sr:room_no:" + room.getRoomNo(),
                             String.valueOf(roomId), EXPIRE_HOURS, TimeUnit.HOURS);
 
-                    // 恢复排行榜（从 score 表聚合）
+                    // 恢复排行榜（从 room.all_record JSON 读取）
                     warmupRoomScores(roomId);
 
                     // 回填 lastActiveAt（旧房间可能为 null）
@@ -128,18 +124,36 @@ public class CacheWarmUpRunner implements ApplicationRunner {
         String scoresKey = "sr:room:" + roomId + ":scores";
         redisTemplate.delete(scoresKey);
 
-        List<Map<String, Object>> rows = scoreMapper.selectAggregatedScores(roomId);
-        if (rows == null || rows.isEmpty()) {
+        // 从 room.all_record JSON 读取已归档的得分数据
+        String allRecordJson = roomMapper.selectAllRecordById(roomId);
+        if (allRecordJson == null || allRecordJson.isBlank() || "null".equals(allRecordJson)) {
             redisTemplate.opsForZSet().add(scoresKey, "init", 0);
             redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
             return;
         }
 
-        for (Map<String, Object> row : rows) {
-            Long userId = ((Number) row.get("user_id")).longValue();
-            Integer total = ((Number) row.get("total")).intValue();
-            redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(userId), total);
+        try {
+            cn.hutool.json.JSONArray records = cn.hutool.json.JSONUtil.parseArray(allRecordJson);
+            Map<Long, Integer> playerTotals = new java.util.HashMap<>();
+            for (int i = 0; i < records.size(); i++) {
+                cn.hutool.json.JSONObject batch = records.getJSONObject(i);
+                cn.hutool.json.JSONArray scores = batch.getJSONArray("scores");
+                if (scores == null) continue;
+                for (int j = 0; j < scores.size(); j++) {
+                    cn.hutool.json.JSONObject ps = scores.getJSONObject(j);
+                    Long uid = ps.getLong("userId");
+                    int score = ps.getInt("score");
+                    playerTotals.merge(uid, score, Integer::sum);
+                }
+            }
+
+            for (Map.Entry<Long, Integer> entry : playerTotals.entrySet()) {
+                redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(entry.getKey()), entry.getValue());
+            }
+        } catch (Exception e) {
+            log.warn("解析房间 {} all_record 失败", roomId, e);
         }
+
         redisTemplate.opsForZSet().add(scoresKey, "init", 0);
         redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
     }

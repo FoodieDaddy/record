@@ -1,0 +1,37 @@
+<view class="mbti-card primary-card">
+  <view class="card-kicker">MBTI CALIBRATION</view>
+  <view class="card-title">人格镜像</view>
+
+  <!-- 未校准状态 -->
+  <block wx:if="{{!mbti.calibrated}}">
+    <view class="card-desc">未完成人格镜像校准</view>
+    <view class="card-hint">完成 20 个快速判断，建立你的初始博弈人格模型。</view>
+    <view class="card-actions">
+      <view class="primary-btn" bindtap="onStartTest">20题校准</view>
+      <view class="ghost-btn" bindtap="onDirectInput">直接输入</view>
+    </view>
+    <view class="card-disclaimer">MBTI 结果将参与镜像判读，但不作为心理诊断。</view>
+  </block>
+
+  <!-- 已校准状态 -->
+  <block wx:else>
+    <view class="mbti-display">
+      <text class="mbti-type">{{mbti.mbtiType}}</text>
+      <text class="mbti-title">{{mbti.mbtiTitle}}</text>
+    </view>
+    <view class="mbti-tactic-tag" wx:if="{{mbti.tacticTag}}">
+      <text class="mbti-tactic-text">{{typedText}}</text>
+      <text class="mbti-tactic-cursor" wx:if="{{typing}}">▌</text>
+    </view>
+    <view class="mbti-meta">
+      <text class="mbti-confidence">置信度 {{mbti.confidence}}%</text>
+      <text class="mbti-source">{{mbti.mbtiSource === 'test' ? '滑动校准' : '直接输入'}}</text>
+      <text class="mbti-time" wx:if="{{mbti.updatedAtShort}}">更新于 {{mbti.updatedAtShort}}</text>
+      <text class="mbti-time" wx:elif="{{mbti.calibratedAt}}">{{mbti.calibratedAt}}</text>
+    </view>
+    <view class="card-actions">
+      <view class="ghost-btn" bindtap="onStartTest">重新测试</view>
+      <view class="ghost-btn" bindtap="onDirectInput">修改类型</view>
+    </view>
+  </block>
+</view>

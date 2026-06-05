@@ -8,9 +8,9 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.smartrecord.dto.fortune.FortuneResp;
 import com.smartrecord.dto.fortune.UserTag;
-import com.smartrecord.mapper.ScoreMapper;
+import com.smartrecord.mapper.RoomMapper;
+import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.service.FortuneService;
-import com.smartrecord.service.TaibuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,10 +31,10 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class FortuneServiceImpl implements FortuneService {
 
-    private final ScoreMapper scoreMapper;
+    private final RoomMemberMapper roomMemberMapper;
+    private final RoomMapper roomMapper;
     private final Executor asyncExecutor;
     private final StringRedisTemplate redisTemplate;
-    private final TaibuService taibuService;
 
     @Value("${app.llm.api-url:}")
     private String apiUrl;
@@ -42,7 +42,7 @@ public class FortuneServiceImpl implements FortuneService {
     @Value("${app.llm.api-key:}")
     private String apiKey;
 
-    @Value("${app.llm.model:deepseek-chat}")
+    @Value("${app.llm.model:mimo-v2.5}")
     private String model;
 
     /** 每日运势 Redis 缓存 key */
@@ -132,20 +132,10 @@ public class FortuneServiceImpl implements FortuneService {
             redisTemplate.delete(cacheKey);
         }
 
-        // 1. 计算用户画像标签
-        List<Integer> recentScores = scoreMapper.selectRecentScores(userId, 10);
+        // 1. 计算用户画像标签（从 room.all_record JSON 提取 per-batch score delta）
+        List<Integer> recentScores = getRecentScoreDeltas(userId, 10);
         UserTag userTag = computeUserTag(recentScores);
         int netScore = recentScores.stream().mapToInt(Integer::intValue).sum();
-
-        // 1.5 获取太乙九星推演上下文
-        String taiyiCtx;
-        try {
-            taiyiCtx = taibuService.getTodayTaiyiText();
-        } catch (Exception e) {
-            log.warn("获取太乙数据失败，跳过", e);
-            taiyiCtx = "";
-        }
-        final String taiyiContext = taiyiCtx;
 
         // 2. CompletableFuture 双引擎：LLM 主引擎 + 兜底
         FortuneResp result;
@@ -154,7 +144,7 @@ public class FortuneServiceImpl implements FortuneService {
         if (apiUrl != null && !apiUrl.isEmpty() && apiKey != null && !apiKey.isEmpty()) {
             try {
                 FortuneResp llmResult = CompletableFuture
-                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores, taiyiContext), asyncExecutor)
+                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores), asyncExecutor)
                         .orTimeout(60000, TimeUnit.MILLISECONDS)
                         .exceptionally(ex -> {
                             log.warn("LLM 调用超时/异常，降级到兜底: {}", ex.getMessage());
@@ -186,6 +176,39 @@ public class FortuneServiceImpl implements FortuneService {
             log.warn("缓存运势失败: userId={}", userId, e);
         }
 
+        return result;
+    }
+
+    /**
+     * 从用户最近房间的 room.all_record JSON 中提取 per-batch score delta
+     */
+    private List<Integer> getRecentScoreDeltas(Long userId, int limit) {
+        List<Long> roomIds = roomMemberMapper.selectUserRoomIds(userId, 10);
+        List<Integer> result = new ArrayList<>();
+
+        for (Long roomId : roomIds) {
+            if (result.size() >= limit) break;
+            String json = roomMapper.selectAllRecordById(roomId);
+            if (json == null || json.isBlank() || "null".equals(json)) continue;
+
+            try {
+                cn.hutool.json.JSONArray records = cn.hutool.json.JSONUtil.parseArray(json);
+                for (int i = 0; i < records.size(); i++) {
+                    if (result.size() >= limit) break;
+                    cn.hutool.json.JSONObject batch = records.getJSONObject(i);
+                    cn.hutool.json.JSONArray scores = batch.getJSONArray("scores");
+                    if (scores == null) continue;
+                    for (int j = 0; j < scores.size(); j++) {
+                        cn.hutool.json.JSONObject ps = scores.getJSONObject(j);
+                        if (userId.equals(ps.getLong("userId"))) {
+                            result.add(ps.getInt("score"));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析房间 {} all_record 失败", roomId, e);
+            }
+        }
         return result;
     }
 
@@ -222,8 +245,8 @@ public class FortuneServiceImpl implements FortuneService {
     /**
      * 调用 OpenAI 兼容 LLM API
      */
-    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores, String taiyiContext) {
-        String prompt = buildPrompt(userTag, netScore, recentScores, taiyiContext);
+    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores) {
+        String prompt = buildPrompt(userTag, netScore, recentScores);
 
         JSONObject requestBody = new JSONObject();
         requestBody.set("model", model);
@@ -293,7 +316,7 @@ public class FortuneServiceImpl implements FortuneService {
     /**
      * 构建 LLM Prompt
      */
-    private String buildPrompt(UserTag userTag, int netScore, List<Integer> recentScores, String taiyiContext) {
+    private String buildPrompt(UserTag userTag, int netScore, List<Integer> recentScores) {
         String tagDesc = switch (userTag) {
             case WINNING_STREAK -> "近期连胜，状态高昂，手感火热";
             case LOSING_STREAK -> "近期连败，状态低迷，心态受挫";
@@ -317,10 +340,6 @@ public class FortuneServiceImpl implements FortuneService {
                 请根据以上数据，结合当天农历/节气的自然意象，用赛博朋克+桌游博弈的口吻生成运势。
                 判词要像高维生物的冷酷忠告，必须引用节气/农历意象并映射到对局策略。
                 """, tagDesc, netScore, trend, recentScores.toString(), lunarContext);
-
-        if (taiyiContext != null && !taiyiContext.isEmpty()) {
-            prompt += "\n【太乙九星推演】\n" + taiyiContext + "\n\n请将太乙九星的时空能量分析融入运势判词。";
-        }
 
         return prompt;
     }

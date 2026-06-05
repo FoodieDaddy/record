@@ -19,94 +19,278 @@
   <!-- 已登录：无房间 -->
   <view wx:elif="{{!currentRoom}}" class="empty-room">
     <!-- 创建房间 -->
-    <view class="glass-card-glow create-card">
-      <view class="card-header">
-        <text class="section-title">创建房间</text>
-        <text class="text-tertiary text-xs">让小伙伴们进来吧</text>
+    <view class="cyber-card create-card">
+      <!-- 系统状态 -->
+      <view class="cyber-system-bar">
+        <text class="cyber-system-name">SMART RECORD</text>
+        <view class="cyber-system-status">
+          <view class="cyber-status-dot"></view>
+          <text class="cyber-status-text">在线</text>
+        </view>
+      </view>
+      <view class="cyber-divider"></view>
+
+      <!-- 房间模式 -->
+      <view class="cyber-section-title">
+        <text class="cyber-cn">房间模式</text>
+        <text class="cyber-en">ROOM MODE</text>
+      </view>
+      <view class="cyber-mode-cards">
+        <view class="cyber-mode-card {{scoreMode === 1 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="1">
+          <view class="cyber-mode-head">
+            <text class="cyber-mode-dot {{scoreMode === 1 ? 'mode-dot-on' : ''}}"></text>
+            <text class="cyber-mode-name">自由流转</text>
+            <text class="cyber-mode-badge {{scoreMode === 1 ? 'badge-on' : ''}}">开放</text>
+          </view>
+          <text class="cyber-mode-desc">实时转移积分</text>
+        </view>
+        <view class="cyber-mode-card {{scoreMode === 2 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="2">
+          <view class="cyber-mode-head">
+            <text class="cyber-mode-dot {{scoreMode === 2 ? 'mode-dot-on' : ''}}"></text>
+            <text class="cyber-mode-name">本局录入</text>
+            <text class="cyber-mode-badge {{scoreMode === 2 ? 'badge-on' : ''}}">推荐</text>
+          </view>
+          <text class="cyber-mode-desc">每局结束统一录入积分</text>
+        </view>
       </view>
 
-      <!-- 记分规则选择器 -->
-      <view class="mode-selector">
-        <view class="mode-card {{scoreMode === 1 ? 'mode-card-active' : 'mode-card-inactive'}}"
-              bindtap="selectScoreMode" data-mode="1">
-          <view class="mode-icon-wrap">
-            <!-- 多节点双向交织箭头 -->
-            <view class="mode-icon mode-icon-free">
-              <view class="icon-arrow icon-arrow-left">←</view>
-              <view class="icon-node icon-node-center"></view>
-              <view class="icon-arrow icon-arrow-right">→</view>
+      <!-- 本局录入配置 -->
+      <block wx:if="{{scoreMode === 2}}">
+        <view class="cyber-divider"></view>
+
+        <!-- 录入方式 -->
+        <view class="cyber-section-title">
+          <text class="cyber-cn">录入方式</text>
+          <text class="cyber-en">RECORD MODE</text>
+        </view>
+        <view class="cyber-cards">
+          <view class="cyber-opt-card {{roundInputMethod === 1 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="1">
+            <view class="cyber-opt-status" wx:if="{{roundInputMethod === 1}}">
+              <text class="cyber-opt-check">✓</text>
+              <text class="cyber-opt-status-text">已启用</text>
+            </view>
+            <text class="cyber-opt-title">房主填写</text>
+            <text class="cyber-opt-desc">由房主统一录入</text>
+            <text class="cyber-opt-hint">适合麻将扑克</text>
+          </view>
+          <view class="cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
+            <view class="cyber-opt-status" wx:if="{{roundInputMethod === 2}}">
+              <text class="cyber-opt-check">✓</text>
+              <text class="cyber-opt-status-text">已启用</text>
+            </view>
+            <text class="cyber-opt-title">成员自填</text>
+            <text class="cyber-opt-desc">每人提交自己结果</text>
+            <text class="cyber-opt-hint">待选择</text>
+          </view>
+        </view>
+        <view class="cyber-divider"></view>
+
+        <!-- 确认协议 -->
+        <view class="cyber-section-title">
+          <text class="cyber-cn">确认协议</text>
+          <text class="cyber-en">CONFIRM PROTOCOL</text>
+        </view>
+        <view class="cyber-chips">
+          <view class="cyber-chip {{trustMode === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="0">
+            <text class="cyber-chip-dot {{trustMode === 0 ? 'dot-on' : ''}}"></text>
+            <view class="cyber-chip-text">
+              <text class="cyber-chip-main">标准协议</text>
+              <text class="cyber-chip-sub">需要全员确认</text>
             </view>
           </view>
-          <text class="mode-card-title">自由流转</text>
-          <text class="mode-card-desc">全员开放权限
-          随时记录分数流转</text>
-          <view class="mode-check" wx:if="{{scoreMode === 1}}"></view>
+          <view class="cyber-chip {{trustMode === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="1">
+            <text class="cyber-chip-dot {{trustMode === 1 ? 'dot-on' : ''}}"></text>
+            <view class="cyber-chip-text">
+              <text class="cyber-chip-main">快速协议</text>
+              <text class="cyber-chip-sub">直接生效</text>
+            </view>
+          </view>
         </view>
-        <view class="mode-card disabled-card" bindtap="onDisabledModeTap" data-mode="2">
-          <view class="coming-soon-badge">即将上线</view>
-          <view class="mode-icon-wrap">
-            <!-- 顶部大圆点向下发散连接三个小圆点 -->
-            <view class="mode-icon mode-icon-winner">
-              <view class="icon-node icon-node-top"></view>
-              <view class="icon-line icon-line-left"></view>
-              <view class="icon-line icon-line-center"></view>
-              <view class="icon-line icon-line-right"></view>
-              <view class="icon-bottom-row">
-                <view class="icon-node icon-node-sm"></view>
-                <view class="icon-node icon-node-sm"></view>
-                <view class="icon-node icon-node-sm"></view>
+        <view class="cyber-divider"></view>
+
+        <!-- 积分模型 -->
+        <view class="cyber-section-title">
+          <text class="cyber-cn">积分模型</text>
+          <text class="cyber-en">SCORE MODEL</text>
+        </view>
+        <view class="cyber-chips">
+          <view class="cyber-chip {{zeroSumRequired === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="1">
+            <text class="cyber-chip-dot {{zeroSumRequired === 1 ? 'dot-on' : ''}}"></text>
+            <view class="cyber-chip-text">
+              <text class="cyber-chip-main">零和结算</text>
+              <text class="cyber-chip-sub">积分守恒</text>
+            </view>
+          </view>
+          <view class="cyber-chip {{zeroSumRequired === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="0">
+            <text class="cyber-chip-dot {{zeroSumRequired === 0 ? 'dot-on' : ''}}"></text>
+            <view class="cyber-chip-text">
+              <text class="cyber-chip-main">自由结算</text>
+              <text class="cyber-chip-sub">允许积分增减</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 确认时限（仅标准协议时显示） -->
+        <block wx:if="{{trustMode === 0}}">
+          <view class="cyber-divider"></view>
+          <view class="cyber-section-title">
+            <text class="cyber-cn">确认时限</text>
+            <text class="cyber-en">TIMEOUT</text>
+          </view>
+          <view class="cyber-chips cyber-timeout-chips">
+            <view class="cyber-chip {{autoTimeoutSeconds === 15 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="15">
+              <text class="cyber-chip-dot {{autoTimeoutSeconds === 15 ? 'dot-on' : ''}}"></text>
+              <text class="cyber-chip-main">15秒</text>
+            </view>
+            <view class="cyber-chip {{autoTimeoutSeconds === 30 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="30">
+              <text class="cyber-chip-dot {{autoTimeoutSeconds === 30 ? 'dot-on' : ''}}"></text>
+              <text class="cyber-chip-main">30秒</text>
+            </view>
+            <view class="cyber-chip {{autoTimeoutSeconds === 60 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="60">
+              <text class="cyber-chip-dot {{autoTimeoutSeconds === 60 ? 'dot-on' : ''}}"></text>
+              <text class="cyber-chip-main">60秒</text>
+            </view>
+          </view>
+          <view class="cyber-timeout-action">
+            <text class="cyber-timeout-label">超时行为</text>
+            <view class="cyber-chips" style="flex:1">
+              <view class="cyber-chip {{autoTimeoutAction === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="1">
+                <text class="cyber-chip-dot {{autoTimeoutAction === 1 ? 'dot-on' : ''}}"></text>
+                <text class="cyber-chip-main">自动同意</text>
+              </view>
+              <view class="cyber-chip {{autoTimeoutAction === 2 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="2">
+                <text class="cyber-chip-dot {{autoTimeoutAction === 2 ? 'dot-on' : ''}}"></text>
+                <text class="cyber-chip-main">自动取消</text>
               </view>
             </view>
           </view>
-          <text class="mode-card-title">赢家统录</text>
-          <text class="mode-card-desc">由单局胜者统一录入全盘分数
-          可上传图片</text>
+        </block>
+      </block>
+
+      <!-- 配置预览 -->
+      <view class="cyber-divider"></view>
+      <view class="cyber-preview">
+        <text class="cyber-preview-title">当前配置</text>
+        <view class="cyber-preview-row">
+          <text class="cyber-preview-key">房间模式</text>
+          <text class="cyber-preview-val">{{scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
         </view>
+        <block wx:if="{{scoreMode === 2}}">
+          <view class="cyber-preview-row">
+            <text class="cyber-preview-key">录入方式</text>
+            <text class="cyber-preview-val">{{roundInputMethod === 1 ? '房主填写' : '成员自填'}}</text>
+          </view>
+          <view class="cyber-preview-row">
+            <text class="cyber-preview-key">确认协议</text>
+            <text class="cyber-preview-val">{{trustMode === 0 ? '标准协议' : '快速协议'}}</text>
+          </view>
+          <view class="cyber-preview-row">
+            <text class="cyber-preview-key">积分模型</text>
+            <text class="cyber-preview-val">{{zeroSumRequired === 1 ? '零和结算' : '自由结算'}}</text>
+          </view>
+          <view class="cyber-preview-row" wx:if="{{trustMode === 0}}">
+            <text class="cyber-preview-key">确认时限</text>
+            <text class="cyber-preview-val">{{autoTimeoutSeconds}}秒</text>
+          </view>
+        </block>
       </view>
 
-      <button class="btn-primary" bindtap="createRoom" loading="{{creating}}">创建房间</button>
+      <!-- 启动房间 -->
+      <view class="cyber-divider"></view>
+      <view class="cyber-create-btn" bindtap="createRoom">
+        <view class="cyber-create-inner {{creating ? 'btn-loading' : ''}}">
+          <text class="cyber-create-text">启动房间</text>
+          <text class="cyber-create-sub">ROOM INITIALIZATION</text>
+        </view>
+      </view>
     </view>
 
     <view class="divider-glow"><text class="divider-text">或者</text></view>
 
-    <!-- 加入房间 -->
-    <view class="glass-card-glow join-card">
-      <view class="card-header">
-        <view class="join-header-row">
-          <view>
-            <text class="section-title">加入房间</text>
-            <text class="text-tertiary text-xs">输入牌友的房间号</text>
+    <!-- 接入房间 -->
+    <view class="cyber-card join-card">
+      <!-- 双层标题 -->
+      <view class="cyber-section-title">
+        <text class="cyber-cn">接入房间</text>
+        <text class="cyber-en">ROOM ACCESS</text>
+      </view>
+      <view class="cyber-divider"></view>
+
+      <!-- 扫描接入（主入口） -->
+      <view class="cyber-scan-card" bindtap="scanJoin">
+        <view class="cyber-scan-icon">
+          <view class="cyber-scan-corner cyber-scan-tl"></view>
+          <view class="cyber-scan-corner cyber-scan-tr"></view>
+          <view class="cyber-scan-corner cyber-scan-bl"></view>
+          <view class="cyber-scan-corner cyber-scan-br"></view>
+          <view class="cyber-scan-line"></view>
+        </view>
+        <view class="cyber-scan-text">
+          <text class="cyber-scan-title">扫描房间</text>
+          <text class="cyber-scan-sub">ROOM SCAN</text>
+        </view>
+        <text class="cyber-scan-hint">推荐方式 · 扫描房主二维码快速接入</text>
+      </view>
+      <view class="cyber-divider"></view>
+
+      <!-- 房间识别码输入 -->
+      <view class="cyber-section-title">
+        <text class="cyber-cn">房间识别码</text>
+        <text class="cyber-en">ROOM CODE</text>
+      </view>
+      <view class="cyber-terminal-input" bindtap="onTerminalTap">
+        <text class="cyber-terminal-prefix">SR-</text>
+        <input class="cyber-terminal-field" type="text" maxlength="6"
+               value="{{roomCodeRaw}}" placeholder="XXXXXX"
+               bindinput="onRoomCodeInput" bindblur="onRoomCodeBlur"
+               focus="{{terminalFocused}}" adjust-position="{{false}}" />
+        <view class="cyber-terminal-cursor" wx:if="{{terminalFocused && roomCodeRaw.length < 6}}"></view>
+      </view>
+
+      <!-- 房间状态反馈 -->
+      <view class="cyber-room-status" wx:if="{{roomCodeRaw.length >= 6}}">
+        <view class="cyber-status-row">
+          <view class="cyber-status-dot {{roomLookupValid ? 'dot-green' : 'dot-red'}}"></view>
+          <text class="cyber-status-msg {{roomLookupValid ? 'msg-green' : 'msg-red'}}">
+            {{roomLookupValid ? '房间存在' : (roomLookupMsg || '未发现房间')}}
+          </text>
+        </view>
+        <view class="cyber-room-preview" wx:if="{{roomLookupValid && roomPreview}}">
+          <view class="cyber-preview-row">
+            <text class="cyber-preview-key">房间模式</text>
+            <text class="cyber-preview-val">{{roomPreview.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
           </view>
-          <view class="scan-btn-inline" bindtap="scanJoin">
-            <view class="scan-icon-svg">
-              <view class="scan-corner scan-corner-tl"></view>
-              <view class="scan-corner scan-corner-tr"></view>
-              <view class="scan-corner scan-corner-bl"></view>
-              <view class="scan-corner scan-corner-br"></view>
-              <view class="scan-line"></view>
-            </view>
-            <text class="scan-label">扫码</text>
+          <view class="cyber-preview-row">
+            <text class="cyber-preview-key">在线人数</text>
+            <text class="cyber-preview-val">{{roomPreview.memberCount || '?'}} / 16</text>
           </view>
         </view>
       </view>
 
-      <!-- 6 格 OTP 输入 -->
-      <view class="otp-container">
-        <view class="otp-box {{otpFocusIndex === idx ? 'otp-box-focus' : ''}} {{otpValues[idx] ? 'otp-box-filled' : ''}}"
-              wx:for="{{otpBoxes}}" wx:for-item="idx" wx:key="*this"
-              bindtap="onOtpBoxTap" data-index="{{idx}}">
-          <text class="otp-char">{{otpValues[idx] || ''}}</text>
-          <view class="otp-cursor" wx:if="{{otpFocusIndex === idx && !otpValues[idx]}}"></view>
+      <!-- 接入按钮 -->
+      <view class="cyber-divider"></view>
+      <view class="cyber-create-btn" bindtap="joinByNo">
+        <view class="cyber-create-inner {{joining ? 'btn-loading' : ''}} {{roomCodeRaw.length >= 6 ? '' : 'btn-dim'}}">
+          <text class="cyber-create-text">接入空间</text>
+          <text class="cyber-create-sub">CONNECT</text>
         </view>
       </view>
-      <!-- 真实隐藏输入框 -->
-      <input class="otp-hidden-input" type="number" maxlength="6" value="{{otpRawValue}}"
-             focus="{{otpInputFocused}}" bindinput="onOtpInput" bindblur="onOtpBlur"
-             adjust-position="{{false}}" />
 
-      <button class="btn-primary {{joinRoomNo.length === 6 ? 'btn-join-ready' : 'btn-join-disabled'}}"
-              style="margin-top:28rpx;" bindtap="joinByNo"
-              disabled="{{joining || joinRoomNo.length < 6}}" loading="{{joining}}">加入房间</button>
+      <!-- 最近加入 -->
+      <block wx:if="{{recentRooms.length > 0}}">
+        <view class="cyber-divider"></view>
+        <view class="cyber-section-title">
+          <text class="cyber-cn">最近加入</text>
+          <text class="cyber-en">RECENT ACCESS</text>
+        </view>
+        <view class="cyber-recent-list">
+          <view class="cyber-recent-item" wx:for="{{recentRooms}}" wx:key="roomNo"
+                bindtap="onRecentTap" data-room-no="{{item.roomNo}}">
+            <text class="cyber-recent-code">SR-{{item.roomNo}}</text>
+            <text class="cyber-recent-time">{{item.timeLabel}}</text>
+          </view>
+        </view>
+      </block>
     </view>
   </view>
 
@@ -174,20 +358,29 @@
         </view>
       </view>
 
-      <!-- 成员区域（可切换简易/座位模式） -->
+      <!-- 本局录入状态条 -->
+      <round-status-bar
+        wx:if="{{currentRoom.scoreMode === 2}}"
+        round="{{roundRecord}}"
+        is-owner="{{isOwner}}"
+        bind:tap="onRoundStatusTap"
+        bind:cancel="onRoundCancel"
+      />
+
+      <!-- 录入本局按钮（ROUND_RECORD 模式，无待处理录时显示） -->
+      <view class="round-start-wrap" wx:if="{{currentRoom.scoreMode === 2 && !roundRecord && isOwner}}">
+        <view class="round-start-btn" bindtap="startRound">
+          <text class="round-start-text">录入本局</text>
+        </view>
+      </view>
+
+      <!-- 成员区域 -->
       <view class="glass-card member-section">
         <view class="flex-between" style="margin-bottom:16rpx;">
           <text class="section-title" style="margin-bottom:0;">成员</text>
-          <view style="display:flex;align-items:center;gap:12rpx;">
-            <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
-            <view class="mode-toggle" bindtap="toggleViewMode">
-              <view class="{{viewMode === 'grid' ? 'icon-grid' : 'icon-list'}}"></view>
-              <text class="mode-toggle-text">{{viewMode === 'grid' ? '座位' : '简易'}}</text>
-            </view>
-          </view>
+          <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
         </view>
-        <!-- 简易网格模式 -->
-        <scroll-view class="member-grid-scroll" wx:if="{{viewMode === 'grid'}}" scroll-y="{{memberGrid.length > 8}}" style="max-height:{{memberGrid.length > 8 ? '600rpx' : 'none'}};">
+        <scroll-view class="member-grid-scroll" scroll-y="{{memberGrid.length > 8}}" style="max-height:{{memberGrid.length > 8 ? '600rpx' : 'none'}};">
           <view class="member-grid">
             <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
                   wx:for="{{memberGrid}}" wx:key="userId"
@@ -206,42 +399,6 @@
             </view>
           </view>
         </scroll-view>
-        <!-- 座位模式（全屏） -->
-        <view class="seat-container" wx:if="{{viewMode === 'seat'}}">
-          <!-- 关闭按钮 -->
-          <view class="seat-close-btn" bindtap="toggleViewMode">
-            <view class="seat-close-icon"></view>
-          </view>
-          <!-- 座位组件 -->
-          <seat-mode
-            members="{{memberGrid}}"
-            score-map="{{seatScoreMap}}"
-            my-user-id="{{myUserId}}"
-            max-seats="{{currentRoom.maxSeats || 16}}"
-            table-label="{{currentRoom.roomNo}}"
-            layout-type="{{seatLayoutType}}"
-            is-owner="{{isOwner}}"
-            waiting-list="{{waitingList}}"
-            bindtapseat="onSeatTap"
-            bindassignseat="onAssignSeat"
-            bindtransfer="onSeatTransfer"
-            bindremoveseat="onRemoveSeat"
-          />
-          <!-- 底部布局切换 -->
-          <view class="seat-bottom-bar">
-            <view class="layout-switcher">
-              <view class="layout-opt {{seatLayoutType === 'circle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="circle">
-                <text>圆桌</text>
-              </view>
-              <view class="layout-opt {{seatLayoutType === 'rectangle' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="rectangle">
-                <text>长桌</text>
-              </view>
-              <view class="layout-opt {{seatLayoutType === 'arc' ? 'layout-active' : ''}}" bindtap="switchSeatLayout" data-layout="arc">
-                <text>半弧</text>
-              </view>
-            </view>
-          </view>
-        </view>
       </view>
 
       <!-- 积分记录 -->
@@ -363,6 +520,29 @@
         <text class="transfer-anim-amount">{{animAmount}}</text>
       </view>
     </view>
+
+    <!-- 本局录入弹窗 -->
+    <host-fill-modal
+      wx:if="{{showHostFill && roundRecord}}"
+      members="{{currentRoom.members}}"
+      zero-sum="{{currentRoom.zeroSumRequired}}"
+      bind:submit="submitHostFill"
+      bind:close="onHostFillClose"
+    />
+    <member-fill-modal
+      wx:if="{{showMemberFill && roundRecord}}"
+      submitted="{{roundRecord.mySubmitted}}"
+      my-score="{{roundRecord.myScore}}"
+      bind:submit="submitMemberFill"
+      bind:close="onMemberFillClose"
+    />
+    <round-confirm-modal
+      wx:if="{{showRoundConfirm && roundRecord}}"
+      round="{{roundRecord}}"
+      my-user-id="{{myUserId}}"
+      bind:confirm="confirmRound"
+      bind:close="onRoundConfirmClose"
+    />
   </view>
 
   <!-- 分享面板（全局，可从首页或房间内打开） -->

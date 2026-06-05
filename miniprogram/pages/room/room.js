@@ -4,6 +4,7 @@ const scoreWS = require('../../utils/score-ws');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
+const { vibrateShort } = require('../../utils/haptic');
 const app = getApp();
 
 Page({
@@ -15,14 +16,21 @@ Page({
     joinRoomNo: '',
     joining: false,
     showNameCollisionModal: false,
-    // 记分模式：1=自由流转 2=赢家统录
+    // 记分模式：1=自由流转 2=本局录入
     scoreMode: 1,
-    // 6 格 OTP 输入
-    otpValues: ['', '', '', '', '', ''],
-    otpBoxes: [0, 1, 2, 3, 4, 5],
-    otpFocusIndex: 0,
-    otpInputFocused: false,
-    otpRawValue: '',
+    // 本局录入配置
+    roundInputMethod: 1,
+    trustMode: 1,
+    zeroSumRequired: 1,
+    autoTimeoutSeconds: 30,
+    autoTimeoutAction: 1,
+    // 终端输入
+    roomCodeRaw: '',
+    terminalFocused: false,
+    roomLookupValid: false,
+    roomLookupMsg: '',
+    roomPreview: null,
+    recentRooms: [],
     creating: false,
     loading: false,
     ranking: [],
@@ -30,14 +38,7 @@ Page({
     audioEnabled: true,
     // 成员网格
     memberGrid: [],
-    // 视图模式：grid=简易网格 seat=座位模式
-    viewMode: 'grid',
-    seatScoreMap: {},
     myUserId: '',
-    // 座位编辑模式
-    seatEditMode: false,
-    editSelectedUserId: '',
-    seatLayoutType: 'circle',
     // 计分目标
     transferTo: '',
     transferToInfo: null,
@@ -79,6 +80,11 @@ Page({
     showShareSheet: false,
     // 积分记录滚动高度（rpx）
     scoreRecordHeight: 400,
+    // 本局录入
+    roundRecord: null,
+    showHostFill: false,
+    showMemberFill: false,
+    showRoundConfirm: false,
     // 顶部提示
     toastMsg: '',
     toastType: 'success'
@@ -100,6 +106,7 @@ Page({
     scoreWS.on('message', this._onWsMessage);
     if (app.globalData.token && !this.data.viewingRoom) {
       this.loadMyRooms();
+      this.loadRecentRooms();
     }
   },
 
@@ -143,7 +150,7 @@ Page({
 
   calcScoreRecordHeight() {
     try {
-      const win = wx.getWindowInfo();
+      const win = wx.getSystemInfoSync();
       // 屏幕高度 px → rpx，取 40% 作为积分记录区域高度
       const rpxRatio = 750 / win.windowWidth;
       const screenH = win.windowHeight * rpxRatio;
@@ -164,12 +171,14 @@ Page({
         this.setData({
           currentRoom: room,
           viewingRoom: true,
-          isOwner: String(room.ownerId) === String(app.globalData.userId),
-          seatLayoutType: room.layoutType || 'circle'
+          isOwner: String(room.ownerId) === String(app.globalData.userId)
         });
         this.enrichMembers(room);
         this.loadRoomData(room.roomId);
         this.connectWS(room.roomId);
+        if (room.scoreMode === 2) {
+          this.loadPendingRound(room.roomId);
+        }
       } else {
         this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
       }
@@ -195,8 +204,7 @@ Page({
   buildMemberGrid() {
     const room = this.data.currentRoom;
     if (!room || !room.members) return;
-    // 按座位号排序，确保座位布局一致
-    const sorted = [...room.members].sort((a, b) => (a.seatNo || 0) - (b.seatNo || 0));
+    const sorted = [...room.members];
     const rankingMap = {};
     this.data.ranking.forEach(r => { rankingMap[r.userId] = r.score || 0; });
     const scores = sorted.map(m => rankingMap[m.userId] || 0);
@@ -226,9 +234,7 @@ Page({
         scoreColor: style.color
       };
     });
-    const seatScoreMap = {};
-    grid.forEach(m => { seatScoreMap[m.userId] = m.score; });
-    this.setData({ memberGrid: grid, seatScoreMap });
+    this.setData({ memberGrid: grid });
   },
 
   async loadRoomData(roomId) {
@@ -393,12 +399,6 @@ Page({
       return;
     }
 
-    // 布局更新
-    if (data.type === 'LAYOUT_UPDATE' && data.layoutType) {
-      this.setData({ seatLayoutType: data.layoutType });
-      return;
-    }
-
     // 新成员加入
     if (data.type === 'MEMBER_JOIN' && data.userId) {
       const room = this.data.currentRoom;
@@ -408,8 +408,7 @@ Page({
         members.push({
           userId: data.userId,
           nickname: data.nickname || '',
-          avatarUrl: data.avatarUrl || '',
-          seatNo: data.seatNo || 0
+          avatarUrl: data.avatarUrl || ''
         });
         room.members = members;
         this.enrichMembers(room);
@@ -426,9 +425,75 @@ Page({
       return;
     }
 
-    // 座位变更（换座/重排），刷新全部数据
-    if (data.type === 'SEAT_UPDATE') {
+    // ===== 本局录入 WS 消息 =====
+    if (data.type === 'ROUND_STARTED') {
+      // 发起者已在 API 响应中处理，跳过 WS 重复
+      if (data.round && String(data.round.createdBy) === String(app.globalData.userId)) return;
+      this.setRoundRecord(data.round);
+      return;
+    }
+    if (data.type === 'ROUND_MEMBER_SUBMITTED') {
+      const rr = this.data.roundRecord;
+      if (rr) {
+        this.setData({
+          'roundRecord.memberSubmitted': data.submitted,
+          'roundRecord.memberTotal': data.total
+        });
+      }
+      return;
+    }
+    if (data.type === 'ROUND_CONFIRM_PROGRESS') {
+      const rr = this.data.roundRecord;
+      if (rr) {
+        const updates = {
+          'roundRecord.confirmCount': data.confirmCount,
+          'roundRecord.confirmTotal': data.total
+        };
+        // 更新确认者的 confirmed 状态
+        if (data.userId && rr.details) {
+          const idx = rr.details.findIndex(d => String(d.userId) === String(data.userId));
+          if (idx >= 0) {
+            updates[`roundRecord.details[${idx}].confirmed`] = true;
+          }
+        }
+        this.setData(updates);
+      }
+      return;
+    }
+    if (data.type === 'ROUND_APPLIED') {
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
       this.updateAllData(roomId);
+      // 播放情绪音频
+      if (app.globalData.audioEnabled && data.scores) {
+        const myId = String(app.globalData.userId);
+        const myScore = data.scores.find(s => String(s.userId) === myId);
+        if (myScore && myScore.emotionAudioUrl) {
+          getAudioManager().play(myScore.emotionAudioUrl);
+        }
+      }
+      return;
+    }
+    if (data.type === 'ROUND_REJECTED') {
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      this.showToast('本局录入已被驳回', 'error');
+      return;
+    }
+    if (data.type === 'ROUND_CANCELLED') {
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      return;
+    }
+    if (data.type === 'ROUND_TIMEOUT') {
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      if (data.action === 'auto_approve') {
+        this.showToast('超时自动通过');
+        this.updateAllData(roomId);
+      } else {
+        this.showToast('超时已自动取消', 'error');
+      }
+      return;
+    }
+    if (data.type === 'SETTINGS_CHANGED') {
+      this.reloadRoomInfo(roomId);
       return;
     }
 
@@ -514,8 +579,7 @@ Page({
         const room = rooms[0];
         this.setData({
           currentRoom: room,
-          isOwner: String(room.ownerId) === String(app.globalData.userId),
-          seatLayoutType: room.layoutType || 'circle'
+          isOwner: String(room.ownerId) === String(app.globalData.userId)
         });
         this.enrichMembers(room);
       }
@@ -532,6 +596,9 @@ Page({
     this.setData({ viewingRoom: true });
     this.loadRoomData(room.roomId);
     this.connectWS(room.roomId);
+    if (room.scoreMode === 2) {
+      this.loadPendingRound(room.roomId);
+    }
   },
 
   onJoinInput(e) {
@@ -540,35 +607,54 @@ Page({
 
   // ========== 记分模式选择 ==========
   selectScoreMode(e) {
+    vibrateShort('light');
     const mode = Number(e.currentTarget.dataset.mode);
     if (mode === this.data.scoreMode) return;
     this.setData({ scoreMode: mode });
   },
 
-  // ========== 6 格 OTP 输入 ==========
-  onOtpBoxTap(e) {
-    const index = Number(e.currentTarget.dataset.index);
-    this.setData({ otpFocusIndex: index, otpInputFocused: true });
+  selectRoundInputMethod(e) {
+    vibrateShort('light');
+    this.setData({ roundInputMethod: Number(e.currentTarget.dataset.value) });
   },
 
-  onOtpInput(e) {
+  selectTrustMode(e) {
+    vibrateShort('light');
+    this.setData({ trustMode: Number(e.currentTarget.dataset.value) });
+  },
+
+  selectZeroSum(e) {
+    vibrateShort('light');
+    this.setData({ zeroSumRequired: Number(e.currentTarget.dataset.value) });
+  },
+
+  selectAutoTimeoutAction(e) {
+    vibrateShort('light');
+    this.setData({ autoTimeoutAction: Number(e.currentTarget.dataset.value) });
+  },
+
+  selectTimeout(e) {
+    vibrateShort('light');
+    this.setData({ autoTimeoutSeconds: Number(e.currentTarget.dataset.value) });
+  },
+
+  // ========== 终端输入 ==========
+  onTerminalTap() {
+    this.setData({ terminalFocused: true });
+  },
+
+  onRoomCodeInput(e) {
     const raw = (e.detail.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const chars = raw.split('');
-    const values = ['', '', '', '', '', ''];
-    for (let i = 0; i < 6 && i < chars.length; i++) {
-      values[i] = chars[i];
-    }
-    const focusIndex = Math.min(chars.length, 5);
     this.setData({
-      otpValues: values,
-      otpRawValue: raw,
-      otpFocusIndex: focusIndex,
+      roomCodeRaw: raw,
       joinRoomNo: raw,
-      otpInputFocused: raw.length < 6
+      roomLookupValid: false,
+      roomLookupMsg: '',
+      roomPreview: null
     });
     // 输入满 6 位自动加入
     if (raw.length >= 6) {
-      this.setData({ otpInputFocused: false });
+      this.setData({ terminalFocused: false });
       clearTimeout(this._autoJoinTimer);
       this._autoJoinTimer = setTimeout(() => {
         this.joinByNo();
@@ -576,28 +662,66 @@ Page({
     }
   },
 
-  onOtpBlur() {
-    this.setData({ otpInputFocused: false });
+  onRoomCodeBlur() {
+    this.setData({ terminalFocused: false });
   },
 
-  resetOtpState() {
+  resetJoinState() {
     clearTimeout(this._autoJoinTimer);
     this.setData({
-      otpValues: ['', '', '', '', '', ''],
-      otpFocusIndex: 0,
-      otpInputFocused: false,
-      otpRawValue: '',
-      joinRoomNo: ''
+      roomCodeRaw: '',
+      joinRoomNo: '',
+      terminalFocused: false,
+      roomLookupValid: false,
+      roomLookupMsg: '',
+      roomPreview: null
     });
+  },
+
+  // ========== 最近房间 ==========
+  loadRecentRooms() {
+    try {
+      const list = wx.getStorageSync('recentRooms') || [];
+      this.setData({ recentRooms: list.slice(0, 3) });
+    } catch (e) {}
+  },
+
+  saveRecentRoom(roomNo, scoreMode) {
+    try {
+      let list = wx.getStorageSync('recentRooms') || [];
+      list = list.filter(r => r.roomNo !== roomNo);
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      list.unshift({ roomNo, timeLabel: `${hh}:${mm}` });
+      wx.setStorageSync('recentRooms', list.slice(0, 5));
+      this.setData({ recentRooms: list.slice(0, 3) });
+    } catch (e) {}
+  },
+
+  onRecentTap(e) {
+    const roomNo = e.currentTarget.dataset.roomNo;
+    if (roomNo) {
+      this.setData({ roomCodeRaw: roomNo, joinRoomNo: roomNo });
+      this.joinByNo();
+    }
   },
 
   async createRoom() {
     if (this.data.creating) return;
     this.setData({ creating: true });
     try {
-      const room = await post('/room', { scoreMode: this.data.scoreMode });
-      this.resetOtpState();
-      this.setData({ currentRoom: room, viewingRoom: true, isOwner: true, seatLayoutType: room.layoutType || 'circle' });
+      const payload = { scoreMode: this.data.scoreMode };
+      if (this.data.scoreMode === 2) {
+        payload.roundInputMethod = this.data.roundInputMethod;
+        payload.trustMode = this.data.trustMode;
+        payload.zeroSumRequired = this.data.zeroSumRequired;
+        payload.autoTimeoutSeconds = this.data.autoTimeoutSeconds;
+        payload.autoTimeoutAction = this.data.autoTimeoutAction;
+      }
+      const room = await post('/room', payload);
+      this.resetJoinState();
+      this.setData({ currentRoom: room, viewingRoom: true, isOwner: true });
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
@@ -626,29 +750,24 @@ Page({
       this.setData({
         currentRoom: room,
         viewingRoom: true,
-        isOwner: String(room.ownerId) === String(app.globalData.userId),
-        seatLayoutType: room.layoutType || 'circle'
+        isOwner: String(room.ownerId) === String(app.globalData.userId)
       });
-      this.resetOtpState();
+      this.resetJoinState();
+      this.saveRecentRoom(roomNo, room.scoreMode);
       // 先加载排名数据（含成员信息），再构建成员网格，避免 0 分闪烁
       await this.loadRoomData(room.roomId);
       // 刷新完整房间信息（成员列表可能比 join 响应更完整）
       this.reloadRoomInfo(room.roomId);
       this.connectWS(room.roomId);
-      wx.showToast({ title: '已加入房间', icon: 'success' });
+      if (room.scoreMode === 2) {
+        this.loadPendingRound(room.roomId);
+      }
+      wx.showToast({ title: '已接入空间', icon: 'success' });
     } catch (e) {
       if (e && e.code === 4003) {
-        // 房间已满：温柔提示 + 退回最后一位输入
+        // 房间已满
         wx.showToast({ title: '当前房间已满员（最多16人）', icon: 'none', duration: 2500 });
-        const vals = this.data.otpValues.slice();
-        vals[5] = '';
-        this.setData({
-          otpValues: vals,
-          otpRawValue: vals.join(''),
-          joinRoomNo: vals.join(''),
-          otpFocusIndex: 5,
-          otpInputFocused: true
-        });
+        this.setData({ roomCodeRaw: roomNo.slice(0, 5), joinRoomNo: roomNo.slice(0, 5), terminalFocused: true });
       } else if (e && e.code === 4009) {
         // 身份重叠：弹窗引导修改昵称
         this.setData({ showNameCollisionModal: true });
@@ -787,6 +906,152 @@ Page({
     }
   },
 
+  // ========== 本局录入 ==========
+
+  async startRound() {
+    const room = this.data.currentRoom;
+    if (!room) return;
+    try {
+      const resp = await post('/round/start', { roomId: room.roomId });
+      this.setRoundRecord(resp);
+      // 根据输入方式打开对应弹窗
+      const isOwner = this.data.isOwner;
+      if (room.roundInputMethod === 1 && isOwner) {
+        // 房主填写
+        this.setData({ showHostFill: true });
+      } else if (room.roundInputMethod === 2) {
+        // 成员自填（房主也是成员，也需要填写）
+        this.setData({ showMemberFill: true });
+      }
+    } catch (e) {
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
+  async submitHostFill(e) {
+    const { scores } = e.detail;
+    const room = this.data.currentRoom;
+    if (!room) return;
+    try {
+      const resp = await post('/round/submit', { roomId: room.roomId, scores });
+      this.setRoundRecord(resp);
+      this.setData({ showHostFill: false });
+      // 信任模式关闭 → 打开确认弹窗
+      if (room.trustMode === 0 && resp.status === 2) {
+        this.setData({ showRoundConfirm: true });
+      }
+      this.showToast('录入成功');
+    } catch (e) {
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' });
+    }
+  },
+
+  async submitMemberFill(e) {
+    const { score } = e.detail;
+    const room = this.data.currentRoom;
+    if (!room) return;
+    try {
+      const resp = await post('/round/submit', {
+        roomId: room.roomId,
+        scores: [{ userId: app.globalData.userId, score }]
+      });
+      this.setRoundRecord(resp);
+      this.setData({ showMemberFill: false });
+      if (room.trustMode === 0 && resp.status === 2) {
+        this.setData({ showRoundConfirm: true });
+      }
+    } catch (e) {
+      wx.showToast({ title: e.message || '提交失败', icon: 'none' });
+    }
+  },
+
+  async confirmRound(e) {
+    const { agree } = e.detail;
+    const room = this.data.currentRoom;
+    if (!room) return;
+    try {
+      const resp = await post('/round/confirm', { roomId: room.roomId, agree });
+      this.setRoundRecord(resp);
+      if (resp.status === 3 || resp.status === 4) {
+        this.setData({ showRoundConfirm: false });
+      }
+    } catch (e) {
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
+  async cancelRound() {
+    const room = this.data.currentRoom;
+    if (!room) return;
+    try {
+      await post(`/round/cancel?roomId=${room.roomId}`);
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+    } catch (e) {
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
+  onRoundStatusTap() {
+    const rr = this.data.roundRecord;
+    if (!rr) return;
+    const room = this.data.currentRoom;
+    const isOwner = this.data.isOwner;
+    // 根据状态和角色打开对应弹窗
+    if (rr.status === 1) {
+      // PENDING_MEMBER_INPUT
+      if (room.roundInputMethod === 2) {
+        this.setData({ showMemberFill: true });
+      } else if (isOwner) {
+        this.setData({ showHostFill: true });
+      }
+    } else if (rr.status === 2) {
+      // PENDING_CONFIRM
+      this.setData({ showRoundConfirm: true });
+    }
+  },
+
+  onRoundCancel() {
+    this.cancelRound();
+  },
+
+  onHostFillClose() {
+    this.setData({ showHostFill: false });
+  },
+
+  onMemberFillClose() {
+    this.setData({ showMemberFill: false });
+  },
+
+  onRoundConfirmClose() {
+    this.setData({ showRoundConfirm: false });
+  },
+
+  async loadPendingRound(roomId) {
+    try {
+      const resp = await get(`/round/pending?roomId=${roomId}`);
+      if (resp && resp.status !== 4) {
+        this.setRoundRecord(resp);
+      } else {
+        this.setRoundRecord(null);
+      }
+    } catch (e) {
+      // 无待处理录，忽略
+    }
+  },
+
+  /** 设置 roundRecord 并计算当前用户的提交状态 */
+  setRoundRecord(rr) {
+    if (!rr) {
+      this.setData({ roundRecord: null });
+      return;
+    }
+    const myId = String(app.globalData.userId);
+    const myDetail = (rr.details || []).find(d => String(d.userId) === myId);
+    rr.mySubmitted = myDetail ? !!myDetail.submitted : false;
+    rr.myScore = myDetail ? myDetail.score : 0;
+    this.setData({ roundRecord: rr });
+  },
+
   // ========== 退出/解散 ==========
 
   copyRoomNo() {
@@ -899,12 +1164,12 @@ Page({
         if (hasData) {
           this.showSettleFromResp(settleResp);
         } else {
-          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
         }
       } else {
         await del(`/room/${roomId}/quit`);
         app.disconnectWS();
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
         wx.showToast({ title: '已退出', icon: 'success' });
       }
     } catch (e) {
@@ -996,7 +1261,11 @@ Page({
       ranking: [],
       scoreRecords: [],
       memberGrid: [],
-      matrixData: []
+      matrixData: [],
+      roundRecord: null,
+      showHostFill: false,
+      showMemberFill: false,
+      showRoundConfirm: false
     });
   },
 
@@ -1011,92 +1280,6 @@ Page({
     if (!enabled) {
       getAudioManager().stop();
     }
-  },
-
-  // ========== 视图模式切换 ==========
-
-  toggleViewMode() {
-    const next = this.data.viewMode === 'grid' ? 'seat' : 'grid';
-    this.setData({ viewMode: next });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-  },
-
-  onSeatTap(e) {
-    const { userId } = e.detail;
-    if (!userId || String(userId) === String(app.globalData.userId)) return;
-    const info = this.data.memberGrid.find(m => String(m.userId) === String(userId));
-    if (!info) return;
-    try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
-    this.setData({
-      transferTo: info.userId,
-      transferToInfo: info,
-      showNumpad: true,
-      numpadValue: 0
-    });
-  },
-
-  onSeatSwap(e) {
-    const { toIndex } = e.detail;
-    const targetSeatNo = toIndex + 1;
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (!roomId) return;
-    post(`/room/${roomId}/swap-seat`, { targetSeatNo });
-  },
-
-  // ========== 座位编辑模式 ==========
-
-  enterSeatEditMode() {
-    if (!this.data.isOwner) return;
-    this.setData({ seatEditMode: true, editSelectedUserId: '' });
-    try { wx.vibrateShort({ type: 'medium' }); } catch (e) {}
-  },
-
-  exitSeatEditMode() {
-    this.setData({ seatEditMode: false, editSelectedUserId: '' });
-  },
-
-  onEditSeatTap(e) {
-    const { userId } = e.detail;
-    const selected = this.data.editSelectedUserId;
-
-    if (!selected) {
-      // 第一次点击：选中一个玩家
-      if (userId && !String(userId).startsWith('empty_')) {
-        this.setData({ editSelectedUserId: String(userId) });
-        try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-      }
-    } else if (String(userId) === selected) {
-      // 点击已选中的玩家：取消选中
-      this.setData({ editSelectedUserId: '' });
-    } else {
-      // 第二次点击：与目标玩家互换座位
-      const members = (this.data.currentRoom && this.data.currentRoom.members) || [];
-      const selectedMember = members.find(m => String(m.userId) === selected);
-      const targetMember = members.find(m => String(m.userId) === String(userId));
-
-      if (selectedMember && targetMember) {
-        this.submitRearrange([
-          { userId: selectedMember.userId, targetSeatNo: targetMember.seatNo },
-          { userId: targetMember.userId, targetSeatNo: selectedMember.seatNo }
-        ]);
-      }
-      this.setData({ editSelectedUserId: '' });
-    }
-  },
-
-  submitRearrange(assignments) {
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (!roomId || assignments.length === 0) return;
-    post(`/room/${roomId}/rearrange-seats`, { assignments });
-  },
-
-  switchSeatLayout(e) {
-    const layoutType = e.currentTarget.dataset.layout;
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (!roomId || !this.data.isOwner) return;
-    this.setData({ seatLayoutType: layoutType });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
-    put(`/room/${roomId}/layout`, { layoutType });
   },
 
   // ========== 动态积分样式（统一字号，颜色渐变） ==========
@@ -1184,8 +1367,8 @@ Page({
     this._animatingScores[toUserId] = oldToScore;
 
     // 优先使用缓存的 DOM 位置，避免每次动画都触发布局查询
-    const cellSelector = this.data.viewMode === 'seat' ? '.seat-item' : '.mg-cell';
-    const cacheKey = this.data.viewMode + ':' + (this.data.memberGrid || []).length;
+    const cellSelector = '.mg-cell';
+    const cacheKey = '' + (this.data.memberGrid || []).length;
     if (this._cellRectsCache && this._cellRectsCacheKey === cacheKey) {
       this._runParticleWithRects(fromUserId, toUserId, amount, this._cellRectsCache, onParticleDone);
     } else {

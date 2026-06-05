@@ -24,7 +24,7 @@ public class ScoreController {
     private final ScoreService scoreService;
     private final OverviewService overviewService;
 
-    @Operation(summary = "提交记分", description = "一次提交包含多个玩家得分和可选图片。使用 Redisson 分布式锁防并发")
+    @Operation(summary = "提交记分", description = "一次提交包含多个玩家得分。使用 Redisson 分布式锁防并发")
     @PostMapping
     public Result<ScoreSubmitResp> submitScore(
             HttpServletRequest request,

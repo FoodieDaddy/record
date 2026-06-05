@@ -3,10 +3,8 @@ package com.smartrecord.controller;
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.room.CreateRoomReq;
 import com.smartrecord.dto.room.JoinRoomReq;
-import com.smartrecord.dto.room.RearrangeSeatsReq;
 import com.smartrecord.dto.room.RoomResp;
-import com.smartrecord.dto.room.SwapSeatReq;
-import com.smartrecord.dto.room.UpdateLayoutReq;
+import com.smartrecord.dto.room.UpdateSettingsReq;
 import com.smartrecord.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -68,28 +66,6 @@ public class RoomController {
         return Result.ok();
     }
 
-    @Operation(summary = "换座", description = "切换到目标空座位，WebSocket 广播给同房间玩家")
-    @PostMapping("/{roomId}/swap-seat")
-    public Result<Void> swapSeat(
-            HttpServletRequest request,
-            @Parameter(description = "房间 ID") @PathVariable Long roomId,
-            @Valid @RequestBody SwapSeatReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        roomService.swapSeat(userId, roomId, req.getTargetSeatNo());
-        return Result.ok();
-    }
-
-    @Operation(summary = "房主调整座位", description = "仅房主可操作，批量调整成员座位，WebSocket 广播")
-    @PostMapping("/{roomId}/rearrange-seats")
-    public Result<Void> rearrangeSeats(
-            HttpServletRequest request,
-            @Parameter(description = "房间 ID") @PathVariable Long roomId,
-            @Valid @RequestBody RearrangeSeatsReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        roomService.rearrangeSeats(userId, roomId, req.getAssignments());
-        return Result.ok();
-    }
-
     @Operation(summary = "历史房间", description = "当前用户参与过的已结算房间")
     @GetMapping("/history")
     public Result<List<RoomResp>> getHistory(HttpServletRequest request) {
@@ -97,14 +73,14 @@ public class RoomController {
         return Result.ok(roomService.getHistory(userId));
     }
 
-    @Operation(summary = "更新座位布局", description = "仅房主可操作，切换座位排列方式")
-    @PutMapping("/{roomId}/layout")
-    public Result<Void> updateLayout(
+    @Operation(summary = "更新记分设置", description = "仅房主可操作，修改本局录入方式、信任模式、零和模式、超时设置")
+    @PutMapping("/{roomId}/settings")
+    public Result<Void> updateSettings(
             HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId,
-            @Valid @RequestBody UpdateLayoutReq req) {
+            @Valid @RequestBody UpdateSettingsReq req) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        roomService.updateLayout(userId, roomId, req.getLayoutType());
+        roomService.updateSettings(userId, roomId, req);
         return Result.ok();
     }
 }

@@ -1,7 +1,0 @@
-<view class="gallery-page">
-  <view class="gallery-empty">
-    <view class="gallery-empty-icon"></view>
-    <text class="gallery-empty-title">功能待开放</text>
-    <text class="gallery-empty-desc">图库功能正在开发中，敬请期待</text>
-  </view>
-</view>

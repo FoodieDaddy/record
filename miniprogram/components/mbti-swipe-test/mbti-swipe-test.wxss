@@ -4,11 +4,32 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #0a0a0a;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   padding: 0 48rpx;
+}
+
+/* 进度光线 */
+.progress-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4rpx;
+  background: rgba(255, 255, 255, 0.06);
+  z-index: 10;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0A84FF, #00D4FF);
+  border-radius: 0 2rpx 2rpx 0;
+  transition: width 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+  box-shadow: 0 0 8rpx rgba(0, 212, 255, 0.40);
 }
 
 .swipe-top {
@@ -25,8 +46,8 @@
 }
 
 .swipe-close {
-  width: 64rpx;
-  height: 64rpx;
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -34,7 +55,7 @@
 
 .close-icon {
   font-size: 40rpx;
-  color: rgba(255, 255, 255, 0.34);
+  color: #888888;
 }
 
 .swipe-card-area {
@@ -85,6 +106,12 @@
   padding: 24rpx 0;
   border-radius: 16rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.15s ease;
+}
+
+.action-btn:active {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .action-no {
@@ -100,11 +127,14 @@
 }
 
 .action-yes {
-  border-color: rgba(10, 132, 255, 0.3);
+  border-width: 2rpx;
+  border-color: rgba(10, 132, 255, 0.45);
+  background: rgba(10, 132, 255, 0.06);
 }
 
 .action-yes .action-text {
   color: #0A84FF;
+  text-shadow: 0 0 8rpx rgba(10, 132, 255, 0.30);
 }
 
 .action-text {

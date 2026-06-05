@@ -1,0 +1,109 @@
+<view class="settings-page {{!animationEnabled ? 'reduce-motion' : ''}}">
+  <!-- 设置卡 -->
+  <view class="glass-card settings-card">
+    <text class="settings-card__title">语音与反馈</text>
+
+    <!-- 计分语音播报 -->
+    <view class="settings-card__row">
+      <view class="settings-card__row-info">
+        <text class="settings-card__row-label">计分语音播报</text>
+        <text class="settings-card__row-desc">计分后自动语音通知</text>
+      </view>
+      <view class="custom-switch {{voiceEnabled ? 'custom-switch--on' : ''}}" bindtap="onVoiceToggle">
+        <view class="custom-switch__track">
+          <view class="custom-switch__thumb"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 具体音色选择入口 -->
+    <view class="settings-card__row settings-card__row--collapse {{voiceEnabled ? '' : 'settings-card__row--hidden'}}" bindtap="openVoiceSheet">
+      <view class="settings-card__row-info">
+        <text class="settings-card__row-label">具体音色</text>
+      </view>
+      <view class="settings-card__row-value">
+        <text class="settings-card__value-text">{{voiceName}}</text>
+        <view class="svg-icon svg-icon--arrow"></view>
+      </view>
+    </view>
+
+    <!-- 计分动画 -->
+    <view class="settings-card__row">
+      <view class="settings-card__row-info">
+        <text class="settings-card__row-label">计分动画</text>
+        <text class="settings-card__row-desc">计分时显示积分飞行动画</text>
+      </view>
+      <view class="custom-switch {{animationEnabled ? 'custom-switch--on' : ''}}" bindtap="onAnimationToggle">
+        <view class="custom-switch__track">
+          <view class="custom-switch__thumb"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 震动反馈 -->
+    <view class="settings-card__row settings-card__row--last">
+      <view class="settings-card__row-info">
+        <text class="settings-card__row-label">震动反馈</text>
+        <text class="settings-card__row-desc">操作时触发轻微震动</text>
+      </view>
+      <view class="custom-switch {{vibrateEnabled ? 'custom-switch--on' : ''}}" bindtap="onVibrateToggle">
+        <view class="custom-switch__track">
+          <view class="custom-switch__thumb"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 音色选择抽屉 -->
+  <view class="voice-sheet-mask {{voiceSheetVisible ? 'voice-sheet-mask--show' : ''}}" bindtap="closeVoiceSheet"></view>
+  <view class="voice-sheet {{voiceSheetVisible ? 'voice-sheet--show' : ''}}">
+    <view class="voice-sheet__handle"></view>
+    <view class="voice-sheet__title">选择音色</view>
+    <view class="voice-sheet__body">
+      <!-- 左侧分类 -->
+      <scroll-view class="voice-sheet__cat-list" scroll-y enhanced show-scrollbar="{{false}}">
+        <view
+          class="voice-sheet__cat-item {{activeVoiceCatId === item.id ? 'voice-sheet__cat-item--active' : ''}}"
+          wx:for="{{voiceCategories}}"
+          wx:key="id"
+          data-cat-id="{{item.id}}"
+          bindtap="onCatTap"
+        >{{item.name}}</view>
+      </scroll-view>
+      <!-- 右侧音色列表 -->
+      <scroll-view
+        class="voice-sheet__voice-list"
+        scroll-y
+        enhanced
+        show-scrollbar="{{false}}"
+        scroll-into-view="{{scrollToCat}}"
+        scroll-with-animation
+      >
+        <block wx:for="{{voiceCategories}}" wx:key="id" wx:for-item="cat" wx:for-index="catIdx">
+          <view class="voice-sheet__group-header" id="cat-{{cat.id}}">{{cat.name}}</view>
+          <view
+            class="voice-sheet__voice-item {{item.id === selectedVoiceId ? 'voice-sheet__voice-item--active' : ''}} {{playingVoiceId === item.id ? 'voice-sheet__voice-item--playing' : ''}}"
+            wx:for="{{cat.voices}}"
+            wx:key="id"
+            data-voice="{{item}}"
+            data-cat-id="{{cat.id}}"
+            bindtap="onVoiceTap"
+          >
+            <view class="voice-sheet__voice-info">
+              <text class="voice-sheet__voice-name">{{item.name}}</text>
+              <text class="voice-sheet__voice-desc">{{item.desc}}</text>
+            </view>
+            <view class="voice-sheet__voice-right">
+              <view class="voice-sheet__wave" wx:if="{{playingVoiceId === item.id}}">
+                <view class="voice-sheet__wave-bar"></view>
+                <view class="voice-sheet__wave-bar"></view>
+                <view class="voice-sheet__wave-bar"></view>
+              </view>
+              <view class="voice-sheet__check" wx:elif="{{item.id === selectedVoiceId}}"></view>
+            </view>
+          </view>
+        </block>
+      </scroll-view>
+    </view>
+  </view>
+</view>

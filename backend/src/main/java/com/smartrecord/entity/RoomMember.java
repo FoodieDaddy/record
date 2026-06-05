@@ -16,9 +16,6 @@ public class RoomMember {
 
     private Long userId;
 
-    /** 座位号 1-16 */
-    private Integer seatNo;
-
     private LocalDateTime joinedAt;
 
     /** 退出/结算时间 */

@@ -1,6 +1,7 @@
 package com.smartrecord.service.impl;
 
 import com.smartrecord.dto.mirror.MbtiTestReq;
+import com.smartrecord.enums.MbtiType;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,22 +13,6 @@ import java.util.Map;
  * 评分: score>0 表示偏向右侧字母, score<0 表示偏向左侧字母
  */
 public class MbtiCalculator {
-
-    private static final Map<String, String> TITLE_MAP = Map.ofEntries(
-            Map.entry("INTJ", "冷静型控场者"), Map.entry("INTP", "模型型分析者"),
-            Map.entry("ENTJ", "压迫型指挥者"), Map.entry("ENTP", "扰动型试探者"),
-            Map.entry("INFJ", "远读型观察者"), Map.entry("INFP", "直觉型守序者"),
-            Map.entry("ENFJ", "节奏型组织者"), Map.entry("ENFP", "机会型游走者"),
-            Map.entry("ISTJ", "纪律型执行者"), Map.entry("ISFJ", "防守型稳定者"),
-            Map.entry("ESTJ", "规则型压制者"), Map.entry("ESFJ", "协同型支援者"),
-            Map.entry("ISTP", "冷启动猎手"),   Map.entry("ISFP", "低频型感知者"),
-            Map.entry("ESTP", "高压型突击者"), Map.entry("ESFP", "现场型爆发者")
-    );
-
-    private static final List<String> ALL_TYPES = List.of(
-            "INTJ", "INTP", "ENTJ", "ENTP", "INFJ", "INFP", "ENFJ", "ENFP",
-            "ISTJ", "ISFJ", "ESTJ", "ESFJ", "ISTP", "ISFP", "ESTP", "ESFP"
-    );
 
     /**
      * 维度对：dimension key → [左侧字母, 右侧字母]
@@ -77,16 +62,25 @@ public class MbtiCalculator {
         }
 
         String mbtiType = type.toString();
-        return new Result(mbtiType, TITLE_MAP.getOrDefault(mbtiType, "未知型"), totalConfidence / 4.0);
+        int code = MbtiType.fromType(mbtiType).map(MbtiType::getCode).orElse(0);
+        return new Result(code, totalConfidence / 4.0);
     }
 
-    public static boolean isValidType(String type) {
-        return type != null && ALL_TYPES.contains(type.toUpperCase());
-    }
+    /** MBTI类型中文称号（仅内部判读使用，不暴露给前端） */
+    private static final Map<String, String> TITLE_MAP = Map.ofEntries(
+            Map.entry("INTJ", "冷静型控场者"), Map.entry("INTP", "模型型分析者"),
+            Map.entry("ENTJ", "压迫型指挥者"), Map.entry("ENTP", "扰动型试探者"),
+            Map.entry("INFJ", "远读型观察者"), Map.entry("INFP", "直觉型守序者"),
+            Map.entry("ENFJ", "节奏型组织者"), Map.entry("ENFP", "机会型游走者"),
+            Map.entry("ISTJ", "纪律型执行者"), Map.entry("ISFJ", "防守型稳定者"),
+            Map.entry("ESTJ", "规则型压制者"), Map.entry("ESFJ", "协同型支援者"),
+            Map.entry("ISTP", "冷启动猎手"),   Map.entry("ISFP", "低频型感知者"),
+            Map.entry("ESTP", "高压型突击者"), Map.entry("ESFP", "现场型爆发者")
+    );
 
-    public static String getTitle(String type) {
+    static String getTypeTitle(String type) {
         return TITLE_MAP.getOrDefault(type != null ? type.toUpperCase() : "", "未知型");
     }
 
-    public record Result(String type, String title, double confidence) {}
+    public record Result(int code, double confidence) {}
 }

@@ -1,12 +1,13 @@
 package com.smartrecord.controller;
 
-import com.smartrecord.common.PageResult;
 import com.smartrecord.common.Result;
-import com.smartrecord.dto.mirror.*;
+import com.smartrecord.dto.mirror.MbtiDirectReq;
+import com.smartrecord.dto.mirror.MbtiTestReq;
+import com.smartrecord.dto.mirror.MirrorProfileResp;
+import com.smartrecord.dto.mirror.MirrorStatsResp;
+import com.smartrecord.service.BattlePersonaService;
 import com.smartrecord.service.MirrorProfileService;
-import com.smartrecord.service.MirrorReportService;
-import com.smartrecord.service.MirrorService;
-import com.smartrecord.service.MirrorToolService;
+import com.smartrecord.service.MirrorStatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,27 +15,36 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "镜像模块", description = "MBTI人格校准 + taibu多维测试终端")
+@Tag(name = "镜像模块", description = "MBTI人格校准 + 战绩人格画像")
 @RestController
 @RequestMapping("/mirror")
 @RequiredArgsConstructor
 public class MirrorController {
 
-    private final MirrorService mirrorService;
     private final MirrorProfileService mirrorProfileService;
-    private final MirrorToolService mirrorToolService;
-    private final MirrorReportService mirrorReportService;
+    private final BattlePersonaService battlePersonaService;
+    private final MirrorStatsService mirrorStatsService;
 
-    @Operation(summary = "首页聚合数据")
-    @GetMapping("/dashboard")
-    public Result<MirrorDashboardResp> dashboard(HttpServletRequest request) {
+    @Operation(summary = "获取镜像画像")
+    @GetMapping("/profile")
+    public Result<MirrorProfileResp> profile(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorService.getDashboard(userId));
+        MirrorProfileResp resp = mirrorProfileService.getFullProfile(userId);
+        return Result.ok(resp);
+    }
+
+    @Operation(summary = "刷新战绩画像")
+    @PostMapping("/profile/refresh")
+    public Result<MirrorProfileResp> refreshProfile(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        mirrorProfileService.clearProfileCache(userId);
+        MirrorProfileResp resp = mirrorProfileService.getFullProfile(userId);
+        return Result.ok(resp);
     }
 
     @Operation(summary = "MBTI 20题测试")
     @PostMapping("/mbti/test")
-    public Result<MirrorDashboardResp.ProfileInfo> mbtiTest(
+    public Result<MirrorProfileResp.ProfileInfo> mbtiTest(
             HttpServletRequest request, @Valid @RequestBody MbtiTestReq req) {
         Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(mirrorProfileService.submitMbtiTest(userId, req));
@@ -42,52 +52,16 @@ public class MirrorController {
 
     @Operation(summary = "MBTI直接输入")
     @PostMapping("/mbti/direct")
-    public Result<MirrorDashboardResp.ProfileInfo> mbtiDirect(
+    public Result<MirrorProfileResp.ProfileInfo> mbtiDirect(
             HttpServletRequest request, @Valid @RequestBody MbtiDirectReq req) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorProfileService.submitMbtiDirect(userId, req.getMbtiType()));
+        return Result.ok(mirrorProfileService.submitMbtiDirect(userId, req.getMbtiCode()));
     }
 
-    @Operation(summary = "运行工具")
-    @PostMapping("/tool/run")
-    public Result<MirrorToolRunResp> runTool(
-            HttpServletRequest request, @Valid @RequestBody MirrorToolRunReq req) {
+    @Operation(summary = "五维战力雷达图数据")
+    @GetMapping("/stats")
+    public Result<MirrorStatsResp> stats(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorToolService.runTool(userId, req));
-    }
-
-    @Operation(summary = "获取测试结果详情")
-    @GetMapping("/report/{id}")
-    public Result<MirrorReportResp> getReport(
-            HttpServletRequest request, @PathVariable Long id) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorReportService.getReport(userId, id));
-    }
-
-    @Operation(summary = "获取测试档案")
-    @GetMapping("/archive")
-    public Result<PageResult<MirrorArchiveItem>> getArchive(
-            HttpServletRequest request,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int pageSize,
-            @RequestParam(required = false) String category) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorReportService.getArchive(userId, page, pageSize, category));
-    }
-
-    @Operation(summary = "保存出生档案")
-    @PostMapping("/birth-profile")
-    public Result<Void> saveBirthProfile(
-            HttpServletRequest request, @RequestBody BirthProfileReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        mirrorProfileService.saveBirthProfile(userId, req);
-        return Result.ok();
-    }
-
-    @Operation(summary = "获取出生档案")
-    @GetMapping("/birth-profile")
-    public Result<BirthProfileReq> getBirthProfile(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        return Result.ok(mirrorProfileService.getBirthProfile(userId));
+        return Result.ok(mirrorStatsService.calculate(userId));
     }
 }

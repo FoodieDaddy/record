@@ -20,7 +20,7 @@ app:
   llm:
     api-url: https://token-plan-cn.xiaomimimo.com/v1/chat/completions
     api-key: tp-cl8s6teu6pdyb2iquraslrka4zfpoc5an6e87isdffejcmnp
-    model: mimo-v2.5-pro
+    model: mimo-v2.5
   tts:
     mimo-voice: 冰糖
 
