@@ -98,6 +98,13 @@ public class ScoreController {
         return Result.ok(scoreService.getTrend(userId, Math.min(limit, 50)));
     }
 
+    @Operation(summary = "积分流水终端", description = "聚合净收益、采样状态、收益曲线、对局记录")
+    @GetMapping("/yield-log")
+    public Result<YieldLogResp> getYieldLog(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(scoreService.getYieldLog(userId));
+    }
+
     @Operation(summary = "战局洞察", description = "返回总流转量、最大流转、最活跃用户、互动密度等")
     @GetMapping("/room/{roomId}/insight")
     public Result<RoomInsightResp> getRoomInsight(
