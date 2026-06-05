@@ -541,9 +541,13 @@
       <view class="transfer-sheet" catchtap="preventClose">
         <view class="transfer-header">
           <text class="transfer-kicker">TRANSFER TERMINAL</text>
+          <text class="transfer-subtitle">积分流转</text>
         </view>
+
+        <!-- FROM → TO -->
         <view class="transfer-direction">
           <view class="transfer-player">
+            <text class="transfer-role-label">FROM</text>
             <view class="auto-avatar-sm" style="background:{{transferFromInfo.avatarColor}};" wx:if="{{!transferFromInfo.avatarUrl && transferFromInfo}}">
               <text class="auto-avatar-char-sm">{{transferFromInfo.avatarChar}}</text>
             </view>
@@ -555,6 +559,7 @@
             <text class="transfer-arrow-head">→</text>
           </view>
           <view class="transfer-player">
+            <text class="transfer-role-label">TO</text>
             <view class="auto-avatar-sm" style="background:{{transferToInfo.avatarColor}};" wx:if="{{!transferToInfo.avatarUrl && transferToInfo}}">
               <text class="auto-avatar-char-sm">{{transferToInfo.avatarChar}}</text>
             </view>
@@ -562,24 +567,35 @@
             <text class="transfer-player-name">{{t.truncateName(transferToInfo.nickname)}}</text>
           </view>
         </view>
-        <view class="transfer-display">
+
+        <!-- AMOUNT -->
+        <view class="transfer-amount-section">
+          <text class="transfer-amount-label">AMOUNT</text>
           <text class="transfer-display-value">{{numpadValue > 0 ? '+' : ''}}{{numpadValue || '0'}}</text>
-          <text class="transfer-display-unit">积分</text>
         </view>
 
         <!-- 实时预览 -->
         <view class="transfer-preview" wx:if="{{numpadValue > 0 && transferPreview}}">
           <view class="tp-row">
             <text class="tp-name">{{transferPreview.fromName}}</text>
-            <text class="tp-score" style="color:#FF5A5A;">{{transferPreview.fromNewScore}}</text>
+            <view class="tp-arrow">
+              <text class="tp-score-old">{{transferPreview.fromOldScore}}</text>
+              <text class="tp-arrow-icon">→</text>
+              <text class="tp-score" style="color:#FF4D4F;">{{transferPreview.fromNewScore}}</text>
+            </view>
           </view>
           <view class="tp-divider"></view>
           <view class="tp-row">
             <text class="tp-name">{{transferPreview.toName}}</text>
-            <text class="tp-score" style="color:#36FF74;">{{transferPreview.toNewScore}}</text>
+            <view class="tp-arrow">
+              <text class="tp-score-old">{{transferPreview.toOldScore}}</text>
+              <text class="tp-arrow-icon">→</text>
+              <text class="tp-score" style="color:#36FF74;">{{transferPreview.toNewScore}}</text>
+            </view>
           </view>
         </view>
 
+        <!-- 数字键盘 -->
         <view class="transfer-numpad">
           <view class="transfer-key" bindtap="onNumpadKey" data-key="1">1</view>
           <view class="transfer-key" bindtap="onNumpadKey" data-key="2">2</view>
@@ -597,7 +613,7 @@
         <view class="transfer-actions">
           <view class="transfer-confirm" bindtap="confirmNumpad">
             <text class="transfer-confirm-text">确认流转</text>
-            <text class="transfer-confirm-sub">CONFIRM TRANSFER</text>
+            <text class="transfer-confirm-sub">CONFIRM FLOW</text>
           </view>
         </view>
       </view>

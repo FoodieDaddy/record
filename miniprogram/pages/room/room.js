@@ -867,8 +867,10 @@ Page({
       const toScore = this.data.transferToInfo.score || 0;
       preview = {
         fromName: this.data.transferFromInfo.nickname,
+        fromOldScore: fromScore,
         fromNewScore: fromScore - val,
         toName: this.data.transferToInfo.nickname,
+        toOldScore: toScore,
         toNewScore: toScore + val
       };
     }
