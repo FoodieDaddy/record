@@ -1651,9 +1651,8 @@ Page({
     animate();
   },
 
-  /** 分数滚动动画：从旧值逐步滚动到新值 */
+  /** 分数跳变动画：淡出 → 新值淡入 + scale */
   playScoreRollAnimation(fromUserId, toUserId, amount) {
-    // 已有动画在播放，跳过（等待当前动画结束）
     if (this._rollTimer) return;
 
     const grid = this.data.memberGrid;
@@ -1661,19 +1660,16 @@ Page({
     const toIdx = grid.findIndex(m => String(m.userId) === String(toUserId));
     if (fromIdx < 0 || toIdx < 0) return;
 
-    // 使用快照的旧分数（在 playTransferAnimation 开头保存）
     const fromOld = this._rollOldFromScore;
     const toOld = this._rollOldToScore;
     const fromNew = grid[fromIdx].score;
     const toNew = grid[toIdx].score;
 
-    // 分数没有变化，跳过
     if (fromOld === fromNew && toOld === toNew) {
       this._animatingScores = {};
       return;
     }
 
-    // 非动画模式，直接设置最终值
     if (!app.globalData.animationEnabled) {
       const updates = {};
       updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
@@ -1683,24 +1679,27 @@ Page({
       return;
     }
 
-    const duration = 600;
+    const duration = 300;
     const startTime = Date.now();
 
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
-      // easeOutExpo: 前期快后期慢
-      const ease = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
 
       const updates = {};
-      updates[`memberGrid[${fromIdx}].displayScore`] = Math.round(fromOld + (fromNew - fromOld) * ease);
-      updates[`memberGrid[${toIdx}].displayScore`] = Math.round(toOld + (toNew - toOld) * ease);
+      // 前半段显示旧值，后半段显示新值
+      if (t < 0.5) {
+        updates[`memberGrid[${fromIdx}].displayScore`] = fromOld;
+        updates[`memberGrid[${toIdx}].displayScore`] = toOld;
+      } else {
+        updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
+        updates[`memberGrid[${toIdx}].displayScore`] = toNew;
+      }
       this.setData(updates);
 
       if (t < 1) {
         this._rollTimer = setTimeout(animate, 16);
       } else {
-        // 动画结束：确保最终值精确
         const finalUpdates = {};
         finalUpdates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
         finalUpdates[`memberGrid[${toIdx}].displayScore`] = toNew;
