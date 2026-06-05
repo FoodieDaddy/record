@@ -470,32 +470,69 @@
 
     </scroll-view>
 
-    <!-- 数字键盘弹窗 -->
-    <view class="numpad-overlay {{showNumpad ? 'numpad-show' : ''}}" catchtap="closeNumpad">
-      <view class="numpad-sheet" catchtap="preventClose">
-        <view class="numpad-header">
-          <text class="numpad-player-name">{{t.truncateName(transferToInfo.nickname) || '输入积分'}}</text>
-          <view class="numpad-display">
-            <text class="numpad-display-value">{{numpadValue || '0'}}</text>
-            <text class="numpad-unit">积分</text>
+    <!-- TRANSFER TERMINAL 流转终端 -->
+    <view class="transfer-overlay {{showNumpad ? 'transfer-show' : ''}}" catchtap="closeNumpad">
+      <view class="transfer-sheet" catchtap="preventClose">
+        <view class="transfer-header">
+          <text class="transfer-kicker">TRANSFER TERMINAL</text>
+        </view>
+        <view class="transfer-direction">
+          <view class="transfer-player">
+            <view class="auto-avatar-sm" style="background:{{transferFromInfo.avatarColor}};" wx:if="{{!transferFromInfo.avatarUrl && transferFromInfo}}">
+              <text class="auto-avatar-char-sm">{{transferFromInfo.avatarChar}}</text>
+            </view>
+            <image class="transfer-avatar" src="{{transferFromInfo.avatarUrl}}" wx:elif="{{transferFromInfo}}" mode="aspectFill"></image>
+            <text class="transfer-player-name">{{t.truncateName(transferFromInfo.nickname)}}</text>
+          </view>
+          <view class="transfer-arrow-wrap">
+            <view class="transfer-arrow-line"></view>
+            <text class="transfer-arrow-head">→</text>
+          </view>
+          <view class="transfer-player">
+            <view class="auto-avatar-sm" style="background:{{transferToInfo.avatarColor}};" wx:if="{{!transferToInfo.avatarUrl && transferToInfo}}">
+              <text class="auto-avatar-char-sm">{{transferToInfo.avatarChar}}</text>
+            </view>
+            <image class="transfer-avatar" src="{{transferToInfo.avatarUrl}}" wx:elif="{{transferToInfo}}" mode="aspectFill"></image>
+            <text class="transfer-player-name">{{t.truncateName(transferToInfo.nickname)}}</text>
           </view>
         </view>
-        <view class="numpad-grid">
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="1">1</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="2">2</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="3">3</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="4">4</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="5">5</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="6">6</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="7">7</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="8">8</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="9">9</view>
-          <view class="numpad-key numpad-key-func" bindtap="onNumpadKey" data-key="clear">C</view>
-          <view class="numpad-key" bindtap="onNumpadKey" data-key="0">0</view>
-          <view class="numpad-key numpad-key-func" bindtap="onNumpadKey" data-key="del">⌫</view>
+        <view class="transfer-display">
+          <text class="transfer-display-value">{{numpadValue > 0 ? '+' : ''}}{{numpadValue || '0'}}</text>
+          <text class="transfer-display-unit">积分</text>
         </view>
-        <view class="numpad-actions">
-          <button class="numpad-confirm" bindtap="confirmNumpad">确认计分</button>
+
+        <!-- 实时预览 -->
+        <view class="transfer-preview" wx:if="{{numpadValue > 0 && transferPreview}}">
+          <view class="tp-row">
+            <text class="tp-name">{{transferPreview.fromName}}</text>
+            <text class="tp-score" style="color:#FF5A5A;">{{transferPreview.fromNewScore}}</text>
+          </view>
+          <view class="tp-divider"></view>
+          <view class="tp-row">
+            <text class="tp-name">{{transferPreview.toName}}</text>
+            <text class="tp-score" style="color:#36FF74;">{{transferPreview.toNewScore}}</text>
+          </view>
+        </view>
+
+        <view class="transfer-numpad">
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="1">1</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="2">2</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="3">3</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="4">4</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="5">5</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="6">6</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="7">7</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="8">8</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="9">9</view>
+          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="clear">C</view>
+          <view class="transfer-key" bindtap="onNumpadKey" data-key="0">0</view>
+          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">⌫</view>
+        </view>
+        <view class="transfer-actions">
+          <view class="transfer-confirm" bindtap="confirmNumpad">
+            <text class="transfer-confirm-text">确认流转</text>
+            <text class="transfer-confirm-sub">CONFIRM TRANSFER</text>
+          </view>
         </view>
       </view>
     </view>

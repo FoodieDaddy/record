@@ -42,6 +42,8 @@ Page({
     // 计分目标
     transferTo: '',
     transferToInfo: null,
+    transferFromInfo: null,
+    transferPreview: null,
     showNumpad: false,
     numpadValue: 0,
     // 计分动画
@@ -800,12 +802,15 @@ Page({
     if (String(userId) === String(app.globalData.userId)) return;
     const info = this.data.memberGrid.find(m => String(m.userId) === String(userId));
     if (!info) return;
+    const fromInfo = this.data.memberGrid.find(m => String(m.userId) === String(app.globalData.userId));
     try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
     this.setData({
       transferTo: userId,
       transferToInfo: info,
+      transferFromInfo: fromInfo || null,
       showNumpad: true,
-      numpadValue: 0
+      numpadValue: 0,
+      transferPreview: null
     });
   },
 
@@ -825,7 +830,21 @@ Page({
       val = parseInt(newVal);
       if (val > 99999999) val = 99999999;
     }
-    this.setData({ numpadValue: val });
+
+    // 计算实时预览
+    let preview = null;
+    if (val > 0 && this.data.transferFromInfo && this.data.transferToInfo) {
+      const fromScore = this.data.transferFromInfo.score || 0;
+      const toScore = this.data.transferToInfo.score || 0;
+      preview = {
+        fromName: this.data.transferFromInfo.nickname,
+        fromNewScore: fromScore - val,
+        toName: this.data.transferToInfo.nickname,
+        toNewScore: toScore + val
+      };
+    }
+
+    this.setData({ numpadValue: val, transferPreview: preview });
   },
 
   confirmNumpad() {
@@ -856,6 +875,8 @@ Page({
     this.setData({
       transferTo: '',
       transferToInfo: null,
+      transferFromInfo: null,
+      transferPreview: null,
       showNumpad: false,
       numpadValue: 0
     });
