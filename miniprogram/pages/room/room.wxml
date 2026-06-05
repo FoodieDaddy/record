@@ -441,26 +441,31 @@
         </view>
         <view class="fl-divider"></view>
 
+        <!-- 空状态 -->
         <view wx:if="{{groupedRecords.length === 0}}" class="fl-empty">
-          <view class="icon-empty-doc"></view>
-          <text class="fl-empty-text">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
+          <view class="fl-empty-pulse"></view>
+          <text class="fl-empty-title">NO FLOW DATA</text>
+          <text class="fl-empty-text">暂无积分流</text>
+          <text class="fl-empty-hint">完成一次积分流转后，系统将在此记录数据</text>
         </view>
 
+        <!-- 记录列表 -->
         <view wx:else class="fl-list">
           <block wx:for="{{groupedRecords}}" wx:key="timeKey">
-            <view class="fl-time-header">{{item.timeDisplay}}</view>
-            <view class="fl-item" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
-              <view class="fl-dot"></view>
-              <view class="fl-content">
-                <text class="fl-from-name">{{rec.fromName}}</text>
-                <view class="fl-arrow-wrap">
-                  <view class="fl-arrow-line"></view>
-                  <text class="fl-amount {{rec.myRole === 'from' ? 'fl-amt-red' : rec.myRole === 'to' ? 'fl-amt-green' : 'fl-amt-white'}}">{{fmt.formatAmount(rec.amount)}}</text>
-                  <view class="fl-arrow-line"></view>
-                  <text class="fl-arrow-head">→</text>
-                </view>
-                <text class="fl-to-name">{{rec.toName}}</text>
+            <view class="fl-time-header">
+              <text class="fl-time-dot">●</text>
+              <text class="fl-time-text">{{item.timeDisplay}}</text>
+            </view>
+            <view class="fl-item {{rec.myRole ? 'fl-item-mine' : ''}}" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
+              <view class="fl-dot {{rec.myRole ? 'fl-dot-mine' : ''}}"></view>
+              <text class="fl-from-name">{{rec.fromName}}</text>
+              <view class="fl-arrow-wrap">
+                <view class="fl-arrow-line"></view>
+                <text class="fl-amount {{rec.myRole === 'from' ? 'fl-amt-red' : rec.myRole === 'to' ? 'fl-amt-green' : 'fl-amt-white'}}">{{fmt.formatAmount(rec.amount)}}</text>
+                <view class="fl-arrow-line"></view>
+                <text class="fl-arrow-head">→</text>
               </view>
+              <text class="fl-to-name">{{rec.toName}}</text>
             </view>
           </block>
           <view wx:if="{{loadingMore}}" class="fl-loading">
