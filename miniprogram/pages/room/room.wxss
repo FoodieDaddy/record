@@ -2007,15 +2007,15 @@
 }
 
 .sr-amt-gray {
-  color: var(--text-tertiary);
+  color: #9CA3AF;
 }
 
 .sr-amt-red {
-  color: #ff6b6b;
+  color: #FF5A5A;
 }
 
 .sr-amt-green {
-  color: #51cf66;
+  color: #36FF74;
 }
 
 /* ===== 积分表格 ===== */

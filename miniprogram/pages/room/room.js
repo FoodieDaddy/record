@@ -1286,24 +1286,13 @@ Page({
 
   getScoreStyle(score) {
     const fontSize = 26;
-    const abs = Math.abs(score);
-    // 0→5000 映射 0%→100% 饱和度
-    const t = Math.min(abs / 5000, 1);
     let color;
     if (score === 0) {
-      color = 'rgb(140,140,140)';
+      color = '#9CA3AF';
     } else if (score > 0) {
-      // 绿色：从暗绿 → 亮绿
-      const r = Math.round(60 - t * 20);
-      const g = Math.round(160 + t * 80);
-      const b = Math.round(60 - t * 20);
-      color = `rgb(${r},${g},${b})`;
+      color = '#36FF74';
     } else {
-      // 红色：从暗红 → 亮红
-      const r = Math.round(180 + t * 75);
-      const g = Math.round(80 - t * 30);
-      const b = Math.round(80 - t * 30);
-      color = `rgb(${r},${g},${b})`;
+      color = '#FF5A5A';
     }
     return { fontSize, color };
   },
