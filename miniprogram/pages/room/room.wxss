@@ -1881,18 +1881,6 @@
   font-weight: 400;
 }
 
-/* "我"过滤按钮 */
-.filter-btn {
-  padding: 8rpx 16rpx;
-  opacity: 0.4;
-  transition: all 0.2s ease;
-}
-
-.filter-btn-on {
-  opacity: 1;
-  background: rgba(10, 132, 255, 0.2);
-}
-
 /* ===== FLOW LOG 积分流 ===== */
 .flow-log {
   padding: 24rpx;
