@@ -1371,7 +1371,7 @@
 /* ===== PLAYER NETWORK 成员网络 ===== */
 .player-network {
   padding: 24rpx;
-  border: 1rpx solid rgba(255,255,255,0.08);
+  border: 1rpx solid rgba(0,170,255,0.12);
   border-radius: 16rpx;
   background: rgba(255,255,255,0.025);
   margin-bottom: 16rpx;
@@ -1388,19 +1388,19 @@
 .pn-cn {
   font-size: 28rpx;
   font-weight: 600;
-  color: rgba(255,255,255,0.85);
+  color: #FFFFFF;
   letter-spacing: 2rpx;
 }
 .pn-en {
   font-size: 18rpx;
-  color: rgba(255,255,255,0.2);
+  color: rgba(0,170,255,0.5);
   letter-spacing: 4rpx;
   font-family: monospace;
   margin-top: 2rpx;
 }
 .pn-count {
   font-size: 22rpx;
-  color: rgba(255,255,255,0.38);
+  color: #7C8698;
   font-variant-numeric: tabular-nums;
 }
 .pn-divider {
@@ -1409,104 +1409,142 @@
   margin: 16rpx 0;
 }
 
-/* 成员网格（保持 4 列） */
-.member-grid-scroll {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+/* 横向滚动 */
+.member-h-scroll {
+  white-space: nowrap;
 }
-.member-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16rpx 12rpx;
+.member-h-list {
+  display: inline-flex;
+  gap: 24rpx;
+  padding: 8rpx 0;
 }
 .mg-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 4rpx;
-  padding: 16rpx 0;
+  gap: 8rpx;
+  min-width: 120rpx;
+  padding: 16rpx 8rpx;
   border-radius: 12rpx;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
   position: relative;
-  min-width: 0;
 }
 .mg-cell:active {
   transform: scale(0.92);
-  background: rgba(255,255,255,0.04);
+}
+.mg-cell-selected {
+  background: rgba(0,170,255,0.06);
+  transform: translateY(-4rpx);
 }
 
-/* 选中态：圆形扫描环 */
-.mg-cell-selected {
-  background: rgba(10,132,255,0.04);
-}
+/* 头像 + 赛博环 */
 .mg-avatar-wrap {
   position: relative;
-  width: 96rpx;
-  height: 96rpx;
+  width: 88rpx;
+  height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.mg-avatar {
-  width: 96rpx;
-  height: 96rpx;
+.mg-cyber-ring {
+  position: absolute;
+  inset: -4rpx;
   border-radius: 50%;
-  border: 2rpx solid rgba(255,255,255,0.15);
+  border: 2rpx solid rgba(255,255,255,0.12);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  pointer-events: none;
+}
+.ring-selected {
+  border-color: #00AFFF;
+  box-shadow: 0 0 16rpx rgba(0,170,255,0.4);
+  animation: ringBreathe 2s ease-in-out infinite;
+}
+.ring-positive {
+  border-color: rgba(54,255,116,0.4);
+  box-shadow: 0 0 8rpx rgba(54,255,116,0.15);
+}
+.ring-negative {
+  border-color: rgba(255,77,79,0.4);
+  box-shadow: 0 0 8rpx rgba(255,77,79,0.15);
+}
+.ring-host {
+  border-color: rgba(0,170,255,0.3);
+}
+@keyframes ringBreathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 16rpx rgba(0,170,255,0.4); }
+  50% { opacity: 0.6; box-shadow: 0 0 24rpx rgba(0,170,255,0.6); }
+}
+.mg-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
   overflow: hidden;
   display: block;
 }
 .mg-cell .auto-avatar {
-  width: 96rpx;
-  height: 96rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
-  border: 2rpx solid rgba(255,255,255,0.15);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .auto-avatar-char {
-  font-size: 36rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #fff;
 }
 
-/* 圆形扫描环 */
-.mg-scan-ring {
+/* HOST 标签 */
+.mg-host-badge {
   position: absolute;
-  inset: -8rpx;
-  border-radius: 50%;
-  border: 2rpx solid rgba(10,132,255,0.6);
-  box-shadow: 0 0 16rpx rgba(10,132,255,0.4);
-  animation: scanRing 1.5s ease-in-out infinite;
+  top: -4rpx;
+  right: -4rpx;
+  font-size: 14rpx;
+  color: #00AFFF;
+  background: rgba(0,170,255,0.15);
+  border: 1rpx solid rgba(0,170,255,0.3);
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  letter-spacing: 1rpx;
+  font-family: monospace;
   pointer-events: none;
-}
-@keyframes scanRing {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.06); }
 }
 
 .mg-name {
   font-size: 22rpx;
-  color: rgba(255,255,255,0.56);
+  color: #BFC7D5;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 100%;
+  max-width: 120rpx;
 }
 .mg-score {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
-  max-width: 120rpx;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.5rpx;
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
 }
+
+/* TARGET LOCKED */
+.mg-target-lock {
+  font-size: 14rpx;
+  color: #00AFFF;
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  opacity: 0.8;
+  animation: targetPulse 1.5s ease-in-out infinite;
+}
+@keyframes targetPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.reduce-motion .ring-selected { animation: none; }
+.reduce-motion .mg-target-lock { animation: none; opacity: 0.8; }
 
 /* ===== 弹窗头部（共享） ===== */
 .detail-header {

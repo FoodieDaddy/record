@@ -248,7 +248,8 @@ Page({
         score,
         displayScore,
         scoreFontSize: style.fontSize,
-        scoreColor: style.color
+        scoreColor: style.color,
+        isHost: String(m.userId) === String(room.ownerId)
       };
     });
     this.setData({ memberGrid: grid });
@@ -1452,14 +1453,14 @@ Page({
   // ========== 动态积分样式（统一字号，颜色渐变） ==========
 
   getScoreStyle(score) {
-    const fontSize = 26;
+    const fontSize = 28;
     let color;
     if (score === 0) {
-      color = '#9CA3AF';
+      color = '#7C8698';
     } else if (score > 0) {
       color = '#36FF74';
     } else {
-      color = '#FF5A5A';
+      color = '#FF4D4F';
     }
     return { fontSize, color };
   },

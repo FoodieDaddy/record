@@ -395,23 +395,27 @@
           <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
         </view>
         <view class="pn-divider"></view>
-        <scroll-view class="member-grid-scroll" scroll-y="{{memberGrid.length > 8}}" style="max-height:{{memberGrid.length > 8 ? '600rpx' : 'none'}};">
-          <view class="member-grid">
+        <scroll-view class="member-h-scroll" scroll-x="{{memberGrid.length > 4}}" enhanced show-scrollbar="{{false}}">
+          <view class="member-h-list">
             <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-selected' : ''}}"
                   wx:for="{{memberGrid}}" wx:key="userId"
                   bindtap="onTapMember" data-user-id="{{item.userId}}">
               <view class="mg-avatar-wrap">
+                <!-- 赛博环 -->
+                <view class="mg-cyber-ring {{item.userId === transferTo ? 'ring-selected' : ''}} {{item.score > 0 ? 'ring-positive' : item.score < 0 ? 'ring-negative' : ''}} {{item.isHost ? 'ring-host' : ''}}"></view>
                 <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
                   <text class="auto-avatar-char">{{item.avatarChar}}</text>
                 </view>
                 <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
-                <!-- 圆形扫描环（选中态） -->
-                <view class="mg-scan-ring" wx:if="{{item.userId === transferTo}}"></view>
+                <!-- HOST 标签 -->
+                <view class="mg-host-badge" wx:if="{{item.isHost}}">HOST</view>
               </view>
               <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
               <text class="mg-score score-number" style="color:{{item.scoreColor}};">
-                {{fmt.formatScore(item.displayScore)}}
+                {{item.score > 0 ? '+' : ''}}{{fmt.formatScore(item.displayScore)}}
               </text>
+              <!-- TARGET LOCKED -->
+              <text class="mg-target-lock" wx:if="{{item.userId === transferTo}}">TARGET LOCKED</text>
             </view>
           </view>
         </scroll-view>
