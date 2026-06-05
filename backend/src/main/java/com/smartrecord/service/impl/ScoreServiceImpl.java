@@ -17,6 +17,7 @@ import com.smartrecord.enums.RoundRecordStatus;
 import com.smartrecord.enums.ScoreMode;
 import com.smartrecord.mapper.*;
 import com.smartrecord.service.EmotionAudioPool;
+import com.smartrecord.service.IdentityLevelService;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.ScoreService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
@@ -54,6 +55,7 @@ public class ScoreServiceImpl implements ScoreService {
     private final ScoreWebSocket scoreWebSocket;
     private final EmotionAudioPool emotionAudioPool;
     private final OverviewService overviewService;
+    private final IdentityLevelService identityLevelService;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -525,6 +527,18 @@ public class ScoreServiceImpl implements ScoreService {
 
         lastTtlRefresh.remove(roomId);
 
+        // 异步重算身份等级（非关键路径）
+        final var settledUserIds = new ArrayList<>(playerTotalMap.keySet());
+        asyncExecutor.execute(() -> {
+            for (Long uid : settledUserIds) {
+                try {
+                    identityLevelService.recalculate(uid);
+                } catch (Exception e) {
+                    log.warn("异步重算身份等级失败: userId={}", uid, e);
+                }
+            }
+        });
+
         return SettleResp.builder()
                 .roomId(roomId)
                 .roomNo(room.getRoomNo())
@@ -672,6 +686,18 @@ public class ScoreServiceImpl implements ScoreService {
                 .collect(Collectors.toList());
 
         lastTtlRefresh.remove(roomId);
+
+        // 异步重算身份等级（非关键路径）
+        final var settledUserIds2 = new ArrayList<>(playerTotalMap.keySet());
+        asyncExecutor.execute(() -> {
+            for (Long uid : settledUserIds2) {
+                try {
+                    identityLevelService.recalculate(uid);
+                } catch (Exception e) {
+                    log.warn("异步重算身份等级失败: userId={}", uid, e);
+                }
+            }
+        });
 
         return SettleResp.builder()
                 .roomId(roomId)
