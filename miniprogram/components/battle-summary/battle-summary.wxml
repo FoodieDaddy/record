@@ -1,0 +1,65 @@
+<view class="battle-summary">
+  <!-- 顶部标题区 -->
+  <view class="summary-header">
+    <view class="summary-kicker">BATTLE REPORT</view>
+    <view class="summary-title">战局复盘</view>
+    <view class="summary-line"></view>
+  </view>
+
+  <!-- 房间信息条 -->
+  <view class="summary-meta">
+    <view class="meta-item" wx:if="{{roomNo}}">
+      <text class="meta-label">房间</text>
+      <text class="meta-value mono">{{roomNo}}</text>
+    </view>
+    <view class="meta-item" wx:if="{{settleTime}}">
+      <text class="meta-label">结束</text>
+      <text class="meta-value">{{settleTime}}</text>
+    </view>
+    <view class="meta-item" wx:if="{{memberCount}}">
+      <text class="meta-label">成员</text>
+      <text class="meta-value">{{memberCount}}人</text>
+    </view>
+  </view>
+
+  <view class="summary-divider"></view>
+
+  <!-- 四宫格数据块 -->
+  <view class="summary-grid">
+    <!-- 赢家 -->
+    <view class="summary-cell" wx:if="{{winner}}">
+      <text class="cell-kicker">本局赢家</text>
+      <text class="cell-name">{{winner.nickname}}</text>
+      <text class="cell-number positive">+{{winner.finalScore}}</text>
+    </view>
+    <!-- 输家 -->
+    <view class="summary-cell" wx:if="{{loser}}">
+      <text class="cell-kicker">最大输家</text>
+      <text class="cell-name">{{loser.nickname}}</text>
+      <text class="cell-number negative">{{loser.finalScore}}</text>
+    </view>
+    <!-- 最大单笔 -->
+    <view class="summary-cell">
+      <text class="cell-kicker">最大单笔</text>
+      <text class="cell-number accent">{{maxSingle}}</text>
+    </view>
+    <!-- 总流转 -->
+    <view class="summary-cell">
+      <text class="cell-kicker">总流转积分</text>
+      <text class="cell-number accent">{{totalTransfer}}</text>
+    </view>
+  </view>
+
+  <!-- 底部统计条 -->
+  <view class="summary-footer">
+    <view class="footer-stat">
+      <text class="footer-num">{{transferCount}}</text>
+      <text class="footer-label">流转次数</text>
+    </view>
+    <view class="footer-dot"></view>
+    <view class="footer-stat">
+      <text class="footer-num">{{memberCount}}</text>
+      <text class="footer-label">参局人数</text>
+    </view>
+  </view>
+</view>
