@@ -1,67 +1,127 @@
-<scroll-view class="page-container" scroll-y enhanced show-scrollbar="{{false}}">
+<scroll-view
+  class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}"
+  scroll-y
+  enhanced
+  show-scrollbar="{{false}}"
+  refresher-enabled
+  refresher-triggered="{{loading}}"
+  bindrefresherrefresh="onPullDownRefresh"
+>
 
-  <!-- 趋势图 -->
-  <view class="trend-section" wx:if="{{trendPoints.length > 0}}">
-    <view class="hero-score-panel">
-      <view class="hero-label">[ 近期场域总收支 | NET YIELD ]</view>
-      <view class="hero-value {{ totalNetScore > 0 ? 'text-positive' : totalNetScore < 0 ? 'text-negative' : '' }}">
-        {{ totalNetScore > 0 ? '+' : '' }}{{ totalNetScore }}
-      </view>
-    </view>
-    <view class="trend-card">
-      <trend-chart points="{{trendPoints}}" highlight-color="#0A84FF" />
-    </view>
+  <!-- 终端标题 -->
+  <view class="terminal-header">
+    <text class="terminal-kicker">NET YIELD LOG</text>
+    <text class="terminal-title">积分流水</text>
+    <view class="terminal-line"></view>
   </view>
 
   <!-- 加载中 -->
-  <view class="loading-state" wx:if="{{roomsLoading && rooms.length === 0}}">
+  <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <text class="loading-text">SYNCING YIELD LOG...</text>
   </view>
 
   <!-- 空状态 -->
-  <view class="empty-state" wx:elif="{{!roomsLoading && rooms.length === 0 && trendPoints.length === 0}}">
-    <text class="empty-text">暂无积分记录</text>
-    <text class="empty-hint">完成对局结算后将生成积分数据</text>
+  <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
+    <text class="empty-kicker">NO MATCH DATA</text>
+    <text class="empty-text">暂无对局数据</text>
+    <text class="empty-hint">完成一次结算后，积分流水将写入身份终端</text>
   </view>
 
-  <!-- 房间列表 -->
-  <view class="room-list" wx:if="{{rooms.length > 0}}">
-    <view
-      class="room-card"
-      wx:for="{{rooms}}"
-      wx:key="roomId"
-      data-room-id="{{item.roomId}}"
-      bindtap="onRoomTap"
-    >
-      <view class="room-header">
-        <text class="room-no">{{item.roomNo}}</text>
-        <text class="room-time">{{item.createdAt}}</text>
+  <!-- 有数据时 -->
+  <block wx:if="{{records.length > 0 || sampleCount > 0}}">
+
+    <!-- 收益摘要卡 -->
+    <view class="yield-summary-card">
+      <text class="card-kicker">NET YIELD</text>
+      <text class="card-label">近期净收益</text>
+      <view class="yield-value {{netYield > 0 ? 'text-positive' : netYield < 0 ? 'text-negative' : 'text-zero'}}">
+        {{netYield > 0 ? '+' : ''}}{{netYield}}
       </view>
-      <view class="room-members">
-        <view
-          class="member-tag"
-          wx:for="{{item.members}}"
-          wx:for-item="m"
-          wx:key="userId"
-        >
-          <view class="member-avatar-sm" style="background:{{m.avatarBgColor}};" wx:if="{{!m.avatarUrl}}">
-            <text class="member-avatar-char">{{m.avatarChar}}</text>
+    </view>
+
+    <!-- 采样状态 -->
+    <view class="sample-card">
+      <text class="card-kicker">SAMPLE STATUS</text>
+      <text class="card-label">采样状态</text>
+      <view class="sample-progress">
+        <text class="sample-current">{{sampleCount}}</text>
+        <text class="sample-sep">/</text>
+        <text class="sample-target">{{curveUnlockCount}}</text>
+      </view>
+    </view>
+
+    <!-- 曲线区域 -->
+    <view class="curve-section">
+      <view class="curve-locked-card" wx:if="{{sampleCount < curveUnlockCount}}">
+        <text class="locked-kicker">CURVE LOCKED</text>
+        <text class="locked-text">收益曲线未解锁</text>
+        <text class="locked-sub">当前样本：{{sampleCount}} / {{curveUnlockCount}}</text>
+        <text class="locked-hint">完成至少 {{curveUnlockCount}} 场结算后，系统将生成收益曲线。</text>
+      </view>
+      <view class="curve-chart-card" wx:else>
+        <text class="card-kicker">YIELD CURVE</text>
+        <text class="card-label">收益曲线</text>
+        <yield-chart points="{{curveData}}" />
+      </view>
+    </view>
+
+    <!-- 对局记录 -->
+    <view class="match-log-header">
+      <text class="card-kicker">MATCH LOG</text>
+      <text class="card-label">对局记录</text>
+    </view>
+
+    <view class="room-list">
+      <view
+        class="match-card"
+        wx:for="{{records}}"
+        wx:key="roomId"
+        data-room-id="{{item.roomId}}"
+        bindtap="onRoomTap"
+      >
+        <view class="match-card__header">
+          <text class="match-card__room">ROOM {{item.roomNo}}</text>
+          <text class="match-card__time">{{item.settledAt}}</text>
+        </view>
+        <view class="match-card__result">
+          <text class="match-card__label">MATCH RESULT</text>
+          <text class="match-card__label-cn">对局结果</text>
+        </view>
+        <view class="match-card__players">
+          <view
+            class="match-player"
+            wx:for="{{item.players}}"
+            wx:for-item="p"
+            wx:key="userId"
+          >
+            <view class="match-player__role {{p.isMe ? 'role-me' : 'role-opponent'}}">
+              {{p.isMe ? '我' : '对手'}}
+            </view>
+            <view class="match-player__avatar" style="background:{{p.avatarBgColor}};" wx:if="{{!p.avatarUrl}}">
+              <text class="match-player__char">{{p.avatarChar}}</text>
+            </view>
+            <image
+              wx:else
+              class="match-player__img"
+              src="{{p.avatarUrl}}"
+              mode="aspectFill"
+              binderror="onAvatarError"
+              data-room-id="{{item.roomId}}"
+              data-user-id="{{p.userId}}"
+            />
+            <text class="match-player__name">{{p.nickname}}</text>
+            <text class="match-player__score {{p.score > 0 ? 'positive' : p.score < 0 ? 'negative' : ''}}">{{p.score > 0 ? '+' : ''}}{{p.score}}</text>
           </view>
-          <image
-            wx:else
-            class="member-avatar-img"
-            src="{{m.avatarUrl}}"
-            mode="aspectFill"
-            binderror="onAvatarError"
-            data-room-id="{{item.roomId}}"
-            data-user-id="{{m.userId}}"
-          />
-          <text class="member-name">{{m.nickname}}</text>
-          <text class="member-score {{m.finalScore > 0 ? 'positive' : m.finalScore < 0 ? 'negative' : ''}}">{{m.finalScore > 0 ? '+' : ''}}{{m.finalScore || 0}}</text>
+        </view>
+        <view class="match-card__footer">
+          <text class="match-card__footer-label">VIEW MATCH DOSSIER</text>
+          <text class="match-card__footer-cn">查看对局档案</text>
+          <view class="svg-icon svg-icon--arrow-sm"></view>
         </view>
       </view>
     </view>
-  </view>
+
+  </block>
 
 </scroll-view>

@@ -3,70 +3,76 @@ const { getColor, getFirstChar } = require('../../utils/avatar');
 
 Page({
   data: {
-    trendPoints: [],
-    totalNetScore: 0,
-    trendLoading: false,
-    rooms: [],
-    roomsLoading: false
+    loading: true,
+    netYield: 0,
+    sampleCount: 0,
+    curveUnlockCount: 2,
+    curveData: [],
+    records: []
   },
 
   onShow() {
-    this.loadTrend();
-    this.loadHistory();
+    this.loadYieldLog();
   },
 
-  async loadTrend() {
-    this.setData({ trendLoading: true });
+  async loadYieldLog() {
+    this.setData({ loading: true });
     try {
-      const resp = await get('/score/trend?limit=20');
-      const points = (resp && resp.points) || [];
-      const totalNetScore = points.reduce((sum, p) => sum + (p.netScore || 0), 0);
-      this.setData({ trendPoints: points, totalNetScore });
-    } catch (e) {
-      console.error('加载趋势数据失败', e);
-    } finally {
-      this.setData({ trendLoading: false });
-    }
-  },
+      const resp = await get('/score/yield-log');
+      if (!resp) return;
 
-  async loadHistory() {
-    this.setData({ roomsLoading: true });
-    try {
-      const rooms = await get('/room/history');
-      const enriched = (rooms || []).map(room => ({
-        ...room,
-        members: (room.members || []).map(m => ({
-          ...m,
-          avatarBgColor: getColor(m.nickname),
-          avatarChar: getFirstChar(m.nickname)
+      const records = (resp.records || []).map(record => ({
+        ...record,
+        players: (record.players || []).map(p => ({
+          ...p,
+          avatarBgColor: getColor(p.nickname),
+          avatarChar: getFirstChar(p.nickname)
         }))
       }));
-      this.setData({ rooms: enriched });
+
+      this.setData({
+        netYield: resp.netYield || 0,
+        sampleCount: resp.sampleCount || 0,
+        curveUnlockCount: resp.curveUnlockCount || 2,
+        curveData: resp.curveData || [],
+        records
+      });
     } catch (e) {
-      console.error('加载历史房间失败', e);
+      console.error('加载积分流水失败', e);
     } finally {
-      this.setData({ roomsLoading: false });
+      this.setData({ loading: false });
     }
   },
 
   onRoomTap(e) {
     const { roomId } = e.currentTarget.dataset;
     if (!roomId) return;
-    wx.navigateTo({ url: '/pages/settle/settle?roomId=' + roomId });
+    wx.navigateTo({
+      url: '/pages/settle/settle?roomId=' + roomId,
+      fail: () => {
+        wx.showToast({ title: '对局档案加载失败', icon: 'none' });
+      }
+    });
+  },
+
+  onPullDownRefresh() {
+    this.loadYieldLog().finally(() => {
+      wx.stopPullDownRefresh();
+    });
   },
 
   onAvatarError(e) {
     const { roomId, userId } = e.currentTarget.dataset;
-    const rooms = this.data.rooms.map(room => {
-      if (String(room.roomId) !== String(roomId)) return room;
+    const records = this.data.records.map(record => {
+      if (String(record.roomId) !== String(roomId)) return record;
       return {
-        ...room,
-        members: room.members.map(m => {
-          if (String(m.userId) !== String(userId)) return m;
-          return { ...m, avatarUrl: '' };
+        ...record,
+        players: record.players.map(p => {
+          if (String(p.userId) !== String(userId)) return p;
+          return { ...p, avatarUrl: '' };
         })
       };
     });
-    this.setData({ rooms });
+    this.setData({ records });
   }
 });
