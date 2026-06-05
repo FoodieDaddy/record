@@ -1,141 +1,186 @@
-<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{phase !== 'reveal'}}" enhanced show-scrollbar="{{false}}">
+<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{phase !== 'generating'}}" enhanced show-scrollbar="{{false}}">
 
-  <!-- Phase 1: 盲抽仪式 — 战术盲盒 -->
-  <view class="draw-screen" wx:if="{{phase === 'draw'}}">
-    <view class="draw-header">
-      <view class="draw-subtitle">SMART RECORD · STRATEGY</view>
-      <view class="draw-date">[ {{currentDate}} ]</view>
+  <!-- ═══ idle 屏 ═══ -->
+  <view class="idle-screen" wx:if="{{phase === 'idle'}}">
+    <view class="idle-header">
+      <view class="page-kicker">SMART RECORD · STRATEGY</view>
+      <view class="page-date">[ {{currentDate}} ]</view>
+      <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
     </view>
 
-    <view class="cards-stage">
-      <view
-        wx:for="{{cards}}"
-        wx:key="id"
-        class="tactical-card {{selectedCardIdx === index ? 'tactical-card--selected' : ''}} {{cardFadeOut && selectedCardIdx !== index ? 'tactical-card--fade' : ''}}"
-        style="--delay: {{index * 0.12}}s;"
-        bindtap="onCardTap"
-        data-idx="{{index}}"
-      >
+    <view class="section-title-row">
+      <view class="section-divider"></view>
+      <view class="section-title">今日策略</view>
+      <view class="section-divider"></view>
+    </view>
+
+    <view class="card-stage" bindtap="onTapDraw">
+      <view class="oracle-card">
         <view class="card-inner">
-          <view class="card-back-ring card-back-ring--1"></view>
-          <view class="card-back-ring card-back-ring--2"></view>
-          <view class="card-back-ring card-back-ring--3"></view>
-          <view class="card-back-dot"></view>
+          <view class="card-ring card-ring--1"></view>
+          <view class="card-ring card-ring--2"></view>
+          <view class="card-ring card-ring--3"></view>
+          <view class="card-dot"></view>
         </view>
       </view>
+      <view class="scan-ring scan-ring--idle"></view>
+      <view class="tap-hint">点击抽取</view>
     </view>
 
-    <view class="draw-prompt" wx:if="{{selectedCardIdx === -1}}">
-      <view class="prompt-line">默念今日对局</view>
-      <view class="prompt-line prompt-line--dim">抽取你的战术盲盒</view>
+    <view class="idle-info">
+      <view class="idle-info-label">系统将结合：</view>
+      <view class="idle-info-tags">人格协议 · 战绩镜像 · 历史行为</view>
+    </view>
+
+    <view class="countdown-bar" wx:if="{{countdownText}}">
+      <text class="countdown-label">下一次策略更新：</text>
+      <text class="countdown-value">{{countdownText}}</text>
     </view>
   </view>
 
-  <!-- Phase 2: 数据推演（卡片旋转 + 日志滚动） -->
-  <view class="calc-screen {{calcFadeOut ? 'calc-fade-out' : ''}}" wx:if="{{phase === 'calc'}}">
-    <!-- 中央旋转卡片 -->
-    <view class="calc-card-area">
-      <view class="calc-card calc-card--spinning">
+  <!-- ═══ generating 屏 ═══ -->
+  <view class="gen-screen {{genFadeOut ? 'gen-fade-out' : ''}}" wx:if="{{phase === 'generating'}}">
+    <view class="gen-card-area">
+      <view class="gen-card gen-card--breathing">
         <view class="card-inner">
-          <view class="card-back-ring card-back-ring--1"></view>
-          <view class="card-back-ring card-back-ring--2"></view>
-          <view class="card-back-ring card-back-ring--3"></view>
-          <view class="card-back-dot"></view>
+          <view class="card-ring card-ring--1"></view>
+          <view class="card-ring card-ring--2"></view>
+          <view class="card-ring card-ring--3"></view>
+          <view class="card-dot"></view>
         </view>
       </view>
-      <view class="calc-glow-ring"></view>
-      <view class="calc-pulse-ring"></view>
+      <view class="scan-ring scan-ring--gen"></view>
     </view>
 
-    <!-- 赛博终端消散日志 -->
-    <view class="terminal-bar">
-      <view class="terminal-bar__inner" style="{{logSliding ? 'transform: translateY(-36rpx)' : ''}}">
-        <view
-          wx:for="{{logs}}"
-          wx:key="index"
-          class="log-line"
-          style="opacity: {{item.opacity}}; filter: blur({{item.blur}}rpx);"
-        >
-          <text class="log-time">{{item.time}}</text>
-          <text class="log-msg {{item.type === 'warn' ? 'log-msg--warn' : item.type === 'success' ? 'log-msg--success' : ''}}">{{item.msg}}</text>
-        </view>
+    <view class="gen-title-block">
+      <text class="gen-main-title">正在推演今日策略</text>
+      <text class="gen-sub-title">系统正在结合人格协议与历史行为模型，生成最优行动建议</text>
+    </view>
+
+    <view class="gen-checklist">
+      <view class="gen-check-item {{item.done ? 'gen-check-item--done' : ''}}"
+            wx:for="{{stages}}" wx:key="index">
+        <text class="gen-check-mark">{{item.done ? '✓' : (index === step ? '...' : '·')}}</text>
+        <text class="gen-check-label">{{item.label}}</text>
       </view>
-      <view class="cursor-line">
-        <text class="blinking-cursor">█</text>
+      <view class="gen-check-count">{{stagesDoneCount}} / 4</view>
+    </view>
+
+    <view class="gen-terminal">
+      <view class="gen-log-line {{item.visible ? 'gen-log-line--visible' : ''}}"
+            wx:for="{{logs}}" wx:key="index">
+        <text class="gen-log-prefix">{{item.prefix}}</text>
+        <text class="gen-log-text {{item.typing ? 'gen-log-typing' : ''}}">{{item.text}}</text>
       </view>
     </view>
-  </view>
 
-  <!-- Phase 3: 策略揭晓弹窗 -->
-  <view class="reveal-modal" wx:if="{{phase === 'reveal'}}">
-    <view class="reveal-overlay" catchtouchmove="preventTouchMove"></view>
-    <view class="reveal-content" catchtouchmove="preventTouchMove">
-      <!-- 战术原型卡面 -->
-      <view class="reveal-card-face" style="--accent: {{strategy.glowColor || '#00BFFF'}};">
-        <view class="card-face-top-line"></view>
-        <view class="card-face-number">No.{{strategyCard.id}}</view>
-        <view class="card-face-name">{{strategyCard.name}}</view>
-        <view class="card-face-archetype">{{strategyCard.archetype}}</view>
-        <view class="card-face-symbol">
-          <text class="card-face-icon">{{strategyCard.icon}}</text>
-        </view>
-        <view class="card-face-verdict">{{strategy.verdict}}</view>
-        <view class="card-face-top-line card-face-bottom-line"></view>
-      </view>
-
-      <!-- 策略数据面板（打字机逐行出现） -->
-      <view class="reveal-strategy-panel">
-        <view class="strategy-tag-row typewriter-line" style="--tw-delay: 0.2s;">
-          <view class="strategy-tag" style="color: {{strategy.glowColor || '#00BFFF'}}; border-color: {{strategy.glowColor || '#00BFFF'}};">
-            {{strategy.tag || strategy.userTag}}
-          </view>
-          <view class="strategy-source">{{strategy.source === 'llm' ? 'AI 推演' : '离线演算'}}</view>
-        </view>
-
-        <block wx:if="{{strategy.buffs && strategy.buffs.length}}">
-          <view class="strategy-section-title strategy-section-title--buff typewriter-line" style="--tw-delay: 0.4s;">系统增益</view>
-          <view class="strategy-item typewriter-line" wx:for="{{strategy.buffs}}" wx:key="index" style="--tw-delay: {{0.5 + index * 0.15}}s;">
-            <text class="strategy-item-prefix strategy-item-prefix--buff">+</text>
-            <text class="strategy-item-text">{{item}}</text>
-          </view>
-        </block>
-
-        <block wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
-          <view class="strategy-section-title strategy-section-title--debuff typewriter-line" style="--tw-delay: {{0.5 + (strategy.buffs.length || 0) * 0.15 + 0.2}}s;">风险预警</view>
-          <view class="strategy-item typewriter-line" wx:for="{{strategy.debuffs}}" wx:key="index" style="--tw-delay: {{0.5 + (strategy.buffs.length || 0) * 0.15 + 0.3 + index * 0.15}}s;">
-            <text class="strategy-item-prefix strategy-item-prefix--debuff">-</text>
-            <text class="strategy-item-text">{{item}}</text>
-          </view>
-        </block>
-
-        <view class="strategy-meta typewriter-line" wx:if="{{strategy.lunarDate}}" style="--tw-delay: {{0.5 + ((strategy.buffs.length || 0) + (strategy.debuffs.length || 0)) * 0.15 + 0.4}}s;">
-          <text class="strategy-meta-text">{{strategy.lunarDate}}</text>
-          <text class="strategy-meta-text" wx:if="{{strategy.solarTerm}}"> · {{strategy.solarTerm}}</text>
-        </view>
-      </view>
-
-      <!-- 操作区 -->
-      <view class="reveal-actions">
-        <view class="reveal-action-btn" bindtap="closeReveal">关闭</view>
-        <view class="reveal-action-btn reveal-action-btn--primary" bindtap="refreshStrategy">重新校准</view>
-      </view>
-
-      <view class="reveal-cta-btn {{typewriterDone ? 'reveal-cta-btn--visible' : ''}}" bindtap="onShareStrategy">
-        <text class="cta-btn-text">分享战术海报</text>
+    <view class="gen-timeout" wx:if="{{timeoutLevel === 'slow'}}">
+      <text class="gen-timeout-text">推演仍在进行，请稍候</text>
+    </view>
+    <view class="gen-timeout gen-timeout--long" wx:if="{{timeoutLevel === 'long'}}">
+      <text class="gen-timeout-text">推演耗时较长，可继续等待或重新发起</text>
+      <view class="gen-timeout-actions">
+        <view class="gen-timeout-btn" bindtap="onTapContinueWait">继续等待</view>
+        <view class="gen-timeout-btn gen-timeout-btn--primary" bindtap="onTapRegenerate">重新推演</view>
       </view>
     </view>
   </view>
 
-  <!-- 错误态 -->
+  <!-- ═══ success 屏 ═══ -->
+  <view class="success-screen" wx:if="{{phase === 'success'}}">
+    <view class="success-header">
+      <view class="page-kicker">SMART RECORD · STRATEGY</view>
+      <view class="page-date">[ {{currentDate}} ]</view>
+      <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
+    </view>
+
+    <view class="section-title-row">
+      <view class="section-divider"></view>
+      <view class="section-title">今日策略</view>
+      <view class="section-divider"></view>
+    </view>
+
+    <view class="result-card" style="--accent: {{strategy.glowColor || '#00AFFF'}};">
+      <view class="result-card-title">{{strategy.title}}</view>
+      <view class="result-card-subtitle">{{strategy.subtitle}}</view>
+      <view class="result-card-verdict-label">核心建议：</view>
+      <view class="result-card-verdict">{{strategy.verdict}}</view>
+      <view class="result-card-divider"></view>
+    </view>
+
+    <view class="result-tags">
+      <view class="result-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</view>
+    </view>
+
+    <view class="result-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
+      <view class="result-section-title">行动优势</view>
+      <view class="result-list-item result-list-item--buff" wx:for="{{strategy.buffs}}" wx:key="index">
+        <text class="result-list-prefix">+</text>
+        <text class="result-list-text">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="result-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
+      <view class="result-section-title">风险提示</view>
+      <view class="result-list-item result-list-item--risk" wx:for="{{strategy.debuffs}}" wx:key="index">
+        <text class="result-list-prefix">-</text>
+        <text class="result-list-text">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="result-actions">
+      <view class="result-btn result-btn--secondary" bindtap="onTapRefresh">重新抽取</view>
+      <view class="result-btn result-btn--primary" bindtap="onTapShare">分享策略卡</view>
+    </view>
+
+    <view class="countdown-bar" wx:if="{{countdownText}}">
+      <text class="countdown-label">下一次策略更新：</text>
+      <text class="countdown-value">{{countdownText}}</text>
+    </view>
+  </view>
+
+  <!-- ═══ error 屏 ═══ -->
   <view class="error-screen" wx:if="{{phase === 'error'}}">
     <view class="error-icon">!</view>
-    <view class="error-text">{{error}}</view>
-    <view class="error-btn" bindtap="startDraw">重新连接</view>
+    <view class="error-title">策略推演失败</view>
+    <view class="error-text">系统暂时无法生成今日策略</view>
+    <view class="error-actions">
+      <view class="error-btn" bindtap="onTapRegenerate">重试</view>
+    </view>
   </view>
 
-  <!-- 状态刷新倒计时 -->
-  <view class="countdown-bar" wx:if="{{phase !== 'calc'}}">
-    <text class="countdown-text">状态刷新于 {{countdownStr}} 后</text>
+  <!-- ═══ 海报弹层 ═══ -->
+  <view wx:if="{{phase === 'poster_generating' || phase === 'poster_preview'}}" class="poster-mask" catchtap="noop">
+    <view class="poster-container">
+
+      <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
+        <text class="poster-gen-text">GENERATING DOSSIER...</text>
+        <view class="poster-gen-bar">
+          <view class="poster-gen-bar-fill"></view>
+        </view>
+      </view>
+
+      <view class="poster-preview" wx:if="{{phase === 'poster_preview' && posterPath}}">
+        <image class="poster-image" src="{{posterPath}}" mode="widthFix" show-menu-by-longpress />
+      </view>
+
+      <view class="poster-error" wx:if="{{posterError}}">
+        <text class="poster-error-text">{{posterError}}</text>
+        <view class="poster-error-actions">
+          <view class="poster-error-btn" bindtap="onPosterRetry">重试</view>
+          <view class="poster-error-btn" bindtap="onPosterCancel">取消</view>
+        </view>
+      </view>
+
+      <view class="poster-actions" wx:if="{{phase === 'poster_preview' && posterPath}}">
+        <view class="poster-btn poster-btn--save" bindtap="onSavePoster">保存图片</view>
+        <view class="poster-btn poster-btn--share" bindtap="onSharePoster">分享微信</view>
+        <view class="poster-btn poster-btn--close" bindtap="onClosePoster">关闭</view>
+      </view>
+
+    </view>
   </view>
+
+  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
 
 </scroll-view>
