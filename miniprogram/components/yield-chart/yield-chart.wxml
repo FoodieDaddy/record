@@ -1,0 +1,3 @@
+<view class="yield-chart-container">
+  <canvas id="yieldCanvas" type="2d" class="yield-canvas" />
+</view>
