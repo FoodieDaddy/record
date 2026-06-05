@@ -1,9 +1,11 @@
 const { get } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
+const app = getApp();
 
 Page({
   data: {
     loading: true,
+    animationEnabled: true,
     netYield: 0,
     sampleCount: 0,
     curveUnlockCount: 2,
@@ -12,6 +14,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ animationEnabled: app.globalData.animationEnabled !== false });
     this.loadYieldLog();
   },
 
