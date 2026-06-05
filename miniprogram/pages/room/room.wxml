@@ -345,21 +345,26 @@
             <text class="rt-status-text">ONLINE</text>
           </view>
         </view>
-        <view class="rt-bottom-row">
-          <view class="rt-info">
-            <text class="rt-room-no">{{currentRoom.roomNo}}</text>
-            <text class="rt-meta-sep">·</text>
-            <text class="rt-meta">{{memberGrid.length}}/{{currentRoom.maxMembers || 16}}</text>
-            <text class="rt-meta-sep">·</text>
-            <text class="rt-mode-tag">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+        <view class="rt-info-grid">
+          <view class="rt-info-seg">
+            <text class="rt-info-label">ROOM ID</text>
+            <text class="rt-info-value">{{currentRoom.roomNo}}</text>
           </view>
-          <view class="rt-actions">
-            <view class="rt-action" bindtap="copyRoomNo">
-              <view class="icon-clip"></view>
-            </view>
-            <view class="rt-action" bindtap="openShareSheet">
-              <view class="icon-share"></view>
-            </view>
+          <view class="rt-info-seg">
+            <text class="rt-info-label">MODE</text>
+            <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+          </view>
+          <view class="rt-info-seg">
+            <text class="rt-info-label">PLAYERS</text>
+            <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
+          </view>
+        </view>
+        <view class="rt-actions">
+          <view class="rt-action" bindtap="copyRoomNo">
+            <view class="icon-clip"></view>
+          </view>
+          <view class="rt-action" bindtap="openShareSheet">
+            <view class="icon-share"></view>
           </view>
         </view>
       </view>
