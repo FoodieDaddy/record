@@ -9,6 +9,14 @@ const SAVE_DELAY = 2000;
 let _saveTimer = null;
 let _uploadingAvatar = false;
 
+// TODO: 身份摘要后续接入 /mirror/identity-summary 接口，返回个性化擅长/警惕文案
+const IDENTITY_SUMMARY_MAP = {
+  default: {
+    strengths: '风险控制、长期规划、逆风运营',
+    warnings: '情绪波动、过度保守'
+  }
+};
+
 Page({
   data: {
     isLoggedIn: false,
@@ -21,13 +29,21 @@ Page({
     _lastSavedAvatar: '',
 
     // 身份信息
-    playerTag: '',       // #SR-1234
+    playerCode: '',       // PLAYER-0193
     daysSinceJoined: 0,
 
     // 积分统计（来自 /score/trend）
     totalScore: 0,
     winRate: 0,
     matchCount: 0,
+
+    // 身份等级
+    level: 1,
+    levelTitle: '新人观察员',
+    levelExp: 0,
+    nextLevelExp: 100,
+    levelProgress: 0,
+    stability: null,
 
     // 镜像数据（来自 /mirror/profile）
     mbtiType: '',
@@ -37,6 +53,10 @@ Page({
 
     // 战斗人格维度
     battleDimensions: [],
+
+    // 身份摘要
+    identityStrengths: '',
+    identityWarnings: '',
 
     // 成就
     achievements: [],
@@ -69,9 +89,10 @@ Page({
       this.loadUserInfo();
     }
 
-    // 并行加载镜像和积分数据
+    // 并行加载镜像、积分和等级数据
     this.loadMirrorData();
     this.loadScoreStats();
+    this.loadIdentityLevel();
   },
 
   async onPullDownRefresh() {
@@ -83,7 +104,8 @@ Page({
       await Promise.all([
         this.loadUserInfo(),
         this.loadMirrorData(),
-        this.loadScoreStats()
+        this.loadScoreStats(),
+        this.loadIdentityLevel()
       ]);
     } finally {
       wx.stopPullDownRefresh();
@@ -109,9 +131,9 @@ Page({
         });
         this.updateAvatar();
 
-        // 玩家标签
+        // 玩家代号
         const uid = String(user.userId || '');
-        this.setData({ playerTag: '#SR-' + uid.slice(-4) });
+        this.setData({ playerCode: 'PLAYER-' + uid.slice(-4) });
 
         // 注册天数
         if (user.createdAt) {
@@ -140,12 +162,17 @@ Page({
         ? (res.dimensions || [])
         : [];
 
+      const mbtiType = mbtiInfo ? mbtiInfo.type : '';
+      const summary = IDENTITY_SUMMARY_MAP[mbtiType] || IDENTITY_SUMMARY_MAP.default;
+
       this.setData({
-        mbtiType: mbtiInfo ? mbtiInfo.type : '',
+        mbtiType: mbtiType,
         mbtiTitle: mbtiInfo ? mbtiInfo.title : '',
         mbtiCalibrated: !!mbti.calibrated,
         traits: traits,
-        battleDimensions: dimensions
+        battleDimensions: dimensions,
+        identityStrengths: summary.strengths,
+        identityWarnings: summary.warnings
       });
       this.computeAchievements();
     } catch (e) {
@@ -169,15 +196,33 @@ Page({
     }
   },
 
+  async loadIdentityLevel() {
+    try {
+      const res = await get('/user/identity-level');
+      if (!res) return;
+      this.setData({
+        level: res.level || 1,
+        levelTitle: res.title || '新人观察员',
+        levelExp: res.exp || 0,
+        nextLevelExp: res.nextLevelExp || 100,
+        levelProgress: res.progress || 0,
+        stability: res.stability
+      });
+    } catch (e) {
+      console.error('加载身份等级失败', e);
+    }
+  },
+
   computeAchievements() {
-    const { matchCount, totalScore, winRate, mbtiCalibrated } = this.data;
+    const { matchCount, totalScore, winRate, mbtiCalibrated, level } = this.data;
     const achievements = [
-      { key: 'first_game',  label: '首局完成', unlocked: matchCount >= 1 },
-      { key: 'century',     label: '百分玩家', unlocked: totalScore >= 100 },
-      { key: 'score_1000',  label: '积分破千', unlocked: totalScore >= 1000 },
-      { key: 'ten_streak',  label: '连续十局', unlocked: matchCount >= 10 },
-      { key: 'win_half',    label: '胜率过半', unlocked: winRate >= 50 },
-      { key: 'mirror_sync', label: '镜像同步', unlocked: mbtiCalibrated }
+      { key: 'first_game',  label: '首局完成', sub: 'START',     unlocked: matchCount >= 1 },
+      { key: 'century',     label: '百分玩家', sub: 'TOP 1%',    unlocked: totalScore >= 100 },
+      { key: 'score_1000',  label: '积分破千', sub: '1000+',     unlocked: totalScore >= 1000 },
+      { key: 'ten_streak',  label: '连续十局', sub: 'WIN x10',   unlocked: matchCount >= 10 },
+      { key: 'win_half',    label: '胜率过半', sub: '50%+',      unlocked: winRate >= 50 },
+      { key: 'mirror_sync', label: '镜像同步', sub: 'SYNCED',    unlocked: mbtiCalibrated },
+      { key: 'level_up',    label: '等级提升', sub: 'Lv.' + level, unlocked: level >= 2 }
     ];
     this.setData({ achievements });
   },

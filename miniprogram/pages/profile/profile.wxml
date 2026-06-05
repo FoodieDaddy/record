@@ -11,12 +11,19 @@
 
   <!-- 已登录 -->
   <view wx:else>
-    <!-- 背景光晕 -->
     <view class="terminal__glow" aria-hidden="true"></view>
 
-    <!-- 1. PLAYER IDENTITY -->
+    <!-- 0. SYSTEM STATUS -->
+    <view class="status-bar">
+      <view class="status-bar__dot {{isLoggedIn ? 'status-bar__dot--online' : ''}}"></view>
+      <text class="status-bar__label">SYSTEM STATUS</text>
+      <text class="status-bar__value">{{isLoggedIn ? 'ONLINE' : 'OFFLINE'}}</text>
+    </view>
+
+    <!-- 1. PLAYER PROFILE -->
     <view class="term-card term-card--identity">
-      <text class="term-kicker">PLAYER IDENTITY</text>
+      <text class="term-kicker">PLAYER PROFILE</text>
+      <text class="term-kicker-sub">玩家身份档案</text>
       <view class="identity__row">
         <button class="identity__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
           <view class="identity__avatar-ring">
@@ -37,120 +44,252 @@
               bindinput="onNicknameInput"
               bindblur="onNicknameBlur"
             />
+            <view class="identity__level-badge">Lv.{{level}}</view>
             <view class="identity__dice-btn" bindtap="shuffleNickname">
               <view class="svg-icon svg-icon--dice"></view>
             </view>
           </view>
-          <text class="identity__tag">{{playerTag}}</text>
+          <text class="identity__player-code">{{playerCode}}</text>
         </view>
       </view>
       <view class="identity__meta">
-        <text class="identity__meta-item">Joined {{daysSinceJoined}} Days</text>
+        <view class="identity__meta-col">
+          <text class="identity__meta-label">加入时间</text>
+          <text class="identity__meta-value">{{daysSinceJoined}} Days</text>
+        </view>
+        <view class="identity__meta-col">
+          <text class="identity__meta-label">累计对局</text>
+          <text class="identity__meta-value">{{matchCount}} Matches</text>
+        </view>
+        <view class="identity__meta-col">
+          <text class="identity__meta-label">状态</text>
+          <text class="identity__meta-value identity__meta-value--active">ACTIVE</text>
+        </view>
       </view>
       <text class="identity__saving" wx:if="{{saving}}">保存中...</text>
     </view>
 
-    <!-- 2. SCORE OVERVIEW -->
+    <!-- 2. DATA MATRIX -->
     <view class="term-card term-card--stats">
-      <text class="term-kicker">SCORE OVERVIEW</text>
-      <view class="stats-row">
-        <view class="stats-col">
-          <text class="stats-col__value">{{totalScore}}</text>
-          <text class="stats-col__label">TOTAL SCORE</text>
+      <text class="term-kicker">DATA MATRIX</text>
+      <text class="term-kicker-sub">数据矩阵</text>
+      <view class="stats-grid">
+        <view class="stats-cell">
+          <text class="stats-cell__label">NET YIELD</text>
+          <text class="stats-cell__value {{totalScore >= 0 ? 'stats-cell__value--positive' : 'stats-cell__value--negative'}}">{{totalScore}}</text>
+          <text class="stats-cell__sub">累计收益</text>
         </view>
-        <view class="stats-divider"></view>
-        <view class="stats-col">
-          <text class="stats-col__value">{{winRate}}%</text>
-          <text class="stats-col__label">WIN RATE</text>
+        <view class="stats-cell">
+          <text class="stats-cell__label">WIN RATE</text>
+          <text class="stats-cell__value">{{winRate}}%</text>
+          <text class="stats-cell__sub">胜率</text>
         </view>
-        <view class="stats-divider"></view>
-        <view class="stats-col">
-          <text class="stats-col__value">{{matchCount}}</text>
-          <text class="stats-col__label">MATCHES</text>
+        <view class="stats-cell">
+          <text class="stats-cell__label">MATCHES</text>
+          <text class="stats-cell__value">{{matchCount}}</text>
+          <text class="stats-cell__sub">样本数</text>
+        </view>
+        <view class="stats-cell">
+          <text class="stats-cell__label">STABILITY</text>
+          <text class="stats-cell__value">{{stability !== null ? stability : '--'}}</text>
+          <text class="stats-cell__sub">人格稳定度</text>
         </view>
       </view>
     </view>
 
-    <!-- 3. PERSONA MODULE -->
+    <!-- 3. IDENTITY LEVEL -->
+    <view class="term-card term-card--level">
+      <text class="term-kicker">IDENTITY LEVEL</text>
+      <text class="term-kicker-sub">身份等级</text>
+      <view class="level__header">
+        <text class="level__lv">Lv.{{level}}</text>
+        <text class="level__title">{{levelTitle}}</text>
+      </view>
+      <view class="level__bar-track">
+        <view class="level__bar-fill" style="width:{{levelProgress}}%;"></view>
+      </view>
+      <view class="level__exp-row">
+        <text class="level__exp-text">EXP {{levelExp}} / {{nextLevelExp}}</text>
+        <text class="level__exp-pct">{{levelProgress}}%</text>
+      </view>
+      <view class="level__route">
+        <view class="level__node {{level >= 1 ? 'level__node--done' : ''}} {{level == 1 ? 'level__node--current' : ''}}">
+          <view class="level__node-dot"></view>
+          <text class="level__node-label">观察员</text>
+        </view>
+        <view class="level__node-line {{level >= 2 ? 'level__node-line--done' : ''}}"></view>
+        <view class="level__node {{level >= 2 ? 'level__node--done' : ''}} {{level == 2 ? 'level__node--current' : ''}}">
+          <view class="level__node-dot"></view>
+          <text class="level__node-label">参与者</text>
+        </view>
+        <view class="level__node-line {{level >= 3 ? 'level__node-line--done' : ''}}"></view>
+        <view class="level__node {{level >= 3 ? 'level__node--done' : ''}} {{level == 3 ? 'level__node--current' : ''}}">
+          <view class="level__node-dot"></view>
+          <text class="level__node-label">执行者</text>
+        </view>
+        <view class="level__node-line {{level >= 4 ? 'level__node-line--done' : ''}}"></view>
+        <view class="level__node {{level >= 4 ? 'level__node--done' : ''}} {{level == 4 ? 'level__node--current' : ''}}">
+          <view class="level__node-dot"></view>
+          <text class="level__node-label">掌控者</text>
+        </view>
+        <view class="level__node-line {{level >= 5 ? 'level__node-line--done' : ''}}"></view>
+        <view class="level__node {{level >= 5 ? 'level__node--done' : ''}} {{level == 5 ? 'level__node--current' : ''}}">
+          <view class="level__node-dot"></view>
+          <text class="level__node-label">候选者</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 4. PERSONA PROTOCOL -->
     <view class="term-card term-card--persona" wx:if="{{mbtiCalibrated}}">
-      <text class="term-kicker">PERSONA MODULE</text>
+      <text class="term-kicker">PERSONA PROTOCOL</text>
+      <text class="term-kicker-sub">人格协议</text>
       <view class="persona__main">
         <view class="persona__left">
           <text class="persona__type">{{mbtiType}}</text>
           <text class="persona__title">{{mbtiTitle}}</text>
         </view>
-        <view class="persona__sync-badge">SYNCED</view>
+        <view class="persona__sync-badge">
+          <view class="persona__sync-dot"></view>
+          <text>SYNCED</text>
+        </view>
+      </view>
+      <view class="persona__rows">
+        <view class="persona__row">
+          <text class="persona__row-label">偏差监测</text>
+          <text class="persona__row-value">LOCKED</text>
+        </view>
+        <view class="persona__row">
+          <text class="persona__row-label">数据来源</text>
+          <text class="persona__row-value">MBTI + 战绩镜像</text>
+        </view>
       </view>
       <view class="persona__traits">
-        <text class="persona__trait" wx:for="{{traits}}" wx:key="*this">[{{item}}]</text>
+        <text class="persona__trait" wx:for="{{traits}}" wx:key="*this">{{item}}</text>
       </view>
     </view>
 
-    <!-- 未校准时的提示 -->
+    <!-- 未校准时 -->
     <view class="term-card term-card--persona term-card--dim" wx:if="{{!mbtiCalibrated}}">
-      <text class="term-kicker">PERSONA MODULE</text>
+      <text class="term-kicker">PERSONA PROTOCOL</text>
+      <text class="term-kicker-sub">人格协议</text>
       <text class="term-empty-text">完成 MBTI 校准后解锁人格模块</text>
     </view>
 
-    <!-- 4. BATTLE PROFILE -->
-    <view class="term-card term-card--battle" wx:if="{{battleDimensions.length > 0}}">
-      <text class="term-kicker">BATTLE PROFILE</text>
-      <view class="hud-bar" wx:for="{{battleDimensions}}" wx:key="key">
-        <text class="hud-bar__label">{{item.label}}</text>
-        <view class="hud-bar__track">
-          <view class="hud-bar__fill" style="width:{{item.value}}%;"></view>
-        </view>
-        <text class="hud-bar__value">{{item.value}}%</text>
+    <!-- 5. IDENTITY SUMMARY -->
+    <view class="term-card term-card--summary" wx:if="{{mbtiCalibrated}}">
+      <text class="term-kicker">IDENTITY SUMMARY</text>
+      <text class="term-kicker-sub">身份摘要</text>
+      <view class="summary__header">
+        <text class="summary__type">{{mbtiType}}</text>
+        <text class="summary__title">{{mbtiTitle}}</text>
+      </view>
+      <view class="summary__section">
+        <text class="summary__label summary__label--strength">擅长</text>
+        <text class="summary__text">{{identityStrengths}}</text>
+      </view>
+      <view class="summary__section">
+        <text class="summary__label summary__label--warning">警惕</text>
+        <text class="summary__text">{{identityWarnings}}</text>
+      </view>
+      <view class="summary__caution" wx:if="{{matchCount < 3}}">
+        <text class="summary__caution-text">样本不足，结论仅供参考</text>
       </view>
     </view>
 
-    <!-- 5. ACHIEVEMENTS -->
+    <!-- 6. BADGE COLLECTION -->
     <view class="term-card term-card--achievements">
-      <text class="term-kicker">ACHIEVEMENTS</text>
-      <view class="achievements-row">
-        <view class="achievement-badge {{item.unlocked ? 'achievement-badge--on' : ''}}" wx:for="{{achievements}}" wx:key="key">
-          <view class="achievement-badge__icon">
-            <text wx:if="{{item.unlocked}}">&#x25C9;</text>
-            <text wx:else>&#x25CB;</text>
+      <text class="term-kicker">BADGE COLLECTION</text>
+      <text class="term-kicker-sub">成就徽章库</text>
+      <scroll-view class="achievements-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
+        <view class="achievements-track">
+          <view class="achievement-badge {{item.unlocked ? 'achievement-badge--on' : ''}}" wx:for="{{achievements}}" wx:key="key">
+            <view class="achievement-badge__icon">
+              <view class="achievement-badge__ring"></view>
+            </view>
+            <text class="achievement-badge__label">{{item.label}}</text>
+            <text class="achievement-badge__sub">{{item.sub}}</text>
           </view>
-          <text class="achievement-badge__label">{{item.label}}</text>
         </view>
+      </scroll-view>
+    </view>
+
+    <!-- 7. ARCHIVES -->
+    <view class="term-card term-card--archives">
+      <text class="term-kicker">ARCHIVES</text>
+      <text class="term-kicker-sub">档案库</text>
+      <view class="archive-row" bindtap="goScoreRecords">
+        <view class="archive-row__icon">
+          <view class="svg-icon svg-icon--record"></view>
+        </view>
+        <view class="archive-row__content">
+          <text class="archive-row__title">积分记录</text>
+          <text class="archive-row__desc">查看全部积分流水</text>
+        </view>
+        <view class="svg-icon svg-icon--arrow"></view>
+      </view>
+      <view class="archive-row" bindtap="goScoreRecords">
+        <view class="archive-row__icon">
+          <view class="svg-icon svg-icon--history"></view>
+        </view>
+        <view class="archive-row__content">
+          <text class="archive-row__title">房间历史</text>
+          <text class="archive-row__desc">查看历史对局</text>
+        </view>
+        <view class="svg-icon svg-icon--arrow"></view>
+      </view>
+      <view class="archive-row" bindtap="goBattleFile">
+        <view class="archive-row__icon">
+          <view class="svg-icon svg-icon--battle"></view>
+        </view>
+        <view class="archive-row__content">
+          <text class="archive-row__title">战绩档案</text>
+          <text class="archive-row__desc">查看个人战绩</text>
+        </view>
+        <view class="svg-icon svg-icon--arrow"></view>
+      </view>
+      <view class="archive-row archive-row--last" bindtap="goExportData">
+        <view class="archive-row__icon">
+          <view class="svg-icon svg-icon--export"></view>
+        </view>
+        <view class="archive-row__content">
+          <text class="archive-row__title">数据导出</text>
+          <text class="archive-row__desc">导出全部身份数据</text>
+        </view>
+        <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
-    <!-- 6. DATA CENTER -->
-    <view class="term-card term-card--nav">
-      <text class="term-kicker">DATA CENTER</text>
-      <view class="nav-link" bindtap="goScoreRecords">
-        <text class="nav-link__label">积分记录</text>
+    <!-- 8. SYSTEM CONTROL -->
+    <view class="term-card term-card--system">
+      <text class="term-kicker">SYSTEM CONTROL</text>
+      <text class="term-kicker-sub">系统控制</text>
+      <view class="sys-link" bindtap="goSettings">
+        <text class="sys-link__zh">设置中心</text>
+        <text class="sys-link__en">SYSTEM SETTINGS</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
-      <view class="nav-link" bindtap="goScoreRecords">
-        <text class="nav-link__label">房间历史</text>
+      <view class="sys-link" bindtap="goSettings">
+        <text class="sys-link__zh">通知中心</text>
+        <text class="sys-link__en">NOTIFICATION</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
-      <view class="nav-link" bindtap="goBattleFile">
-        <text class="nav-link__label">战绩档案</text>
+      <view class="sys-link" bindtap="goSettings">
+        <text class="sys-link__zh">声音配置</text>
+        <text class="sys-link__en">AUDIO CONFIG</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
-      <view class="nav-link nav-link--last" bindtap="goExportData">
-        <text class="nav-link__label">导出数据</text>
-        <view class="svg-icon svg-icon--arrow"></view>
-      </view>
-    </view>
-
-    <!-- 7. SYSTEM SETTINGS -->
-    <view class="term-card term-card--settings-link" bindtap="goSettings">
-      <text class="term-kicker">SYSTEM SETTINGS</text>
-      <view class="nav-link nav-link--last">
-        <text class="nav-link__label">设置中心</text>
+      <view class="sys-link sys-link--last" bindtap="goSettings">
+        <text class="sys-link__zh">关于系统</text>
+        <text class="sys-link__en">ABOUT SYSTEM</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
-    <!-- 8. 退出登录 -->
-    <view class="logout-btn" bindtap="onLogout">
-      <text class="logout-btn__text">退出登录</text>
+    <!-- 9. TERMINATE SESSION -->
+    <view class="terminate-btn" bindtap="onLogout">
+      <text class="terminate-btn__en">TERMINATE SESSION</text>
+      <text class="terminate-btn__zh">结束会话</text>
     </view>
   </view>
 </view>
