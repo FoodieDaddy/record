@@ -8,6 +8,8 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.smartrecord.dto.fortune.FortuneResp;
 import com.smartrecord.dto.fortune.UserTag;
+import com.smartrecord.entity.FortuneLog;
+import com.smartrecord.mapper.FortuneLogMapper;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.service.FortuneService;
@@ -33,6 +35,7 @@ public class FortuneServiceImpl implements FortuneService {
 
     private final RoomMemberMapper roomMemberMapper;
     private final RoomMapper roomMapper;
+    private final FortuneLogMapper fortuneLogMapper;
     private final Executor asyncExecutor;
     private final StringRedisTemplate redisTemplate;
 
@@ -49,7 +52,42 @@ public class FortuneServiceImpl implements FortuneService {
     private static final String FORTUNE_CACHE_KEY = "sr:fortune:";
     private static final long CACHE_TTL_HOURS = 4;
 
+    /** LLM 系统提示词（常量，供日志记录复用） */
+    private static final String SYSTEM_PROMPT = """
+            你是存在于赛博朋克世界的"高维博弈推演引擎"，为即将参与桌游/棋牌/对战的玩家生成今日专属"赛博运势快照"。
+
+            【创作基调】
+            1. 绝对禁止枯燥的IT运维词汇（负载均衡、算法优化、数据溢出、网络延迟）
+            2. 绝对禁止传统黄历词汇（大吉、宜忌、破财、诸事不宜）
+            3. 必须将中国农历/节气意象与赛博科幻词汇结合，强映射到玩家真实的对局痛点（随机数概率、发牌员制裁、情绪破防/上头、逻辑推理、勾心斗角）
+
+            【字段规范】
+            tag：4字短语，极具张力。正面示例：绝对理智、天命主宰、算力超频、维度碾压。负面示例：算力枯竭、薛定谔的运气、磁场紊乱、情绪过载。
+            verdict：10-18字，像高维生物对玩家的冷酷忠告，必须巧妙融合当天农历/节气意象。示例：芒种火旺引发随机数暴走，切忌越级对抗。
+            buffs：恰好3个元素，每个5-7字，描述牌桌/游戏中的玄学优势。示例库：免疫发牌员制裁、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、绝境反杀概率飙升。
+            debuffs：恰好2个元素，每个5-7字，描述对局中的隐患。示例库：容易被连续小分激怒、随机数波动敏感、中盘决策疲劳、防守反击容易漏判。
+
+            只输出一个JSON对象，不要markdown代码块，不要任何其他文字：
+            {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["增益1","增益2","增益3"],"debuffs":["预警1","预警2"]}
+            颜色规则：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
+            """;
+
     // ===== 兜底静态运势池 =====
+
+    /** 卡牌原型 */
+    private static class Archetype {
+        final String title;
+        final String subtitle;
+        final List<String> keywords;
+        Archetype(String title, String subtitle, List<String> keywords) {
+            this.title = title;
+            this.subtitle = subtitle;
+            this.keywords = keywords;
+        }
+    }
+
+    /** 卡牌原型池：UserTag → 可选原型列表 */
+    private static final Map<UserTag, List<Archetype>> ARCHETYPE_POOL = new EnumMap<>(UserTag.class);
 
     private static final Map<UserTag, List<FortuneResp>> FALLBACK_POOL = new EnumMap<>(UserTag.class);
 
@@ -113,6 +151,34 @@ public class FortuneServiceImpl implements FortuneService {
                         List.of("短期爆发不足", "需要适当冒险"),
                         "#0A84FF", "巡航")
         ));
+
+        ARCHETYPE_POOL.put(UserTag.WINNING_STREAK, List.of(
+                new Archetype("压制者", "THE DOMINATOR", List.of("强势", "连续", "压制")),
+                new Archetype("开拓者", "THE PIONEER", List.of("主动", "突破", "先手")),
+                new Archetype("决策者", "THE DECIDER", List.of("果断", "清晰", "执行"))
+        ));
+        ARCHETYPE_POOL.put(UserTag.LOSING_STREAK, List.of(
+                new Archetype("蛰伏者", "THE WATCHER", List.of("隐忍", "积累", "时机")),
+                new Archetype("观察者", "THE OBSERVER", List.of("耐心", "分析", "等待")),
+                new Archetype("引路者", "THE GUIDE", List.of("引导", "顺势", "直觉"))
+        ));
+        ARCHETYPE_POOL.put(UserTag.HIGH_RISK, List.of(
+                new Archetype("破局者", "THE BREAKER", List.of("冒险", "反转", "大胆")),
+                new Archetype("博弈者", "THE GAMBLER", List.of("变通", "灵活", "博弈")),
+                new Archetype("操盘手", "THE OPERATOR", List.of("控制", "节奏", "布局"))
+        ));
+        ARCHETYPE_POOL.put(UserTag.STABLE, List.of(
+                new Archetype("决策者", "THE DECIDER", List.of("果断", "清晰", "执行")),
+                new Archetype("观察者", "THE OBSERVER", List.of("耐心", "分析", "等待")),
+                new Archetype("终审者", "THE JUDGE", List.of("冷静", "复盘", "总结"))
+        ));
+    }
+
+    /** callLlm 内部传递日志信息的载体 */
+    private static class LlmCallContext {
+        String prompt;
+        String rawResponse;
+        long durationMs;
     }
 
     @Override
@@ -125,6 +191,24 @@ public class FortuneServiceImpl implements FortuneService {
                 log.debug("命中每日运势缓存: userId={}", userId);
                 FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
                 if (resp.getLunarDate() == null) fillLunarFields(resp);
+                // 缓存命中时补充卡牌原型（缓存中可能没有）
+                if (resp.getTitle() == null) {
+                    UserTag cachedTag = resp.getUserTag() != null ? UserTag.valueOf(resp.getUserTag()) : UserTag.STABLE;
+                    Archetype cachedArchetype = pickArchetype(cachedTag);
+                    resp.setTitle(cachedArchetype.title);
+                    resp.setSubtitle(cachedArchetype.subtitle);
+                    resp.setTags(cachedArchetype.keywords);
+                }
+                // 补充 nextRefreshAt
+                try {
+                    Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
+                    if (ttl != null && ttl > 0) {
+                        java.time.LocalTime refreshTime = java.time.LocalTime.now().plusSeconds(ttl);
+                        resp.setNextRefreshAt(refreshTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+                    }
+                } catch (Exception e) {
+                    log.warn("缓存命中时计算 nextRefreshAt 失败", e);
+                }
                 return resp;
             }
         } else {
@@ -140,14 +224,17 @@ public class FortuneServiceImpl implements FortuneService {
         // 2. CompletableFuture 双引擎：LLM 主引擎 + 兜底
         FortuneResp result;
         boolean fromLlm = false;
+        LlmCallContext llmCtx = new LlmCallContext();
 
         if (apiUrl != null && !apiUrl.isEmpty() && apiKey != null && !apiKey.isEmpty()) {
             try {
                 FortuneResp llmResult = CompletableFuture
-                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores), asyncExecutor)
+                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores, llmCtx), asyncExecutor)
                         .orTimeout(60000, TimeUnit.MILLISECONDS)
                         .exceptionally(ex -> {
                             log.warn("LLM 调用超时/异常，降级到兜底: {}", ex.getMessage());
+                            llmCtx.durationMs = 60000;
+                            llmCtx.rawResponse = "异常: " + ex.getMessage();
                             return fallbackFortune(userTag);
                         })
                         .join();
@@ -155,12 +242,20 @@ public class FortuneServiceImpl implements FortuneService {
                 fromLlm = "llm".equals(llmResult.getSource());
             } catch (Exception e) {
                 log.warn("CompletableFuture 异常，降级到兜底: {}", e.getMessage());
+                llmCtx.rawResponse = "异常: " + e.getMessage();
                 result = fallbackFortune(userTag);
             }
         } else {
             log.info("LLM 未配置，直接使用兜底运势");
+            llmCtx.rawResponse = "LLM 未配置，使用本地兜底";
             result = fallbackFortune(userTag);
         }
+
+        // 2.5 填充卡牌原型
+        Archetype archetype = pickArchetype(userTag);
+        result.setTitle(archetype.title);
+        result.setSubtitle(archetype.subtitle);
+        result.setTags(archetype.keywords);
 
         // 3. 填充农历/节气字段
         fillLunarFields(result);
@@ -175,6 +270,38 @@ public class FortuneServiceImpl implements FortuneService {
         } catch (Exception e) {
             log.warn("缓存运势失败: userId={}", userId, e);
         }
+
+        // 4.5 计算下次可刷新时间
+        try {
+            Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
+            if (ttl != null && ttl > 0) {
+                java.time.LocalTime refreshTime = java.time.LocalTime.now().plusSeconds(ttl);
+                result.setNextRefreshAt(refreshTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+            }
+        } catch (Exception e) {
+            log.warn("计算 nextRefreshAt 失败", e);
+        }
+
+        // 5. 异步写入策略生成日志
+        FortuneLog flog = new FortuneLog();
+        flog.setUserId(userId);
+        flog.setUserTag(userTag.name());
+        flog.setSource(result.getSource());
+        flog.setModel(fromLlm ? model : "");
+        flog.setPrompt(llmCtx.prompt);
+        flog.setSystemPrompt(fromLlm ? SYSTEM_PROMPT : "");
+        flog.setRawResponse(llmCtx.rawResponse);
+        flog.setResultJson(JSONUtil.toJsonStr(result));
+        flog.setDurationMs((int) llmCtx.durationMs);
+        flog.setSuccess(result.getSource() != null ? 1 : 0);
+        flog.setErrorMsg(llmCtx.rawResponse != null && llmCtx.rawResponse.startsWith("异常") ? llmCtx.rawResponse : "");
+        asyncExecutor.execute(() -> {
+            try {
+                fortuneLogMapper.insert(flog);
+            } catch (Exception e) {
+                log.warn("写入策略日志失败: userId={}", userId, e);
+            }
+        });
 
         return result;
     }
@@ -245,36 +372,20 @@ public class FortuneServiceImpl implements FortuneService {
     /**
      * 调用 OpenAI 兼容 LLM API
      */
-    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores) {
+    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores, LlmCallContext ctx) {
         String prompt = buildPrompt(userTag, netScore, recentScores);
+        ctx.prompt = prompt;
 
         JSONObject requestBody = new JSONObject();
         requestBody.set("model", model);
         requestBody.set("temperature", 0.6);
-        requestBody.set("max_tokens", 8192);
+        requestBody.set("max_tokens", 512);
         requestBody.set("include_reasoning", false);
 
         JSONArray messages = new JSONArray();
         JSONObject systemMsg = new JSONObject();
         systemMsg.set("role", "system");
-        systemMsg.set("content", """
-                你是存在于赛博朋克世界的"高维博弈推演引擎"，为即将参与桌游/棋牌/对战的玩家生成今日专属"赛博运势快照"。
-
-                【创作基调】
-                1. 绝对禁止枯燥的IT运维词汇（负载均衡、算法优化、数据溢出、网络延迟）
-                2. 绝对禁止传统黄历词汇（大吉、宜忌、破财、诸事不宜）
-                3. 必须将中国农历/节气意象与赛博科幻词汇结合，强映射到玩家真实的对局痛点（随机数概率、发牌员制裁、情绪破防/上头、逻辑推理、勾心斗角）
-
-                【字段规范】
-                tag：4字短语，极具张力。正面示例：绝对理智、天命主宰、算力超频、维度碾压。负面示例：算力枯竭、薛定谔的运气、磁场紊乱、情绪过载。
-                verdict：10-18字，像高维生物对玩家的冷酷忠告，必须巧妙融合当天农历/节气意象。示例：芒种火旺引发随机数暴走，切忌越级对抗。
-                buffs：恰好3个元素，每个5-7字，描述牌桌/游戏中的玄学优势。示例库：免疫发牌员制裁、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、绝境反杀概率飙升。
-                debuffs：恰好2个元素，每个5-7字，描述对局中的隐患。示例库：容易被连续小分激怒、随机数波动敏感、中盘决策疲劳、防守反击容易漏判。
-
-                只输出一个JSON对象，不要markdown代码块，不要任何其他文字：
-                {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["增益1","增益2","增益3"],"debuffs":["预警1","预警2"]}
-                颜色规则：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
-                """);
+        systemMsg.set("content", SYSTEM_PROMPT);
         messages.add(systemMsg);
 
         JSONObject userMsg = new JSONObject();
@@ -283,19 +394,24 @@ public class FortuneServiceImpl implements FortuneService {
         messages.add(userMsg);
         requestBody.set("messages", messages);
 
+        long start = System.currentTimeMillis();
         HttpResponse response = HttpRequest.post(apiUrl)
                 .header(Header.AUTHORIZATION, "Bearer " + apiKey)
                 .header(Header.CONTENT_TYPE, "application/json")
                 .body(requestBody.toString())
                 .timeout(60000)
                 .execute();
+        ctx.durationMs = System.currentTimeMillis() - start;
 
         if (!response.isOk()) {
             log.warn("LLM API 返回非 200: status={}, body={}", response.getStatus(), response.body());
+            ctx.rawResponse = "HTTP " + response.getStatus() + ": " + response.body();
             throw new RuntimeException("LLM API error: " + response.getStatus());
         }
 
         log.info("LLM API 响应体: {}", response.body());
+        ctx.rawResponse = response.body();
+
         JSONObject respJson = JSONUtil.parseObj(response.body());
         JSONObject message = respJson.getJSONArray("choices")
                 .getJSONObject(0)
@@ -411,6 +527,15 @@ public class FortuneServiceImpl implements FortuneService {
                 .userTag(userTag.name())
                 .source("fallback")
                 .build();
+    }
+
+    /**
+     * 根据 UserTag 从原型池中选取卡牌（基于当日日期作为种子保证当日一致）
+     */
+    private Archetype pickArchetype(UserTag userTag) {
+        List<Archetype> pool = ARCHETYPE_POOL.getOrDefault(userTag, ARCHETYPE_POOL.get(UserTag.STABLE));
+        int index = Math.floorMod(LocalDate.now().hashCode(), pool.size());
+        return pool.get(index);
     }
 
     private static FortuneResp buildFallback(String verdict, List<String> buffs, List<String> debuffs, String glowColor, String tag) {
