@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.common.EmotionType;
 import com.smartrecord.common.PageResult;
+import com.smartrecord.dto.room.RoomResp;
 import com.smartrecord.dto.score.*;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
@@ -19,6 +20,7 @@ import com.smartrecord.mapper.*;
 import com.smartrecord.service.EmotionAudioPool;
 import com.smartrecord.service.IdentityLevelService;
 import com.smartrecord.service.OverviewService;
+import com.smartrecord.service.RoomService;
 import com.smartrecord.service.ScoreService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +58,7 @@ public class ScoreServiceImpl implements ScoreService {
     private final EmotionAudioPool emotionAudioPool;
     private final OverviewService overviewService;
     private final IdentityLevelService identityLevelService;
+    private final RoomService roomService;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -743,6 +746,75 @@ public class ScoreServiceImpl implements ScoreService {
         }
 
         return TrendResp.builder().points(points).build();
+    }
+
+    @Override
+    public YieldLogResp getYieldLog(Long userId) {
+        // 1. 获取趋势数据
+        List<Map<String, Object>> trendRows = roomMemberMapper.selectTrendByUserId(userId, 20);
+
+        int netYield = 0;
+        List<YieldLogResp.CurvePoint> curvePoints = new ArrayList<>();
+        for (int i = trendRows.size() - 1; i >= 0; i--) {
+            Map<String, Object> row = trendRows.get(i);
+            Integer netScore = ((Number) row.get("netScore")).intValue();
+            netYield += netScore;
+
+            Long roomId = ((Number) row.get("roomId")).longValue();
+            Object latestAt = row.get("latestAt");
+            String date = "";
+            if (latestAt instanceof java.sql.Timestamp) {
+                date = ((java.sql.Timestamp) latestAt).toLocalDateTime().toLocalDate().toString();
+            } else if (latestAt != null) {
+                date = latestAt.toString().substring(0, 10);
+            }
+            curvePoints.add(YieldLogResp.CurvePoint.builder()
+                    .roomId(roomId)
+                    .date(date)
+                    .netScore(netScore)
+                    .build());
+        }
+
+        // 2. 获取历史房间
+        List<RoomResp> historyRooms = roomService.getHistory(userId);
+
+        List<YieldLogResp.Record> records = new ArrayList<>();
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
+        for (RoomResp room : historyRooms) {
+            String settledAt = room.getCreatedAt() != null ? room.getCreatedAt().format(fmt) : "";
+
+            List<YieldLogResp.Player> players = new ArrayList<>();
+            Integer myScore = 0;
+            for (RoomResp.MemberVO member : room.getMembers()) {
+                boolean isMe = member.getUserId().equals(userId);
+                if (isMe) {
+                    myScore = member.getFinalScore() != null ? member.getFinalScore() : 0;
+                }
+                players.add(YieldLogResp.Player.builder()
+                        .userId(member.getUserId())
+                        .nickname(member.getNickname())
+                        .avatarUrl(member.getAvatarUrl())
+                        .score(member.getFinalScore() != null ? member.getFinalScore() : 0)
+                        .isMe(isMe)
+                        .build());
+            }
+
+            records.add(YieldLogResp.Record.builder()
+                    .roomId(room.getRoomId())
+                    .roomNo(room.getRoomNo())
+                    .settledAt(settledAt)
+                    .myScore(myScore)
+                    .players(players)
+                    .build());
+        }
+
+        return YieldLogResp.builder()
+                .netYield(netYield)
+                .sampleCount(trendRows.size())
+                .curveUnlockCount(2)
+                .curveData(curvePoints)
+                .records(records)
+                .build();
     }
 
     @Override
