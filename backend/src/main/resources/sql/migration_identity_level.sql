@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS user_identity_level (
   exp        INT NOT NULL DEFAULT 0 COMMENT '经验值',
   stability  INT DEFAULT NULL COMMENT '人格稳定度 0-100',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES user(user_id)
+  FOREIGN KEY (user_id) REFERENCES user(id)
 ) COMMENT '用户身份等级';
