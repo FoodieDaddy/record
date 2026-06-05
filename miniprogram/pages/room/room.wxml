@@ -463,6 +463,17 @@
         </view>
       </view>
 
+      <!-- 底部操作区 -->
+      <view class="room-bottom-bar">
+        <view class="rb-settle-btn" bindtap="quitRoom" wx:if="{{isOwner}}">
+          <text class="rb-settle-text">结算并退出</text>
+          <text class="rb-settle-sub">SETTLE &amp; EXIT</text>
+        </view>
+        <view class="rb-quit-btn" bindtap="quitRoom" wx:else>
+          <text class="rb-quit-text">退出房间</text>
+        </view>
+      </view>
+
     </scroll-view>
 
     <!-- TRANSFER TERMINAL 流转终端 -->
