@@ -745,6 +745,128 @@ public class ScoreServiceImpl implements ScoreService {
         return TrendResp.builder().points(points).build();
     }
 
+    @Override
+    public RoomInsightResp getRoomInsight(Long roomId) {
+        String eventsKey = ROOM_PREFIX + roomId + ":events";
+        Set<String> events = redisTemplate.opsForZSet().range(eventsKey, 0, -1);
+        if (events == null || events.isEmpty()) {
+            return RoomInsightResp.builder()
+                    .totalTransfer(0)
+                    .maxSingleTransfer(0)
+                    .mostActiveUser(null)
+                    .transferCount(0)
+                    .networkDensity("LOW")
+                    .build();
+        }
+
+        int totalTransfer = 0;
+        int maxSingle = 0;
+        Map<Long, Integer> userCount = new HashMap<>();
+
+        for (String json : events) {
+            JSONObject obj = JSONUtil.parseObj(json);
+            long from = obj.getLong("from", 0L);
+            long to = obj.getLong("to", 0L);
+            int amount = obj.getInt("amount", 0);
+
+            totalTransfer += amount;
+            if (amount > maxSingle) maxSingle = amount;
+            userCount.merge(from, 1, Integer::sum);
+            userCount.merge(to, 1, Integer::sum);
+        }
+
+        // 最活跃用户
+        RoomInsightResp.ActiveUser activeUser = null;
+        if (!userCount.isEmpty()) {
+            Map.Entry<Long, Integer> top = Collections.max(userCount.entrySet(), Map.Entry.comparingByValue());
+            User user = userMapper.selectById(top.getKey());
+            activeUser = RoomInsightResp.ActiveUser.builder()
+                    .userId(top.getKey())
+                    .nickname(user != null ? user.getNickname() : "未知")
+                    .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                    .count(top.getValue())
+                    .build();
+        }
+
+        // 互动密度
+        String metaKey = ROOM_PREFIX + roomId + ":meta";
+        Long memberCount = redisTemplate.opsForHash().size(metaKey);
+        int n = memberCount != null ? memberCount.intValue() : 0;
+        double density = (n > 1) ? (double) events.size() / (n * (n - 1)) : 0;
+        String densityLevel = density > 0.3 ? "HIGH" : density > 0.1 ? "MEDIUM" : "LOW";
+
+        return RoomInsightResp.builder()
+                .totalTransfer(totalTransfer)
+                .maxSingleTransfer(maxSingle)
+                .mostActiveUser(activeUser)
+                .transferCount(events.size())
+                .networkDensity(densityLevel)
+                .build();
+    }
+
+    @Override
+    public RoomNetworkResp getRoomNetwork(Long roomId) {
+        String eventsKey = ROOM_PREFIX + roomId + ":events";
+        Set<String> events = redisTemplate.opsForZSet().range(eventsKey, 0, -1);
+
+        // 获取排行榜（当前分数）
+        String scoresKey = ROOM_PREFIX + roomId + ":scores";
+        Set<ZSetOperations.TypedTuple<String>> scoreSet =
+                redisTemplate.opsForZSet().reverseRangeWithScores(scoresKey, 0, -1);
+
+        // 构建 nodes
+        List<RoomNetworkResp.Node> nodes = new ArrayList<>();
+        if (scoreSet != null) {
+            for (ZSetOperations.TypedTuple<String> tuple : scoreSet) {
+                Long userId = Long.valueOf(tuple.getValue());
+                Double score = tuple.getScore();
+                User user = userMapper.selectById(userId);
+                nodes.add(RoomNetworkResp.Node.builder()
+                        .userId(userId)
+                        .nickname(user != null ? user.getNickname() : "未知")
+                        .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                        .score(score != null ? score.intValue() : 0)
+                        .build());
+            }
+        }
+
+        // 构建 links
+        Map<String, int[]> pairMap = new HashMap<>();
+        if (events != null) {
+            for (String json : events) {
+                JSONObject obj = JSONUtil.parseObj(json);
+                long from = obj.getLong("from", 0L);
+                long to = obj.getLong("to", 0L);
+                int amount = obj.getInt("amount", 0);
+
+                String key = from + ":" + to;
+                pairMap.merge(key, new int[]{amount, 1}, (a, b) -> {
+                    a[0] += b[0];
+                    a[1] += b[1];
+                    return a;
+                });
+            }
+        }
+
+        List<RoomNetworkResp.Link> links = new ArrayList<>();
+        for (Map.Entry<String, int[]> entry : pairMap.entrySet()) {
+            String[] parts = entry.getKey().split(":");
+            long from = Long.parseLong(parts[0]);
+            long to = Long.parseLong(parts[1]);
+            links.add(RoomNetworkResp.Link.builder()
+                    .from(from)
+                    .to(to)
+                    .netAmount(entry.getValue()[0])
+                    .count(entry.getValue()[1])
+                    .build());
+        }
+
+        return RoomNetworkResp.builder()
+                .nodes(nodes)
+                .links(links)
+                .build();
+    }
+
     // ===== 私有方法 =====
 
     private Map<Long, Integer> getPlayerTotalsFromRedis(Long roomId) {

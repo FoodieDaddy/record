@@ -29,4 +29,10 @@ public interface ScoreService {
 
     /** 多场趋势数据 */
     TrendResp getTrend(Long userId, int limit);
+
+    /** 战局洞察 */
+    RoomInsightResp getRoomInsight(Long roomId);
+
+    /** 积分关系网络 */
+    RoomNetworkResp getRoomNetwork(Long roomId);
 }

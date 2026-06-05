@@ -97,4 +97,18 @@ public class ScoreController {
         Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(scoreService.getTrend(userId, Math.min(limit, 50)));
     }
+
+    @Operation(summary = "战局洞察", description = "返回总流转量、最大流转、最活跃用户、互动密度等")
+    @GetMapping("/room/{roomId}/insight")
+    public Result<RoomInsightResp> getRoomInsight(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        return Result.ok(scoreService.getRoomInsight(roomId));
+    }
+
+    @Operation(summary = "积分关系网络", description = "返回节点（含当前积分）和连线（含净流转额）")
+    @GetMapping("/room/{roomId}/network")
+    public Result<RoomNetworkResp> getRoomNetwork(
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        return Result.ok(scoreService.getRoomNetwork(roomId));
+    }
 }
