@@ -1343,7 +1343,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
   opacity: 0.6;
   color: #fff;
 }
