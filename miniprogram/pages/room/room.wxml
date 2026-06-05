@@ -484,31 +484,35 @@
           <text class="ri-en">ROOM INSIGHT</text>
         </view>
         <view class="ri-divider"></view>
-        <view class="ri-row">
-          <text class="ri-label">本场最活跃</text>
-          <view class="ri-value-group" wx:if="{{roomInsight.mostActiveUser}}">
-            <text class="ri-value-name">{{roomInsight.mostActiveUser.nickname}}</text>
-            <text class="ri-value-detail">互动{{roomInsight.mostActiveUser.count}}次</text>
+        <view class="ri-blocks">
+          <!-- 最活跃 -->
+          <view class="ri-block">
+            <text class="ri-block-label">本场最活跃</text>
+            <text class="ri-block-value" wx:if="{{roomInsight.mostActiveUser}}">{{roomInsight.mostActiveUser.nickname}}</text>
+            <text class="ri-block-sub" wx:if="{{roomInsight.mostActiveUser}}">互动{{roomInsight.mostActiveUser.count}}次</text>
+            <text class="ri-block-value ri-block-na" wx:else>—</text>
           </view>
-          <text class="ri-value-na" wx:else>—</text>
-        </view>
-        <view class="ri-row">
-          <text class="ri-label">最大流转</text>
-          <text class="ri-value-num">{{roomInsight.maxSingleTransfer}}</text>
-        </view>
-        <view class="ri-row">
-          <text class="ri-label">积分流转量</text>
-          <text class="ri-value-num">{{roomInsight.totalTransfer}}</text>
-        </view>
-        <view class="ri-row">
-          <text class="ri-label">互动密度</text>
-          <view class="ri-density-wrap">
-            <view class="ri-density-bar">
-              <view class="ri-density-fill ri-density-{{roomInsight.networkDensity === 'HIGH' ? 'high' : roomInsight.networkDensity === 'MEDIUM' ? 'mid' : 'low'}}"
-                style="width:{{roomInsight.networkDensity === 'HIGH' ? '100' : roomInsight.networkDensity === 'MEDIUM' ? '60' : '25'}}%;">
+          <!-- 最大流转 -->
+          <view class="ri-block">
+            <text class="ri-block-label">最大流转</text>
+            <text class="ri-block-num">{{roomInsight.maxSingleTransfer}}</text>
+          </view>
+          <!-- 积分流转量 -->
+          <view class="ri-block">
+            <text class="ri-block-label">积分流转量</text>
+            <text class="ri-block-num">{{roomInsight.totalTransfer}}</text>
+          </view>
+          <!-- 互动密度 -->
+          <view class="ri-block">
+            <text class="ri-block-label">互动密度</text>
+            <view class="ri-density-wrap">
+              <view class="ri-density-bar">
+                <view class="ri-density-fill ri-density-{{roomInsight.networkDensity === 'HIGH' ? 'high' : roomInsight.networkDensity === 'MEDIUM' ? 'mid' : 'low'}}"
+                  style="width:{{roomInsight.networkDensity === 'HIGH' ? '100' : roomInsight.networkDensity === 'MEDIUM' ? '60' : '25'}}%;">
+                </view>
               </view>
+              <text class="ri-density-text">{{roomInsight.networkDensity}}</text>
             </view>
-            <text class="ri-density-text">{{roomInsight.networkDensity}}</text>
           </view>
         </view>
       </view>
