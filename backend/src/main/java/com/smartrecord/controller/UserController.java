@@ -2,6 +2,7 @@ package com.smartrecord.controller;
 
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.user.*;
+import com.smartrecord.service.IdentityLevelService;
 import com.smartrecord.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final IdentityLevelService identityLevelService;
 
     @Operation(summary = "微信登录", description = "使用 wx.login 获取的 code 换取 JWT Token")
     @PostMapping("/login")
@@ -62,5 +64,12 @@ public class UserController {
         Long userId = (Long) request.getAttribute("currentUserId");
         userService.updateUserDetail(userId, req);
         return Result.ok();
+    }
+
+    @Operation(summary = "获取身份等级")
+    @GetMapping("/identity-level")
+    public Result<IdentityLevelResp> getIdentityLevel(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(identityLevelService.getIdentityLevel(userId));
     }
 }
