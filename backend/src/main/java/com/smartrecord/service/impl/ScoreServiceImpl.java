@@ -942,7 +942,7 @@ public class ScoreServiceImpl implements ScoreService {
      */
     private RoomNetworkResp getRoomNetworkFromDb(Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getAllRecord() == null) {
+        if (room == null || room.getAllRecord() == null || room.getAllRecord().isEmpty()) {
             return RoomNetworkResp.builder().nodes(List.of()).links(List.of()).build();
         }
 
