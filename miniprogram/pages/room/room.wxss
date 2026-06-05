@@ -1893,162 +1893,171 @@
   background: rgba(10, 132, 255, 0.2);
 }
 
-/* ===== 积分记录滚动区域 ===== */
-.score-records-scroll {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* ===== 积分记录分组 ===== */
-.score-record-card {
+/* ===== FLOW LOG 积分流 ===== */
+.flow-log {
+  padding: 24rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 16rpx;
+  background: rgba(255,255,255,0.025);
   overflow: visible;
 }
-
-.sr-time-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  padding: 16rpx 8rpx 8rpx;
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.3);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  background: rgba(18, 18, 18, 0.92);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-}
-
-.sr-loading {
+.fl-header {
   display: flex;
-  justify-content: center;
-  padding: 20rpx 0;
+  align-items: flex-end;
+  justify-content: space-between;
 }
-
-/* ===== 积分记录 ===== */
-.empty-batches {
+.fl-title-group {
+  display: flex;
+  flex-direction: column;
+}
+.fl-cn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 2rpx;
+}
+.fl-en {
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  margin-top: 2rpx;
+}
+.fl-filter {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 16rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 32rpx;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+.fl-filter-on {
+  opacity: 1;
+  background: rgba(10,132,255,0.2);
+}
+.fl-filter-text {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.5);
+}
+.fl-overview-btn {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 8rpx 20rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 32rpx;
+  transition: background-color 0.2s ease;
+}
+.fl-overview-btn:active {
+  background: rgba(255,255,255,0.12);
+}
+.fl-divider {
+  height: 1rpx;
+  background: rgba(255,255,255,0.04);
+  margin: 16rpx 0;
+}
+.fl-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 32rpx 0;
   gap: 8rpx;
 }
-
-.empty-icon-sm {
-  font-size: 36rpx;
-  opacity: 0.5;
-}
-
-.empty-hint-text {
+.fl-empty-text {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255,255,255,0.3);
 }
-
-.score-records {
+.fl-list {
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
-  margin-top: 12rpx;
 }
-
-.sr-item {
+.fl-time-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 12rpx 0 8rpx;
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.3);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  background: rgba(18,18,18,0.92);
+}
+.fl-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 8rpx;
-  border-bottom: 1rpx solid rgba(255,255,255,0.04);
+  gap: 16rpx;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid rgba(255,255,255,0.03);
 }
-
-.sr-item:last-child {
+.fl-item:last-child {
   border-bottom: none;
 }
-
-
-/* 3 列左对齐：名称让空间，金额优先显示全 */
-.sr-col {
+.fl-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #0A84FF;
+  box-shadow: 0 0 6rpx rgba(10,132,255,0.6);
+  flex-shrink: 0;
+}
+.fl-content {
   display: flex;
   align-items: center;
   gap: 8rpx;
+  flex: 1;
   min-width: 0;
 }
-
-.sr-from {
-  width: 35%;
-  justify-content: flex-start;
-}
-
-.sr-amount {
-  width: 30%;
-  justify-content: flex-start;
-  gap: 4rpx;
-  flex-shrink: 0;
-}
-
-.sr-to {
-  width: 35%;
-  justify-content: flex-start;
-}
-
-.sr-avatar-wrap {
-  width: 40rpx;
-  height: 40rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.sr-avatar {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-}
-
-.auto-avatar-xs {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.auto-avatar-char-xs {
-  font-size: 18rpx;
-  font-weight: 600;
-  color: #fff;
-}
-
-.sr-name {
+.fl-from-name,
+.fl-to-name {
   font-size: 24rpx;
-  color: var(--text-secondary);
-  max-width: 120rpx;
+  color: rgba(255,255,255,0.56);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
-
-.sr-amount-text {
+.fl-arrow-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  flex-shrink: 0;
+}
+.fl-arrow-line {
+  width: 16rpx;
+  height: 1rpx;
+  background: rgba(10,132,255,0.3);
+}
+.fl-amount {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--accent);
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-
-.sr-arrow-icon {
-  font-size: 22rpx;
-  color: var(--text-tertiary);
+.fl-arrow-head {
+  font-size: 20rpx;
+  color: #0A84FF;
 }
-
-.sr-amt-gray {
-  color: #9CA3AF;
-}
-
-.sr-amt-red {
+.fl-amt-red {
   color: #FF5A5A;
 }
-
-.sr-amt-green {
+.fl-amt-green {
   color: #36FF74;
+}
+.fl-amt-white {
+  color: rgba(255,255,255,0.72);
+}
+.fl-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20rpx 0;
+}
+.fl-loading-text {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.3);
 }
 
 /* ===== 积分表格 ===== */

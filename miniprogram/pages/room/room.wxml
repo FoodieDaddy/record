@@ -412,58 +412,53 @@
         </scroll-view>
       </view>
 
-      <!-- 积分记录 -->
-      <view class="glass-card score-record-card">
-        <view class="flex-between" style="margin-bottom:12rpx;">
-          <text class="section-title" style="margin-bottom:0;">积分记录</text>
+      <!-- FLOW LOG 积分流 -->
+      <view class="flow-log">
+        <view class="fl-header">
+          <view class="fl-title-group">
+            <text class="fl-cn">积分流</text>
+            <text class="fl-en">FLOW LOG</text>
+          </view>
           <view style="display:flex;gap:12rpx;">
-            <view class="matrix-btn filter-btn {{filterMine ? 'filter-btn-on' : ''}}" bindtap="toggleFilterMine">
+            <view class="fl-filter {{filterMine ? 'fl-filter-on' : ''}}" bindtap="toggleFilterMine">
               <view class="icon-person matrix-btn-icon-svg"></view>
-              <text class="matrix-btn-text">我</text>
+              <text class="fl-filter-text">我</text>
             </view>
-            <view class="matrix-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
+            <view class="fl-overview-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
               <view class="icon-chart matrix-btn-icon-svg"></view>
-              <text class="matrix-btn-text">积分总览</text>
+              <text class="fl-filter-text">总览</text>
             </view>
           </view>
         </view>
-        <view wx:if="{{groupedRecords.length === 0}}" class="empty-batches">
+        <view class="fl-divider"></view>
+
+        <view wx:if="{{groupedRecords.length === 0}}" class="fl-empty">
           <view class="icon-empty-doc"></view>
-          <text class="empty-hint-text">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
+          <text class="fl-empty-text">{{filterMine ? '暂无与你相关的记录' : '暂无记录'}}</text>
         </view>
-        <view wx:else class="score-records">
+
+        <view wx:else class="fl-list">
           <block wx:for="{{groupedRecords}}" wx:key="timeKey">
-            <view class="sr-time-header">{{item.timeDisplay}}</view>
-            <view class="sr-item" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
-              <view class="sr-col sr-from">
-                <view class="sr-avatar-wrap">
-                  <view class="auto-avatar-xs" style="background:{{rec.fromColor}};" wx:if="{{!rec.fromAvatarUrl}}">
-                    <text class="auto-avatar-char-xs">{{rec.fromChar}}</text>
-                  </view>
-                  <image class="sr-avatar" src="{{rec.fromAvatarUrl}}" wx:else></image>
+            <view class="fl-time-header">{{item.timeDisplay}}</view>
+            <view class="fl-item" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
+              <view class="fl-dot"></view>
+              <view class="fl-content">
+                <text class="fl-from-name">{{rec.fromName}}</text>
+                <view class="fl-arrow-wrap">
+                  <view class="fl-arrow-line"></view>
+                  <text class="fl-amount {{rec.myRole === 'from' ? 'fl-amt-red' : rec.myRole === 'to' ? 'fl-amt-green' : 'fl-amt-white'}}">{{fmt.formatAmount(rec.amount)}}</text>
+                  <view class="fl-arrow-line"></view>
+                  <text class="fl-arrow-head">→</text>
                 </view>
-                <text class="sr-name">{{rec.fromName}}</text>
-              </view>
-              <view class="sr-col sr-amount">
-                <text class="sr-amount-text {{rec.myRole === 'from' ? 'sr-amt-red' : rec.myRole === 'to' ? 'sr-amt-green' : 'sr-amt-gray'}}">{{fmt.formatAmount(rec.amount)}}</text>
-                <text class="sr-arrow-icon">→</text>
-              </view>
-              <view class="sr-col sr-to">
-                <view class="sr-avatar-wrap">
-                  <view class="auto-avatar-xs" style="background:{{rec.toColor}};" wx:if="{{!rec.toAvatarUrl}}">
-                    <text class="auto-avatar-char-xs">{{rec.toChar}}</text>
-                  </view>
-                  <image class="sr-avatar" src="{{rec.toAvatarUrl}}" wx:else></image>
-                </view>
-                <text class="sr-name">{{rec.toName}}</text>
+                <text class="fl-to-name">{{rec.toName}}</text>
               </view>
             </view>
           </block>
-          <view wx:if="{{loadingMore}}" class="sr-loading">
-            <text class="text-tertiary text-xs">加载中...</text>
+          <view wx:if="{{loadingMore}}" class="fl-loading">
+            <text class="fl-loading-text">加载中...</text>
           </view>
-          <view wx:if="{{noMore && groupedRecords.length > 0}}" class="sr-loading">
-            <text class="text-tertiary text-xs">— 没有更多了 —</text>
+          <view wx:if="{{noMore && groupedRecords.length > 0}}" class="fl-loading">
+            <text class="fl-loading-text">— 没有更多了 —</text>
           </view>
         </view>
       </view>
