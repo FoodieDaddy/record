@@ -24,6 +24,8 @@ Page({
     zeroSumRequired: 1,
     autoTimeoutSeconds: 30,
     autoTimeoutAction: 1,
+    // 结算确认弹窗
+    showSettleConfirm: false,
     // 终端输入
     roomCodeRaw: '',
     terminalFocused: false,
@@ -1190,6 +1192,19 @@ Page({
         }
       }
     });
+  },
+
+  onSettleTap() {
+    this.setData({ showSettleConfirm: true });
+  },
+
+  closeSettleConfirm() {
+    this.setData({ showSettleConfirm: false });
+  },
+
+  confirmSettle() {
+    this.setData({ showSettleConfirm: false });
+    this.quitRoom();
   },
 
   async quitRoom() {

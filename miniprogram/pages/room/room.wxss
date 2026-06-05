@@ -2811,6 +2811,87 @@
   letter-spacing: 2rpx;
 }
 
+/* ===== 结算确认弹窗 ===== */
+.settle-confirm-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+.sc-show {
+  opacity: 1;
+  visibility: visible;
+}
+.settle-confirm-card {
+  width: 600rpx;
+  padding: 40rpx 32rpx;
+  background: #0A0F18;
+  border: 1rpx solid rgba(0,170,255,0.2);
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+.sc-kicker {
+  font-size: 16rpx;
+  color: #00AFFF;
+  letter-spacing: 4rpx;
+  font-family: monospace;
+}
+.sc-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+.sc-desc {
+  font-size: 24rpx;
+  color: #7C8698;
+}
+.sc-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 16rpx;
+  width: 100%;
+}
+.sc-btn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+  transition: background-color 0.2s, transform 0.2s;
+}
+.sc-btn:active {
+  transform: scale(0.97);
+}
+.sc-btn-cancel {
+  background: transparent;
+  border: 1rpx solid rgba(255,255,255,0.14);
+}
+.sc-btn-cancel .sc-btn-text {
+  color: #7C8698;
+}
+.sc-btn-confirm {
+  background: rgba(0,170,255,0.15);
+  border: 1rpx solid rgba(0,170,255,0.4);
+}
+.sc-btn-confirm .sc-btn-text {
+  color: #00AFFF;
+  font-weight: 600;
+}
+.sc-btn-text {
+  font-size: 28rpx;
+  letter-spacing: 2rpx;
+}
+
 /* ===== ROOM INSIGHT 战局洞察 ===== */
 .room-insight {
   padding: 24rpx;
