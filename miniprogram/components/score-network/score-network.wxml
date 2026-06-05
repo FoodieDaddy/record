@@ -1,0 +1,47 @@
+<view class="score-network">
+  <view class="network-header">
+    <view class="network-kicker">SCORE NETWORK</view>
+    <view class="network-title">积分关系网络</view>
+    <view class="network-line"></view>
+  </view>
+
+  <view class="network-graph-wrap" bindtap="onNodeTap">
+    <force-graph
+      id="scoreNetworkGraph"
+      nodes="{{nodes}}"
+      links="{{links}}"
+      width="{{graphWidth}}"
+      height="{{graphHeight}}" />
+  </view>
+
+  <!-- 节点详情浮层 -->
+  <view class="node-detail {{selectedNode !== null ? 'node-detail--show' : ''}}" wx:if="{{nodeDetails}}">
+    <view class="detail-header">
+      <text class="detail-name" style="color: {{nodeDetails.isMe ? '#00AFFF' : 'rgba(255,255,255,0.92)'}}">{{nodeDetails.nickname}}</text>
+      <text class="detail-score" style="color: {{nodeDetails.score >= 0 ? '#32D74B' : '#FF453A'}}">
+        {{nodeDetails.score > 0 ? '+' : ''}}{{nodeDetails.score}}
+      </text>
+      <view class="detail-close" bindtap="closeDetail">✕</view>
+    </view>
+    <view class="detail-grid">
+      <view class="detail-cell">
+        <text class="detail-cell-label">向谁输送最多</text>
+        <text class="detail-cell-value">{{nodeDetails.topRecipientName}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">从谁获得最多</text>
+        <text class="detail-cell-value">{{nodeDetails.topSenderName}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">互动次数</text>
+        <text class="detail-cell-value mono">{{nodeDetails.interactionCount}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">净收益</text>
+        <text class="detail-cell-value mono" style="color: {{nodeDetails.netGain >= 0 ? '#32D74B' : '#FF453A'}}">
+          {{nodeDetails.netGain > 0 ? '+' : ''}}{{nodeDetails.netGain}}
+        </text>
+      </view>
+    </view>
+  </view>
+</view>
