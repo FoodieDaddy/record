@@ -1375,22 +1375,57 @@
   display: block;
 }
 
-/* ===== 成员网格（4 列） ===== */
-.member-section {
-  padding-bottom: 20rpx;
+/* ===== PLAYER NETWORK 成员网络 ===== */
+.player-network {
+  padding: 24rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 16rpx;
+  background: rgba(255,255,255,0.025);
+  margin-bottom: 16rpx;
+}
+.pn-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.pn-title-group {
+  display: flex;
+  flex-direction: column;
+}
+.pn-cn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  letter-spacing: 2rpx;
+}
+.pn-en {
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  margin-top: 2rpx;
+}
+.pn-count {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.38);
+  font-variant-numeric: tabular-nums;
+}
+.pn-divider {
+  height: 1rpx;
+  background: rgba(255,255,255,0.04);
+  margin: 16rpx 0;
 }
 
+/* 成员网格（保持 4 列） */
 .member-grid-scroll {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-
 .member-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16rpx 12rpx;
 }
-
 .mg-cell {
   display: flex;
   flex-direction: column;
@@ -1398,23 +1433,20 @@
   justify-content: flex-start;
   gap: 4rpx;
   padding: 16rpx 0;
-  border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
+  border-radius: 12rpx;
+  transition: opacity 0.2s ease, transform 0.2s ease;
   position: relative;
   min-width: 0;
 }
-
 .mg-cell:active {
   transform: scale(0.92);
   background: rgba(255,255,255,0.04);
 }
 
-.mg-cell-on {
-  background: rgba(10, 132, 255, 0.06);
-  border: 1rpx solid rgba(10, 132, 255, 0.5);
-  box-shadow: 0 0 20rpx rgba(10, 132, 255, 0.1);
+/* 选中态：圆形扫描环 */
+.mg-cell-selected {
+  background: rgba(10,132,255,0.04);
 }
-
 .mg-avatar-wrap {
   position: relative;
   width: 96rpx;
@@ -1423,7 +1455,6 @@
   align-items: center;
   justify-content: center;
 }
-
 .mg-avatar {
   width: 96rpx;
   height: 96rpx;
@@ -1432,7 +1463,6 @@
   overflow: hidden;
   display: block;
 }
-
 .mg-cell .auto-avatar {
   width: 96rpx;
   height: 96rpx;
@@ -1442,41 +1472,39 @@
   align-items: center;
   justify-content: center;
 }
-
 .auto-avatar-char {
   font-size: 36rpx;
   font-weight: 600;
   color: #fff;
 }
 
-.mg-glow {
+/* 圆形扫描环 */
+.mg-scan-ring {
   position: absolute;
-  inset: -6rpx;
+  inset: -8rpx;
   border-radius: 50%;
-  border: 2rpx solid rgba(10, 132, 255, 0.5);
-  box-shadow: 0 0 16rpx rgba(10, 132, 255, 0.3);
-  animation: pulseGlow 1.5s ease-in-out infinite;
+  border: 2rpx solid rgba(10,132,255,0.6);
+  box-shadow: 0 0 16rpx rgba(10,132,255,0.4);
+  animation: scanRing 1.5s ease-in-out infinite;
+  pointer-events: none;
 }
-
-@keyframes pulseGlow {
+@keyframes scanRing {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.04); }
+  50% { opacity: 0.4; transform: scale(1.06); }
 }
 
 .mg-name {
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.56);
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
 }
-
 .mg-score {
   font-size: 26rpx;
   font-weight: 700;
-  color: #fff;
   max-width: 120rpx;
   text-align: center;
   white-space: nowrap;
@@ -1485,14 +1513,6 @@
   letter-spacing: 0.5rpx;
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
-}
-
-.mg-pos {
-  color: #ff8a65;
-}
-
-.mg-neg {
-  color: #4dd0e1;
 }
 
 /* ===== 弹窗头部（共享） ===== */

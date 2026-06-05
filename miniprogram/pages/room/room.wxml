@@ -380,15 +380,19 @@
         </view>
       </view>
 
-      <!-- 成员区域 -->
-      <view class="glass-card member-section">
-        <view class="flex-between" style="margin-bottom:16rpx;">
-          <text class="section-title" style="margin-bottom:0;">成员</text>
-          <text class="text-tertiary text-sm">{{memberGrid.length}}人</text>
+      <!-- PLAYER NETWORK 成员网络 -->
+      <view class="player-network">
+        <view class="pn-header">
+          <view class="pn-title-group">
+            <text class="pn-cn">成员网络</text>
+            <text class="pn-en">PLAYER NETWORK</text>
+          </view>
+          <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
         </view>
+        <view class="pn-divider"></view>
         <scroll-view class="member-grid-scroll" scroll-y="{{memberGrid.length > 8}}" style="max-height:{{memberGrid.length > 8 ? '600rpx' : 'none'}};">
           <view class="member-grid">
-            <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-on' : ''}}"
+            <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-selected' : ''}}"
                   wx:for="{{memberGrid}}" wx:key="userId"
                   bindtap="onTapMember" data-user-id="{{item.userId}}">
               <view class="mg-avatar-wrap">
@@ -396,7 +400,8 @@
                   <text class="auto-avatar-char">{{item.avatarChar}}</text>
                 </view>
                 <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
-                <view class="mg-glow" wx:if="{{item.userId === transferTo}}"></view>
+                <!-- 圆形扫描环（选中态） -->
+                <view class="mg-scan-ring" wx:if="{{item.userId === transferTo}}"></view>
               </view>
               <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
               <text class="mg-score score-number" style="color:{{item.scoreColor}};">
