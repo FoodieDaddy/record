@@ -87,7 +87,7 @@
   color: rgba(255, 255, 255, 0.28);
 }
 
-/* ===== 收益摘要卡 ===== */
+/* ===== 净积分摘要卡 ===== */
 .yield-summary-card {
   background: rgba(255, 255, 255, 0.035);
   border: 1rpx solid rgba(0, 175, 255, 0.12);

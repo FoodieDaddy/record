@@ -1,10 +1,9 @@
 <view class="login-page">
-  <!-- 环境光 -->
-  <view class="atmosphere"></view>
+  <!-- 背景扫描线 -->
+  <view class="scanline"></view>
 
   <!-- Logo 区域 -->
   <view class="brand">
-    <!-- 极简几何 Logo：抽象 S 形 -->
     <view class="logo-mark">
       <view class="logo-ring">
         <view class="logo-inner">
@@ -17,54 +16,96 @@
       <view class="logo-glow"></view>
     </view>
 
-    <text class="brand-name">Smart Record</text>
-    <text class="brand-tagline">细致记分 · 实时同步</text>
+    <text class="terminal-title">TERMINAL ACCESS</text>
+    <text class="terminal-subtitle">终端接入</text>
 
-    <view class="brand-features">
-      <text class="feature-item">多人房间</text>
-      <text class="feature-sep">|</text>
-      <text class="feature-item">实时排行</text>
-      <text class="feature-sep">|</text>
-      <text class="feature-item">成绩海报</text>
+    <view class="terminal-divider">
+      <view class="div-line"></view>
+      <text class="div-label">记录 · 分析 · 推演</text>
+      <view class="div-line"></view>
+    </view>
+
+    <view class="terminal-tags">
+      <text class="tag-item">多人房间</text>
+      <text class="tag-sep">|</text>
+      <text class="tag-item">人格镜像</text>
+      <text class="tag-sep">|</text>
+      <text class="tag-item">策略灵感</text>
     </view>
   </view>
 
-  <!-- 登录卡片 -->
-  <view class="login-card">
-    <view class="card-shine"></view>
-    <view class="card-body">
-      <button
-        class="login-btn {{loading ? 'is-loading' : ''}}"
-        hover-class="login-btn--hover"
-        hover-stay-time="100"
-        bindtap="onLogin"
-      >
-        <view class="btn-content">
-          <!-- 微信 Logo SVG -->
-          <view class="btn-icon-wrap">
-            <view class="wechat-icon">
-              <view class="wc-bubble wc-bubble--lg"></view>
-              <view class="wc-bubble wc-bubble--sm"></view>
-              <view class="wc-dot wc-dot--1"></view>
-              <view class="wc-dot wc-dot--2"></view>
-              <view class="wc-dot wc-dot--3"></view>
-              <view class="wc-dot wc-dot--4"></view>
-              <view class="wc-dot wc-dot--5"></view>
-              <view class="wc-dot wc-dot--6"></view>
-            </view>
-          </view>
-          <text class="btn-text">微信一键登录</text>
-        </view>
-        <!-- loading 圈绝对定位，不影响文字居中 -->
-        <view wx:if="{{loading}}" class="btn-loading">
-          <view class="spinner"></view>
-        </view>
-      </button>
+  <!-- 系统状态 -->
+  <view class="system-status">
+    <view class="status-header">
+      <view class="status-line"></view>
+      <text class="status-label">SYSTEM STATUS</text>
+      <view class="status-line"></view>
+    </view>
 
-      <text class="login-hint">首次登录将自动生成昵称头像</text>
+    <view class="status-grid">
+      <view class="status-row">
+        <view class="status-dot"></view>
+        <text class="status-module">ROOM MODULE</text>
+        <text class="status-value">ONLINE</text>
+      </view>
+      <view class="status-row">
+        <view class="status-dot"></view>
+        <text class="status-module">PERSONA MODULE</text>
+        <text class="status-value">ONLINE</text>
+      </view>
+      <view class="status-row">
+        <view class="status-dot"></view>
+        <text class="status-module">ORACLE MODULE</text>
+        <text class="status-value">ONLINE</text>
+      </view>
     </view>
   </view>
 
-  <!-- 底部版本 -->
-  <text class="version">v1.0.0</text>
+  <!-- 身份认证 -->
+  <view class="auth-section" wx:if="{{!connecting}}">
+    <view class="auth-header">
+      <view class="auth-line"></view>
+      <text class="auth-label">IDENTITY AUTH</text>
+      <view class="auth-line"></view>
+    </view>
+
+    <button
+      class="login-btn {{loading ? 'is-loading' : ''}}"
+      hover-class="login-btn--hover"
+      hover-stay-time="100"
+      bindtap="onLogin"
+    >
+      <text class="btn-text">微信授权接入</text>
+      <view wx:if="{{loading}}" class="btn-loading">
+        <view class="spinner"></view>
+      </view>
+    </button>
+
+    <text class="auth-hint">首次接入后自动创建身份档案</text>
+  </view>
+
+  <!-- 登录动画 -->
+  <view class="connecting-overlay" wx:if="{{connecting}}">
+    <view class="connecting-box">
+      <text class="connecting-title">TERMINAL CONNECTING</text>
+      <view class="connecting-divider"></view>
+
+      <view class="connecting-steps">
+        <view class="step-row" wx:for="{{steps}}" wx:key="index">
+          <text class="step-text">{{item.text}}</text>
+          <text class="step-check" wx:if="{{item.done}}">[OK]</text>
+        </view>
+      </view>
+
+      <view class="connecting-divider" wx:if="{{accessGranted}}"></view>
+      <text class="access-granted" wx:if="{{accessGranted}}">ACCESS GRANTED</text>
+    </view>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="bottom-info">
+    <text class="build-info">BUILD 1.0.0</text>
+    <view class="bottom-divider"></view>
+    <text class="brand-terminal">Record Terminal</text>
+  </view>
 </view>

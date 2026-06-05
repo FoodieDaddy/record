@@ -1,7 +1,7 @@
 const { get, post, del } = require('../../utils/request');
 const { retryWithBackoff } = require('../../utils/retry');
 const scoreWS = require('../../utils/score-ws');
-const { getColor, getFirstChar } = require('../../utils/avatar');
+const { getColor, getFirstChar, getAvatarView, normalizeAvatarUrl } = require('../../utils/avatar');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
 const { vibrateShort } = require('../../utils/haptic');
@@ -168,7 +168,7 @@ Page({
 
   calcScoreRecordHeight() {
     try {
-      const win = wx.getSystemInfoSync();
+      const win = wx.getWindowInfo();
       // 屏幕高度 px → rpx，取 40% 作为积分记录区域高度
       const rpxRatio = 750 / win.windowWidth;
       const screenH = win.windowHeight * rpxRatio;
@@ -211,8 +211,7 @@ Page({
     if (!room || !room.members) return;
     room.members = room.members.map(m => ({
       ...m,
-      avatarColor: m.avatarUrl ? '' : getColor(m.nickname),
-      avatarChar: m.avatarUrl ? '' : getFirstChar(m.nickname)
+      ...getAvatarView(m.nickname, m.avatarUrl)
     }));
     this.setData({ currentRoom: room });
     this._cellRectsCache = null;
@@ -281,8 +280,7 @@ Page({
       const maxScore = Math.max(...ranking.map(r => Math.abs(r.score || 0)), 1);
       const enriched = ranking.map(r => ({
         ...r,
-        avatarColor: r.avatarUrl ? '' : getColor(r.nickname),
-        avatarChar: r.avatarUrl ? '' : getFirstChar(r.nickname),
+        ...getAvatarView(r.nickname, r.avatarUrl),
         barWidth: Math.round(Math.abs(r.score || 0) / maxScore * 100)
       }));
       this.setData({ ranking: enriched });
@@ -308,23 +306,27 @@ Page({
 
       const myId = app.globalData.userId;
       const pageRecords = (res.records || [])
-        .map(t => ({
-          id: t.id,
-          fromName: t.fromUser.nickname,
-          fromAvatarUrl: t.fromUser.avatarUrl || '',
-          fromColor: t.fromUser.avatarUrl ? '' : getColor(t.fromUser.nickname),
-          fromChar: t.fromUser.avatarUrl ? '' : getFirstChar(t.fromUser.nickname),
-          toName: t.toUser.nickname,
-          toAvatarUrl: t.toUser.avatarUrl || '',
-          toColor: t.toUser.avatarUrl ? '' : getColor(t.toUser.nickname),
-          toChar: t.toUser.avatarUrl ? '' : getFirstChar(t.toUser.nickname),
-          amount: t.amount,
-          createdAt: t.createdAt,
-          timeFormatted: this.formatTime(t.createdAt),
-          fromUserId: t.fromUser.userId,
-          toUserId: t.toUser.userId,
-          myRole: String(t.fromUser.userId) === String(myId) ? 'from' : String(t.toUser.userId) === String(myId) ? 'to' : ''
-        }));
+        .map(t => {
+          const fromAvatarUrl = normalizeAvatarUrl(t.fromUser.avatarUrl);
+          const toAvatarUrl = normalizeAvatarUrl(t.toUser.avatarUrl);
+          return {
+            id: t.id,
+            fromName: t.fromUser.nickname,
+            fromAvatarUrl,
+            fromColor: fromAvatarUrl ? '' : getColor(t.fromUser.nickname),
+            fromChar: fromAvatarUrl ? '' : getFirstChar(t.fromUser.nickname),
+            toName: t.toUser.nickname,
+            toAvatarUrl,
+            toColor: toAvatarUrl ? '' : getColor(t.toUser.nickname),
+            toChar: toAvatarUrl ? '' : getFirstChar(t.toUser.nickname),
+            amount: t.amount,
+            createdAt: t.createdAt,
+            timeFormatted: this.formatTime(t.createdAt),
+            fromUserId: t.fromUser.userId,
+            toUserId: t.toUser.userId,
+            myRole: String(t.fromUser.userId) === String(myId) ? 'from' : String(t.toUser.userId) === String(myId) ? 'to' : ''
+          };
+        });
 
       const allRecords = reset ? pageRecords : [...this.data.scoreRecords, ...pageRecords];
       if (pageRecords.length < 20) {
@@ -437,7 +439,7 @@ Page({
         members.push({
           userId: data.userId,
           nickname: data.nickname || '',
-          avatarUrl: data.avatarUrl || ''
+          ...getAvatarView(data.nickname || '', data.avatarUrl)
         });
         room.members = members;
         this.enrichMembers(room);
@@ -531,7 +533,8 @@ Page({
       if (data.type === 'MEMBER_UPDATE' && data.userId) {
         const members = (this.data.currentRoom.members || []).map(m => {
           if (String(m.userId) === String(data.userId)) {
-            return { ...m, nickname: data.nickname || m.nickname, avatarUrl: data.avatarUrl || m.avatarUrl };
+            const nickname = data.nickname || m.nickname;
+            return { ...m, nickname, ...getAvatarView(nickname, data.avatarUrl || m.avatarUrl) };
           }
           return m;
         });
@@ -540,7 +543,6 @@ Page({
       }
 
       if (data.type === 'TRANSFER' && data.fromUserId && data.toUserId && data.amount) {
-        console.log('[WS] TRANSFER:', JSON.stringify(data), 'myUserId:', app.globalData.userId, 'audioEnabled:', app.globalData.audioEnabled);
         const myId = String(app.globalData.userId);
         const isSender = String(data.fromUserId) === myId;
 
@@ -830,7 +832,7 @@ Page({
     const info = this.data.memberGrid.find(m => String(m.userId) === String(userId));
     if (!info) return;
     const fromInfo = this.data.memberGrid.find(m => String(m.userId) === String(app.globalData.userId));
-    try { wx.vibrateShort({ type: 'light' }); } catch (err) {}
+    vibrateShort('light');
     this.setData({
       transferTo: userId,
       transferToInfo: info,
@@ -1252,10 +1254,8 @@ Page({
     const rankedMembers = (resp.memberScores || []).map(m => ({
       userId: m.userId,
       nickname: m.nickname || '?',
-      avatarChar: getFirstChar(m.nickname),
-      avatarUrl: m.avatarUrl || '',
+      ...getAvatarView(m.nickname, m.avatarUrl),
       finalScore: m.finalScore || 0,
-      avatarColor: getColor(m.nickname)
     }));
 
     const winner = rankedMembers.length > 0 ? rankedMembers[0] : null;
@@ -1317,7 +1317,8 @@ Page({
         }
         if (networkData) {
           updates.settleNetworkNodes = (networkData.nodes || []).map(n => ({
-            ...n, avatarColor: getColor(n.nickname)
+            ...n,
+            ...getAvatarView(n.nickname, n.avatarUrl)
           }));
           updates.settleNetworkLinks = networkData.links || [];
         }
@@ -1348,10 +1349,8 @@ Page({
         return {
           userId: s.userId,
           nickname,
-          avatarChar: getFirstChar(nickname),
-          avatarUrl: member.avatarUrl || '',
+          ...getAvatarView(nickname, member.avatarUrl),
           finalScore,
-          avatarColor: getColor(nickname)
         };
       }).sort((a, b) => b.finalScore - a.finalScore);
 
@@ -1458,7 +1457,7 @@ Page({
     app.globalData.audioEnabled = enabled;
     wx.setStorageSync('audioEnabled', enabled);
     this.setData({ audioEnabled: enabled });
-    try { wx.vibrateShort({ type: 'light' }); } catch (e) {}
+    vibrateShort('light');
     if (!enabled) {
       getAudioManager().stop();
     }
@@ -1766,7 +1765,7 @@ Page({
     const roomNo = this.data.currentRoom?.roomNo || '';
     this.closeShareSheet();
     return {
-      title: `房间 ${roomNo} 邀请你来打麻将`,
+      title: `记录空间 ${roomNo} 邀请你接入`,
       path: `/pages/room/room?roomNo=${roomNo}`
     };
   }

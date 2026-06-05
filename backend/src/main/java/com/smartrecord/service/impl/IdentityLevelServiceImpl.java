@@ -181,20 +181,26 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
         int currentThreshold = EXP_THRESHOLDS[level];
         int nextThreshold = level < 5 ? EXP_THRESHOLDS[level + 1] : EXP_THRESHOLDS[5];
 
-        // 进度百分比：当前等级内已获得的经验占下一级所需经验的比例
+        // 当前等级内已获得经验和所需区间
+        int currentLevelExp = exp - currentThreshold;
+        int requiredExpInLevel = nextThreshold - currentThreshold;
+
+        // 进度百分比
         int progress;
         if (level >= 5) {
             progress = 100;
+            currentLevelExp = 0;
+            requiredExpInLevel = 0;
         } else {
-            int range = nextThreshold - currentThreshold;
-            int earned = exp - currentThreshold;
-            progress = range > 0 ? Math.min(100, earned * 100 / range) : 0;
+            progress = requiredExpInLevel > 0 ? Math.min(100, currentLevelExp * 100 / requiredExpInLevel) : 0;
         }
 
         return IdentityLevelResp.builder()
                 .level(level)
                 .title(LEVEL_TITLES[level])
                 .exp(exp)
+                .currentLevelExp(currentLevelExp)
+                .requiredExpInLevel(requiredExpInLevel)
                 .nextLevelExp(nextThreshold)
                 .progress(progress)
                 .stability(entity.getStability())

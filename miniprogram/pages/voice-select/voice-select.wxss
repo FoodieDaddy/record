@@ -112,7 +112,7 @@
   padding: 20rpx 20rpx;
   margin: 4rpx 12rpx;
   border-radius: 16rpx;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-item.active {
@@ -127,7 +127,7 @@
 .sidebar-name {
   font-size: 26rpx;
   color: rgba(255, 255, 255, 0.4);
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -161,7 +161,7 @@
   border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .voice-card.selected {

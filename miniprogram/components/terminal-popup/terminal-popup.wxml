@@ -1,0 +1,24 @@
+<view class="tp-mask {{visible ? 'tp-show' : ''}}" catchtap="noop" wx:if="{{visible}}">
+  <view class="tp-container {{reduceMotion ? 'reduce-motion' : ''}}" catchtap="noop">
+    <!-- 标题区 -->
+    <view class="tp-header">
+      <text class="tp-kicker">{{title}}</text>
+      <text class="tp-subtitle">{{subtitle}}</text>
+    </view>
+
+    <!-- 内容 -->
+    <view class="tp-body">
+      <text class="tp-content">{{content}}</text>
+    </view>
+
+    <!-- 按钮 -->
+    <view class="tp-actions">
+      <view class="tp-btn tp-btn-cancel" bindtap="onCancel">
+        <text>{{cancelText}}</text>
+      </view>
+      <view class="tp-btn tp-btn-{{confirmType}}" bindtap="onConfirm">
+        <text>{{confirmText}}</text>
+      </view>
+    </view>
+  </view>
+</view>

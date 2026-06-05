@@ -10,7 +10,7 @@
 
   <!-- 终端标题 -->
   <view class="terminal-header">
-    <text class="terminal-kicker">NET YIELD LOG</text>
+    <text class="terminal-kicker">NET SCORE LOG</text>
     <text class="terminal-title">积分流水</text>
     <view class="terminal-line"></view>
   </view>
@@ -18,7 +18,7 @@
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">SYNCING YIELD LOG...</text>
+    <text class="loading-text">SYNCING SCORE LOG...</text>
   </view>
 
   <!-- 空状态 -->
@@ -31,10 +31,10 @@
   <!-- 有数据时 -->
   <block wx:if="{{records.length > 0 || sampleCount > 0}}">
 
-    <!-- 收益摘要卡 -->
+    <!-- 净积分摘要卡 -->
     <view class="yield-summary-card">
-      <text class="card-kicker">NET YIELD</text>
-      <text class="card-label">近期净收益</text>
+      <text class="card-kicker">NET SCORE</text>
+      <text class="card-label">近期净积分</text>
       <view class="yield-value {{netYield > 0 ? 'text-positive' : netYield < 0 ? 'text-negative' : 'text-zero'}}">
         {{netYield > 0 ? '+' : ''}}{{netYield}}
       </view>
@@ -55,13 +55,13 @@
     <view class="curve-section">
       <view class="curve-locked-card" wx:if="{{sampleCount < curveUnlockCount}}">
         <text class="locked-kicker">CURVE LOCKED</text>
-        <text class="locked-text">收益曲线未解锁</text>
+        <text class="locked-text">积分曲线未解锁</text>
         <text class="locked-sub">当前样本：{{sampleCount}} / {{curveUnlockCount}}</text>
-        <text class="locked-hint">完成至少 {{curveUnlockCount}} 场结算后，系统将生成收益曲线。</text>
+        <text class="locked-hint">完成至少 {{curveUnlockCount}} 场结算后，系统将生成积分曲线。</text>
       </view>
       <view class="curve-chart-card" wx:else>
-        <text class="card-kicker">YIELD CURVE</text>
-        <text class="card-label">收益曲线</text>
+        <text class="card-kicker">SCORE CURVE</text>
+        <text class="card-label">积分曲线</text>
         <yield-chart points="{{curveData}}" />
       </view>
     </view>

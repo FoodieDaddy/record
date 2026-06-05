@@ -3,7 +3,10 @@ const app = getApp();
 
 Page({
   data: {
-    loading: false
+    loading: false,
+    connecting: false,
+    steps: [],
+    accessGranted: false
   },
 
   onShow() {
@@ -24,15 +27,48 @@ Page({
       const data = await post('/user/login', { code });
       app.setLoginInfo(data);
 
-      wx.showToast({ title: '登录成功', icon: 'success' });
-      setTimeout(() => {
-        wx.switchTab({ url: '/pages/room/room' });
-      }, 800);
+      await this.playConnectingAnimation();
+
+      wx.switchTab({ url: '/pages/room/room' });
     } catch (err) {
       console.error('登录失败', err);
       wx.showToast({ title: '登录失败', icon: 'none' });
+      this.setData({ connecting: false });
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  playConnectingAnimation() {
+    return new Promise((resolve) => {
+      const stepTexts = [
+        'SYNC USER PROFILE',
+        'LOAD PERSONA',
+        'INIT ROOM ENGINE',
+        'LOAD ORACLE'
+      ];
+
+      const steps = stepTexts.map(text => ({ text, done: false }));
+      this.setData({ connecting: true, steps, accessGranted: false });
+
+      let i = 0;
+      const showNext = () => {
+        if (i >= stepTexts.length) {
+          setTimeout(() => {
+            this.setData({ accessGranted: true });
+            setTimeout(resolve, 800);
+          }, 400);
+          return;
+        }
+        const idx = i;
+        setTimeout(() => {
+          this.setData({ [`steps[${idx}].done`]: true });
+          setTimeout(showNext, 300);
+        }, 400);
+        i++;
+      };
+
+      setTimeout(showNext, 500);
+    });
   }
 });

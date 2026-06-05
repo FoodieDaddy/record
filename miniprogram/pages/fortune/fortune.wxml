@@ -1,4 +1,4 @@
-<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{phase !== 'generating'}}" enhanced show-scrollbar="{{false}}">
+<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{phase !== 'generating'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
 
   <!-- ═══ idle 屏 ═══ -->
   <view class="idle-screen" wx:if="{{phase === 'idle'}}">
@@ -24,7 +24,7 @@
         </view>
       </view>
       <view class="scan-ring scan-ring--idle"></view>
-      <view class="tap-hint">点击抽取</view>
+      <view class="tap-hint">点击生成</view>
     </view>
 
     <view class="idle-info">
@@ -74,14 +74,14 @@
       </view>
     </view>
 
-    <view class="gen-timeout" wx:if="{{timeoutLevel === 'slow'}}">
+    <view class="gen-timeout" wx:if="{{timeoutLevel === 'warning'}}">
       <text class="gen-timeout-text">推演仍在进行，请稍候</text>
     </view>
-    <view class="gen-timeout gen-timeout--long" wx:if="{{timeoutLevel === 'long'}}">
+    <view class="gen-timeout gen-timeout--long" wx:if="{{timeoutLevel === 'critical'}}">
       <text class="gen-timeout-text">推演耗时较长，可继续等待或重新发起</text>
       <view class="gen-timeout-actions">
-        <view class="gen-timeout-btn" bindtap="onTapContinueWait">继续等待</view>
-        <view class="gen-timeout-btn gen-timeout-btn--primary" bindtap="onTapRegenerate">重新推演</view>
+        <view class="gen-timeout-btn" bindtap="onTapWait">继续等待</view>
+        <view class="gen-timeout-btn gen-timeout-btn--primary" bindtap="onTapRetry">重新推演</view>
       </view>
     </view>
   </view>
@@ -101,40 +101,58 @@
     </view>
 
     <view class="result-card" style="--accent: {{strategy.glowColor || '#00AFFF'}};">
-      <view class="result-card-title">{{strategy.title}}</view>
-      <view class="result-card-subtitle">{{strategy.subtitle}}</view>
-      <view class="result-card-verdict-label">核心建议：</view>
-      <view class="result-card-verdict">{{strategy.verdict}}</view>
+      <view class="result-card-glow"></view>
+      <view class="result-card-header">
+        <view class="result-card-title">{{strategy.title}}</view>
+        <view class="result-card-subtitle" wx:if="{{strategy.subtitle}}">{{strategy.subtitle}}</view>
+      </view>
+      <view class="result-card-body">
+        <view class="result-card-verdict-label">CORE INSIGHT</view>
+        <view class="result-card-verdict">{{strategy.verdict}}</view>
+      </view>
       <view class="result-card-divider"></view>
-    </view>
-
-    <view class="result-tags">
-      <view class="result-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</view>
+      <view class="result-tags-inline" wx:if="{{strategy.tags && strategy.tags.length}}">
+        <view class="result-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</view>
+      </view>
     </view>
 
     <view class="result-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
-      <view class="result-section-title">行动优势</view>
-      <view class="result-list-item result-list-item--buff" wx:for="{{strategy.buffs}}" wx:key="index">
-        <text class="result-list-prefix">+</text>
-        <text class="result-list-text">{{item}}</text>
+      <view class="result-section-title">
+        <text class="result-section-icon">+</text>
+        <text>行动优势</text>
+      </view>
+      <view class="result-list-card">
+        <view class="result-list-item result-list-item--buff" wx:for="{{strategy.buffs}}" wx:key="index">
+          <text class="result-list-dot result-list-dot--buff"></text>
+          <text class="result-list-text">{{item}}</text>
+        </view>
       </view>
     </view>
 
     <view class="result-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
-      <view class="result-section-title">风险提示</view>
-      <view class="result-list-item result-list-item--risk" wx:for="{{strategy.debuffs}}" wx:key="index">
-        <text class="result-list-prefix">-</text>
-        <text class="result-list-text">{{item}}</text>
+      <view class="result-section-title">
+        <text class="result-section-icon result-section-icon--risk">!</text>
+        <text>风险提示</text>
+      </view>
+      <view class="result-list-card">
+        <view class="result-list-item result-list-item--risk" wx:for="{{strategy.debuffs}}" wx:key="index">
+          <text class="result-list-dot result-list-dot--risk"></text>
+          <text class="result-list-text">{{item}}</text>
+        </view>
       </view>
     </view>
 
     <view class="result-actions">
-      <view class="result-btn result-btn--secondary" bindtap="onTapRefresh">重新抽取</view>
-      <view class="result-btn result-btn--primary" bindtap="onTapShare">分享策略卡</view>
+      <view class="result-btn result-btn--secondary" bindtap="onTapRefresh">
+        <text class="result-btn-label">重新生成</text>
+      </view>
+      <view class="result-btn result-btn--primary" bindtap="onTapShare">
+        <text class="result-btn-label">分享策略卡</text>
+      </view>
     </view>
 
     <view class="countdown-bar" wx:if="{{countdownText}}">
-      <text class="countdown-label">下一次策略更新：</text>
+      <text class="countdown-label">REFRESH IN </text>
       <text class="countdown-value">{{countdownText}}</text>
     </view>
   </view>
@@ -145,7 +163,7 @@
     <view class="error-title">策略推演失败</view>
     <view class="error-text">系统暂时无法生成今日策略</view>
     <view class="error-actions">
-      <view class="error-btn" bindtap="onTapRegenerate">重试</view>
+      <view class="error-btn" bindtap="onTapRetryError">重试</view>
     </view>
   </view>
 

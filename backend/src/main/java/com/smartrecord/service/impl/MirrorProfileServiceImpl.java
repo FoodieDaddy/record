@@ -55,6 +55,26 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             Map.entry("ESFP", List.of("现场爆发", "即时反应", "高频决策", "情绪驱动"))
     );
 
+    /** MBTI → 中文称号 */
+    private static final Map<String, String> MBTI_TITLES = Map.ofEntries(
+            Map.entry("INTJ", "冷静型控场者"),
+            Map.entry("INTP", "模型型分析者"),
+            Map.entry("ENTJ", "压迫型指挥者"),
+            Map.entry("ENTP", "扰动型试探者"),
+            Map.entry("INFJ", "远读型观察者"),
+            Map.entry("INFP", "直觉型守序者"),
+            Map.entry("ENFJ", "节奏型组织者"),
+            Map.entry("ENFP", "机会型游走者"),
+            Map.entry("ISTJ", "纪律型执行者"),
+            Map.entry("ISFJ", "防守型稳定者"),
+            Map.entry("ESTJ", "规则型压制者"),
+            Map.entry("ESFJ", "协同型支援者"),
+            Map.entry("ISTP", "冷启动猎手"),
+            Map.entry("ISFP", "低频型感知者"),
+            Map.entry("ESTP", "高压型突击者"),
+            Map.entry("ESFP", "现场型爆发者")
+    );
+
     /** MBTI → 人格预测倾向描述 */
     private static final Map<String, String> MBTI_PREDICTION = Map.ofEntries(
             Map.entry("INTJ", "偏控场"),
@@ -116,6 +136,16 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
         PersonaMatchInfo personaMatch = computePersonaMatch(
                 mbtiTypeStr, battlePersona, personaResult.dimensions());
 
+        // 计算人格可信度
+        boolean mbtiCalibrated = mbti != null && mbti.isCalibrated();
+        boolean personaGenerated = battlePersona != null && battlePersona.isGenerated();
+        int sampleSize = battlePersona != null ? battlePersona.getSampleSize() : 0;
+        int personaConfidence = (mbtiCalibrated ? 25 : 0)
+                + Math.min(sampleSize * 8, 25)
+                + (personaGenerated ? 25 : 0)
+                + (mbtiCalibrated ? 25 : 0);
+        personaConfidence = Math.min(personaConfidence, 100);
+
         MirrorProfileResp resp = MirrorProfileResp.builder()
                 .mbti(mbti)
                 .battlePersona(battlePersona)
@@ -123,6 +153,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
                 .reading(reading)
                 .traits(traits)
                 .personaMatch(personaMatch)
+                .personaConfidence(personaConfidence)
                 .build();
 
         // 写缓存
@@ -292,13 +323,40 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             summary = "人格预测与实际表现存在差异，打法可能更灵活";
         }
 
+        // 反推MBTI：根据实际雷达维度找最近邻
+        int[] actualVec = {actualStability, actualAggression, actualDrawdown, actualVolatility};
+        String inferredMbti = null;
+        double minDist = Double.MAX_VALUE;
+        for (var entry : predictedMap.entrySet()) {
+            double dist = euclideanDist(actualVec, entry.getValue());
+            if (dist < minDist) {
+                minDist = dist;
+                inferredMbti = entry.getKey();
+            }
+        }
+        String inferredMbtiType = inferredMbti;
+        String inferredMbtiTitle = inferredMbti != null ? MBTI_TITLES.getOrDefault(inferredMbti, "") : "";
+        int deviationPercent = 100 - overall;
+
         return PersonaMatchInfo.builder()
                 .available(true)
                 .matchPercentage(overall)
                 .prediction(prediction)
                 .actualSummary(actualSummary)
                 .summary(summary)
+                .inferredMbtiType(inferredMbtiType)
+                .inferredMbtiTitle(inferredMbtiTitle)
+                .deviationPercent(deviationPercent)
                 .build();
+    }
+
+    private static double euclideanDist(int[] a, int[] b) {
+        double sum = 0;
+        for (int i = 0; i < a.length; i++) {
+            double diff = a[i] - b[i];
+            sum += diff * diff;
+        }
+        return Math.sqrt(sum);
     }
 
     private void saveProfile(UserMirrorProfile profile) {

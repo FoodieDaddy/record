@@ -12,10 +12,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "每日运势响应")
+@Schema(description = "每日策略响应")
 public class FortuneResp {
 
-    @Schema(description = "运势判词", example = "今日气场平稳，宜守不宜攻")
+    @Schema(description = "策略提示", example = "今日状态平稳，先稳住节奏")
     private String verdict;
 
     @Schema(description = "系统增益 (Buff) 列表", example = "[\"连胜势能加持\", \"心态稳定\"]")

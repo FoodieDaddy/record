@@ -1,0 +1,288 @@
+/* ===== Persona Dossier — 人格档案页 ===== */
+
+.dossier-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 40rpx);
+  background: #05070A;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* ---- 页面标题 ---- */
+.dossier-header {
+  padding: 12rpx 0 28rpx;
+}
+
+.dossier-kicker {
+  display: block;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0, 175, 255, 0.50);
+}
+
+.dossier-title {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 2rpx;
+}
+
+.dossier-date {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ---- 分段 ---- */
+.dossier-section {
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  background: #0A0F18;
+  padding: 24rpx 26rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-kicker {
+  display: block;
+  font-size: 17rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0, 175, 255, 0.45);
+  text-transform: uppercase;
+}
+
+.section-title {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  margin-bottom: 14rpx;
+}
+
+.section-body {
+  padding: 4rpx 0;
+}
+
+/* ---- KV 行 ---- */
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6rpx 0;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.04);
+}
+
+.kv-row:last-child {
+  border-bottom: none;
+}
+
+.kv-key {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.kv-val {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.80);
+}
+
+.kv-val-lg {
+  font-size: 28rpx;
+  color: #00AFFF;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  letter-spacing: 2rpx;
+}
+
+.summary-text {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.5;
+}
+
+/* ---- 可信度 ---- */
+.confidence-display {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+  margin-bottom: 12rpx;
+}
+
+.conf-num {
+  font-size: 52rpx;
+  font-weight: 800;
+  color: #00AFFF;
+  font-family: 'SF Mono', 'Courier New', monospace;
+}
+
+.conf-pct {
+  font-size: 24rpx;
+  color: rgba(0, 175, 255, 0.60);
+}
+
+.conf-bar-track {
+  height: 6rpx;
+  border-radius: 3rpx;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.conf-bar-fill {
+  height: 100%;
+  border-radius: 3rpx;
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.50), rgba(0, 175, 255, 0.85));
+}
+
+/* ---- 偏差 ---- */
+.dev-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8rpx 0;
+}
+
+.dev-label-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.dev-type-text {
+  font-size: 32rpx;
+  font-weight: 800;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  letter-spacing: 4rpx;
+}
+
+.dev-blue {
+  color: #00AFFF;
+}
+
+.dev-orange {
+  color: #FFAA33;
+}
+
+.dev-arrow-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 8rpx 0;
+}
+
+.dev-arrow-dash {
+  width: 40rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.30), rgba(255, 170, 51, 0.30));
+}
+
+.dev-pct {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: rgba(255, 170, 51, 0.80);
+}
+
+/* ---- 判读 ---- */
+.reading-item {
+  padding: 12rpx 16rpx;
+  border-left: 3rpx solid rgba(0, 175, 255, 0.25);
+  background: rgba(0, 175, 255, 0.02);
+  margin-bottom: 10rpx;
+  border-radius: 4rpx;
+}
+
+.reading-item:last-child {
+  margin-bottom: 0;
+}
+
+.reading-label {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(0, 175, 255, 0.50);
+  letter-spacing: 2rpx;
+  margin-bottom: 4rpx;
+}
+
+.reading-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.6;
+}
+
+/* ---- 信号标签 ---- */
+.signal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.signal-tag-item {
+  height: 48rpx;
+  padding: 0 20rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.15);
+  background: rgba(0, 175, 255, 0.04);
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  color: rgba(0, 175, 255, 0.75);
+}
+
+/* ---- 复制按钮 ---- */
+.copy-btn {
+  margin-top: 8rpx;
+  width: 100%;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.25);
+  background: rgba(0, 175, 255, 0.04);
+}
+
+.copy-btn:active {
+  background: rgba(0, 175, 255, 0.10);
+}
+
+.copy-text {
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  color: rgba(0, 175, 255, 0.90);
+}
+
+/* ---- Skeleton ---- */
+.skeleton-card {
+  height: 200rpx;
+  border-radius: 18rpx;
+  background: rgba(0, 175, 255, 0.03);
+  border: 1rpx solid rgba(0, 175, 255, 0.06);
+  margin-bottom: 16rpx;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-card.short {
+  height: 120rpx;
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
+}
+
+/* ---- Reduce Motion ---- */
+.reduce-motion .skeleton-card {
+  animation: none !important;
+}
+
+.reduce-motion {
+  animation: none !important;
+  transition: none !important;
+}

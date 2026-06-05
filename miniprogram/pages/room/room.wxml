@@ -71,7 +71,7 @@
             </view>
             <text class="cyber-opt-title">房主填写</text>
             <text class="cyber-opt-desc">由房主统一录入</text>
-            <text class="cyber-opt-hint">适合麻将扑克</text>
+            <text class="cyber-opt-hint">适合统一复盘</text>
           </view>
           <view class="cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
             <view class="cyber-opt-status" wx:if="{{roundInputMethod === 2}}">
@@ -774,7 +774,7 @@
         wx:if="{{settleNetworkNodes.length > 0}}"
         nodes="{{settleNetworkNodes}}"
         links="{{settleNetworkLinks}}"
-        myUserId="{{myUserId}}" />
+        my-user-id="{{myUserId}}" />
 
       <!-- 4. 战局洞察 -->
       <battle-insight

@@ -6,7 +6,17 @@
 
   <!-- 顶部栏 -->
   <view class="swipe-top">
-    <text class="swipe-progress">{{progress}}</text>
+    <view class="top-center">
+      <text class="swipe-kicker">COGNITIVE CALIBRATION</text>
+      <text class="swipe-subtitle">协议同步中</text>
+      <view class="top-progress-row">
+        <text class="swipe-progress">{{progress}}</text>
+        <view class="progress-segments">
+          <view class="seg {{index < currentIndex ? 'seg-done' : ''}}" wx:for="{{20}}" wx:key="index"></view>
+        </view>
+        <text class="progress-pct">{{progressPercent}}%</text>
+      </view>
+    </view>
     <view class="swipe-close" bindtap="onClose">
       <text class="close-icon">x</text>
     </view>
@@ -14,21 +24,52 @@
 
   <!-- 题目卡片 -->
   <view class="swipe-card-area">
-    <view class="swipe-card {{slideDirection === 'right' ? 'slide-right' : ''}} {{slideDirection === 'left' ? 'slide-left' : ''}}">
-      <text class="question-text">{{currentQuestion.text}}</text>
+    <!-- SIGNAL ACCEPTED 反馈 -->
+    <view class="signal-feedback {{signalAccepted ? 'signal-show' : ''}}">
+      <text class="signal-feedback-icon">✓</text>
+      <text class="signal-feedback-title">SIGNAL ACCEPTED</text>
+      <text class="signal-feedback-sub">人格信号已记录</text>
     </view>
+
+    <!-- 正常卡片 -->
+    <view class="swipe-card {{slideDirection === 'right' ? 'slide-right' : ''}} {{slideDirection === 'left' ? 'slide-left' : ''}} {{signalAccepted ? 'card-fade-out' : ''}}">
+      <view class="card-scan-line"></view>
+      <text class="signal-header">PERSONA SIGNAL #{{signalIndex}}</text>
+      <text class="signal-label">行为判断</text>
+      <view class="question-divider-top"></view>
+      <text class="question-text">{{currentQuestion.text}}</text>
+      <view class="question-divider-bottom"></view>
+      <view class="dim-detect">
+        <text class="dim-detect-label">检测维度</text>
+        <text class="dim-detect-value">{{dimensionLabel}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据加载提示 -->
+  <view class="data-loading-hint" wx:if="{{dataLoading && !currentQuestion}}">
+    <text class="loading-text">数据加载中…</text>
   </view>
 
   <!-- 底部操作 -->
   <view class="swipe-actions">
-    <view class="action-btn action-no" bindtap="onSwipeLeft">
-      <text class="action-text">不像我</text>
+    <view class="action-btn action-reject" bindtap="onSwipeLeft">
+      <text class="action-kicker">REJECT</text>
+      <text class="action-text">否定</text>
     </view>
-    <view class="action-btn action-mid" bindtap="onNotSure">
-      <text class="action-text">不确定</text>
+    <view class="action-btn action-skip" bindtap="onNotSure">
+      <text class="action-kicker">SKIP</text>
+      <text class="action-text">跳过</text>
     </view>
-    <view class="action-btn action-yes" bindtap="onSwipeRight">
-      <text class="action-text">像我</text>
+    <view class="action-btn action-confirm" bindtap="onSwipeRight">
+      <text class="action-kicker">CONFIRM</text>
+      <text class="action-text">认同</text>
     </view>
+  </view>
+
+  <!-- 当前推算 MBTI -->
+  <view class="current-mbti-hint" wx:if="{{partialMbti}}">
+    <text class="hint-label">当前推算</text>
+    <text class="hint-type">{{partialMbti}}</text>
   </view>
 </view>

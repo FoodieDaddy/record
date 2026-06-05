@@ -6,6 +6,16 @@
  * - 页面只订阅/取消事件，不控制连接生命周期
  * - 自动重连（3 秒延迟），手动断开后不重连
  */
+const DEBUG_WS = false;
+
+function debugLog(...args) {
+  if (DEBUG_WS) console.log(...args);
+}
+
+function debugWarn(...args) {
+  if (DEBUG_WS) console.warn(...args);
+}
+
 class ScoreWS {
   constructor() {
     this.socketTask = null;
@@ -42,15 +52,16 @@ class ScoreWS {
 
     this.socketTask = wx.connectSocket({
       url: wsUrl,
-      success: () => console.log('[WS] 连接中...'),
+      success: () => debugLog('[WS] 连接中...'),
       fail: (err) => {
-        console.error('[WS] 连接失败', err);
+        debugWarn('[WS] 连接失败', err);
         this.isConnecting = false;
+        this._emit('error', err);
       }
     });
 
     this.socketTask.onOpen(() => {
-      console.log('[WS] 已连接');
+      debugLog('[WS] 已连接');
       this.isConnected = true;
       this.isConnecting = false;
       this._emit('open');
@@ -66,7 +77,7 @@ class ScoreWS {
     });
 
     this.socketTask.onClose((res) => {
-      console.log('[WS] 已断开');
+      debugLog('[WS] 已断开');
       this.isConnected = false;
       this.isConnecting = false;
       this.socketTask = null;
@@ -83,7 +94,7 @@ class ScoreWS {
     });
 
     this.socketTask.onError((err) => {
-      console.error('[WS] 错误', err);
+      debugWarn('[WS] 错误', err);
       this.isConnected = false;
       this.isConnecting = false;
       this._emit('error', err);
@@ -146,7 +157,7 @@ class ScoreWS {
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       if (this.roomId && !this.isConnected && !this.isConnecting) {
-        console.log('[WS] 自动重连...');
+        debugLog('[WS] 自动重连...');
         this.connect(this.roomId);
       }
     }, 3000);

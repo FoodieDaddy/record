@@ -1,5 +1,42 @@
 const { get } = require('../../utils/request')
+const { vibrateShort } = require('../../utils/haptic')
 const app = getApp()
+
+const STRATEGY_TEXT_REPLACEMENTS = [
+  [/ALL-IN/gi, '冒进'],
+  [/孤注一掷/g, '冒进'],
+  [/抽取/g, '生成'],
+  [/运势/g, '状态'],
+  [/翻本/g, '修正'],
+  [/翻盘/g, '回稳'],
+  [/追损/g, '连续修正'],
+  [/止损线/g, '暂停线'],
+  [/收益/g, '积分反馈'],
+  [/必胜/g, '稳定执行'],
+  [/稳赚/g, '稳态执行'],
+]
+
+function sanitizeStrategyText(text) {
+  let value = String(text || '')
+  STRATEGY_TEXT_REPLACEMENTS.forEach(([pattern, replacement]) => {
+    value = value.replace(pattern, replacement)
+  })
+  return value
+}
+
+function sanitizeStrategy(strategy) {
+  if (!strategy) return strategy
+  return {
+    ...strategy,
+    title: sanitizeStrategyText(strategy.title),
+    subtitle: sanitizeStrategyText(strategy.subtitle),
+    verdict: sanitizeStrategyText(strategy.verdict),
+    tag: sanitizeStrategyText(strategy.tag),
+    buffs: (strategy.buffs || []).map(sanitizeStrategyText),
+    debuffs: (strategy.debuffs || []).map(sanitizeStrategyText),
+    tags: (strategy.tags || []).map(sanitizeStrategyText),
+  }
+}
 
 /* ===== 推演日志流 ===== */
 const CALC_LOG_LINES = [
@@ -86,16 +123,18 @@ Page({
       const today = this.data.currentDate.replace(/\./g, '-')
       const cached = wx.getStorageSync('strategy_result')
       if (cached && cached.date === today && cached.data) {
+        const strategy = sanitizeStrategy(cached.data)
         let lunarInfo = ''
-        if (cached.data.lunarDate) {
-          lunarInfo = cached.data.lunarDate
-          if (cached.data.solarTerm) lunarInfo += ' · ' + cached.data.solarTerm
+        if (strategy.lunarDate) {
+          lunarInfo = strategy.lunarDate
+          if (strategy.solarTerm) lunarInfo += ' · ' + strategy.solarTerm
         }
+        wx.setStorageSync('strategy_result', { date: today, data: strategy })
         this.setData({
           phase: 'success',
-          strategy: cached.data,
+          strategy,
           lunarInfo,
-          nextRefreshAt: cached.data.nextRefreshAt || '',
+          nextRefreshAt: strategy.nextRefreshAt || '',
         })
         return
       }
@@ -107,7 +146,7 @@ Page({
 
   onTapDraw() {
     if (this.data.phase !== 'idle') return
-    try { wx.vibrateShort({ type: 'light' }) } catch (err) {}
+    vibrateShort('light')
     this._startGeneration()
   },
 
@@ -273,7 +312,7 @@ Page({
       return
     }
 
-    const strategy = result.strategy
+    const strategy = sanitizeStrategy(result.strategy)
 
     // 缓存到本地
     try {
@@ -352,7 +391,7 @@ Page({
       ctx.fillRect(0, 0, W, H)
 
       // 扫描线纹理
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.025)'
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)'
       ctx.lineWidth = 1
       for (let y = 0; y < H; y += 4) {
         ctx.beginPath()
@@ -361,138 +400,213 @@ Page({
         ctx.stroke()
       }
 
-      // === 霓虹外框 ===
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.25)'
-      ctx.lineWidth = 3
-      ctx.shadowColor = 'rgba(0, 175, 255, 0.3)'
-      ctx.shadowBlur = 16
-      ctx.strokeRect(24, 24, W - 48, H - 48)
+      // 顶部微光
+      const glowGrad = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 500)
+      glowGrad.addColorStop(0, 'rgba(0, 175, 255, 0.06)')
+      glowGrad.addColorStop(1, 'transparent')
+      ctx.fillStyle = glowGrad
+      ctx.fillRect(0, 0, W, 500)
+
+      // === 外框（更窄边距，最大化内容区） ===
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.2)'
+      ctx.lineWidth = 2
+      ctx.shadowColor = 'rgba(0, 175, 255, 0.25)'
+      ctx.shadowBlur = 12
+      ctx.strokeRect(20, 20, W - 40, H - 40)
       ctx.shadowBlur = 0
 
-      // 内框高光
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.08)'
+      // 内框
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.06)'
       ctx.lineWidth = 1
-      ctx.strokeRect(34, 34, W - 68, H - 68)
+      ctx.strokeRect(28, 28, W - 56, H - 56)
 
       // === 顶部标头 ===
       ctx.textAlign = 'center'
-      ctx.font = '28px Courier New'
-      ctx.fillStyle = 'rgba(0, 175, 255, 0.5)'
-      ctx.fillText('SMART RECORD', W / 2, 96)
-      ctx.font = '16px Courier New'
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
-      ctx.fillText('STRATEGY DOSSIER', W / 2, 126)
+      ctx.font = '26px Courier New'
+      ctx.fillStyle = 'rgba(0, 175, 255, 0.45)'
+      ctx.fillText('SMART RECORD', W / 2, 80)
+      ctx.font = '14px Courier New'
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
+      ctx.fillText('STRATEGY DOSSIER', W / 2, 106)
 
       // 顶部分隔线
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.12)'
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.1)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(80, 152)
-      ctx.lineTo(W - 80, 152)
+      ctx.moveTo(60, 128)
+      ctx.lineTo(W - 60, 128)
       ctx.stroke()
 
       // === 日期 + 农历 ===
-      ctx.font = '18px Courier New'
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'
-      ctx.fillText(`[ ${this.data.currentDate} ]`, W / 2, 196)
+      ctx.font = '16px Courier New'
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
+      ctx.fillText(`[ ${this.data.currentDate} ]`, W / 2, 168)
       if (this.data.lunarInfo) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
-        ctx.fillText(this.data.lunarInfo, W / 2, 228)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+        ctx.fillText(this.data.lunarInfo, W / 2, 196)
       }
 
-      // === 中央：title 大字 ===
-      ctx.font = 'bold 56px sans-serif'
-      ctx.fillStyle = '#F5F5F7'
+      // === 中央：title 大字（加光晕） ===
       ctx.textAlign = 'center'
-      const titleY = 360
+      ctx.font = 'bold 60px sans-serif'
+      ctx.shadowColor = 'rgba(0, 175, 255, 0.2)'
+      ctx.shadowBlur = 24
+      ctx.fillStyle = '#F5F5F7'
+      const titleY = 320
       ctx.fillText(s.title || '', W / 2, titleY)
+      ctx.shadowBlur = 0
 
       // subtitle 英文
       if (s.subtitle) {
-        ctx.font = '20px Courier New'
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.28)'
-        ctx.fillText(s.subtitle, W / 2, titleY + 50)
+        ctx.font = '18px Courier New'
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+        ctx.fillText(s.subtitle.toUpperCase(), W / 2, titleY + 46)
       }
 
       // 分隔线
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.3)'
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.25)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(W / 2 - 120, titleY + 80)
-      ctx.lineTo(W / 2 + 120, titleY + 80)
+      ctx.moveTo(W / 2 - 100, titleY + 72)
+      ctx.lineTo(W / 2 + 100, titleY + 72)
       ctx.stroke()
 
-      // === verdict 判词（自动换行） ===
-      ctx.font = '32px sans-serif'
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)'
+      // === verdict 判词（加粗 + 微光晕，自动换行） ===
+      ctx.font = 'bold 34px sans-serif'
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
       ctx.textAlign = 'center'
+      ctx.shadowColor = 'rgba(0, 175, 255, 0.1)'
+      ctx.shadowBlur = 16
       const verdictText = s.verdict || ''
-      const verdictLines = this._wrapText(ctx, verdictText, W - 200)
-      let vy = titleY + 140
+      const verdictLines = this._wrapText(ctx, verdictText, W - 160)
+      let vy = titleY + 130
       verdictLines.forEach(line => {
         ctx.fillText(line, W / 2, vy)
-        vy += 48
+        vy += 52
       })
+      ctx.shadowBlur = 0
 
-      // === tags 标签 ===
+      // === tags 标签（背景块样式） ===
       if (s.tags && s.tags.length > 0) {
-        const tagY = vy + 40
-        const tagStr = s.tags.map(t => `#${t}`).join('   ')
-        ctx.font = '20px Courier New'
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
-        ctx.fillText(tagStr, W / 2, tagY)
-      }
-
-      // === buffs / debuffs 区域（如果有） ===
-      let infoY = vy + 120
-      if (s.buffs && s.buffs.length > 0) {
+        const tagY = vy + 30
         ctx.font = '18px Courier New'
-        ctx.fillStyle = 'rgba(48, 209, 88, 0.7)'
+
+        // 计算总宽度以居中
+        const tagPadding = 24
+        const tagGap = 16
+        let totalTagWidth = 0
+        const tagWidths = s.tags.map(t => {
+          const w = ctx.measureText(t).width + tagPadding * 2
+          totalTagWidth += w
+          return w
+        })
+        totalTagWidth += tagGap * (s.tags.length - 1)
+
+        let tx = (W - totalTagWidth) / 2
+        s.tags.forEach((t, i) => {
+          const tw = tagWidths[i]
+          const th = 40
+
+          // 标签背景
+          ctx.fillStyle = 'rgba(0, 175, 255, 0.06)'
+          ctx.strokeStyle = 'rgba(0, 175, 255, 0.15)'
+          ctx.lineWidth = 1
+          const r = 6
+          ctx.beginPath()
+          ctx.moveTo(tx + r, tagY)
+          ctx.lineTo(tx + tw - r, tagY)
+          ctx.arcTo(tx + tw, tagY, tx + tw, tagY + r, r)
+          ctx.lineTo(tx + tw, tagY + th - r)
+          ctx.arcTo(tx + tw, tagY + th, tx + tw - r, tagY + th, r)
+          ctx.lineTo(tx + r, tagY + th)
+          ctx.arcTo(tx, tagY + th, tx, tagY + th - r, r)
+          ctx.lineTo(tx, tagY + r)
+          ctx.arcTo(tx, tagY, tx + r, tagY, r)
+          ctx.closePath()
+          ctx.fill()
+          ctx.stroke()
+
+          // 标签文字
+          ctx.fillStyle = 'rgba(0, 175, 255, 0.65)'
+          ctx.textAlign = 'center'
+          ctx.fillText(t, tx + tw / 2, tagY + 27)
+
+          tx += tw + tagGap
+        })
+      }
+
+      // === buffs / debuffs 区域 ===
+      let infoY = vy + 120
+      const infoX = 80
+      const infoMaxW = W - 160
+
+      if (s.buffs && s.buffs.length > 0) {
+        // 区块标题
+        ctx.font = '16px Courier New'
+        ctx.fillStyle = 'rgba(48, 209, 88, 0.4)'
         ctx.textAlign = 'left'
+        ctx.fillText('+ 行动优势', infoX, infoY)
+        infoY += 36
+
+        ctx.font = '22px sans-serif'
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.62)'
         s.buffs.forEach(b => {
-          ctx.fillText(`+ ${b}`, 100, infoY)
-          infoY += 36
+          // 绿色指示点
+          ctx.fillStyle = '#30D158'
+          ctx.beginPath()
+          ctx.arc(infoX + 6, infoY - 6, 4, 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.62)'
+          ctx.textAlign = 'left'
+          const lines = this._wrapText(ctx, b, infoMaxW - 24)
+          lines.forEach(line => {
+            ctx.fillText(line, infoX + 24, infoY)
+            infoY += 34
+          })
+          infoY += 8
         })
       }
+
       if (s.debuffs && s.debuffs.length > 0) {
-        ctx.fillStyle = 'rgba(255, 69, 58, 0.7)'
+        infoY += 8
+        ctx.font = '16px Courier New'
+        ctx.fillStyle = 'rgba(255, 69, 58, 0.4)'
         ctx.textAlign = 'left'
+        ctx.fillText('! 风险提示', infoX, infoY)
+        infoY += 36
+
+        ctx.font = '22px sans-serif'
         s.debuffs.forEach(d => {
-          ctx.fillText(`- ${d}`, 100, infoY)
-          infoY += 36
+          // 红色指示点
+          ctx.fillStyle = '#FF453A'
+          ctx.beginPath()
+          ctx.arc(infoX + 6, infoY - 6, 4, 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.62)'
+          ctx.textAlign = 'left'
+          const lines = this._wrapText(ctx, d, infoMaxW - 24)
+          lines.forEach(line => {
+            ctx.fillText(line, infoX + 24, infoY)
+            infoY += 34
+          })
+          infoY += 8
         })
       }
 
-      // === 底部分隔线 ===
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.08)'
+      // === 底部标识 ===
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.06)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(80, H - 160)
-      ctx.lineTo(W - 80, H - 160)
+      ctx.moveTo(60, H - 70)
+      ctx.lineTo(W - 60, H - 70)
       ctx.stroke()
 
-      // === 底部扫码区域 ===
-      // 装饰框
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.15)'
-      ctx.lineWidth = 1
-      const qrSize = 120
-      const qrX = W / 2 - qrSize / 2
-      const qrY = H - 140
-      ctx.strokeRect(qrX, qrY, qrSize, qrSize)
-
-      // 装饰十字
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.1)'
-      ctx.beginPath()
-      ctx.moveTo(W / 2 - 20, qrY + qrSize / 2)
-      ctx.lineTo(W / 2 + 20, qrY + qrSize / 2)
-      ctx.moveTo(W / 2, qrY + qrSize / 2 - 20)
-      ctx.lineTo(W / 2, qrY + qrSize / 2 + 20)
-      ctx.stroke()
-
-      ctx.font = '14px Courier New'
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
+      ctx.font = '13px Courier New'
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
       ctx.textAlign = 'center'
-      ctx.fillText('扫码进入 Smart Record', W / 2, H - 40)
+      ctx.fillText('Smart Record · Strategy Dossier', W / 2, H - 38)
 
       // === 导出图片（2x 分辨率） ===
       wx.canvasToTempFilePath({

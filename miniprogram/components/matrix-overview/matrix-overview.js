@@ -3,7 +3,7 @@
  * 两段式平滑卸载 · 列表懒加载
  */
 const { get } = require('../../utils/request');
-const { getColor, getFirstChar } = require('../../utils/avatar');
+const { getAvatarView } = require('../../utils/avatar');
 
 const LIST_PAGE_SIZE = 30;
 
@@ -117,9 +117,7 @@ Component({
             if (diff === 0) return;
             list.push({
               userId: m.userId, nickname: m.nickname,
-              avatarUrl: m.avatarUrl || '',
-              avatarColor: m.avatarUrl ? '' : getColor(m.nickname),
-              avatarChar: m.avatarUrl ? '' : getFirstChar(m.nickname),
+              ...getAvatarView(m.nickname, m.avatarUrl),
               netScore: diff, display: this.formatScore(diff)
             });
           });
@@ -134,9 +132,7 @@ Component({
             if (net === 0) return;
             list.push({
               userId: m.userId, nickname: m.nickname,
-              avatarUrl: m.avatarUrl || '',
-              avatarColor: m.avatarUrl ? '' : getColor(m.nickname),
-              avatarChar: m.avatarUrl ? '' : getFirstChar(m.nickname),
+              ...getAvatarView(m.nickname, m.avatarUrl),
               netScore: net, display: this.formatScore(net)
             });
           });

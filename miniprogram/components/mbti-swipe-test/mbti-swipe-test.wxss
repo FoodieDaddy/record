@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.82);
+  background: rgba(0, 0, 0, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   z-index: 1000;
@@ -26,26 +26,82 @@
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #0A84FF, #00D4FF);
+  background: linear-gradient(90deg, #00AFFF, #00D4FF);
   border-radius: 0 2rpx 2rpx 0;
   transition: width 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 0 8rpx rgba(0, 212, 255, 0.40);
+  box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.40);
 }
 
 .swipe-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80rpx 0 32rpx;
+  position: relative;
+}
+
+.top-center {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 80rpx 0 40rpx;
+  gap: 8rpx;
+}
+
+.swipe-kicker {
+  font-size: 20rpx;
+  letter-spacing: 6rpx;
+  color: rgba(0, 175, 255, 0.65);
+  text-transform: uppercase;
+}
+
+.swipe-subtitle {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.40);
+  letter-spacing: 2rpx;
+}
+
+.top-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 8rpx;
 }
 
 .swipe-progress {
-  font-size: 32rpx;
+  font-size: 28rpx;
   color: rgba(255, 255, 255, 0.52);
-  font-family: 'SF Mono', monospace;
+  font-family: 'SF Mono', 'Courier New', monospace;
+}
+
+.progress-segments {
+  display: flex;
+  gap: 4rpx;
+}
+
+.seg {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 2rpx;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.3s;
+}
+
+.seg-done {
+  background: #00AFFF;
+  box-shadow: 0 0 4rpx rgba(0, 175, 255, 0.40);
+}
+
+.progress-pct {
+  font-size: 22rpx;
+  color: rgba(0, 175, 255, 0.55);
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .swipe-close {
+  position: absolute;
+  top: 60rpx;
+  right: 0;
   width: 80rpx;
   height: 80rpx;
   display: flex;
@@ -55,7 +111,7 @@
 
 .close-icon {
   font-size: 40rpx;
-  color: #888888;
+  color: rgba(255, 255, 255, 0.30);
 }
 
 .swipe-card-area {
@@ -63,18 +119,67 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
-.swipe-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1rpx solid rgba(10, 132, 255, 0.2);
-  border-radius: 32rpx;
-  padding: 64rpx 48rpx;
-  min-height: 300rpx;
+/* SIGNAL ACCEPTED 反馈 */
+.signal-feedback {
+  position: absolute;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.signal-feedback.signal-show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.signal-feedback-icon {
+  font-size: 56rpx;
+  color: #00AFFF;
+  text-shadow: 0 0 20rpx rgba(0, 175, 255, 0.50);
+}
+
+.signal-feedback-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 6rpx;
+  color: #00AFFF;
+}
+
+.signal-feedback-sub {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 2rpx;
+}
+
+/* 题目卡片 */
+.swipe-card {
+  width: 85%;
+  background: rgba(0, 15, 30, 0.60);
+  border: 1rpx solid rgba(0, 175, 255, 0.18);
+  border-radius: 16rpx;
+  padding: 0;
+  min-height: 340rpx;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   transition: transform 0.3s ease, opacity 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.swipe-card.card-fade-out {
+  opacity: 0;
+  transform: scale(0.95);
 }
 
 .swipe-card.slide-right {
@@ -87,61 +192,214 @@
   opacity: 0;
 }
 
-.question-text {
-  font-size: 36rpx;
-  color: rgba(255, 255, 255, 0.92);
-  line-height: 1.8;
-  text-align: center;
+/* 扫描线 */
+.card-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 175, 255, 0.40), transparent);
+  animation: cardScan 3s linear infinite;
 }
 
+@keyframes cardScan {
+  0% { top: 0; opacity: 1; }
+  100% { top: 100%; opacity: 0.3; }
+}
+
+.signal-header {
+  font-size: 18rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  color: rgba(0, 175, 255, 0.55);
+  margin-top: 28rpx;
+}
+
+.signal-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.50);
+  margin-top: 8rpx;
+  letter-spacing: 4rpx;
+}
+
+.question-divider-top,
+.question-divider-bottom {
+  width: 80%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 175, 255, 0.20), transparent);
+  margin: 16rpx 0;
+}
+
+.question-text {
+  font-size: 30rpx;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.8;
+  text-align: center;
+  padding: 8rpx 32rpx;
+}
+
+.dim-detect {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  margin-top: 4rpx;
+}
+
+.dim-detect-label {
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 2rpx;
+}
+
+.dim-detect-value {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: rgba(0, 175, 255, 0.70);
+  letter-spacing: 2rpx;
+  padding: 4rpx 14rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.18);
+  border-radius: 4rpx;
+  background: rgba(0, 175, 255, 0.04);
+}
+
+/* 底部操作 */
 .swipe-actions {
   display: flex;
-  gap: 24rpx;
-  padding: 48rpx 0 120rpx;
+  gap: 16rpx;
+  padding: 32rpx 0 24rpx;
 }
 
 .action-btn {
   flex: 1;
   text-align: center;
-  padding: 24rpx 0;
-  border-radius: 16rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 28rpx 0 24rpx;
+  min-height: 88rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
   transition: background 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  box-sizing: border-box;
 }
 
 .action-btn:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.action-no {
-  border-color: rgba(255, 69, 58, 0.3);
-}
-
-.action-no .action-text {
-  color: #FF453A;
-}
-
-.action-mid .action-text {
-  color: rgba(255, 255, 255, 0.52);
-}
-
-.action-yes {
-  border-width: 2rpx;
-  border-color: rgba(10, 132, 255, 0.45);
-  background: rgba(10, 132, 255, 0.06);
-}
-
-.action-yes .action-text {
-  color: #0A84FF;
-  text-shadow: 0 0 8rpx rgba(10, 132, 255, 0.30);
+.action-kicker {
+  font-size: 16rpx;
+  letter-spacing: 3rpx;
+  font-weight: 600;
 }
 
 .action-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
+  letter-spacing: 2rpx;
+}
+
+.action-reject {
+  border-color: rgba(255, 69, 58, 0.30);
+}
+
+.action-reject .action-kicker {
+  color: rgba(255, 69, 58, 0.55);
+}
+
+.action-reject .action-text {
+  color: rgba(255, 69, 58, 0.85);
+}
+
+.action-reject:active {
+  background: rgba(255, 69, 58, 0.08);
+}
+
+.action-skip {
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.action-skip .action-kicker {
+  color: rgba(255, 255, 255, 0.30);
+}
+
+.action-skip .action-text {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.action-confirm {
+  border-color: rgba(0, 175, 255, 0.35);
+  background: rgba(0, 175, 255, 0.06);
+  box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.10);
+}
+
+.action-confirm .action-kicker {
+  color: rgba(0, 175, 255, 0.60);
+}
+
+.action-confirm .action-text {
+  color: #00AFFF;
+}
+
+.action-confirm:active {
+  background: rgba(0, 175, 255, 0.14);
+  box-shadow: 0 0 24rpx rgba(0, 175, 255, 0.20);
+}
+
+/* 当前推算 MBTI */
+.current-mbti-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 12rpx 0 64rpx;
+}
+
+.hint-label {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.hint-type {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: rgba(0, 175, 255, 0.60);
+  font-family: 'SF Mono', 'Courier New', monospace;
+  letter-spacing: 4rpx;
+}
+
+/* 数据加载提示 */
+.data-loading-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: rgba(0, 175, 255, 0.55);
+  letter-spacing: 2rpx;
 }
 
 /* Reduce Motion */
 .reduce-motion .swipe-card {
+  transition: none;
+}
+
+.reduce-motion .card-scan-line {
+  animation: none;
+}
+
+.reduce-motion .signal-feedback {
+  transition: none;
+}
+
+.reduce-motion .seg {
   transition: none;
 }

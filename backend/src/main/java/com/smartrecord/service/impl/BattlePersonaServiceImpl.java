@@ -26,11 +26,11 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
     private static final Map<String, PersonaMeta> PERSONA_MAP = Map.ofEntries(
             Map.entry("INSUFFICIENT_DATA", new PersonaMeta("样本不足", "当前结算样本不足，暂不生成稳定画像。")),
             Map.entry("STABLE_CONTROL", new PersonaMeta("稳健控场型", "打法偏向结构化执行，波动较低，擅长维持稳定节奏。")),
-            Map.entry("AGGRESSIVE_PUSH", new PersonaMeta("高压进攻型", "进攻意愿强，收益窗口捕捉快，但需要控制连续试探风险。")),
-            Map.entry("VOLATILE_BURST", new PersonaMeta("波动爆发型", "单局爆发力强，收益上限高，但整体波动和回撤风险偏大。")),
+            Map.entry("AGGRESSIVE_PUSH", new PersonaMeta("高压进攻型", "进攻意愿强，积分窗口捕捉快，但需要控制连续试探风险。")),
+            Map.entry("VOLATILE_BURST", new PersonaMeta("波动爆发型", "单局爆发力强，积分上限高，但整体波动和回撤风险偏大。")),
             Map.entry("DEFENSIVE_COUNTER", new PersonaMeta("防守反击型", "更擅长等待对手失误，适合低频决策和后手反击。")),
             Map.entry("SLOW_OBSERVER", new PersonaMeta("慢热观察型", "前期试探少，依赖信息积累，后段决策质量更稳定。")),
-            Map.entry("EMOTIONAL_SWING", new PersonaMeta("情绪扰动型", "状态受连续输赢影响较明显，需要降低情绪化决策频率。"))
+            Map.entry("EMOTIONAL_SWING", new PersonaMeta("情绪扰动型", "状态受连续正负反馈影响较明显，需要降低情绪化决策频率。"))
     );
 
     @Override
@@ -70,7 +70,7 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
 
         List<DimensionInfo> dimensions = List.of(
                 DimensionInfo.builder().key("stability").label("稳定性").value(stability).desc("净积分波动越小，稳定性越高。").build(),
-                DimensionInfo.builder().key("aggression").label("进攻性").value(aggression).desc("正收益幅度和进攻窗口越明显，进攻性越高。").build(),
+                DimensionInfo.builder().key("aggression").label("进攻性").value(aggression).desc("正向积分幅度和进攻窗口越明显，进攻性越高。").build(),
                 DimensionInfo.builder().key("drawdownControl").label("回撤控制").value(drawdownControl).desc("最大回撤越小，回撤控制越高。").build(),
                 DimensionInfo.builder().key("volatilityRisk").label("波动风险").value(volatilityRisk).desc("波动越大，风险值越高。").build()
         );
@@ -98,25 +98,23 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         boolean hasPersona = personaTag != null && !"INSUFFICIENT_DATA".equals(personaTag);
 
         if (hasMbti && hasPersona) {
-            String text = generateCombinedReading(mbtiType, personaTag);
-            return ReadingInfo.builder().available(true).text(text).build();
+            return generateCombinedStructuredReading(mbtiType, personaTag);
         }
         if (hasMbti) {
-            String title = MbtiCalculator.getTypeTitle(mbtiType);
-            return ReadingInfo.builder().available(true)
-                    .text("当前已完成人格校准，但战绩样本不足。系统暂时只能基于 " + mbtiType
-                            + " 生成初始倾向：你更适合规则清晰、节奏稳定的对局。完成 3 场结算后将补全战绩判读。")
-                    .build();
+            String obs = "当前已完成人格校准，但战绩样本不足。系统暂时只能基于 " + mbtiType
+                    + " 生成初始倾向：你更适合规则清晰、节奏稳定的对局。完成 3 场结算后将补全战绩判读。";
+            return ReadingInfo.builder().available(true).text(obs)
+                    .observation(obs).build();
         }
         if (hasPersona) {
             PersonaMeta meta = PERSONA_MAP.getOrDefault(personaTag, PERSONA_MAP.get("STABLE_CONTROL"));
-            return ReadingInfo.builder().available(true)
-                    .text("当前判读基于历史战绩生成，你的打法画像为「" + meta.title + "」。完成 MBTI 校准后，系统可以进一步区分你的决策习惯与风险偏好。")
-                    .build();
+            String obs = "当前判读基于历史战绩生成，你的打法画像为「" + meta.title
+                    + "」。完成 MBTI 校准后，系统可以进一步区分你的决策习惯与风险偏好。";
+            return ReadingInfo.builder().available(true).text(obs)
+                    .observation(obs).build();
         }
-        return ReadingInfo.builder().available(true)
-                .text("完成 MBTI 校准并积累至少 3 场结算后，系统将生成完整镜像画像。")
-                .build();
+        String obs = "完成 MBTI 校准并积累至少 3 场结算后，系统将生成完整镜像画像。";
+        return ReadingInfo.builder().available(true).text(obs).observation(obs).build();
     }
 
     // ---- 维度计算 ----
@@ -139,11 +137,11 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
                 maxGain = Math.max(maxGain, s);
             }
         }
-        // 正收益场次占比 (0-40分)
+        // 正向积分场次占比 (0-40分)
         double winRatio = (double) positiveCount / scores.size();
         int ratioScore = (int) Math.round(winRatio * 40);
 
-        // 单场最大正收益 (0-30分)
+        // 单场最大正向积分 (0-30分)
         int gainScore = (int) Math.round(Math.min(maxGain / 50.0, 1.0) * 30);
 
         // 近期动能：后半段平均 - 前半段平均 (0-30分)
@@ -208,7 +206,7 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         // 标准差越高风险越高 (0-40分)
         int stddevScore = (int) Math.round(Math.min(stddev / 100.0, 1.0) * 40);
 
-        // 最大负收益越大风险越高 (0-30分)
+        // 最大负向积分越大风险越高 (0-30分)
         int lossScore = (int) Math.round(Math.min(Math.abs(maxLoss) / 100.0, 1.0) * 30);
 
         // 连败次数越多风险越高 (0-30分)
@@ -229,27 +227,54 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         return "STABLE_CONTROL";
     }
 
-    // ---- 镜像判读组合文案 ----
+    // ---- 镜像判读组合文案（结构化） ----
 
-    private String generateCombinedReading(String mbtiType, String personaTag) {
+    private ReadingInfo generateCombinedStructuredReading(String mbtiType, String personaTag) {
         String title = MbtiCalculator.getTypeTitle(mbtiType);
         PersonaMeta meta = PERSONA_MAP.getOrDefault(personaTag, PERSONA_MAP.get("STABLE_CONTROL"));
         boolean consistent = isConsistent(mbtiType, personaTag);
 
-        String prefix = "你的 " + mbtiType + " " + title + "倾向与当前" + meta.title + "画像"
+        String observation = "你的 " + mbtiType + " " + title + "倾向与当前" + meta.title + "画像"
                 + (consistent ? "一致" : "形成互补视角") + "。";
 
-        String advice = switch (personaTag) {
-            case "STABLE_CONTROL" -> "优势是节奏稳定、回撤控制较好；风险在于进攻窗口出现时反应偏慢。建议保持低失误策略，但在连续优势局中提高主动性。";
-            case "AGGRESSIVE_PUSH" -> "优势是捕捉收益窗口快、进攻果断；风险在于连续试探可能放大回撤。建议设定单场止损线，避免情绪化追损。";
-            case "VOLATILE_BURST" -> "优势是单局爆发力强、上限高；风险在于波动偏大、状态不稳定。建议在连败后主动降频，避免冲动决策。";
-            case "DEFENSIVE_COUNTER" -> "优势是耐心等待对手失误、低频决策质量高；风险在于错过短暂的进攻窗口。建议在信息充足时果断出手。";
-            case "SLOW_OBSERVER" -> "优势是后段决策质量稳定、依赖信息积累；风险在于前期试探不足导致被动。建议在开局阶段增加主动试探。";
-            case "EMOTIONAL_SWING" -> "状态受连续输赢影响较明显。建议降低情绪化决策频率，在连败后暂停调整，避免追损心态。";
-            default -> "建议保持稳定节奏，关注长期收益趋势。";
+        String deviation = consistent
+                ? "理论人格与行为人格高度匹配，决策模式稳定。"
+                : "理论人格与行为人格存在偏差，说明实战中你的决策风格可能与自我认知不同。";
+
+        String risk = generateRiskText(personaTag);
+
+        String growthAdvice = switch (personaTag) {
+            case "STABLE_CONTROL" -> "保持低失误策略，但在连续优势局中提高主动性，避免错过进攻窗口。";
+            case "AGGRESSIVE_PUSH" -> "设定单场暂停线，避免情绪化修正，在连续试探后主动降频。";
+            case "VOLATILE_BURST" -> "在连败后主动降频，避免冲动决策，稳定节奏比爆发更重要。";
+            case "DEFENSIVE_COUNTER" -> "在信息充足时果断出手，避免因过度等待而错过短暂的进攻窗口。";
+            case "SLOW_OBSERVER" -> "在开局阶段增加主动试探，避免前期被动导致后期追赶困难。";
+            case "EMOTIONAL_SWING" -> "降低情绪化决策频率，在连败后暂停调整，避免连续修正心态。";
+            default -> "保持稳定节奏，关注长期积分趋势。";
         };
 
-        return prefix + advice;
+        String text = observation + growthAdvice;
+
+        return ReadingInfo.builder()
+                .available(true)
+                .text(text)
+                .observation(observation)
+                .deviation(deviation)
+                .risk(risk)
+                .growthAdvice(growthAdvice)
+                .build();
+    }
+
+    private String generateRiskText(String personaTag) {
+        return switch (personaTag) {
+            case "STABLE_CONTROL" -> "进攻窗口出现时反应偏慢，可能错失良机。";
+            case "AGGRESSIVE_PUSH" -> "连续试探可能放大回撤，需控制进攻频率。";
+            case "VOLATILE_BURST" -> "波动偏大，状态不稳定，连败风险较高。";
+            case "DEFENSIVE_COUNTER" -> "过于被动可能导致错过短暂的进攻窗口。";
+            case "SLOW_OBSERVER" -> "前期试探不足可能导致被动开局。";
+            case "EMOTIONAL_SWING" -> "状态受连续输赢影响明显，情绪化决策风险高。";
+            default -> "整体风险可控。";
+        };
     }
 
     private boolean isConsistent(String mbtiType, String personaTag) {
@@ -269,7 +294,7 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
     private List<DimensionInfo> buildDefaultDimensions() {
         return List.of(
                 DimensionInfo.builder().key("stability").label("稳定性").value(0).desc("净积分波动越小，稳定性越高。").build(),
-                DimensionInfo.builder().key("aggression").label("进攻性").value(0).desc("正收益幅度和进攻窗口越明显，进攻性越高。").build(),
+                DimensionInfo.builder().key("aggression").label("进攻性").value(0).desc("正向积分幅度和进攻窗口越明显，进攻性越高。").build(),
                 DimensionInfo.builder().key("drawdownControl").label("回撤控制").value(0).desc("最大回撤越小，回撤控制越高。").build(),
                 DimensionInfo.builder().key("volatilityRisk").label("波动风险").value(0).desc("波动越大，风险值越高。").build()
         );

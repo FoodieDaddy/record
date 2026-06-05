@@ -1,5 +1,5 @@
 const { get } = require('../../utils/request');
-const { getColor, getFirstChar } = require('../../utils/avatar');
+const { getColor, getFirstChar, getAvatarView } = require('../../utils/avatar');
 const app = getApp();
 
 Page({
@@ -72,10 +72,8 @@ Page({
         return {
           userId: s.userId,
           nickname,
-          avatarChar: getFirstChar(nickname),
-          avatarUrl: member.avatarUrl || '',
+          ...getAvatarView(nickname, member.avatarUrl),
           finalScore,
-          avatarColor: getColor(s.nickname)
         };
       });
       const rankedMembers = [...memberScores].sort((a, b) => b.finalScore - a.finalScore);
@@ -115,7 +113,7 @@ Page({
 
       const networkNodes = (networkData.nodes || []).map(n => ({
         ...n,
-        avatarColor: getColor(n.nickname)
+        ...getAvatarView(n.nickname, n.avatarUrl)
       }));
       const networkLinks = networkData.links || [];
 
@@ -182,12 +180,4 @@ Page({
     return { socialActivity, riskPreference, resourceControl, allianceTendency };
   },
 
-  handleClose() {
-    const pages = getCurrentPages();
-    if (pages.length > 1) {
-      wx.navigateBack();
-    } else {
-      wx.switchTab({ url: '/pages/room/room' });
-    }
-  }
 });

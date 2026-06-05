@@ -12,12 +12,13 @@
   </view>
 
   <block wx:else>
-    <!-- 顶部关闭按钮 -->
-    <view class="top-bar">
-      <view class="close-btn-cyber" bindtap="handleClose">
-        <view class="close-ring">
-          <view class="close-x">✕</view>
-        </view>
+    <!-- MATCH DOSSIER 标题 -->
+    <view class="dossier-header">
+      <text class="dossier-kicker">MATCH DOSSIER</text>
+      <text class="dossier-title">对局档案</text>
+      <view class="dossier-meta" wx:if="{{roomNo}}">
+        <text class="dossier-room">ROOM {{roomNo}}</text>
+        <text class="dossier-time" wx:if="{{settleTime}}">{{settleTime}}</text>
       </view>
     </view>
 
@@ -54,7 +55,7 @@
       wx:if="{{networkNodes.length > 0}}"
       nodes="{{networkNodes}}"
       links="{{networkLinks}}"
-      myUserId="{{myUserId}}" />
+      my-user-id="{{myUserId}}" />
 
     <!-- 4. 战局洞察 -->
     <battle-insight

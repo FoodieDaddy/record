@@ -2,7 +2,7 @@
   <canvas
     type="2d"
     id="radarCanvas"
-    class="radar-canvas"
+    class="radar-canvas {{locked ? 'radar-locked' : ''}}"
     style="width:{{size}}rpx;height:{{size}}rpx;"
     bindtap="onCanvasTap"
   ></canvas>

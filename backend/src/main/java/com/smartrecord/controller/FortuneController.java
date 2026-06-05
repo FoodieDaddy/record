@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "运势模块", description = "每日状态监测（赛博运势）")
+@Tag(name = "策略模块", description = "每日状态监测（策略提示）")
 @RestController
 @RequestMapping("/fortune")
 @RequiredArgsConstructor
@@ -20,7 +20,7 @@ public class FortuneController {
 
     private final FortuneService fortuneService;
 
-    @Operation(summary = "获取今日运势", description = "基于用户历史画像 + 大模型生成每日运势判词")
+    @Operation(summary = "获取今日策略", description = "基于用户历史画像 + 大模型生成每日策略提示")
     @GetMapping("/today")
     public Result<FortuneResp> getTodayFortune(HttpServletRequest request,
                                                 @RequestParam(defaultValue = "false") boolean force) {

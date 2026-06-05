@@ -11,7 +11,7 @@ import java.util.List;
 @Schema(description = "积分流水终端响应")
 public class YieldLogResp {
 
-    @Schema(description = "累计净收益", example = "42")
+    @Schema(description = "累计净积分", example = "42")
     private Integer netYield;
 
     @Schema(description = "采样场次数", example = "8")
@@ -20,7 +20,7 @@ public class YieldLogResp {
     @Schema(description = "曲线解锁所需场次", example = "2")
     private Integer curveUnlockCount;
 
-    @Schema(description = "收益曲线数据点（按时间正序）")
+    @Schema(description = "积分曲线数据点（按时间正序）")
     private List<CurvePoint> curveData;
 
     @Schema(description = "对局记录列表")
@@ -28,7 +28,7 @@ public class YieldLogResp {
 
     @Data
     @Builder
-    @Schema(description = "收益曲线数据点")
+    @Schema(description = "积分曲线数据点")
     public static class CurvePoint {
 
         @Schema(description = "房间 ID")

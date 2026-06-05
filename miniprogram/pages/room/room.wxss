@@ -588,7 +588,7 @@
   border: 1rpx solid rgba(255, 255, 255, 0.06);
   border-radius: 12rpx;
   background: transparent;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .cyber-mode-active {
   border-color: rgba(0, 191, 255, 0.5);
@@ -607,7 +607,7 @@
   border: 1rpx solid rgba(255, 255, 255, 0.15);
   background: transparent;
   flex-shrink: 0;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .mode-dot-on {
   border-color: #00BFFF;
@@ -630,7 +630,7 @@
   border-radius: 6rpx;
   padding: 2rpx 8rpx;
   margin-left: auto;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .badge-on {
   color: #00BFFF;
@@ -657,7 +657,7 @@
   border: 1rpx solid rgba(255, 255, 255, 0.06);
   border-radius: 12rpx;
   background: transparent;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   overflow: hidden;
 }
 .cyber-opt-active {
@@ -723,7 +723,7 @@
   background: transparent;
   border: 1rpx solid rgba(255, 255, 255, 0.06);
   border-radius: 12rpx;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .cyber-chip-active {
   color: #00BFFF;
@@ -736,7 +736,7 @@
   border-radius: 50%;
   border: 1rpx solid rgba(255, 255, 255, 0.15);
   background: transparent;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   flex-shrink: 0;
 }
 .dot-on {
@@ -822,7 +822,7 @@
   border: 1rpx solid rgba(0, 191, 255, 0.35);
   border-radius: 12rpx;
   color: #00BFFF;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   position: relative;
   overflow: hidden;
   clip-path: polygon(16rpx 0, calc(100% - 16rpx) 0, 100% 16rpx, 100% calc(100% - 16rpx), calc(100% - 16rpx) 100%, 16rpx 100%, 0 calc(100% - 16rpx), 0 16rpx);
@@ -936,7 +936,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12rpx;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .cyber-scan-card:active {
   background: rgba(0, 191, 255, 0.08);
@@ -1007,7 +1007,7 @@
   border-radius: 12rpx;
   background: rgba(255, 255, 255, 0.02);
   position: relative;
-  transition: all 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .cyber-terminal-input:active,
 .cyber-terminal-input:focus-within {
@@ -1118,7 +1118,7 @@
   border: 1rpx solid rgba(255, 255, 255, 0.04);
   border-radius: 12rpx;
   background: transparent;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 .cyber-recent-item:active {
   background: rgba(0, 191, 255, 0.04);
@@ -1206,7 +1206,7 @@
   background: rgba(255,255,255,0.04);
   border: 1rpx solid rgba(255,255,255,0.06);
   border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   line-height: normal;
   margin: 0;
   font-size: inherit;
@@ -1921,7 +1921,7 @@
   background: rgba(255, 255, 255, 0.08);
   border: none;
   border-radius: 32rpx;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .matrix-btn:active {
@@ -2295,7 +2295,7 @@
   z-index: 250;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 .share-show {
   opacity: 1;
@@ -2366,7 +2366,7 @@
   padding: 20rpx 0;
   background: rgba(255,255,255,0.04);
   border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   line-height: normal;
   margin: 0;
   font-size: inherit;
@@ -2648,7 +2648,7 @@
   z-index: 999;
   opacity: 0;
   visibility: hidden;
-  transition: all 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 .name-collision-mask.nc-show {

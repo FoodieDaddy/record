@@ -2,7 +2,7 @@ Component({
   properties: {
     nodes: { type: Array, value: [] },
     links: { type: Array, value: [] },
-    myUserId: { type: [Number, String], value: '' }
+    myUserId: { type: String, value: '' }
   },
 
   data: {

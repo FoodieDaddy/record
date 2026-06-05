@@ -37,7 +37,7 @@
         <text class="detail-cell-value mono">{{nodeDetails.interactionCount}}</text>
       </view>
       <view class="detail-cell">
-        <text class="detail-cell-label">净收益</text>
+        <text class="detail-cell-label">净积分</text>
         <text class="detail-cell-value mono" style="color: {{nodeDetails.netGain >= 0 ? '#32D74B' : '#FF453A'}}">
           {{nodeDetails.netGain > 0 ? '+' : ''}}{{nodeDetails.netGain}}
         </text>

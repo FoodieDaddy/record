@@ -1,40 +1,108 @@
 <view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
+
+  <!-- 同步动画遮罩 -->
+  <view class="sync-overlay {{syncing ? 'sync-active' : ''}}" wx:if="{{syncing}}">
+    <view class="sync-ring"></view>
+    <view class="sync-terminal">
+      <text class="sync-line sync-line-1 {{syncStep >= 1 ? 'sync-line-show' : ''}}">[SCAN] 读取当前人格</text>
+      <text class="sync-line sync-line-2 {{syncStep >= 2 ? 'sync-line-show' : ''}}">[UPDATE] 更新认知模型</text>
+      <text class="sync-line sync-line-3 {{syncStep >= 3 ? 'sync-line-show' : ''}}">[OK] 协议同步完成</text>
+    </view>
+  </view>
+
+  <!-- 退出确认遮罩 -->
+  <view class="exit-overlay {{showExitConfirm ? 'exit-active' : ''}}" wx:if="{{showExitConfirm}}">
+    <view class="exit-dialog">
+      <text class="exit-kicker">SYSTEM WARNING</text>
+      <text class="exit-title">系统警告</text>
+      <text class="exit-msg">当前人格协议尚未同步，退出后修改不会保存。</text>
+      <view class="exit-actions">
+        <view class="exit-btn exit-btn-cancel" bindtap="cancelExit">
+          <text>继续编辑</text>
+        </view>
+        <view class="exit-btn exit-btn-confirm" bindtap="confirmExit">
+          <text>放弃修改</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 头部 -->
   <view class="picker-header">
-    <text class="picker-title">修改类型</text>
+    <view class="picker-header-left">
+      <text class="picker-kicker">PERSONA EDITOR</text>
+      <text class="picker-title">人格协议编辑器</text>
+    </view>
     <view class="picker-close" bindtap="onClose">
       <text class="close-icon">x</text>
     </view>
   </view>
 
-  <view class="picker-body">
-    <!-- 翻牌矩阵：4 个 3D 翻转方块 -->
-    <view class="flip-row">
-      <view class="flip-cell" wx:for="{{dims}}" wx:key="key" wx:for-index="dimIdx">
-        <view class="flip-perspective" bindtap="onFlip" data-dimindex="{{dimIdx}}">
-          <view class="flip-card {{item.flipping ? 'flip-animating' : ''}} {{item.flipDone ? 'flip-done' : ''}}">
-            <!-- 正面：当前选中字母 -->
-            <view class="flip-face flip-front">
-              <text class="flip-letter">{{item.selected}}</text>
-            </view>
-            <!-- 背面：对立字母 -->
-            <view class="flip-face flip-back">
-              <text class="flip-letter">{{item.opposite}}</text>
+  <view class="picker-hint">选择 4 个维度，生成你的 MBTI 协议。</view>
+
+  <view class="picker-divider"></view>
+
+  <scroll-view scroll-y class="picker-scroll">
+    <view class="picker-body">
+
+      <!-- 人格矩阵 -->
+      <view class="matrix-section">
+        <text class="matrix-kicker">PERSONA MATRIX</text>
+        <text class="matrix-title">人格矩阵</text>
+
+        <view class="dim-list">
+          <view class="dim-row" wx:for="{{dims}}" wx:key="key" wx:for-index="dimIdx">
+            <text class="dim-row-label">{{item.dimLabel}}</text>
+            <view class="dim-btns">
+              <view
+                class="dim-btn {{item.selected === item.options[0].code ? 'dim-btn-active' : ''}}"
+                bindtap="onDimSelect"
+                data-dimindex="{{dimIdx}}"
+                data-value="{{item.options[0].code}}"
+              >
+                <text class="dim-btn-letter">{{item.options[0].code}}</text>
+                <text class="dim-btn-label">{{item.options[0].label}}</text>
+              </view>
+              <view
+                class="dim-btn {{item.selected === item.options[1].code ? 'dim-btn-active' : ''}}"
+                bindtap="onDimSelect"
+                data-dimindex="{{dimIdx}}"
+                data-value="{{item.options[1].code}}"
+              >
+                <text class="dim-btn-letter">{{item.options[1].code}}</text>
+                <text class="dim-btn-label">{{item.options[1].label}}</text>
+              </view>
             </view>
           </view>
         </view>
-        <text class="flip-dim-label">{{item.dimLabel}}</text>
       </view>
-    </view>
 
-    <!-- 结果预览 -->
-    <view class="preview">
-      <text class="preview-type">{{mbtiType}}</text>
-      <text class="preview-title">{{mbtiTitle}}</text>
-    </view>
+      <view class="picker-divider"></view>
 
-    <!-- 悬浮胶囊确认按钮 -->
-    <view class="capsule-btn" bindtap="onConfirm">
-      <text class="capsule-text">确认提交</text>
+      <!-- 当前选择 -->
+      <view class="selection-section">
+        <text class="selection-kicker">CURRENT SELECTION</text>
+        <text class="selection-title">当前选择</text>
+
+        <view class="selection-main">
+          <text class="selection-type {{mbtiType !== originalType ? 'selection-changed' : ''}}">{{mbtiType}}</text>
+          <text class="selection-persona">{{mbtiTitle}}</text>
+        </view>
+
+        <view class="selection-tags">
+          <text class="selection-tag" wx:for="{{mbtiTraits}}" wx:key="*this">{{item}}</text>
+        </view>
+      </view>
+
+      <!-- 同步按钮 -->
+      <view class="apply-btn {{syncing ? 'apply-syncing' : ''}} {{syncSuccess ? 'apply-success' : ''}} {{syncError ? 'apply-error' : ''}}" bindtap="onConfirm">
+        <text class="apply-kicker">APPLY PROTOCOL</text>
+        <text class="apply-text" wx:if="{{syncing}}">人格协议同步中...</text>
+        <text class="apply-text" wx:elif="{{syncSuccess}}">✓ 人格协议已更新</text>
+        <text class="apply-text apply-error-text" wx:elif="{{syncError}}">{{syncError}}</text>
+        <text class="apply-text" wx:else>同步人格协议</text>
+      </view>
+
     </view>
-  </view>
+  </scroll-view>
 </view>

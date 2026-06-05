@@ -48,23 +48,31 @@ public class FortuneServiceImpl implements FortuneService {
     @Value("${app.llm.model:mimo-v2.5}")
     private String model;
 
-    /** 每日运势 Redis 缓存 key */
+    /** 每日策略 Redis 缓存 key */
     private static final String FORTUNE_CACHE_KEY = "sr:fortune:";
     private static final long CACHE_TTL_HOURS = 4;
+    private static final List<String> SENSITIVE_WORDS = List.of(
+            "棋牌", "赌博", "赌", "下注", "押注", "筹码", "牌局", "牌桌", "打牌", "麻将", "扑克",
+            "德州", "梭哈", "赢钱", "赚钱", "发财", "稳赚", "必胜", "翻本", "追损", "运势",
+            "算命", "占卜", "塔罗", "抽牌", "神谕", "卦象", "黄历", "风水", "开运", "转运",
+            "改运", "预测输赢", "胜率提升", "ALL-IN"
+    );
 
     /** LLM 系统提示词（常量，供日志记录复用） */
     private static final String SYSTEM_PROMPT = """
-            你是存在于赛博朋克世界的"高维博弈推演引擎"，为即将参与桌游/棋牌/对战的玩家生成今日专属"赛博运势快照"。
+            你是存在于赛博朋克世界的"策略状态推演引擎"，为即将进入多人积分场景的用户生成今日专属"策略状态快照"。
 
             【创作基调】
             1. 绝对禁止枯燥的IT运维词汇（负载均衡、算法优化、数据溢出、网络延迟）
-            2. 绝对禁止传统黄历词汇（大吉、宜忌、破财、诸事不宜）
-            3. 必须将中国农历/节气意象与赛博科幻词汇结合，强映射到玩家真实的对局痛点（随机数概率、发牌员制裁、情绪破防/上头、逻辑推理、勾心斗角）
+            2. 绝对禁止传统玄学词汇（大吉、宜忌、破财、诸事不宜）
+            3. 必须将中国农历/节气意象与赛博科幻词汇结合，映射到玩家真实的对局痛点（随机反馈、情绪波动、逻辑推理、节奏管理）
+            4. 禁止预测结果、做任何利益承诺、鼓励冒进，输出必须是复盘建议、状态管理、节奏提醒、风险控制。
+            5. 禁止触碰审核敏感主题，包括博彩、传统玄学、利益承诺、结果预测相关表述。
 
             【字段规范】
-            tag：4字短语，极具张力。正面示例：绝对理智、天命主宰、算力超频、维度碾压。负面示例：算力枯竭、薛定谔的运气、磁场紊乱、情绪过载。
+            tag：4字短语，极具张力。正面示例：绝对理智、冷静主宰、算力超频、维度碾压。负面示例：算力枯竭、状态漂移、磁场紊乱、情绪过载。
             verdict：10-18字，像高维生物对玩家的冷酷忠告，必须巧妙融合当天农历/节气意象。示例：芒种火旺引发随机数暴走，切忌越级对抗。
-            buffs：恰好3个元素，每个5-7字，描述牌桌/游戏中的玄学优势。示例库：免疫发牌员制裁、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、绝境反杀概率飙升。
+            buffs：恰好3个元素，每个5-7字，描述多人积分场景中的策略优势。示例库：随机反馈免疫、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、逆境校准能力强。
             debuffs：恰好2个元素，每个5-7字，描述对局中的隐患。示例库：容易被连续小分激怒、随机数波动敏感、中盘决策疲劳、防守反击容易漏判。
 
             只输出一个JSON对象，不要markdown代码块，不要任何其他文字：
@@ -72,7 +80,7 @@ public class FortuneServiceImpl implements FortuneService {
             颜色规则：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
             """;
 
-    // ===== 兜底静态运势池 =====
+    // ===== 兜底静态策略池 =====
 
     /** 卡牌原型 */
     private static class Archetype {
@@ -96,12 +104,12 @@ public class FortuneServiceImpl implements FortuneService {
                 buildFallback("气场如虹，连胜势能持续扩散",
                         List.of("连胜势能加持", "心态稳定输出", "决策果断精准"),
                         List.of("注意骄傲轻敌", "避免贪心冒进"),
-                        "#32D74B", "天命"),
-                buildFallback("今日状态极佳，运气与实力共振",
+                        "#32D74B", "理智"),
+                buildFallback("今日状态极佳，判断与节奏共振",
                         List.of("手感火热沸腾", "节奏感强烈", "专注力全程在线"),
                         List.of("避免贪心冒进", "留意对手反扑"),
                         "#32D74B", "狂热"),
-                buildFallback("高维能量涌动，胜利磁场环绕",
+                buildFallback("高维能量涌动，主动节奏环绕",
                         List.of("势不可挡碾压", "信心爆棚满溢", "直觉敏锐如刀"),
                         List.of("留意对手反扑", "保持谦逊心态"),
                         "#32D74B", "碾压")
@@ -118,22 +126,22 @@ public class FortuneServiceImpl implements FortuneService {
                         "#FF6B35", "潜伏"),
                 buildFallback("阴霾终将散去，保持节奏即可",
                         List.of("韧性被动加成", "逆境快速成长", "隐忍蓄势待发"),
-                        List.of("切勿急于翻本", "避免高风险操作"),
+                        List.of("切勿急于修正", "避免高风险操作"),
                         "#FF453A", "蛰伏")
         ));
 
         FALLBACK_POOL.put(UserTag.HIGH_RISK, List.of(
                 buildFallback("波动即机遇，关键在于时机把控",
-                        List.of("高波动收益潜力", "爆发力惊人强劲", "时机嗅觉敏锐"),
+                        List.of("高波动校准力", "爆发力惊人强劲", "时机嗅觉敏锐"),
                         List.of("风险敞口较大", "情绪波动影响判断"),
                         "#FF2D55", "狂野"),
                 buildFallback("今日能量起伏剧烈，建议稳健为主",
                         List.of("关键时刻爆发", "直觉灵敏如电", "极限操作潜力"),
-                        List.of("大输大赢概率高", "需严格控制仓位"),
+                        List.of("结果波动较高", "需严格控制节奏"),
                         "#AF52DE", "过载"),
                 buildFallback("极端行情下，纪律是最好的护身符",
-                        List.of("极端情境适应力", "抗压能力超群", "逆风翻盘体质"),
-                        List.of("避免ALL-IN心态", "务必设置止损线"),
+                        List.of("极端情境适应力", "抗压能力超群", "逆境回稳能力"),
+                        List.of("避免冒进心态", "务必设置暂停线"),
                         "#FF375F", "失控")
         ));
 
@@ -147,7 +155,7 @@ public class FortuneServiceImpl implements FortuneService {
                         List.of("可能错过风口", "需要主动出击"),
                         "#0A84FF", "均衡"),
                 buildFallback("静水深流，稳健型选手的舒适区",
-                        List.of("风险控制出色", "长期收益稳定", "心态韧性十足"),
+                        List.of("风险控制出色", "长期节奏稳定", "心态韧性十足"),
                         List.of("短期爆发不足", "需要适当冒险"),
                         "#0A84FF", "巡航")
         ));
@@ -164,7 +172,7 @@ public class FortuneServiceImpl implements FortuneService {
         ));
         ARCHETYPE_POOL.put(UserTag.HIGH_RISK, List.of(
                 new Archetype("破局者", "THE BREAKER", List.of("冒险", "反转", "大胆")),
-                new Archetype("博弈者", "THE GAMBLER", List.of("变通", "灵活", "博弈")),
+                new Archetype("变阵者", "THE ADAPTER", List.of("变通", "灵活", "调整")),
                 new Archetype("操盘手", "THE OPERATOR", List.of("控制", "节奏", "布局"))
         ));
         ARCHETYPE_POOL.put(UserTag.STABLE, List.of(
@@ -183,12 +191,12 @@ public class FortuneServiceImpl implements FortuneService {
 
     @Override
     public FortuneResp getTodayFortune(Long userId, boolean force) {
-        // 0. 检查 Redis 缓存（每日运势 4 小时内复用，force 时跳过）
+        // 0. 检查 Redis 缓存（每日策略 4 小时内复用，force 时跳过）
         String cacheKey = FORTUNE_CACHE_KEY + userId + ":" + getDateKey();
         if (!force) {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                log.debug("命中每日运势缓存: userId={}", userId);
+                log.debug("命中每日策略缓存: userId={}", userId);
                 FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
                 if (resp.getLunarDate() == null) fillLunarFields(resp);
                 // 缓存命中时补充卡牌原型（缓存中可能没有）
@@ -212,7 +220,7 @@ public class FortuneServiceImpl implements FortuneService {
                 return resp;
             }
         } else {
-            log.info("强制刷新运势: userId={}", userId);
+            log.info("强制刷新策略: userId={}", userId);
             redisTemplate.delete(cacheKey);
         }
 
@@ -246,7 +254,7 @@ public class FortuneServiceImpl implements FortuneService {
                 result = fallbackFortune(userTag);
             }
         } else {
-            log.info("LLM 未配置，直接使用兜底运势");
+            log.info("LLM 未配置，直接使用兜底策略");
             llmCtx.rawResponse = "LLM 未配置，使用本地兜底";
             result = fallbackFortune(userTag);
         }
@@ -268,7 +276,7 @@ public class FortuneServiceImpl implements FortuneService {
         try {
             redisTemplate.opsForValue().set(cacheKey, JSONUtil.toJsonStr(result), CACHE_TTL_HOURS, TimeUnit.HOURS);
         } catch (Exception e) {
-            log.warn("缓存运势失败: userId={}", userId, e);
+            log.warn("缓存策略失败: userId={}", userId, e);
         }
 
         // 4.5 计算下次可刷新时间
@@ -436,7 +444,7 @@ public class FortuneServiceImpl implements FortuneService {
         String tagDesc = switch (userTag) {
             case WINNING_STREAK -> "近期连胜，状态高昂，手感火热";
             case LOSING_STREAK -> "近期连败，状态低迷，心态受挫";
-            case HIGH_RISK -> "大输大赢型，波动剧烈，大起大落";
+            case HIGH_RISK -> "高波动型，节奏起伏明显";
             case STABLE -> "稳健型，表现平稳，不温不火";
         };
 
@@ -453,7 +461,7 @@ public class FortuneServiceImpl implements FortuneService {
                 【完整战绩】%s
                 【时空坐标】%s
 
-                请根据以上数据，结合当天农历/节气的自然意象，用赛博朋克+桌游博弈的口吻生成运势。
+                请根据以上数据，结合当天农历/节气的自然意象，用赛博朋克+策略复盘的口吻生成今日策略。
                 判词要像高维生物的冷酷忠告，必须引用节气/农历意象并映射到对局策略。
                 """, tagDesc, netScore, trend, recentScores.toString(), lunarContext);
 
@@ -498,7 +506,7 @@ public class FortuneServiceImpl implements FortuneService {
             }
             log.info("LLM 原始返回: {}", content);
             JSONObject obj = JSONUtil.parseObj(json);
-            return FortuneResp.builder()
+            FortuneResp resp = FortuneResp.builder()
                     .verdict(obj.getStr("verdict", "今日能量平稳"))
                     .buffs(obj.getJSONArray("buffs").toList(String.class))
                     .debuffs(obj.getJSONArray("debuffs").toList(String.class))
@@ -506,10 +514,27 @@ public class FortuneServiceImpl implements FortuneService {
                     .tag(obj.getStr("tag", ""))
                     .source("llm")
                     .build();
+            if (containsSensitiveWord(resp)) {
+                throw new RuntimeException("LLM 响应命中敏感词");
+            }
+            return resp;
         } catch (Exception e) {
             log.warn("解析 LLM 响应失败: {}", content, e);
             throw new RuntimeException("LLM 响应解析失败", e);
         }
+    }
+
+    /**
+     * 检查模型输出，命中敏感词时丢弃并走兜底策略。
+     */
+    private boolean containsSensitiveWord(FortuneResp resp) {
+        String text = String.join(" ",
+                Objects.toString(resp.getVerdict(), ""),
+                String.join(" ", Optional.ofNullable(resp.getBuffs()).orElse(List.of())),
+                String.join(" ", Optional.ofNullable(resp.getDebuffs()).orElse(List.of())),
+                Objects.toString(resp.getTag(), "")
+        );
+        return SENSITIVE_WORDS.stream().anyMatch(text::contains);
     }
 
     /**

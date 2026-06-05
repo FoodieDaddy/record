@@ -68,8 +68,8 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
                         .desc("基于总得分波动率，波动越小越稳定。").build(),
                 StatDimension.builder().key("participation").label("参局率").value(participation)
                         .desc("基于历史对局参与轮次。").build(),
-                StatDimension.builder().key("comeback").label("翻盘力").value(comeback)
-                        .desc("基于落后局面最终翻盘的比例。").build(),
+                StatDimension.builder().key("comeback").label("回稳力").value(comeback)
+                        .desc("基于低位波动后的修正能力。").build(),
                 StatDimension.builder().key("dominance").label("控场力").value(dominance)
                         .desc("基于单局最大得分占比。").build()
         );
@@ -132,7 +132,7 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
     }
 
     /**
-     * 进攻性：单次大额得分频率 + 正收益场次占比
+     * 进攻性：单次大额得分频率 + 正向积分场次占比
      */
     private int calcAggression(List<Map<String, Object>> details) {
         if (details.isEmpty()) return 0;
@@ -179,7 +179,7 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
     }
 
     /**
-     * 翻盘力：连续亏损后逆转盈利的场次占比
+     * 回稳力：连续低位后回到正向反馈的场次占比
      * 分析最近 N 场的得分序列，找"先负后正"的模式
      */
     private int calcComeback(List<Integer> netScores) {

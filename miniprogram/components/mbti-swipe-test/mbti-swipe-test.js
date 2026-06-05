@@ -24,6 +24,47 @@ const QUESTIONS = [
   { id: 'q20', dimension: 'J_P', text: '我的工作区域通常保持整洁有序。' }
 ];
 
+// 维度顺序
+var DIM_ORDER = ['E_I', 'S_N', 'T_F', 'J_P'];
+var DIM_LEFT = ['I', 'N', 'F', 'P'];  // score < 0 → 左侧
+var DIM_RIGHT = ['E', 'S', 'T', 'J']; // score > 0 → 右侧
+
+// 维度中文标签
+var DIM_LABELS = {
+  E_I: '外向性（E）',
+  S_N: '感知力（S）',
+  T_F: '思维力（T）',
+  J_P: '判断力（J）'
+};
+
+function calcPartialMbti(answers) {
+  var scores = { E_I: 0, S_N: 0, T_F: 0, J_P: 0 };
+  var counts = { E_I: 0, S_N: 0, T_F: 0, J_P: 0 };
+
+  for (var i = 0; i < answers.length; i++) {
+    var a = answers[i];
+    if (a.score !== 0) {
+      scores[a.dimension] += a.score;
+      counts[a.dimension]++;
+    }
+  }
+
+  var result = '';
+  for (var j = 0; j < DIM_ORDER.length; j++) {
+    var dim = DIM_ORDER[j];
+    if (counts[dim] === 0) {
+      result += '_';
+    } else if (scores[dim] > 0) {
+      result += DIM_RIGHT[j];
+    } else if (scores[dim] < 0) {
+      result += DIM_LEFT[j];
+    } else {
+      result += '_';
+    }
+  }
+  return result;
+}
+
 Component({
   properties: {
     reduceMotion: { type: Boolean, value: false }
@@ -32,17 +73,35 @@ Component({
   data: {
     currentIndex: 0,
     progress: '01 / 20',
-    progressPercent: 0,
+    progressPercent: 5,
     currentQuestion: null,
     totalQuestions: 20,
     answers: [],
     animating: false,
-    slideDirection: '' // 'left', 'right', ''
+    slideDirection: '',
+    partialMbti: '',
+    signalIndex: '01',
+    dimensionLabel: '',
+    signalAccepted: false,
+    dataLoading: false
   },
 
   lifetimes: {
     attached() {
-      this.setData({ currentQuestion: QUESTIONS[0] });
+      this.setData({
+        currentQuestion: QUESTIONS[0],
+        dimensionLabel: DIM_LABELS[QUESTIONS[0].dimension] || ''
+      });
+      // 5s 加载提示兜底
+      var self = this;
+      this._loadingTimer = setTimeout(function () {
+        if (!self.data.currentQuestion) {
+          self.setData({ dataLoading: true });
+        }
+      }, 5000);
+    },
+    detached() {
+      if (this._loadingTimer) clearTimeout(this._loadingTimer);
     }
   },
 
@@ -62,20 +121,19 @@ Component({
     submitAnswer(score, direction) {
       if (this.data.animating) return;
 
-      const question = QUESTIONS[this.data.currentIndex];
-      const answer = {
+      var question = QUESTIONS[this.data.currentIndex];
+      var answer = {
         questionId: question.id,
         dimension: question.dimension,
         score: score
       };
 
-      const answers = [...this.data.answers, answer];
-      const nextIndex = this.data.currentIndex + 1;
-
+      var answers = this.data.answers.concat([answer]);
+      var nextIndex = this.data.currentIndex + 1;
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
+      var partialMbti = calcPartialMbti(answers);
 
       if (this.data.reduceMotion) {
-        // 无动画直接切换
         if (nextIndex >= QUESTIONS.length) {
           this.complete(answers);
         } else {
@@ -84,27 +142,37 @@ Component({
             progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
             progressPercent: percent,
             currentQuestion: QUESTIONS[nextIndex],
-            answers
+            answers: answers,
+            partialMbti: partialMbti,
+            signalIndex: String(nextIndex + 1).padStart(2, '0'),
+            dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
           });
         }
       } else {
-        // 带动画切换
-        this.setData({ animating: true, slideDirection: direction });
+        var self = this;
+        this.setData({ signalAccepted: true });
 
-        setTimeout(() => {
-          if (nextIndex >= QUESTIONS.length) {
-            this.complete(answers);
-          } else {
-            this.setData({
-              currentIndex: nextIndex,
-              progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
-              progressPercent: percent,
-              currentQuestion: QUESTIONS[nextIndex],
-              answers,
-              animating: false,
-              slideDirection: ''
-            });
-          }
+        setTimeout(function () {
+          self.setData({ animating: true, slideDirection: direction, signalAccepted: false });
+
+          setTimeout(function () {
+            if (nextIndex >= QUESTIONS.length) {
+              self.complete(answers);
+            } else {
+              self.setData({
+                currentIndex: nextIndex,
+                progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
+                progressPercent: percent,
+                currentQuestion: QUESTIONS[nextIndex],
+                answers: answers,
+                animating: false,
+                slideDirection: '',
+                partialMbti: partialMbti,
+                signalIndex: String(nextIndex + 1).padStart(2, '0'),
+                dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
+              });
+            }
+          }, 300);
         }, 300);
       }
     },
@@ -112,22 +180,12 @@ Component({
     complete(answers) {
       this.triggerEvent('complete', {
         testVersion: 'v1',
-        answers
+        answers: answers
       });
     },
 
     onClose() {
-      wx.showModal({
-        title: '确认退出',
-        content: '退出后本次校准不会保存',
-        confirmText: '退出',
-        confirmColor: '#FF453A',
-        success: (res) => {
-          if (res.confirm) {
-            this.triggerEvent('close');
-          }
-        }
-      });
+      this.triggerEvent('close');
     }
   }
 });

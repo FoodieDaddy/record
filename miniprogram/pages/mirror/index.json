@@ -1,10 +1,11 @@
 {
-  "navigationBarTitleText": "镜像",
-  "navigationBarBackgroundColor": "#0a0a0a",
+  "navigationBarTitleText": "人格终端",
+  "navigationBarBackgroundColor": "#05070A",
   "navigationBarTextStyle": "white",
   "usingComponents": {
     "radar-chart": "/components/radar-chart/radar-chart",
     "mbti-swipe-test": "/components/mbti-swipe-test/mbti-swipe-test",
-    "mbti-picker-modal": "/components/mbti-picker-modal/mbti-picker-modal"
+    "mbti-picker-modal": "/components/mbti-picker-modal/mbti-picker-modal",
+    "terminal-popup": "/components/terminal-popup/terminal-popup"
   }
 }

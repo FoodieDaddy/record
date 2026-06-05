@@ -3,6 +3,7 @@
  */
 
 const config = require('../config');
+const DEBUG_TTS = false;
 
 /** 队列播放，避免重叠 */
 let _speaking = false;
@@ -33,7 +34,7 @@ function _speakOnce(text, onDone) {
       const rawCt = res.header && (res.header['content-type'] || res.header['Content-Type']);
       const ct = Array.isArray(rawCt) ? rawCt.join(',') : (rawCt || '');
       if (!ct.includes('audio')) {
-        console.warn('[TTS] 非音频响应:', ct);
+        if (DEBUG_TTS) console.warn('[TTS] 非音频响应:', ct);
         onDone();
         return;
       }
@@ -66,7 +67,7 @@ function _playAudio(src, onDone) {
     onDone();
   });
   audio.onError((err) => {
-    console.error('[TTS] 播放失败:', err);
+    if (DEBUG_TTS) console.warn('[TTS] 播放失败:', err);
     cleanup();
     onDone();
   });
@@ -78,7 +79,7 @@ function _playAudio(src, onDone) {
  */
 function speakTransfer(fromName, toName, amount) {
   const settings = getSettings();
-  console.log('[TTS] speakTransfer:', fromName, toName, amount, 'enabled:', settings.enabled);
+  if (DEBUG_TTS) console.log('[TTS] speakTransfer:', fromName, toName, amount, 'enabled:', settings.enabled);
   if (!settings.enabled) return;
   const text = `${toName} 收到 ${fromName} 的 ${amount} 分`;
   _queue.push(text);

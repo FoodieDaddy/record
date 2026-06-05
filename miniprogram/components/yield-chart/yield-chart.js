@@ -1,6 +1,6 @@
 /**
- * 收益曲线组件 — Canvas 2D
- * 累计净收益折线 · 正负渐变填充 · 发光节点 · 终端网格
+ * 积分曲线组件 — Canvas 2D
+ * 累计净积分折线 · 正负渐变填充 · 发光节点 · 终端网格
  */
 
 Component({
@@ -82,7 +82,7 @@ Component({
             return;
           }
 
-          const dpr = wx.getSystemInfoSync().pixelRatio;
+          const dpr = wx.getWindowInfo().pixelRatio;
           canvas.width = cssW * dpr;
           canvas.height = cssH * dpr;
           ctx.scale(dpr, dpr);

@@ -2,20 +2,42 @@ const { get, put } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { generateNickname } = require('../../utils/nickname');
 const { getMirrorProfile } = require('../../utils/mirror-api');
-const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
+const { getSettings, saveSettings } = require('../../utils/voice');
+const { vibrateShort } = require('../../utils/haptic');
+const config = require('../../config');
 const app = getApp();
 
 const SAVE_DELAY = 2000;
+const audioCtx = wx.createInnerAudioContext();
+audioCtx.obeyMuteSwitch = false;
+
 let _saveTimer = null;
 let _uploadingAvatar = false;
+let _settingsTimer = null;
+let _pendingSettings = {};
 
-// TODO: 身份摘要后续接入 /mirror/identity-summary 接口，返回个性化擅长/警惕文案
-const IDENTITY_SUMMARY_MAP = {
-  default: {
-    strengths: '风险控制、长期规划、逆风运营',
-    warnings: '情绪波动、过度保守'
-  }
+// 音色分类标签映射（后端 ID → 终端显示）
+const CATEGORY_LABELS = {
+  female:  { en: 'STANDARD', zh: '标准' },
+  male:    { en: 'MALE',     zh: '男声' },
+  funny:   { en: 'SPECIAL',  zh: '特殊' }
 };
+
+// 成就配置
+const BADGE_CONFIG = [
+  { id: 'first_match',   name: '首局完成',   code: 'START',    icon: 'circle',  desc: '完成第一场结算',      field: 'matchCount',  target: 1 },
+  { id: 'match_10',      name: '累计十局',   code: 'x10',      icon: 'layers',  desc: '累计完成10场结算',    field: 'matchCount',  target: 10 },
+  { id: 'match_50',      name: '半百场次',   code: 'x50',      icon: 'layers',  desc: '累计完成50场结算',    field: 'matchCount',  target: 50 },
+  { id: 'score_100',     name: '百分玩家',   code: '100+',     icon: 'star',    desc: '累计净积分达到100',   field: 'totalScore',  target: 100 },
+  { id: 'score_1000',    name: '积分破千',   code: '1000+',    icon: 'diamond', desc: '累计净积分达到1000',  field: 'totalScore',  target: 1000 },
+  { id: 'win_3_streak',  name: '连续三胜',   code: 'WIN x3',   icon: 'bolt',    desc: '连续3场获得正向反馈',   field: 'winStreak',   target: 3 },
+  { id: 'win_10',        name: '连续十局',   code: 'WIN x10',  icon: 'bolt',    desc: '连续10场获得正向反馈',  field: 'winStreak',   target: 10 },
+  { id: 'win_rate_50',   name: '胜率过半',   code: '50%+',     icon: 'target',  desc: '胜率达到50%',         field: 'winRate',     target: 50 },
+  { id: 'mirror_sync',   name: '镜像同步',   code: 'SYNCED',   icon: 'scan',    desc: '完成MBTI校准',        field: 'mbtiSync',    target: 1 },
+  { id: 'level_2',       name: '等级提升',   code: 'Lv.2',     icon: 'arrow-up',desc: '身份等级达到2级',     field: 'level',       target: 2 },
+  { id: 'level_3',       name: '策略执行者', code: 'Lv.3',     icon: 'arrow-up',desc: '身份等级达到3级',     field: 'level',       target: 3 },
+  { id: 'stability_80',  name: '稳定执行者', code: 'STABLE',   icon: 'shield',  desc: '稳定度达到80',        field: 'stability',   target: 80 }
+];
 
 Page({
   data: {
@@ -29,10 +51,10 @@ Page({
     _lastSavedAvatar: '',
 
     // 身份信息
-    playerCode: '',       // PLAYER-0193
+    playerCode: '',
     daysSinceJoined: 0,
 
-    // 积分统计（来自 /score/trend）
+    // 积分统计
     totalScore: 0,
     winRate: 0,
     matchCount: 0,
@@ -40,29 +62,34 @@ Page({
     // 身份等级
     level: 1,
     levelTitle: '新人观察员',
-    levelExp: 0,
-    nextLevelExp: 100,
+    levelExp: 0,          // 等级内已获得经验
+    levelExpDisplay: 0,   // 展示用经验，限制在等级区间内
+    levelExpRange: 0,     // 等级所需经验区间
+    levelRemainingExp: 0,
+    nextLevelExp: 100,    // 下一级累计阈值
     levelProgress: 0,
     stability: null,
-
-    // 镜像数据（来自 /mirror/profile）
-    mbtiType: '',
-    mbtiTitle: '',
-    mbtiCalibrated: false,
-    traits: [],
-
-    // 战斗人格维度
-    battleDimensions: [],
-
-    // 身份摘要
-    identityStrengths: '',
-    identityWarnings: '',
 
     // 成就
     achievements: [],
 
-    // 动画开关（用于 reduce-motion 类）
-    animationEnabled: true
+    // 动画开关
+    animationEnabled: true,
+
+    // 设置
+    voiceEnabled: true,
+    voiceName: '晓晓',
+    selectedVoiceId: 'std_01',
+    animEnabled: true,
+    vibrateEnabled: true,
+
+    // 音色弹层
+    voiceSheetVisible: false,
+    voiceCategories: [],
+    activeVoiceCatId: 'female',
+    scrollToCat: '',
+    playingVoiceId: '',
+    pendingVoice: null
   },
 
   onShow() {
@@ -89,10 +116,11 @@ Page({
       this.loadUserInfo();
     }
 
-    // 并行加载镜像、积分和等级数据
-    this.loadMirrorData();
+    // 并行加载数据
     this.loadScoreStats();
     this.loadIdentityLevel();
+    this.loadMbtiStatus();
+    this.loadSettings();
   },
 
   async onPullDownRefresh() {
@@ -103,7 +131,6 @@ Page({
     try {
       await Promise.all([
         this.loadUserInfo(),
-        this.loadMirrorData(),
         this.loadScoreStats(),
         this.loadIdentityLevel()
       ]);
@@ -111,6 +138,8 @@ Page({
       wx.stopPullDownRefresh();
     }
   },
+
+  // ========== 数据加载 ==========
 
   async loadUserInfo() {
     try {
@@ -131,11 +160,9 @@ Page({
         });
         this.updateAvatar();
 
-        // 玩家代号
         const uid = String(user.userId || '');
-        this.setData({ playerCode: 'PLAYER-' + uid.slice(-4) });
+        this.setData({ playerCode: 'SR-' + uid.slice(-4).padStart(4, '0') });
 
-        // 注册天数
         if (user.createdAt) {
           const created = new Date(user.createdAt).getTime();
           const days = Math.floor((Date.now() - created) / 86400000);
@@ -144,39 +171,6 @@ Page({
       }
     } catch (e) {
       console.error('加载用户信息失败', e);
-    }
-  },
-
-  async loadMirrorData() {
-    try {
-      const res = await getMirrorProfile();
-      if (!res) return;
-
-      const mbti = res.mbti || {};
-      const mbtiInfo = mbti.mbtiCode ? MBTI_MAP[mbti.mbtiCode] : null;
-      const traits = (res.traits && res.traits.length > 0)
-        ? res.traits
-        : (mbtiInfo ? (MBTI_TRAITS[mbtiInfo.type] || []) : []);
-
-      const dimensions = (res.battlePersona && res.battlePersona.generated)
-        ? (res.dimensions || [])
-        : [];
-
-      const mbtiType = mbtiInfo ? mbtiInfo.type : '';
-      const summary = IDENTITY_SUMMARY_MAP[mbtiType] || IDENTITY_SUMMARY_MAP.default;
-
-      this.setData({
-        mbtiType: mbtiType,
-        mbtiTitle: mbtiInfo ? mbtiInfo.title : '',
-        mbtiCalibrated: !!mbti.calibrated,
-        traits: traits,
-        battleDimensions: dimensions,
-        identityStrengths: summary.strengths,
-        identityWarnings: summary.warnings
-      });
-      this.computeAchievements();
-    } catch (e) {
-      console.error('加载镜像数据失败', e);
     }
   },
 
@@ -189,7 +183,19 @@ Page({
       const matchCount = points.length;
       const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
 
-      this.setData({ totalScore, winRate, matchCount });
+      // 计算最大连胜
+      let winStreak = 0;
+      let maxWinStreak = 0;
+      for (const p of points) {
+        if (p.netScore > 0) {
+          winStreak++;
+          maxWinStreak = Math.max(maxWinStreak, winStreak);
+        } else {
+          winStreak = 0;
+        }
+      }
+
+      this.setData({ totalScore, winRate, matchCount, maxWinStreak });
       this.computeAchievements();
     } catch (e) {
       console.error('加载积分数据失败', e);
@@ -200,30 +206,70 @@ Page({
     try {
       const res = await get('/user/identity-level');
       if (!res) return;
+      const levelExp = Math.max(0, res.currentLevelExp || 0);
+      const levelExpRange = Math.max(0, res.requiredExpInLevel || 0);
+      const levelExpDisplay = levelExpRange > 0 ? Math.min(levelExp, levelExpRange) : levelExp;
+      const levelRemainingExp = Math.max(0, levelExpRange - levelExp);
+      const levelProgress = Math.max(0, Math.min(100, res.progress || 0));
       this.setData({
         level: res.level || 1,
         levelTitle: res.title || '新人观察员',
-        levelExp: res.exp || 0,
+        levelExp,
+        levelExpDisplay,
+        levelExpRange,
+        levelRemainingExp,
         nextLevelExp: res.nextLevelExp || 100,
-        levelProgress: res.progress || 0,
+        levelProgress,
         stability: res.stability
       });
+      this.computeAchievements();
     } catch (e) {
       console.error('加载身份等级失败', e);
     }
   },
 
+  async loadMbtiStatus() {
+    try {
+      const res = await getMirrorProfile();
+      if (res && res.mbti) {
+        app.globalData.mbtiCalibrated = !!res.mbti.calibrated;
+        this.computeAchievements();
+      }
+    } catch (e) {
+      // 镜像数据加载失败不影响主流程
+    }
+  },
+
   computeAchievements() {
-    const { matchCount, totalScore, winRate, mbtiCalibrated, level } = this.data;
-    const achievements = [
-      { key: 'first_game',  label: '首局完成', sub: 'START',     unlocked: matchCount >= 1 },
-      { key: 'century',     label: '百分玩家', sub: 'TOP 1%',    unlocked: totalScore >= 100 },
-      { key: 'score_1000',  label: '积分破千', sub: '1000+',     unlocked: totalScore >= 1000 },
-      { key: 'ten_streak',  label: '连续十局', sub: 'WIN x10',   unlocked: matchCount >= 10 },
-      { key: 'win_half',    label: '胜率过半', sub: '50%+',      unlocked: winRate >= 50 },
-      { key: 'mirror_sync', label: '镜像同步', sub: 'SYNCED',    unlocked: mbtiCalibrated },
-      { key: 'level_up',    label: '等级提升', sub: 'Lv.' + level, unlocked: level >= 2 }
-    ];
+    const { matchCount, totalScore, winRate, maxWinStreak, level, stability } = this.data;
+    const mbtiSync = app.globalData.mbtiCalibrated ? 1 : 0;
+
+    const statsMap = {
+      matchCount, totalScore, winRate,
+      winStreak: maxWinStreak || 0,
+      mbtiSync,
+      level,
+      stability: stability || 0
+    };
+
+    const achievements = BADGE_CONFIG.map(badge => {
+      const current = Math.max(0, statsMap[badge.field] || 0);
+      const progress = Math.max(0, Math.min(current, badge.target));
+      const progressPct = badge.target > 0 ? Math.round(progress * 100 / badge.target) : 0;
+      return {
+        id: badge.id,
+        name: badge.name,
+        code: badge.code,
+        icon: badge.icon,
+        desc: badge.desc,
+        progress,
+        progressPct,
+        progressText: progress + '/' + badge.target,
+        target: badge.target,
+        unlocked: current >= badge.target
+      };
+    });
+
     this.setData({ achievements });
   },
 
@@ -235,6 +281,150 @@ Page({
         avatarChar: getFirstChar(nickname)
       });
     }
+  },
+
+  // ========== 设置 ==========
+
+  loadSettings() {
+    const settings = getSettings();
+    this.setData({
+      voiceEnabled: settings.enabled,
+      selectedVoiceId: settings.voiceId,
+      animEnabled: app.globalData.animationEnabled !== false,
+      vibrateEnabled: app.globalData.vibrateEnabled !== false
+    });
+    this.resolveVoiceName(settings.voiceId);
+    this.loadVoiceCatalog();
+  },
+
+  async loadVoiceCatalog() {
+    if (this.data.voiceCategories.length > 0) return;
+    try {
+      const catalog = await get('/voice/catalog');
+      const rawCategories = catalog.categories || [];
+      // 为每个分类添加终端标签
+      const categories = rawCategories.map(cat => {
+        const label = CATEGORY_LABELS[cat.id] || { en: cat.id.toUpperCase(), zh: cat.name };
+        return { ...cat, enLabel: label.en, zhLabel: label.zh };
+      });
+      this.setData({ voiceCategories: categories });
+      if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
+        this.setData({ activeVoiceCatId: categories[0].id });
+      }
+    } catch (e) {
+      console.error('加载音色目录失败', e);
+    }
+  },
+
+  resolveVoiceName(voiceId) {
+    const cats = this.data.voiceCategories;
+    if (!cats.length) {
+      this.setData({ voiceName: voiceId });
+      return;
+    }
+    for (const cat of cats) {
+      const found = (cat.voices || []).find(v => v.id === voiceId);
+      if (found) {
+        this.setData({ voiceName: found.name });
+        return;
+      }
+    }
+    this.setData({ voiceName: voiceId });
+  },
+
+  onVoiceToggle() {
+    const enabled = !this.data.voiceEnabled;
+    this.setData({ voiceEnabled: enabled });
+    saveSettings({ enabled });
+    app.globalData.audioEnabled = enabled;
+    wx.setStorageSync('audioEnabled', enabled);
+    this.debouncedSaveSettings({ voiceEnabled: enabled });
+    vibrateShort('light');
+  },
+
+  onAnimToggle() {
+    const enabled = !this.data.animEnabled;
+    this.setData({ animEnabled: enabled, animationEnabled: enabled });
+    app.globalData.animationEnabled = enabled;
+    wx.setStorageSync('animationEnabled', enabled);
+    this.debouncedSaveSettings({ animEnabled: enabled });
+    vibrateShort('light');
+  },
+
+  onVibrateToggle() {
+    const enabled = !this.data.vibrateEnabled;
+    this.setData({ vibrateEnabled: enabled });
+    app.globalData.vibrateEnabled = enabled;
+    wx.setStorageSync('vibrateEnabled', enabled);
+    this.debouncedSaveSettings({ vibrateEnabled: enabled });
+    vibrateShort('light');
+  },
+
+  openVoiceSheet() {
+    this.loadVoiceCatalog();
+    this.setData({ voiceSheetVisible: true });
+  },
+
+  closeVoiceSheet() {
+    if (this.data.pendingVoice) {
+      const pv = this.data.pendingVoice;
+      saveSettings({ voiceId: pv.voiceId });
+      this.debouncedSaveSettings({ voiceId: pv.voiceId });
+      this.setData({ pendingVoice: null });
+    }
+    this.setData({ voiceSheetVisible: false });
+    audioCtx.stop();
+    this.setData({ playingVoiceId: '' });
+  },
+
+  onCatTap(e) {
+    const catId = e.currentTarget.dataset.catId;
+    this.setData({
+      activeVoiceCatId: catId,
+      scrollToCat: 'cat-' + catId
+    });
+  },
+
+  onVoiceTap(e) {
+    const voice = e.currentTarget.dataset.voice;
+    const catId = e.currentTarget.dataset.catId;
+
+    this.setData({
+      selectedVoiceId: voice.id,
+      voiceName: voice.name,
+      activeVoiceCatId: catId,
+      pendingVoice: { voiceId: voice.id }
+    });
+
+    audioCtx.stop();
+    this.setData({ playingVoiceId: voice.id });
+    audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
+    audioCtx.play();
+
+    audioCtx.offEnded();
+    audioCtx.onEnded(() => {
+      this.setData({ playingVoiceId: '' });
+    });
+  },
+
+  debouncedSaveSettings(partial) {
+    Object.assign(_pendingSettings, partial);
+    if (_settingsTimer) clearTimeout(_settingsTimer);
+    _settingsTimer = setTimeout(() => {
+      _settingsTimer = null;
+      this.flushSaveSettings();
+    }, SAVE_DELAY);
+  },
+
+  flushSaveSettings() {
+    if (_settingsTimer) {
+      clearTimeout(_settingsTimer);
+      _settingsTimer = null;
+    }
+    if (Object.keys(_pendingSettings).length === 0) return;
+    const payload = { ..._pendingSettings };
+    _pendingSettings = {};
+    put('/user/detail', payload).catch(() => {});
   },
 
   // ========== 头像 ==========
@@ -274,6 +464,7 @@ Page({
     this.setData({ nickname });
     this.updateAvatar();
     this.debouncedSave();
+    wx.showToast({ title: 'ALIAS UPDATED', icon: 'none', duration: 1200 });
   },
 
   // ========== 导航 ==========
@@ -282,20 +473,12 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' });
   },
 
-  goSettings() {
-    wx.navigateTo({ url: '/pages/settings/settings' });
-  },
-
   goScoreRecords() {
     wx.navigateTo({ url: '/pages/score-records/score-records' });
   },
 
-  goBattleFile() {
-    wx.switchTab({ url: '/pages/mirror/index' });
-  },
-
-  goExportData() {
-    wx.showToast({ title: '功能开发中', icon: 'none' });
+  goAbout() {
+    wx.showToast({ title: 'Smart Record v1.0', icon: 'none' });
   },
 
   // ========== 自动保存 ==========
@@ -394,8 +577,11 @@ Page({
 
   async onLogout() {
     const { confirm } = await wx.showModal({
-      title: '确认退出？',
-      content: '退出后需要重新登录'
+      title: 'SYSTEM WARNING',
+      content: '确认结束当前会话？退出后需要重新授权接入。',
+      confirmText: '结束会话',
+      confirmColor: '#FF4D4F',
+      cancelText: '取消'
     });
     if (!confirm) return;
     app.logout();
@@ -404,9 +590,16 @@ Page({
 
   onHide() {
     this.flushSave();
+    this.flushSaveSettings();
   },
 
   onUnload() {
     this.flushSave();
+    this.flushSaveSettings();
+    if (this.data.pendingVoice) {
+      saveSettings(this.data.pendingVoice);
+    }
+    audioCtx.stop();
+    audioCtx.destroy();
   }
 });

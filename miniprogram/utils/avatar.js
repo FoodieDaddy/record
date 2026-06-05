@@ -52,6 +52,29 @@ function getAvatarData(nickname) {
 }
 
 /**
+ * 标准化头像地址：只保留小程序可直接渲染的图片地址。
+ * 后端偶尔会返回 OSS objectKey，相对路径在页面内会被解析为本地文件。
+ */
+function normalizeAvatarUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^(https?:\/\/|wxfile:\/\/|cloud:\/\/|data:image\/)/.test(value)) return value;
+  return '';
+}
+
+/**
+ * 生成头像视图数据。图片不可用时，统一回退到首字头像。
+ */
+function getAvatarView(nickname, url) {
+  const avatarUrl = normalizeAvatarUrl(url);
+  return {
+    avatarUrl,
+    avatarColor: avatarUrl ? '' : getColor(nickname),
+    avatarChar: avatarUrl ? '' : getFirstChar(nickname)
+  };
+}
+
+/**
  * Canvas 方式生成头像文件（用于需要图片的场景）
  * @param {CanvasContext} ctx
  * @param {string} nickname
@@ -74,4 +97,4 @@ function drawToCanvas(ctx, nickname, size) {
   ctx.fillText(char, radius, radius);
 }
 
-module.exports = { getColor, getFirstChar, getAvatarData, drawToCanvas };
+module.exports = { getColor, getFirstChar, getAvatarData, normalizeAvatarUrl, getAvatarView, drawToCanvas };

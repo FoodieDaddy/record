@@ -34,6 +34,9 @@ public class MirrorProfileResp {
     @Schema(description = "人格与战绩匹配度")
     private PersonaMatchInfo personaMatch;
 
+    @Schema(description = "人格可信度 0-100", example = "75")
+    private Integer personaConfidence;
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -68,6 +71,12 @@ public class MirrorProfileResp {
         private String actualSummary;
         @Schema(description = "一句话总结", example = "人格预测与实际表现高度一致")
         private String summary;
+        @Schema(description = "推算MBTI类型", example = "ENTJ")
+        private String inferredMbtiType;
+        @Schema(description = "推算MBTI称号", example = "压迫型指挥者")
+        private String inferredMbtiTitle;
+        @Schema(description = "偏差程度百分比 0-100", example = "18")
+        private int deviationPercent;
     }
 
     @Data
@@ -116,7 +125,15 @@ public class MirrorProfileResp {
     public static class ReadingInfo {
         @Schema(description = "是否可用", example = "true")
         private boolean available;
-        @Schema(description = "判读文案")
+        @Schema(description = "判读文案（完整文本，向后兼容）")
         private String text;
+        @Schema(description = "系统观测")
+        private String observation;
+        @Schema(description = "偏差描述")
+        private String deviation;
+        @Schema(description = "风险提示")
+        private String risk;
+        @Schema(description = "成长建议")
+        private String growthAdvice;
     }
 }
