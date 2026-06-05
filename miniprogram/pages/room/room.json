@@ -8,7 +8,6 @@
     "host-fill-modal": "/components/host-fill-modal/host-fill-modal",
     "member-fill-modal": "/components/member-fill-modal/member-fill-modal",
     "round-confirm-modal": "/components/round-confirm-modal/round-confirm-modal",
-    "force-graph": "/components/force-graph/force-graph",
     "battle-summary": "/components/battle-summary/battle-summary",
     "score-network": "/components/score-network/score-network",
     "battle-insight": "/components/battle-insight/battle-insight",

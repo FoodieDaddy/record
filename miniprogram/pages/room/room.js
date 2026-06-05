@@ -50,7 +50,6 @@ Page({
     numpadValue: 0,
     // 战局洞察
     roomInsight: null,
-    roomNetwork: null,
     // 计分动画
     animActive: false,
     animCurX: 0,
@@ -267,11 +266,8 @@ Page({
 
   async loadInsightData(roomId) {
     try {
-      const [insight, network] = await Promise.all([
-        get(`/score/room/${roomId}/insight`),
-        get(`/score/room/${roomId}/network`)
-      ]);
-      this.setData({ roomInsight: insight, roomNetwork: network });
+      const insight = await get(`/score/room/${roomId}/insight`);
+      this.setData({ roomInsight: insight });
     } catch (e) {
       // 静默失败，不影响主流程
     }

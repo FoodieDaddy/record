@@ -517,21 +517,6 @@
         </view>
       </view>
 
-      <!-- NETWORK MAP 积分关系图 -->
-      <view class="network-map" wx:if="{{roomNetwork && roomNetwork.nodes.length >= 2}}">
-        <view class="nm-header">
-          <text class="nm-cn">积分关系</text>
-          <text class="nm-en">NETWORK MAP</text>
-        </view>
-        <view class="nm-divider"></view>
-        <force-graph
-          nodes="{{roomNetwork.nodes}}"
-          links="{{roomNetwork.links}}"
-          width="{{300}}"
-          height="{{300}}">
-        </force-graph>
-      </view>
-
       <!-- 底部操作区 -->
       <view class="room-bottom-bar">
         <view class="rb-settle-btn" bindtap="onSettleTap" wx:if="{{isOwner}}">

@@ -3000,32 +3000,3 @@
   flex-shrink: 0;
 }
 
-/* ===== NETWORK MAP 积分关系图 ===== */
-.network-map {
-  padding: 24rpx;
-  border: 1rpx solid rgba(255,255,255,0.08);
-  border-radius: 16rpx;
-  background: rgba(255,255,255,0.025);
-}
-.nm-header {
-  display: flex;
-  flex-direction: column;
-}
-.nm-cn {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: rgba(255,255,255,0.85);
-  letter-spacing: 2rpx;
-}
-.nm-en {
-  font-size: 18rpx;
-  color: rgba(255,255,255,0.2);
-  letter-spacing: 4rpx;
-  font-family: monospace;
-  margin-top: 2rpx;
-}
-.nm-divider {
-  height: 1rpx;
-  background: rgba(255,255,255,0.04);
-  margin: 16rpx 0 12rpx;
-}
