@@ -41,4 +41,16 @@ public class FortuneResp {
 
     @Schema(description = "当前节气", example = "芒种")
     private String solarTerm;
+
+    @Schema(description = "卡牌中文名", example = "压制者")
+    private String title;
+
+    @Schema(description = "卡牌英文名", example = "THE DOMINATOR")
+    private String subtitle;
+
+    @Schema(description = "策略标签列表", example = "[\"强势\", \"连续\", \"压制\"]")
+    private List<String> tags;
+
+    @Schema(description = "下次可刷新时间 (HH:mm:ss)，null 表示今日已生成", example = "20:30:43")
+    private String nextRefreshAt;
 }
