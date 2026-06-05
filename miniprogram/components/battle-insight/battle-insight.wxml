@@ -1,0 +1,36 @@
+<view class="battle-insight">
+  <view class="insight-header">
+    <view class="insight-kicker">BATTLE INSIGHT</view>
+    <view class="insight-title">战局洞察</view>
+    <view class="insight-line"></view>
+  </view>
+
+  <view class="insight-grid">
+    <view class="insight-row">
+      <view class="insight-dot dot-blue"></view>
+      <text class="insight-label">最高活跃玩家</text>
+      <text class="insight-value">{{mostActiveUser.nickname || '--'}}</text>
+    </view>
+
+    <view class="insight-row">
+      <view class="insight-dot dot-purple"></view>
+      <text class="insight-label">最受关注玩家</text>
+      <text class="insight-value">{{mostFocusedUser.nickname || '--'}}</text>
+    </view>
+
+    <view class="insight-row">
+      <view class="insight-dot dot-cyan"></view>
+      <text class="insight-label">互动密度</text>
+      <view class="insight-bar-wrap">
+        <view class="insight-bar-fill" style="width: {{networkDensity === 'HIGH' ? 85 : networkDensity === 'MEDIUM' ? 55 : 25}}%"></view>
+      </view>
+      <text class="insight-density">{{networkDensity === 'HIGH' ? '高' : networkDensity === 'MEDIUM' ? '中' : '低'}}</text>
+    </view>
+
+    <view class="insight-row">
+      <view class="insight-dot dot-green"></view>
+      <text class="insight-label">流转强度</text>
+      <text class="insight-value mono">{{transferCount}}次 / {{memberCount}}人</text>
+    </view>
+  </view>
+</view>
