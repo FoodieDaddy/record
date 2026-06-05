@@ -157,8 +157,8 @@ Component({
         ctx.beginPath()
         ctx.moveTo(p1.x, p1.y)
         ctx.lineTo(p2.x, p2.y)
-        ctx.setStrokeStyle(link.netAmount > 0 ? 'rgba(10,132,255,0.5)' : 'rgba(255,90,90,0.5)')
-        ctx.setLineWidth(lineWidth)
+        ctx.strokeStyle = link.netAmount > 0 ? 'rgba(10,132,255,0.5)' : 'rgba(255,90,90,0.5)'
+        ctx.lineWidth = lineWidth
         ctx.stroke()
       }
 
@@ -169,15 +169,15 @@ Component({
 
         ctx.beginPath()
         ctx.arc(p.x, p.y, radius, 0, Math.PI * 2)
-        ctx.setFillStyle('rgba(10,132,255,0.3)')
+        ctx.fillStyle = 'rgba(10,132,255,0.3)'
         ctx.fill()
-        ctx.setStrokeStyle('rgba(10,132,255,0.6)')
-        ctx.setLineWidth(1)
+        ctx.strokeStyle = 'rgba(10,132,255,0.6)'
+        ctx.lineWidth = 1
         ctx.stroke()
 
-        ctx.setFillStyle('rgba(255,255,255,0.7)')
-        ctx.setFontSize(10)
-        ctx.setTextAlign('center')
+        ctx.fillStyle = 'rgba(255,255,255,0.7)'
+        ctx.font = '10px sans-serif'
+        ctx.textAlign = 'center'
         const name = node.nickname || '?'
         ctx.fillText(name.length > 4 ? name.slice(0, 4) + '..' : name, p.x, p.y + radius + 14)
       }

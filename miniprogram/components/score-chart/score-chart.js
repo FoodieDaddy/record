@@ -107,7 +107,7 @@ Component({
             return;
           }
 
-          const dpr = wx.getSystemInfoSync().pixelRatio;
+          const dpr = wx.getWindowInfo().pixelRatio;
           canvas.width = cssW * dpr;
           canvas.height = cssH * dpr;
           ctx.scale(dpr, dpr);
@@ -273,7 +273,7 @@ Component({
       });
 
       // 绘制事件标记
-      if (progress >= 1 && this.data.eventMarkers && this.data.eventMarkers.length > 0) {
+      if (this.data.eventMarkers && this.data.eventMarkers.length > 0) {
         this._drawEventMarkers(ctx, points, pad, h);
       }
 
