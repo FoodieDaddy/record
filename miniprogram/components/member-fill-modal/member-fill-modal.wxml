@@ -1,8 +1,13 @@
 <view class="mask" bindtap="onClose">
   <view class="modal" catchtap>
     <view class="header">
-      <text class="title">填写本局积分</text>
-      <view class="close-btn" wx:if="{{!submitted}}" bindtap="onClose">✕</view>
+      <view class="title-area">
+        <text class="kicker">MEMBER FILL</text>
+        <text class="title">提交本局</text>
+      </view>
+      <view class="close-btn" wx:if="{{!submitted}}" bindtap="onClose">
+        <view class="close-icon"></view>
+      </view>
     </view>
 
     <block wx:if="{{!submitted}}">
@@ -15,7 +20,7 @@
         bindinput="onInput"
         focus="{{true}}"
       />
-      <button class="submit-btn" bindtap="onSubmit">提交</button>
+      <button class="submit-btn" bindtap="onSubmit">确认提交</button>
     </block>
 
     <block wx:else>

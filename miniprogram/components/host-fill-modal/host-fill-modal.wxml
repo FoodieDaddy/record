@@ -1,8 +1,13 @@
 <view class="mask" bindtap="onClose">
   <view class="modal" catchtap>
     <view class="header">
-      <text class="title">录入本局</text>
-      <view class="close-btn" bindtap="onClose">✕</view>
+      <view class="title-area">
+        <text class="kicker">HOST FILL</text>
+        <text class="title">房主填写</text>
+      </view>
+      <view class="close-btn" bindtap="onClose">
+        <view class="close-icon"></view>
+      </view>
     </view>
 
     <scroll-view scroll-y class="member-list">
@@ -20,7 +25,7 @@
     </scroll-view>
 
     <view class="summary">
-      <text class="total-label">合计：</text>
+      <text class="total-label">合计</text>
       <text class="total-value {{totalScore === 0 ? 'zero' : (totalScore > 0 ? 'positive' : 'negative')}}">
         {{totalScore > 0 ? '+' : ''}}{{totalScore}}
       </text>
@@ -28,6 +33,6 @@
 
     <view class="hint" wx:if="{{zeroSum === 1}}">零和模式已开启，合计必须为 0。</view>
 
-    <button class="submit-btn" bindtap="onSubmit">提交</button>
+    <button class="submit-btn" bindtap="onSubmit">确认提交</button>
   </view>
 </view>

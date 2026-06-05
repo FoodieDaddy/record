@@ -1,7 +1,10 @@
 <view class="mask" bindtap="onClose">
   <view class="modal" catchtap>
     <view class="header">
-      <text class="title">确认本局积分</text>
+      <view class="title-area">
+        <text class="kicker">ROUND CONFIRM</text>
+        <text class="title">确认本局</text>
+      </view>
     </view>
 
     <view class="detail-list">
