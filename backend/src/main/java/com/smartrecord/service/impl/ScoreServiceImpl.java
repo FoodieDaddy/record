@@ -750,13 +750,8 @@ public class ScoreServiceImpl implements ScoreService {
         String eventsKey = ROOM_PREFIX + roomId + ":events";
         Set<String> events = redisTemplate.opsForZSet().range(eventsKey, 0, -1);
         if (events == null || events.isEmpty()) {
-            return RoomInsightResp.builder()
-                    .totalTransfer(0)
-                    .maxSingleTransfer(0)
-                    .mostActiveUser(null)
-                    .transferCount(0)
-                    .networkDensity("LOW")
-                    .build();
+            // Redis 无数据，尝试从 MySQL allRecord 回退
+            return getRoomInsightFromDb(roomId);
         }
 
         int totalTransfer = 0;
@@ -814,6 +809,13 @@ public class ScoreServiceImpl implements ScoreService {
         Set<ZSetOperations.TypedTuple<String>> scoreSet =
                 redisTemplate.opsForZSet().reverseRangeWithScores(scoresKey, 0, -1);
 
+        // Redis 无数据，尝试从 MySQL allRecord 回退
+        boolean noEvents = (events == null || events.isEmpty());
+        boolean noScores = (scoreSet == null || scoreSet.isEmpty());
+        if (noEvents && noScores) {
+            return getRoomNetworkFromDb(roomId);
+        }
+
         // 构建 nodes
         List<RoomNetworkResp.Node> nodes = new ArrayList<>();
         if (scoreSet != null) {
@@ -865,6 +867,144 @@ public class ScoreServiceImpl implements ScoreService {
                 .nodes(nodes)
                 .links(links)
                 .build();
+    }
+
+    /**
+     * 从 MySQL allRecord 回退计算战局洞察（settle 后 Redis 已清理的场景）
+     */
+    private RoomInsightResp getRoomInsightFromDb(Long roomId) {
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getAllRecord() == null || room.getAllRecord().isEmpty()) {
+            return RoomInsightResp.builder()
+                    .totalTransfer(0).maxSingleTransfer(0)
+                    .mostActiveUser(null).transferCount(0)
+                    .networkDensity("LOW").build();
+        }
+
+        int totalTransfer = 0;
+        int maxSingle = 0;
+        Map<Long, Integer> userCount = new HashMap<>();
+
+        for (Map<String, Object> record : room.getAllRecord()) {
+            Object te = record.get("transferEvents");
+            if (!(te instanceof List)) continue;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> transfers = (List<Map<String, Object>>) te;
+            for (Map<String, Object> evt : transfers) {
+                long from = ((Number) evt.get("from")).longValue();
+                long to = ((Number) evt.get("to")).longValue();
+                int amount = ((Number) evt.get("amount")).intValue();
+                totalTransfer += amount;
+                if (amount > maxSingle) maxSingle = amount;
+                userCount.merge(from, 1, Integer::sum);
+                userCount.merge(to, 1, Integer::sum);
+            }
+        }
+
+        // 最活跃用户
+        RoomInsightResp.ActiveUser activeUser = null;
+        if (!userCount.isEmpty()) {
+            Map.Entry<Long, Integer> top = Collections.max(userCount.entrySet(), Map.Entry.comparingByValue());
+            User user = userMapper.selectById(top.getKey());
+            activeUser = RoomInsightResp.ActiveUser.builder()
+                    .userId(top.getKey())
+                    .nickname(user != null ? user.getNickname() : "未知")
+                    .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                    .count(top.getValue()).build();
+        }
+
+        // 互动密度：从 scores 收集唯一成员数
+        Set<Long> memberIds = new HashSet<>();
+        for (Map<String, Object> record : room.getAllRecord()) {
+            Object scoresObj = record.get("scores");
+            if (!(scoresObj instanceof List)) continue;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
+            for (Map<String, Object> s : scores) {
+                memberIds.add(((Number) s.get("userId")).longValue());
+            }
+        }
+        int n = memberIds.size();
+        int eventCount = userCount.values().stream().mapToInt(Integer::intValue).sum() / 2;
+        double density = (n > 1) ? (double) eventCount / (n * (n - 1)) : 0;
+        String densityLevel = density > 0.3 ? "HIGH" : density > 0.1 ? "MEDIUM" : "LOW";
+
+        return RoomInsightResp.builder()
+                .totalTransfer(totalTransfer)
+                .maxSingleTransfer(maxSingle)
+                .mostActiveUser(activeUser)
+                .transferCount(eventCount)
+                .networkDensity(densityLevel).build();
+    }
+
+    /**
+     * 从 MySQL allRecord 回退计算积分关系网络（settle 后 Redis 已清理的场景）
+     */
+    private RoomNetworkResp getRoomNetworkFromDb(Long roomId) {
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getAllRecord() == null) {
+            return RoomNetworkResp.builder().nodes(List.of()).links(List.of()).build();
+        }
+
+        // 从 allRecord 聚合最终得分
+        Map<Long, Integer> finalScores = new LinkedHashMap<>();
+        Map<Long, String> nicknames = new LinkedHashMap<>();
+        for (Map<String, Object> record : room.getAllRecord()) {
+            Object scoresObj = record.get("scores");
+            if (!(scoresObj instanceof List)) continue;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
+            for (Map<String, Object> s : scores) {
+                long uid = ((Number) s.get("userId")).longValue();
+                int score = ((Number) s.get("score")).intValue();
+                finalScores.merge(uid, score, Integer::sum);
+                String name = (String) s.get("name");
+                if (name != null) nicknames.putIfAbsent(uid, name);
+            }
+        }
+
+        // 构建 nodes
+        List<RoomNetworkResp.Node> nodes = new ArrayList<>();
+        for (Map.Entry<Long, Integer> e : finalScores.entrySet()) {
+            User user = userMapper.selectById(e.getKey());
+            nodes.add(RoomNetworkResp.Node.builder()
+                    .userId(e.getKey())
+                    .nickname(user != null ? user.getNickname() : nicknames.getOrDefault(e.getKey(), "未知"))
+                    .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                    .score(e.getValue()).build());
+        }
+
+        // 构建 links
+        Map<String, int[]> pairMap = new HashMap<>();
+        for (Map<String, Object> record : room.getAllRecord()) {
+            Object te = record.get("transferEvents");
+            if (!(te instanceof List)) continue;
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> transfers = (List<Map<String, Object>>) te;
+            for (Map<String, Object> evt : transfers) {
+                long from = ((Number) evt.get("from")).longValue();
+                long to = ((Number) evt.get("to")).longValue();
+                int amount = ((Number) evt.get("amount")).intValue();
+                String key = from + ":" + to;
+                pairMap.merge(key, new int[]{amount, 1}, (a, b) -> {
+                    a[0] += b[0];
+                    a[1] += b[1];
+                    return a;
+                });
+            }
+        }
+
+        List<RoomNetworkResp.Link> links = new ArrayList<>();
+        for (Map.Entry<String, int[]> e : pairMap.entrySet()) {
+            String[] parts = e.getKey().split(":");
+            links.add(RoomNetworkResp.Link.builder()
+                    .from(Long.parseLong(parts[0]))
+                    .to(Long.parseLong(parts[1]))
+                    .netAmount(e.getValue()[0])
+                    .count(e.getValue()[1]).build());
+        }
+
+        return RoomNetworkResp.builder().nodes(nodes).links(links).build();
     }
 
     // ===== 私有方法 =====
