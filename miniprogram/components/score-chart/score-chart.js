@@ -12,7 +12,8 @@ Component({
     timestamps: { type: Array, value: [] },
     series: { type: Array, value: [] },
     visibleUsers: { type: Array, value: [] },
-    highlightUser: { type: String, value: '' }
+    highlightUser: { type: String, value: '' },
+    eventMarkers: { type: Array, value: [] }
   },
 
   data: {
@@ -20,7 +21,7 @@ Component({
   },
 
   observers: {
-    'timestamps, series, visibleUsers, highlightUser'() {
+    'timestamps, series, visibleUsers, highlightUser, eventMarkers'() {
       this._dataReady = true;
       if (this._initialized) {
         this._draw();
@@ -271,6 +272,11 @@ Component({
         ctx.restore();
       });
 
+      // 绘制事件标记
+      if (progress >= 1 && this.data.eventMarkers && this.data.eventMarkers.length > 0) {
+        this._drawEventMarkers(ctx, points, pad, h);
+      }
+
       // 触控指示线 + Canvas Tooltip
       if (this._touchIdx >= 0 && this._touchIdx < n) {
         const tx = xScale(this._touchIdx);
@@ -484,6 +490,39 @@ Component({
       ctx.beginPath();
       ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
       ctx.stroke();
+    },
+
+    // ========== 事件标记 ==========
+
+    _drawEventMarkers(ctx, points, pad, h) {
+      const markers = this.data.eventMarkers;
+      for (const marker of markers) {
+        if (marker.index < 0 || marker.index >= points.length) continue;
+        const p = points[marker.index];
+        const color = marker.color || '#00AFFF';
+
+        // 竖虚线
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(p.x, pad.top);
+        ctx.lineTo(p.x, h - pad.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 标签
+        ctx.save();
+        ctx.font = '10px "SF Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 6;
+        ctx.fillText(marker.label, p.x, pad.top - 6);
+        ctx.restore();
+      }
     },
 
     // ========== 触控交互 ==========
