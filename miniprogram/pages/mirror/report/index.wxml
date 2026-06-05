@@ -55,7 +55,7 @@
         <text class="raw-toggle-text">{{showRaw ? '收起原始数据' : '展开原始数据'}}</text>
       </view>
       <view class="raw-content" wx:if="{{showRaw}}">
-        <text class="raw-json">{{report.rawResult}}</text>
+        <text class="raw-json">{{report.rawResultStr}}</text>
       </view>
     </view>
 

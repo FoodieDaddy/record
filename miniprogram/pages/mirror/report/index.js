@@ -15,6 +15,10 @@ Page({
   async loadReport(id) {
     try {
       const report = await api.getMirrorReport(id);
+      // rawResult 是对象，WXML 无法直接渲染，转为格式化字符串
+      if (report.rawResult && typeof report.rawResult === 'object') {
+        report.rawResultStr = JSON.stringify(report.rawResult, null, 2);
+      }
       wx.setNavigationBarTitle({ title: report.toolName || '结果' });
       this.setData({ loading: false, report });
     } catch (e) {
