@@ -1,0 +1,44 @@
+<view class="persona-signal">
+  <view class="signal-header">
+    <view class="signal-kicker">PERSONA SIGNAL</view>
+    <view class="signal-title">人格信号</view>
+    <view class="signal-line"></view>
+  </view>
+
+  <view class="signal-grid">
+    <view class="signal-row">
+      <text class="signal-label">社交活跃度</text>
+      <view class="signal-bar-wrap">
+        <view class="signal-bar-fill" style="width: {{socialActivity === '高' ? 80 : socialActivity === '中' ? 50 : 25}}%"></view>
+      </view>
+      <text class="signal-level">{{socialActivity}}</text>
+    </view>
+    <view class="signal-row">
+      <text class="signal-label">风险偏好</text>
+      <view class="signal-bar-wrap">
+        <view class="signal-bar-fill" style="width: {{riskPreference === '高' ? 80 : riskPreference === '中' ? 50 : 25}}%"></view>
+      </view>
+      <text class="signal-level">{{riskPreference}}</text>
+    </view>
+    <view class="signal-row">
+      <text class="signal-label">资源控制欲</text>
+      <view class="signal-bar-wrap">
+        <view class="signal-bar-fill" style="width: {{resourceControl === '高' ? 80 : resourceControl === '中' ? 50 : 25}}%"></view>
+      </view>
+      <text class="signal-level">{{resourceControl}}</text>
+    </view>
+    <view class="signal-row">
+      <text class="signal-label">联盟倾向</text>
+      <view class="signal-bar-wrap">
+        <view class="signal-bar-fill" style="width: {{allianceTendency === '高' ? 80 : allianceTendency === '中' ? 50 : 25}}%"></view>
+      </view>
+      <text class="signal-level">{{allianceTendency}}</text>
+    </view>
+  </view>
+
+  <view class="signal-sync">
+    <view class="sync-dot"></view>
+    <text class="sync-text">数据已同步镜像系统</text>
+    <text class="sync-badge">SYNCED</text>
+  </view>
+</view>
