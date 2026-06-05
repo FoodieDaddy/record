@@ -250,6 +250,18 @@ public class ScoreServiceImpl implements ScoreService {
     private SettleResp doSettleRoom(Long userId, Long roomId, Room room, boolean autoSettled) {
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 
+        // 0. 读取成员元数据快照（结档前，Redis 清理前）
+        String metaKey = roomPrefix + "meta";
+        Map<Object, Object> metaFields = redisTemplate.opsForHash().entries(metaKey);
+        Map<Long, JSONObject> memberMetaMap = new HashMap<>();
+        for (Object key : metaFields.keySet()) {
+            String k = (String) key;
+            if (k.startsWith("m:")) {
+                JSONObject memberObj = JSONUtil.parseObj((String) metaFields.get(k));
+                memberMetaMap.put(memberObj.getLong("userId"), memberObj);
+            }
+        }
+
         // 1. 读取所有批次时间戳
         List<String> batchTsList = redisTemplate.opsForList().range(roomPrefix + "batches", 0, -1);
 
@@ -257,7 +269,73 @@ public class ScoreServiceImpl implements ScoreService {
         Map<Long, Integer> playerTotalMap = new HashMap<>();
         List<Map<String, Object>> allRecord = new ArrayList<>();
 
-        if (batchTsList != null && !batchTsList.isEmpty()) {
+        // 自由流转模式：batchTsList 为空时，从 scores ZSet 和 events ZSet 构建数据
+        if (batchTsList == null || batchTsList.isEmpty()) {
+            // 从 scores ZSet 读取最终分数
+            Set<ZSetOperations.TypedTuple<String>> scoreMembers =
+                    redisTemplate.opsForZSet().rangeWithScores(roomPrefix + "scores", 0, -1);
+            if (scoreMembers != null) {
+                for (ZSetOperations.TypedTuple<String> tuple : scoreMembers) {
+                    String val = tuple.getValue();
+                    if ("init".equals(val)) continue;
+                    Long uid = Long.parseLong(val);
+                    int score = tuple.getScore() != null ? tuple.getScore().intValue() : 0;
+                    playerTotalMap.put(uid, score);
+                }
+            }
+            // 确保所有房间成员都在 playerTotalMap 中（包括 0 分成员）
+            Map<Object, Object> metaEntries = redisTemplate.opsForHash().entries(roomPrefix + "meta");
+            for (Object key : metaEntries.keySet()) {
+                String k = (String) key;
+                if (k.startsWith("m:")) {
+                    Long uid = Long.parseLong(k.substring(2));
+                    playerTotalMap.putIfAbsent(uid, 0);
+                }
+            }
+
+            // 从 events ZSet 构建图表数据（每个 event 作为一个数据点）
+            Set<ZSetOperations.TypedTuple<String>> eventTuples =
+                    redisTemplate.opsForZSet().rangeWithScores(roomPrefix + "events", 0, -1);
+            if (eventTuples != null && !eventTuples.isEmpty()) {
+                List<JSONObject> eventList = new ArrayList<>();
+                for (ZSetOperations.TypedTuple<String> tuple : eventTuples) {
+                    String json = tuple.getValue();
+                    if (json == null) continue;
+                    try {
+                        eventList.add(JSONUtil.parseObj(json));
+                    } catch (Exception ignored) {}
+                }
+                eventList.sort(Comparator.comparingLong(o -> o.getLong("time", 0L)));
+
+                for (JSONObject event : eventList) {
+                    long time = event.getLong("time", 0L);
+                    long fromId = event.getLong("from");
+                    long toId = event.getLong("to");
+                    int amount = event.getInt("amount");
+
+                    // 存增量（delta），buildChartFromAllRecord 会自行累加
+                    Map<String, Object> snapshot = new HashMap<>();
+                    snapshot.put("batchTime", time);
+                    List<Map<String, Object>> psList = new ArrayList<>();
+                    Map<String, Object> fromPs = new HashMap<>();
+                    fromPs.put("userId", fromId);
+                    fromPs.put("score", -amount);
+                    JSONObject fromMeta = memberMetaMap.get(fromId);
+                    fromPs.put("name", fromMeta != null ? fromMeta.getStr("nickname") : "");
+                    fromPs.put("avatar", fromMeta != null ? fromMeta.getStr("avatarUrl") : "");
+                    psList.add(fromPs);
+                    Map<String, Object> toPs = new HashMap<>();
+                    toPs.put("userId", toId);
+                    toPs.put("score", amount);
+                    JSONObject toMeta = memberMetaMap.get(toId);
+                    toPs.put("name", toMeta != null ? toMeta.getStr("nickname") : "");
+                    toPs.put("avatar", toMeta != null ? toMeta.getStr("avatarUrl") : "");
+                    psList.add(toPs);
+                    snapshot.put("scores", psList);
+                    allRecord.add(snapshot);
+                }
+            }
+        } else {
             for (String tsStr : batchTsList) {
                 String batchKey = roomPrefix + "batch:" + tsStr;
                 Map<Object, Object> batchEntries = redisTemplate.opsForHash().entries(batchKey);
@@ -296,6 +374,9 @@ public class ScoreServiceImpl implements ScoreService {
                     Map<String, Object> ps = new HashMap<>();
                     ps.put("userId", uid);
                     ps.put("score", scoreVal);
+                    JSONObject meta = memberMetaMap.get(uid);
+                    ps.put("name", meta != null ? meta.getStr("nickname") : "");
+                    ps.put("avatar", meta != null ? meta.getStr("avatarUrl") : "");
                     playerScores.add(ps);
                 }
                 batchRecord.put("scores", playerScores);
@@ -472,6 +553,37 @@ public class ScoreServiceImpl implements ScoreService {
     @Override
     public ChartDataResp getChartData(Long roomId) {
         return overviewService.getChartData(roomId);
+    }
+
+    @Override
+    public TrendResp getTrend(Long userId, int limit) {
+        List<Map<String, Object>> rows = scoreMapper.selectTrendByUserId(userId, limit);
+        if (rows.isEmpty()) {
+            return TrendResp.builder().points(Collections.emptyList()).build();
+        }
+
+        // 反转为时间正序（查询返回倒序）
+        List<TrendResp.Point> points = new ArrayList<>();
+        for (int i = rows.size() - 1; i >= 0; i--) {
+            Map<String, Object> row = rows.get(i);
+            Long roomId = ((Number) row.get("roomId")).longValue();
+            Integer netScore = ((Number) row.get("netScore")).intValue();
+            Object latestAt = row.get("latestAt");
+            String date = "";
+            if (latestAt instanceof java.sql.Timestamp) {
+                date = ((java.sql.Timestamp) latestAt).toLocalDateTime()
+                        .toLocalDate().toString();
+            } else if (latestAt != null) {
+                date = latestAt.toString().substring(0, 10);
+            }
+            points.add(TrendResp.Point.builder()
+                    .roomId(roomId)
+                    .date(date)
+                    .netScore(netScore)
+                    .build());
+        }
+
+        return TrendResp.builder().points(points).build();
     }
 
     // ===== 私有方法 =====

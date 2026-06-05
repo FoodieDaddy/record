@@ -25,19 +25,71 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-// 赛博终端加载文案队列
-const LOADING_STEPS = [
-  '[ 初始化对战矩阵 ]',
-  '[ 解析历史磁场波动 ]',
-  '[ 载入太阴历环境参数 ]',
-  '[ 正在坍缩量子态 ]'
+// 终端日志池 — 拆分为过程日志 / 拖延日志 / 成功收尾日志
+// 过程日志：API 返回前逐步输出
+const PROCESS_LOGS = [
+  // 阶段 1：系统引导
+  { msg: 'BOOT SEQUENCE INITIATED...', type: 'info' },
+  { msg: '[SYS] 加载命运内核模块 (KERNEL v3.7.2)...', type: 'info' },
+  { msg: 'MEMORY ALLOCATION: 0x8F3A2B00 // 运势缓存区已锁定', type: 'info' },
+  { msg: '[INIT] 挂载玄学设备 /dev/fortune [OK]', type: 'success' },
+  // 阶段 2：环境校准
+  { msg: '[ENV] 正在同步天干地支坐标系 (SOLAR_TERMS_DB)...', type: 'info' },
+  { msg: '[ENV] 校准农历模块 LUNAR_MODULE v2.1...', type: 'info' },
+  { msg: '[WARN] 检测到缓存层数据陈旧，执行 BYPASS...', type: 'warn' },
+  { msg: '[ENV] 解密历史运势数据流 HIST_STREAM... [OK]', type: 'success' },
+  // 阶段 3：场域扫描
+  { msg: '[SCAN] 扫描玩家积分磁场偏移量...', type: 'info' },
+  { msg: '[SCAN] 近期积分波动幅度: ±327.68 // MAGNETIC_DEVIATION', type: 'info' },
+  { msg: '[FIELD] 分析运势向量场 FORTUNE_VECTOR...', type: 'info' },
+  { msg: '[QUANTUM] 计算量子态坍缩概率...', type: 'info' },
+  { msg: '[FIELD] 场域分析完成 VECTOR_NORM=0.97 [OK]', type: 'success' },
+  // 阶段 4：AI 推演引擎
+  { msg: '[AIGC] 启动 Agent 推理任务 TASK_ID=0xA7F3...', type: 'info' },
+  { msg: '[AIGC] 神经网络推理引擎 INFERENCE_ENGINE 就绪', type: 'info' },
+  { msg: '[AIGC] 算力倾注：深度推演多重宇宙分支...', type: 'info' },
+  { msg: '[AIGC] 正在评估风险/收益矩阵 RISK_MATRIX...', type: 'info' },
+  { msg: '[AIGC] 解析玩家近期对局行为模式 BEHAVIOR_PATTERN...', type: 'info' },
+  { msg: '[AIGC] 交叉验证星座 × 生肖 × 节气耦合因子...', type: 'info' },
+]
+// 拖延日志：动态生成器，模拟分布式微服务集群仿真
+function hex8() { return Math.floor(Math.random() * 16777215).toString(16).toUpperCase().padStart(6, '0') }
+function randAlphaNum(len) { return Math.random().toString(36).substring(2, 2 + len).toUpperCase() }
+
+function generateStallLog() {
+  const templates = [
+    () => ({ msg: `[WARN] 推理引擎高负荷运转 CPU_LOAD: ${(85 + Math.random() * 14).toFixed(1)}%`, type: 'warn' }),
+    () => ({ msg: `[QUANTUM] 解析多重宇宙分支 0x${hex8()}... 波函数尚未坍缩`, type: 'info' }),
+    () => ({ msg: `[GATEWAY] 动态路由寻址中... 命中可用神经节点 NACOS_ID: ${randAlphaNum(6)}`, type: 'info' }),
+    () => ({ msg: `[ROCKETMQ] 持续消费环境事件流 TOPIC_FORTUNE | OFFSET: ${Math.floor(Math.random() * 900000 + 100000)}`, type: 'info' }),
+    () => ({ msg: `[REDIS] 离线演算穿透，触发内存淘汰机制 LRU_KEY: 0x${hex8()}`, type: 'warn' }),
+    () => ({ msg: `[AIGC] 持续推演时间线... 累计词元吞吐 TOKENS: ${Math.floor(Math.random() * 4096 + 1024)}`, type: 'info' }),
+    () => ({ msg: `[VISION] 提取多模态环境特征矩阵 | YOLO_CONFIDENCE: ${(0.85 + Math.random() * 0.14).toFixed(3)}`, type: 'info' }),
+    () => ({ msg: `[FEIGN] 维持跨节点 RPC 量子通信链路 | LATENCY: ${Math.floor(Math.random() * 45 + 5)}ms`, type: 'info' }),
+    () => ({ msg: `>>> DATA_STREAM: ${randAlphaNum(10)}...`, type: 'info' }),
+    () => ({ msg: `[TRACE] 分布式链路追踪 SPAN_ID: ${randAlphaNum(8)}-${randAlphaNum(4)}`, type: 'info' }),
+    () => ({ msg: `[WARN] 算力调度器触发熔断降级 FALLBACK_CHAIN: ${randAlphaNum(6)}`, type: 'warn' }),
+    () => ({ msg: `[KAFKA] 消费者组重平衡 REBALANCE_IN_PROGRESS | PARTITION: ${Math.floor(Math.random() * 8)}`, type: 'warn' }),
+    () => ({ msg: `[PROMETHEUS] 采集推理节点指标 INFERENCE_P99: ${Math.floor(Math.random() * 300 + 200)}ms`, type: 'info' }),
+    () => ({ msg: `[CONSUL] 健康检查通过 NODE_PASS: ${Math.floor(Math.random() * 12 + 3)}/15`, type: 'success' }),
+  ]
+  return templates[Math.floor(Math.random() * templates.length)]()
+}
+// 成功收尾日志：API 返回后快速连续输出
+const SUCCESS_LOGS = [
+  { msg: '[SYNTH] 合成运势输出 FORTUNE_OUTPUT... [OK]', type: 'success' },
+  { msg: '[RENDER] 渲染全息命运卡片 HOLO_CARD...', type: 'info' },
+  { msg: '[BUFF] 生成增益/减益效果列表...', type: 'info' },
+  { msg: 'ALL SYSTEMS NOMINAL // 运势模块就绪', type: 'success' },
+  { msg: '[AGENT] 运势量子态坍缩演算完成 [200 OK]', type: 'success' },
 ]
 
 Page({
   data: {
     loading: true,
     loadingFadeOut: false,
-    currentLoadingText: LOADING_STEPS[0],
+    logs: [],
+    scrollToId: '',
     fortune: null,
     error: null,
     rotateX: 0,
@@ -49,8 +101,8 @@ Page({
     posterImagePath: ''
   },
 
-  _loadingTimer: null,
-  _loadingIndex: 0,
+  _logTimer: null,
+  _logIndex: 0,
   _accelerometerListening: false,
   _countdownTimer: null,
 
@@ -79,34 +131,46 @@ Page({
   },
 
   onUnload() {
-    this.clearLoadingTimer()
+    this.clearLogTimer()
     this.stopAccelerometer()
     this.stopCountdown()
   },
 
   /** 获取运势，force=true 时跳过缓存强制重新生成 */
   fetchFortune(force) {
-    this.setData({ loading: true, loadingFadeOut: false, error: null })
-    this.startLoadingText()
+    this.setData({ loading: true, loadingFadeOut: false, logs: [], error: null })
+    this._apiReturned = false
+    this.startLogStream()
 
     const params = force ? { force: true } : undefined
-    const finishLoading = (updates) => {
-      this.clearLoadingTimer()
-      if (this.data.animationEnabled) {
-        this.setData({ loadingFadeOut: true })
-        setTimeout(() => {
-          this.setData({ loading: false, loadingFadeOut: false, ...updates })
-        }, 300)
-      } else {
-        this.setData({ loading: false, ...updates })
-      }
-    }
 
     get('/fortune/today', params).then(data => {
-      finishLoading({ fortune: data })
+      this._apiReturned = true
+      this.clearLogTimer()
+      // 快速连续输出成功收尾日志，然后退场
+      this._pushSuccessLogs(() => {
+        this._finishLoading({ fortune: data })
+      })
     }).catch(err => {
-      finishLoading({ error: err.message || '连接中断，请重试' })
+      this._apiReturned = true
+      this.clearLogTimer()
+      // 失败也要输出收尾日志再退场
+      this._pushSuccessLogs(() => {
+        this._finishLoading({ error: err.message || '连接中断，请重试' })
+      })
     })
+  },
+
+  /** 退场：淡出日志遮罩，展示真实内容 */
+  _finishLoading(updates) {
+    if (this.data.animationEnabled) {
+      this.setData({ loadingFadeOut: true })
+      setTimeout(() => {
+        this.setData({ loading: false, loadingFadeOut: false, logs: [], scrollToId: '', ...updates })
+      }, 300)
+    } else {
+      this.setData({ loading: false, logs: [], scrollToId: '', ...updates })
+    }
   },
 
   /** 刷新运势：强制跳过缓存，重新调用 LLM 生成 */
@@ -115,24 +179,70 @@ Page({
     this.fetchFortune(true)
   },
 
-  // ===== 加载文案轮播 =====
+  // ===== 终端日志瀑布流（智能引擎） =====
 
-  startLoadingText() {
-    this._loadingIndex = 0
-    this.setData({ currentLoadingText: LOADING_STEPS[0] })
-    this.clearLoadingTimer()
-    this._loadingTimer = setInterval(() => {
-      this._loadingIndex = (this._loadingIndex + 1) % LOADING_STEPS.length
-      this.setData({
-        currentLoadingText: LOADING_STEPS[this._loadingIndex]
-      })
-    }, 800)
+  startLogStream() {
+    this._logIndex = 0
+    this.clearLogTimer()
+    this._pushNextProcessLog()
   },
 
-  clearLoadingTimer() {
-    if (this._loadingTimer) {
-      clearInterval(this._loadingTimer)
-      this._loadingTimer = null
+  /** 输出下一条过程日志；打完后进入动态拖延模式 */
+  _pushNextProcessLog() {
+    if (this._apiReturned) return // API 已返回，停止过程日志
+
+    let entry
+    if (this._logIndex < PROCESS_LOGS.length) {
+      // 过程日志未打完，按序取
+      entry = PROCESS_LOGS[this._logIndex++]
+    } else {
+      // 过程日志打完，动态生成拖延日志
+      entry = generateStallLog()
+    }
+
+    this._appendLog(entry)
+
+    // 非线性心跳：过程日志 400~900ms；拖延模式 200~1500ms 极端抖动
+    const isStall = this._logIndex >= PROCESS_LOGS.length
+    const delay = isStall
+      ? 200 + Math.floor(Math.random() * 1300)
+      : 400 + Math.floor(Math.random() * 500)
+    this._logTimer = setTimeout(() => this._pushNextProcessLog(), delay)
+  },
+
+  /** API 返回后快速连续输出成功收尾日志 */
+  _pushSuccessLogs(onDone) {
+    let i = 0
+    const push = () => {
+      if (i >= SUCCESS_LOGS.length) {
+        // 全部收尾日志输出完毕，延迟 500ms 让用户看清，然后退场
+        setTimeout(onDone, 500)
+        return
+      }
+      this._appendLog(SUCCESS_LOGS[i++])
+      this._logTimer = setTimeout(push, 80 + Math.floor(Math.random() * 70))
+    }
+    push()
+  },
+
+  /** 追加一条日志到 data.logs 并滚动到底部 */
+  _appendLog(entry) {
+    const now = new Date()
+    const ts = [
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0')
+    ].join(':') + '.' + String(now.getMilliseconds()).padStart(3, '0')
+
+    const logs = this.data.logs.concat({ time: ts, msg: entry.msg, type: entry.type })
+    const scrollToId = 'log-' + (logs.length - 1)
+    this.setData({ logs, scrollToId })
+  },
+
+  clearLogTimer() {
+    if (this._logTimer) {
+      clearTimeout(this._logTimer)
+      this._logTimer = null
     }
   },
 

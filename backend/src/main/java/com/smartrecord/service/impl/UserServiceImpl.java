@@ -20,6 +20,7 @@ import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.StorageService;
 import com.smartrecord.service.UserService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
+import com.smartrecord.util.AvatarGenerator;
 import com.smartrecord.util.JwtUtil;
 import com.smartrecord.util.NicknameGenerator;
 import com.smartrecord.util.SnowflakeIdGenerator;
@@ -53,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final ScoreWebSocket scoreWebSocket;
     private final StorageService storageService;
     private final OssConfig ossConfig;
+    private final AvatarGenerator avatarGenerator;
     private final TransactionTemplate transactionTemplate;
 
     @Value("${wechat.appid:}")
@@ -95,10 +97,8 @@ public class UserServiceImpl implements UserService {
             user.setId(idGenerator.nextId());
             user.setOpenid(openid);
             user.setUnionid(resp.getStr("unionid"));
-            // 静默截断：微信授权昵称可能超长，不抛异常直接截取
-            String rawNickname = req.getNickname() != null ? req.getNickname() : NicknameGenerator.generate();
-            user.setNickname(truncateNickname(rawNickname));
-            user.setAvatarUrl(req.getAvatarUrl() != null ? req.getAvatarUrl() : "");
+            user.setNickname(truncateNickname(NicknameGenerator.generateRandomName()));
+            user.setAvatarUrl(avatarGenerator.generateAndUpload());
             final User newUser = user;
             transactionTemplate.executeWithoutResult(status -> {
                 userMapper.insert(newUser);

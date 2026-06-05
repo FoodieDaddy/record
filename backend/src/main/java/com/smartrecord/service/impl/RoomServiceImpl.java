@@ -156,15 +156,7 @@ public class RoomServiceImpl implements RoomService {
         while (usedSeats.contains(nextSeat)) nextSeat++;
         if (nextSeat > 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
 
-        // 5. 加入房间
-        RoomMember member = new RoomMember();
-        member.setId(idGenerator.nextId());
-        member.setRoomId(rid);
-        member.setUserId(userId);
-        member.setSeatNo(nextSeat);
-        roomMemberMapper.insert(member);
-
-        // 6. 从 Redis 缓存获取用户信息
+        // 5. 加载用户信息并检查重名
         String userKey = "sr:user:" + userId;
         String userJson = redisTemplate.opsForValue().get(userKey);
         String nickname;
@@ -174,14 +166,31 @@ public class RoomServiceImpl implements RoomService {
             nickname = userObj.getStr("nickname");
             avatarUrl = userObj.getStr("avatarUrl");
         } else {
-            // 降级查数据库
             User user = userMapper.selectById(userId);
             if (user == null) throw new BizException("用户不存在，请重新登录");
             nickname = user.getNickname();
             avatarUrl = user.getAvatarUrl();
         }
 
-        // 7. 更新房间成员缓存
+        // 重名检查：遍历已有成员，碰撞则拦截
+        for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
+            String key = (String) entry.getKey();
+            if (!key.startsWith("m:")) continue;
+            JSONObject memberObj = JSONUtil.parseObj((String) entry.getValue());
+            if (nickname.equals(memberObj.getStr("nickname"))) {
+                throw new BizException(4009, "身份重叠：场域内存在同名实体，请前往[我的]修改昵称");
+            }
+        }
+
+        // 6. 加入房间
+        RoomMember member = new RoomMember();
+        member.setId(idGenerator.nextId());
+        member.setRoomId(rid);
+        member.setUserId(userId);
+        member.setSeatNo(nextSeat);
+        roomMemberMapper.insert(member);
+
+        // 7. 更新 Redis 房间成员缓存
         String memberJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", nickname,
@@ -507,15 +516,54 @@ public class RoomServiceImpl implements RoomService {
         Map<Long, RoomMember> memberMap = memberships.stream()
                 .collect(Collectors.toMap(RoomMember::getRoomId, m -> m, (a, b) -> a));
 
-        return rooms.stream().map(room -> RoomResp.builder()
-                .roomId(room.getId())
-                .roomNo(room.getRoomNo())
-                .ownerId(room.getOwnerId())
-                .scoreMode(room.getScoreMode())
-                .status(room.getStatus())
-                .createdAt(room.getCreatedAt())
-                .build()
-        ).collect(Collectors.toList());
+        // 批量加载所有房间的成员（含 finalScore）
+        List<RoomMember> allMembers = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .in(RoomMember::getRoomId, roomIds)
+                        .isNotNull(RoomMember::getQuitTime));
+        Map<Long, List<RoomMember>> membersByRoom = allMembers.stream()
+                .collect(Collectors.groupingBy(RoomMember::getRoomId));
+
+        // 批量加载用户信息（Redis 优先，DB 兜底）
+        Set<Long> allUserIds = allMembers.stream()
+                .map(RoomMember::getUserId).collect(Collectors.toSet());
+        Map<Long, String> nicknameMap = new HashMap<>();
+        Map<Long, String> avatarUrlMap = new HashMap<>();
+        for (Long uid : allUserIds) {
+            String userJson = redisTemplate.opsForValue().get("sr:user:" + uid);
+            if (userJson != null) {
+                JSONObject userObj = JSONUtil.parseObj(userJson);
+                nicknameMap.put(uid, userObj.getStr("nickname", ""));
+                avatarUrlMap.put(uid, buildFullUrl(userObj.getStr("avatarUrl", "")));
+            } else {
+                User u = userMapper.selectById(uid);
+                nicknameMap.put(uid, u != null ? u.getNickname() : "");
+                avatarUrlMap.put(uid, u != null ? buildFullUrl(u.getAvatarUrl()) : "");
+            }
+        }
+
+        return rooms.stream().map(room -> {
+            List<RoomMember> roomMembers = membersByRoom.getOrDefault(room.getId(), Collections.emptyList());
+            List<RoomResp.MemberVO> memberVOs = roomMembers.stream()
+                    .map(m -> RoomResp.MemberVO.builder()
+                            .userId(m.getUserId())
+                            .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
+                            .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
+                            .seatNo(m.getSeatNo())
+                            .finalScore(m.getFinalScore())
+                            .build())
+                    .collect(Collectors.toList());
+
+            return RoomResp.builder()
+                    .roomId(room.getId())
+                    .roomNo(room.getRoomNo())
+                    .ownerId(room.getOwnerId())
+                    .scoreMode(room.getScoreMode())
+                    .status(room.getStatus())
+                    .members(memberVOs)
+                    .createdAt(room.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     // ===== 私有方法 =====

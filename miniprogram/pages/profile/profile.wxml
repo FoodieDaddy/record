@@ -30,7 +30,7 @@
           class="profile-card__nickname-input"
           type="nickname"
           value="{{nickname}}"
-          placeholder="输入昵称"
+          placeholder="点击授权微信昵称"
           maxlength="6"
           bindinput="onNicknameInput"
           bindblur="onNicknameBlur"
@@ -40,7 +40,7 @@
         </view>
       </view>
 
-      <text class="profile-card__hint">点击头像或昵称可修改</text>
+      <text class="profile-card__hint">点击头像或骰子可修改</text>
       <text class="profile-card__saving-hint" wx:if="{{saving}}">保存中...</text>
     </view>
 

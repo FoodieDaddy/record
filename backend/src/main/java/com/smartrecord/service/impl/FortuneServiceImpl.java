@@ -10,6 +10,7 @@ import com.smartrecord.dto.fortune.FortuneResp;
 import com.smartrecord.dto.fortune.UserTag;
 import com.smartrecord.mapper.ScoreMapper;
 import com.smartrecord.service.FortuneService;
+import com.smartrecord.service.TaibuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class FortuneServiceImpl implements FortuneService {
     private final ScoreMapper scoreMapper;
     private final Executor asyncExecutor;
     private final StringRedisTemplate redisTemplate;
+    private final TaibuService taibuService;
 
     @Value("${app.llm.api-url:}")
     private String apiUrl;
@@ -135,6 +137,16 @@ public class FortuneServiceImpl implements FortuneService {
         UserTag userTag = computeUserTag(recentScores);
         int netScore = recentScores.stream().mapToInt(Integer::intValue).sum();
 
+        // 1.5 获取太乙九星推演上下文
+        String taiyiCtx;
+        try {
+            taiyiCtx = taibuService.getTodayTaiyiText();
+        } catch (Exception e) {
+            log.warn("获取太乙数据失败，跳过", e);
+            taiyiCtx = "";
+        }
+        final String taiyiContext = taiyiCtx;
+
         // 2. CompletableFuture 双引擎：LLM 主引擎 + 兜底
         FortuneResp result;
         boolean fromLlm = false;
@@ -142,7 +154,7 @@ public class FortuneServiceImpl implements FortuneService {
         if (apiUrl != null && !apiUrl.isEmpty() && apiKey != null && !apiKey.isEmpty()) {
             try {
                 FortuneResp llmResult = CompletableFuture
-                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores), asyncExecutor)
+                        .supplyAsync(() -> callLlm(userTag, netScore, recentScores, taiyiContext), asyncExecutor)
                         .orTimeout(60000, TimeUnit.MILLISECONDS)
                         .exceptionally(ex -> {
                             log.warn("LLM 调用超时/异常，降级到兜底: {}", ex.getMessage());
@@ -210,8 +222,8 @@ public class FortuneServiceImpl implements FortuneService {
     /**
      * 调用 OpenAI 兼容 LLM API
      */
-    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores) {
-        String prompt = buildPrompt(userTag, netScore, recentScores);
+    private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores, String taiyiContext) {
+        String prompt = buildPrompt(userTag, netScore, recentScores, taiyiContext);
 
         JSONObject requestBody = new JSONObject();
         requestBody.set("model", model);
@@ -223,11 +235,21 @@ public class FortuneServiceImpl implements FortuneService {
         JSONObject systemMsg = new JSONObject();
         systemMsg.set("role", "system");
         systemMsg.set("content", """
-                赛博运势AI引擎。根据战绩数据生成运势JSON。
-                禁止传统黄历词汇。使用电竞/科幻黑话。
+                你是存在于赛博朋克世界的"高维博弈推演引擎"，为即将参与桌游/棋牌/对战的玩家生成今日专属"赛博运势快照"。
+
+                【创作基调】
+                1. 绝对禁止枯燥的IT运维词汇（负载均衡、算法优化、数据溢出、网络延迟）
+                2. 绝对禁止传统黄历词汇（大吉、宜忌、破财、诸事不宜）
+                3. 必须将中国农历/节气意象与赛博科幻词汇结合，强映射到玩家真实的对局痛点（随机数概率、发牌员制裁、情绪破防/上头、逻辑推理、勾心斗角）
+
+                【字段规范】
+                tag：4字短语，极具张力。正面示例：绝对理智、天命主宰、算力超频、维度碾压。负面示例：算力枯竭、薛定谔的运气、磁场紊乱、情绪过载。
+                verdict：10-18字，像高维生物对玩家的冷酷忠告，必须巧妙融合当天农历/节气意象。示例：芒种火旺引发随机数暴走，切忌越级对抗。
+                buffs：恰好3个元素，每个5-7字，描述牌桌/游戏中的玄学优势。示例库：免疫发牌员制裁、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、绝境反杀概率飙升。
+                debuffs：恰好2个元素，每个5-7字，描述对局中的隐患。示例库：容易被连续小分激怒、随机数波动敏感、中盘决策疲劳、防守反击容易漏判。
+
                 只输出一个JSON对象，不要markdown代码块，不要任何其他文字：
-                {"themeColor":"#HEX","tag":"2-4字","verdict":"10-18字判词","buffs":["增益1","增益2","增益3"],"debuffs":["预警1","预警2"]}
-                严格要求：buffs恰好3个元素，debuffs恰好2个元素，每个元素4-6个字。
+                {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["增益1","增益2","增益3"],"debuffs":["预警1","预警2"]}
                 颜色规则：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
                 """);
         messages.add(systemMsg);
@@ -271,20 +293,36 @@ public class FortuneServiceImpl implements FortuneService {
     /**
      * 构建 LLM Prompt
      */
-    private String buildPrompt(UserTag userTag, int netScore, List<Integer> recentScores) {
+    private String buildPrompt(UserTag userTag, int netScore, List<Integer> recentScores, String taiyiContext) {
         String tagDesc = switch (userTag) {
-            case WINNING_STREAK -> "近期连胜，状态高昂";
-            case LOSING_STREAK -> "近期连败，状态低迷";
-            case HIGH_RISK -> "大输大赢型，波动剧烈";
-            case STABLE -> "稳健型，表现平稳";
+            case WINNING_STREAK -> "近期连胜，状态高昂，手感火热";
+            case LOSING_STREAK -> "近期连败，状态低迷，心态受挫";
+            case HIGH_RISK -> "大输大赢型，波动剧烈，大起大落";
+            case STABLE -> "稳健型，表现平稳，不温不火";
         };
 
         String lunarContext = getLunarContext();
 
-        return String.format("""
-                画像：%s | 净积分：%d | 各场得分：%s | 农历：%s
-                判词中融入干支/节气意象，保持科幻黑话语境。直接输出JSON。
-                """, tagDesc, netScore, recentScores.toString(), lunarContext);
+        String trend = recentScores.size() >= 3
+                ? recentScores.subList(recentScores.size() - 3, recentScores.size()).toString()
+                : recentScores.toString();
+
+        String prompt = String.format("""
+                【玩家画像】%s
+                【累计净积分】%d分
+                【近3场走势】%s
+                【完整战绩】%s
+                【时空坐标】%s
+
+                请根据以上数据，结合当天农历/节气的自然意象，用赛博朋克+桌游博弈的口吻生成运势。
+                判词要像高维生物的冷酷忠告，必须引用节气/农历意象并映射到对局策略。
+                """, tagDesc, netScore, trend, recentScores.toString(), lunarContext);
+
+        if (taiyiContext != null && !taiyiContext.isEmpty()) {
+            prompt += "\n【太乙九星推演】\n" + taiyiContext + "\n\n请将太乙九星的时空能量分析融入运势判词。";
+        }
+
+        return prompt;
     }
 
     /**

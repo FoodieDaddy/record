@@ -55,5 +55,8 @@ public class RoomResp {
 
         @Schema(description = "座位号", example = "1")
         private Integer seatNo;
+
+        @Schema(description = "最终净胜分（仅历史房间有值）")
+        private Integer finalScore;
     }
 }

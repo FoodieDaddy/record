@@ -14,6 +14,7 @@ Page({
     isOwner: false,
     joinRoomNo: '',
     joining: false,
+    showNameCollisionModal: false,
     // 记分模式：1=自由流转 2=赢家统录
     scoreMode: 1,
     // 6 格 OTP 输入
@@ -648,6 +649,9 @@ Page({
           otpFocusIndex: 5,
           otpInputFocused: true
         });
+      } else if (e && e.code === 4009) {
+        // 身份重叠：弹窗引导修改昵称
+        this.setData({ showNameCollisionModal: true });
       } else {
         wx.showToast({ title: (e && e.message) || '加入失败', icon: 'none', duration: 2000 });
       }
@@ -1392,6 +1396,17 @@ Page({
     const d = new Date(dateStr);
     const pad = n => String(n).padStart(2, '0');
     return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  },
+
+  // ===== 身份重叠弹窗 =====
+
+  closeNameCollisionModal() {
+    this.setData({ showNameCollisionModal: false });
+  },
+
+  goToProfile() {
+    this.setData({ showNameCollisionModal: false });
+    wx.switchTab({ url: '/pages/profile/profile' });
   },
 
   onShareAppMessage() {

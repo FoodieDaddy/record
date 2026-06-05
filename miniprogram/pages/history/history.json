@@ -1,4 +1,6 @@
 {
   "navigationBarTitleText": "历史积分",
-  "usingComponents": {}
+  "usingComponents": {
+    "trend-chart": "/components/trend-chart/trend-chart"
+  }
 }

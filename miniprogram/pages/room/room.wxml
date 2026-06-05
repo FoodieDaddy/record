@@ -470,4 +470,18 @@
       </view>
     </view>
   </view>
+
+  <!-- 身份重叠弹窗 -->
+  <view class="name-collision-mask {{showNameCollisionModal ? 'nc-show' : ''}}" catchtap="closeNameCollisionModal">
+    <view class="name-collision-card" catchtap="">
+      <view class="nc-icon-wrap">
+        <view class="nc-icon">!</view>
+      </view>
+      <text class="nc-title">身份重叠 | IDENTITY OVERLAP</text>
+      <text class="nc-desc">检测到场域内存在同名实体，请前往[我的]终端重新校准代号。</text>
+      <view class="nc-btn" bindtap="goToProfile">
+        <text class="nc-btn-text">[ GO TO PROFILE ]</text>
+      </view>
+    </view>
+  </view>
 </view>

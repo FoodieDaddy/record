@@ -28,7 +28,7 @@
         wx:for="{{seats}}"
         wx:key="userId"
         class="seat-node {{item.isMe ? 'seat-me' : ''}} {{item.isEmpty ? 'seat-empty' : ''}} {{item.isHighlight ? 'seat-highlight' : ''}}"
-        style="left:{{item.posX}}%;top:{{item.posY}}%;"
+        style="{{item.posStyle}}"
         data-index="{{item.index}}"
         data-user-id="{{item.userId}}"
         data-is-empty="{{item.isEmpty}}"

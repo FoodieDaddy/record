@@ -88,4 +88,13 @@ public class ScoreController {
         Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(scoreService.settleRoom(userId, roomId, false));
     }
+
+    @Operation(summary = "多场趋势", description = "返回用户最近 N 场的净胜分趋势")
+    @GetMapping("/trend")
+    public Result<TrendResp> getTrend(
+            HttpServletRequest request,
+            @Parameter(description = "返回最近 N 场") @RequestParam(defaultValue = "20") Integer limit) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(scoreService.getTrend(userId, Math.min(limit, 50)));
+    }
 }

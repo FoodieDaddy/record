@@ -1,11 +1,30 @@
 <view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}">
 
-  <!-- 加载态：赛博终端 -->
+  <!-- 加载态：终端日志瀑布流 -->
   <view class="loading-screen {{loadingFadeOut ? 'loading-fade-out' : ''}}" wx:if="{{loading}}">
-    <view class="cyber-loading-container">
-      <text class="loading-text">{{currentLoadingText}}</text>
-      <text class="blinking-cursor">█</text>
+    <view class="terminal-header">
+      <text class="terminal-title">[ SYSTEM KERNEL v3.7.2 ]</text>
+      <text class="terminal-subtitle">SMART RECORD · FORTUNE MODULE</text>
     </view>
+    <scroll-view
+      class="terminal-logs"
+      scroll-y
+      scroll-into-view="{{scrollToId}}"
+      scroll-with-animation="{{false}}"
+    >
+      <view
+        wx:for="{{logs}}"
+        wx:key="index"
+        id="log-{{index}}"
+        class="log-line log-line--anim"
+      >
+        <text class="log-time">{{item.time}}</text>
+        <text class="log-msg {{item.type === 'warn' ? 'log-msg--warn' : item.type === 'success' ? 'log-msg--success' : ''}}">{{item.msg}}</text>
+      </view>
+      <view id="log-cursor" class="cursor-line">
+        <text class="blinking-cursor">█</text>
+      </view>
+    </scroll-view>
   </view>
 
   <!-- 运势卡片 -->

@@ -1,0 +1,9 @@
+.trend-chart-container {
+  width: 100%;
+  height: 300rpx;
+}
+
+.trend-canvas {
+  width: 100%;
+  height: 100%;
+}

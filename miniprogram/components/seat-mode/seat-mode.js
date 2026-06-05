@@ -118,7 +118,8 @@ Component({
             absIndex: members.indexOf(member),
             index: members.indexOf(member),
             posX: pos.x,
-            posY: pos.y
+            posY: pos.y,
+            posStyle: `left:${pos.x}%;top:${pos.y}%;`
           })
         } else {
           seats.push({
@@ -136,7 +137,8 @@ Component({
             absIndex: -1,
             index: -1,
             posX: pos.x,
-            posY: pos.y
+            posY: pos.y,
+            posStyle: `left:${pos.x}%;top:${pos.y}%;`
           })
         }
       }

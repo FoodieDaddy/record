@@ -23,4 +23,11 @@ public interface ScoreMapper extends BaseMapper<Score> {
      */
     @Select("SELECT score FROM score WHERE user_id = #{userId} ORDER BY created_at DESC LIMIT #{limit}")
     List<Integer> selectRecentScores(@Param("userId") Long userId, @Param("limit") int limit);
+
+    /**
+     * 查询用户最近 N 个房间的聚合得分（按最近活动时间倒序）
+     */
+    @Select("SELECT room_id AS roomId, SUM(score) AS netScore, MAX(created_at) AS latestAt " +
+            "FROM score WHERE user_id = #{userId} GROUP BY room_id ORDER BY latestAt DESC LIMIT #{limit}")
+    List<Map<String, Object>> selectTrendByUserId(@Param("userId") Long userId, @Param("limit") int limit);
 }
