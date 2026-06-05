@@ -80,6 +80,18 @@ Page({
     settleVisibleUsers: [],
     settleRankedMembers: [],
     settleRoomNo: '',
+    settleWinner: null,
+    settleLoser: null,
+    settleMaxSingle: 0,
+    settleTotalTransfer: 0,
+    settleTransferCount: 0,
+    settleMemberCount: 0,
+    settleTime: '',
+    settleNetworkNodes: [],
+    settleNetworkLinks: [],
+    settleInsight: null,
+    settlePersonaSignals: null,
+    settleEventMarkers: [],
     // 历史场次
     // 分享面板
     showShareSheet: false,
@@ -1217,7 +1229,7 @@ Page({
   },
 
   /** 从 SettleResp 构建结算弹层数据并展示 */
-  showSettleFromResp(resp) {
+  async showSettleFromResp(resp) {
     this._showingSettle = true;
     const timestamps = resp.timestamps || [];
     const series = resp.series || [];
@@ -1230,14 +1242,74 @@ Page({
       finalScore: m.finalScore || 0,
       avatarColor: getColor(m.nickname)
     }));
+
+    const winner = rankedMembers.length > 0 ? rankedMembers[0] : null;
+    const loser = rankedMembers.length > 0 ? rankedMembers[rankedMembers.length - 1] : null;
+    let maxSingle = 0;
+    for (const s of series) {
+      const scores = s.scores || [];
+      for (let i = 1; i < scores.length; i++) {
+        const delta = Math.abs(scores[i] - scores[i - 1]);
+        if (delta > maxSingle) maxSingle = delta;
+      }
+    }
+
+    const now = new Date();
+    const settleTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    const eventMarkers = [];
+    for (const s of series) {
+      const scores = s.scores || [];
+      for (let i = 1; i < scores.length; i++) {
+        const delta = scores[i] - scores[i - 1];
+        if (Math.abs(delta) === maxSingle && maxSingle > 0) {
+          eventMarkers.push({ index: i, label: (delta > 0 ? '+' : '') + delta, color: delta > 0 ? '#32D74B' : '#FF453A' });
+          break;
+        }
+      }
+      if (eventMarkers.length > 0) break;
+    }
+
     this.setData({
       showSettleOverlay: true,
       settleTimestamps: timestamps,
       settleSeries: series,
       settleVisibleUsers: visibleUsers,
       settleRankedMembers: rankedMembers,
-      settleRoomNo: resp.roomNo || ''
+      settleRoomNo: resp.roomNo || '',
+      settleWinner: winner,
+      settleLoser: loser,
+      settleMaxSingle: maxSingle,
+      settleMemberCount: rankedMembers.length,
+      settleTime,
+      settleEventMarkers: eventMarkers
     });
+
+    const roomId = resp.roomId || (this.data.currentRoom && this.data.currentRoom.roomId);
+    if (roomId) {
+      Promise.all([
+        get(`/score/room/${roomId}/insight`).catch(() => null),
+        get(`/score/room/${roomId}/network`).catch(() => null)
+      ]).then(([insightData, networkData]) => {
+        const updates = {};
+        if (insightData) {
+          updates.settleInsight = insightData;
+          updates.settleTotalTransfer = insightData.totalTransfer || 0;
+          updates.settleTransferCount = insightData.transferCount || 0;
+          if (insightData.maxSingleTransfer > maxSingle) {
+            updates.settleMaxSingle = insightData.maxSingleTransfer;
+          }
+        }
+        if (networkData) {
+          updates.settleNetworkNodes = (networkData.nodes || []).map(n => ({
+            ...n, avatarColor: getColor(n.nickname)
+          }));
+          updates.settleNetworkLinks = networkData.links || [];
+        }
+        updates.settlePersonaSignals = this._calcSettlePersonaSignals(rankedMembers, insightData, networkData);
+        this.setData(updates);
+      });
+    }
   },
 
   /** 非房主收到 SETTLE WS 通知后拉取结算数据 */
@@ -1268,14 +1340,18 @@ Page({
         };
       }).sort((a, b) => b.finalScore - a.finalScore);
 
-      this._showingSettle = true;
-      this.setData({
-        showSettleOverlay: true,
-        settleTimestamps: timestamps,
-        settleSeries: series,
-        settleVisibleUsers: visibleUsers,
-        settleRankedMembers: rankedMembers,
-        settleRoomNo: roomData.roomNo || ''
+      // 复用 showSettleFromResp 逻辑
+      this.showSettleFromResp({
+        timestamps,
+        series,
+        memberScores: rankedMembers.map(m => ({
+          userId: m.userId,
+          nickname: m.nickname,
+          avatarUrl: m.avatarUrl,
+          finalScore: m.finalScore
+        })),
+        roomNo: roomData.roomNo || '',
+        roomId
       });
     } catch (e) {
       console.error('加载结算数据失败', e);
@@ -1293,6 +1369,18 @@ Page({
       settleVisibleUsers: [],
       settleRankedMembers: [],
       settleRoomNo: '',
+      settleWinner: null,
+      settleLoser: null,
+      settleMaxSingle: 0,
+      settleTotalTransfer: 0,
+      settleTransferCount: 0,
+      settleMemberCount: 0,
+      settleTime: '',
+      settleNetworkNodes: [],
+      settleNetworkLinks: [],
+      settleInsight: null,
+      settlePersonaSignals: null,
+      settleEventMarkers: [],
       currentRoom: null,
       viewingRoom: false,
       ranking: [],
@@ -1304,6 +1392,48 @@ Page({
       showMemberFill: false,
       showRoundConfirm: false
     });
+  },
+
+  _calcSettlePersonaSignals(rankedMembers, insight, network) {
+    if (!rankedMembers || rankedMembers.length === 0) {
+      return { socialActivity: '中', riskPreference: '中', resourceControl: '中', allianceTendency: '低' };
+    }
+    const n = rankedMembers.length;
+    const myId = String(this.data.myUserId);
+    const myData = rankedMembers.find(m => String(m.userId) === myId);
+
+    let socialActivity = '中';
+    if (insight && insight.transferCount) {
+      const avg = insight.transferCount / Math.max(n, 1);
+      if (avg > 3) socialActivity = '高';
+      else if (avg < 1.5) socialActivity = '低';
+    }
+
+    let riskPreference = '中';
+    if (myData) {
+      const absScore = Math.abs(myData.finalScore);
+      const avgScore = rankedMembers.reduce((s, m) => s + Math.abs(m.finalScore), 0) / n;
+      if (absScore > avgScore * 1.5) riskPreference = '高';
+      else if (absScore < avgScore * 0.5) riskPreference = '低';
+    }
+
+    let resourceControl = '中';
+    if (myData) {
+      const rank = rankedMembers.indexOf(myData);
+      if (rank === 0) resourceControl = '高';
+      else if (rank >= n - 1) resourceControl = '低';
+    }
+
+    let allianceTendency = '低';
+    if (network && network.links && n > 2) {
+      const pairs = new Set(network.links.map(l => [l.from, l.to].sort().join(':')));
+      const max = (n * (n - 1)) / 2;
+      const ratio = pairs.size / max;
+      if (ratio > 0.5) allianceTendency = '高';
+      else if (ratio > 0.2) allianceTendency = '中';
+    }
+
+    return { socialActivity, riskPreference, resourceControl, allianceTendency };
   },
 
   // ========== 音效开关 ==========

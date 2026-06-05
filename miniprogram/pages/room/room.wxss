@@ -2324,90 +2324,101 @@
   pointer-events: none;
 }
 
-/* ===== 结算总览弹层 ===== */
+/* ===== 战局报告弹层 ===== */
 
 .settle-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: #0A0A0A;
-  z-index: 9999;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  background: #05070A;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .settle-overlay--show {
-  opacity: 1;
-  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .settle-overlay__inner {
-  padding: 0 32rpx 60rpx;
-  min-height: 100vh;
+  height: 100%;
+  padding: 0 28rpx 60rpx;
   box-sizing: border-box;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(0, 175, 255, 0.06), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94, 92, 230, 0.04), transparent 30%),
+    transparent;
 }
 
-.settle-header {
+.settle-top-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 0 16rpx;
+  justify-content: flex-end;
+  padding: 20rpx 0 8rpx;
 }
 
-.settle-header-info {
-  display: flex;
-  flex-direction: column;
-}
+.settle-close-cyber { padding: 8rpx; }
 
-.settle-header-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #fff;
-}
-
-.settle-header-room {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.35);
-  margin-top: 4rpx;
-}
-
-.settle-close-btn {
-  width: 64rpx;
-  height: 64rpx;
+.settle-close-ring {
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(0, 175, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: settleBreathe 3s ease-in-out infinite;
 }
 
-.settle-close-icon {
-  font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.5);
+@keyframes settleBreathe {
+  0%, 100% { border-color: rgba(0, 175, 255, 0.25); box-shadow: 0 0 0 rgba(0, 175, 255, 0); }
+  50% { border-color: rgba(0, 175, 255, 0.50); box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.15); }
 }
 
-.settle-section {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.settle-close-x {
+  font-size: 26rpx;
+  color: rgba(0, 175, 255, 0.72);
+  font-weight: 300;
+}
+
+/* 卡片通用 */
+.settle-card {
   border-radius: 20rpx;
-  padding: 28rpx;
-  margin-top: 24rpx;
-}
-
-.settle-chart-card {
-  padding: 20rpx 12rpx;
-}
-
-.settle-section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  background: #0A0F18;
+  padding: 28rpx 26rpx;
   margin-bottom: 20rpx;
-  display: block;
 }
 
+.settle-card-header { margin-bottom: 16rpx; }
+
+.settle-kicker {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 17rpx;
+  letter-spacing: 5rpx;
+  color: rgba(0, 175, 255, 0.50);
+  text-transform: uppercase;
+}
+
+.settle-card-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 6rpx;
+}
+
+.settle-card-line {
+  height: 1rpx;
+  margin-top: 14rpx;
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
+}
+
+.settle-chart-wrap {
+  padding: 8rpx 4rpx;
+}
+
+/* 排名列表 */
 .settle-rank-list {
   display: flex;
   flex-direction: column;
@@ -2417,39 +2428,48 @@
 .settle-rank-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.04);
 }
 
-.settle-rank-item:last-child {
+.settle-rank-item:last-child { border-bottom: none; }
+
+.settle-rank-champion {
+  background: rgba(0, 175, 255, 0.03);
+  border-radius: 12rpx;
+  padding: 20rpx 12rpx;
   border-bottom: none;
+  margin-bottom: 4rpx;
 }
 
 .settle-rank-badge {
   width: 44rpx;
   height: 44rpx;
   border-radius: 10rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 16rpx;
+  margin-right: 14rpx;
   flex-shrink: 0;
 }
 
-.settle-rank-top3 {
-  background: rgba(10, 132, 255, 0.15);
+.settle-rank-top3 { background: rgba(0, 175, 255, 0.12); }
+
+.settle-badge-champion {
+  background: rgba(0, 175, 255, 0.20);
+  border: 1rpx solid rgba(0, 175, 255, 0.35);
+  box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.15);
 }
 
 .settle-rank-num {
-  font-size: 24rpx;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 22rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.40);
 }
 
-.settle-rank-top3 .settle-rank-num {
-  color: #0A84FF;
-}
+.settle-rank-top3 .settle-rank-num { color: #00AFFF; }
 
 .settle-rank-avatar {
   width: 52rpx;
@@ -2459,14 +2479,11 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  margin-right: 16rpx;
+  margin-right: 14rpx;
   flex-shrink: 0;
 }
 
-.settle-rank-avatar-img {
-  width: 100%;
-  height: 100%;
-}
+.settle-rank-avatar-img { width: 100%; height: 100%; }
 
 .settle-rank-avatar-char {
   font-size: 24rpx;
@@ -2476,7 +2493,7 @@
 
 .settle-rank-name {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2484,34 +2501,26 @@
 }
 
 .settle-me-tag {
-  font-size: 20rpx;
-  color: #0A84FF;
+  font-size: 18rpx;
+  color: #00AFFF;
   margin-left: 8rpx;
+  padding: 2rpx 8rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.25);
+  border-radius: 6rpx;
   vertical-align: middle;
 }
 
 .settle-rank-score {
-  font-size: 32rpx;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 30rpx;
   font-weight: 700;
   flex-shrink: 0;
   margin-left: 16rpx;
 }
 
-.settle-bottom-btn {
-  margin-top: 40rpx;
-  height: 88rpx;
-  border-radius: 44rpx;
-  background: #0A84FF;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.settle-bottom-btn-text {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #fff;
-}
+.reduce-motion .settle-overlay { transition: none; }
+.reduce-motion .settle-close-ring { animation: none; }
+.reduce-motion .settle-badge-champion { box-shadow: none; }
 
 /* 身份重叠弹窗 */
 .name-collision-mask {

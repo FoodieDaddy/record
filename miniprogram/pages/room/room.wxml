@@ -692,68 +692,102 @@
     </view>
   </view>
 
-  <!-- 结算总览弹层 -->
+  <!-- 战局报告弹层 -->
   <view class="settle-overlay {{showSettleOverlay ? 'settle-overlay--show' : ''}}" catchtouchmove="preventClose">
-    <view class="settle-overlay__inner">
-      <!-- 顶部栏 -->
-      <view class="settle-header">
-        <view class="settle-header-info">
-          <text class="settle-header-title">结算详情</text>
-          <text class="settle-header-room" wx:if="{{settleRoomNo}}">房间 {{settleRoomNo}}</text>
+    <scroll-view class="settle-overlay__inner" scroll-y enhanced show-scrollbar="{{false}}">
+
+      <!-- 顶部关闭按钮 -->
+      <view class="settle-top-bar">
+        <view class="settle-close-cyber" bindtap="closeSettleOverlay">
+          <view class="settle-close-ring">
+            <view class="settle-close-x">✕</view>
+          </view>
         </view>
-        <view class="settle-close-btn" bindtap="closeSettleOverlay">
-          <view class="settle-close-icon">✕</view>
+      </view>
+
+      <!-- 1. 战局总结 -->
+      <battle-summary
+        winner="{{settleWinner}}"
+        loser="{{settleLoser}}"
+        maxSingle="{{settleMaxSingle}}"
+        totalTransfer="{{settleTotalTransfer}}"
+        transferCount="{{settleTransferCount}}"
+        memberCount="{{settleMemberCount}}"
+        roomNo="{{settleRoomNo}}"
+        settleTime="{{settleTime}}" />
+
+      <!-- 2. 积分趋势图 -->
+      <view class="settle-card" wx:if="{{settleSeries.length > 0}}">
+        <view class="settle-card-header">
+          <view class="settle-kicker">FLOW TIMELINE</view>
+          <view class="settle-card-title">积分演化轨迹</view>
+          <view class="settle-card-line"></view>
+        </view>
+        <view class="settle-chart-wrap">
+          <score-chart
+            timestamps="{{settleTimestamps}}"
+            series="{{settleSeries}}"
+            visibleUsers="{{settleVisibleUsers}}"
+            eventMarkers="{{settleEventMarkers}}"
+            highlightUser="{{myUserId}}" />
         </view>
       </view>
 
-      <!-- 折线图卡片 -->
-      <view class="settle-section settle-chart-card" wx:if="{{settleSeries.length > 0}}">
-        <score-chart
-          timestamps="{{settleTimestamps}}"
-          series="{{settleSeries}}"
-          visibleUsers="{{settleVisibleUsers}}"
-          highlightUser="{{myUserId}}" />
-      </view>
+      <!-- 3. 积分关系网络 -->
+      <score-network
+        wx:if="{{settleNetworkNodes.length > 0}}"
+        nodes="{{settleNetworkNodes}}"
+        links="{{settleNetworkLinks}}"
+        myUserId="{{myUserId}}" />
 
-      <!-- 玩家总分卡牌 -->
-      <view class="settle-section" wx:if="{{settleRankedMembers.length > 0}}">
-        <text class="settle-section-title">总分一览</text>
-        <settle-table
-          memberScores="{{settleRankedMembers}}"
-          myUserId="{{myUserId}}" />
-      </view>
+      <!-- 4. 战局洞察 -->
+      <battle-insight
+        wx:if="{{settleInsight}}"
+        mostActiveUser="{{settleInsight.mostActiveUser}}"
+        mostFocusedUser="{{settleLoser}}"
+        networkDensity="{{settleInsight.networkDensity}}"
+        transferCount="{{settleInsight.transferCount}}"
+        memberCount="{{settleMemberCount}}" />
 
-      <!-- 排名列表 -->
-      <view class="settle-section" wx:if="{{settleRankedMembers.length > 0}}">
-        <text class="settle-section-title">排名</text>
+      <!-- 5. 最终排名 -->
+      <view class="settle-card" wx:if="{{settleRankedMembers.length > 0}}">
+        <view class="settle-card-header">
+          <view class="settle-kicker">FINAL STANDING</view>
+          <view class="settle-card-title">最终排名</view>
+          <view class="settle-card-line"></view>
+        </view>
         <view class="settle-rank-list">
-          <view class="settle-rank-item {{index === 0 ? 'settle-rank-first' : ''}}"
-            wx:for="{{settleRankedMembers}}"
-            wx:key="userId">
-            <view class="settle-rank-badge {{index < 3 ? 'settle-rank-top3' : ''}}">
+          <view class="settle-rank-item {{index === 0 ? 'settle-rank-champion' : ''}}"
+            wx:for="{{settleRankedMembers}}" wx:key="userId">
+            <view class="settle-rank-badge {{index < 3 ? 'settle-rank-top3' : ''}} {{index === 0 ? 'settle-badge-champion' : ''}}">
               <text class="settle-rank-num">{{index + 1}}</text>
             </view>
             <view class="settle-rank-avatar" style="background: {{item.avatarColor}}">
               <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="settle-rank-avatar-img" mode="aspectFill" />
               <text wx:else class="settle-rank-avatar-char">{{item.avatarChar}}</text>
             </view>
-            <text class="settle-rank-name" style="color: {{item.userId == myUserId ? '#0A84FF' : 'rgba(255,255,255,0.85)'}}">
+            <text class="settle-rank-name" style="color: {{item.userId == myUserId ? '#00AFFF' : 'rgba(255,255,255,0.85)'}}">
               {{item.nickname}}
               <text wx:if="{{item.userId == myUserId}}" class="settle-me-tag">我</text>
             </text>
             <text class="settle-rank-score"
-              style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.5)'}}">
+              style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.35)'}}">
               {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
             </text>
           </view>
         </view>
       </view>
 
-      <!-- 底部关闭按钮 -->
-      <view class="settle-bottom-btn" bindtap="closeSettleOverlay">
-        <text class="settle-bottom-btn-text">完成</text>
-      </view>
-    </view>
+      <!-- 6. 人格信号 -->
+      <persona-signal
+        wx:if="{{settlePersonaSignals}}"
+        socialActivity="{{settlePersonaSignals.socialActivity}}"
+        riskPreference="{{settlePersonaSignals.riskPreference}}"
+        resourceControl="{{settlePersonaSignals.resourceControl}}"
+        allianceTendency="{{settlePersonaSignals.allianceTendency}}" />
+
+      <view style="height: 60rpx;"></view>
+    </scroll-view>
   </view>
 
   <!-- 身份重叠弹窗 -->
