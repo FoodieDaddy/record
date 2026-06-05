@@ -7,6 +7,7 @@
     "round-status-bar": "/components/round-status-bar/round-status-bar",
     "host-fill-modal": "/components/host-fill-modal/host-fill-modal",
     "member-fill-modal": "/components/member-fill-modal/member-fill-modal",
-    "round-confirm-modal": "/components/round-confirm-modal/round-confirm-modal"
+    "round-confirm-modal": "/components/round-confirm-modal/round-confirm-modal",
+    "force-graph": "/components/force-graph/force-graph"
   }
 }

@@ -463,6 +463,57 @@
         </view>
       </view>
 
+      <!-- ROOM INSIGHT 战局洞察 -->
+      <view class="room-insight" wx:if="{{roomInsight && roomInsight.transferCount > 0}}">
+        <view class="ri-header">
+          <text class="ri-cn">战局洞察</text>
+          <text class="ri-en">ROOM INSIGHT</text>
+        </view>
+        <view class="ri-divider"></view>
+        <view class="ri-row">
+          <text class="ri-label">本场最活跃</text>
+          <view class="ri-value-group" wx:if="{{roomInsight.mostActiveUser}}">
+            <text class="ri-value-name">{{roomInsight.mostActiveUser.nickname}}</text>
+            <text class="ri-value-detail">互动{{roomInsight.mostActiveUser.count}}次</text>
+          </view>
+          <text class="ri-value-na" wx:else>—</text>
+        </view>
+        <view class="ri-row">
+          <text class="ri-label">最大流转</text>
+          <text class="ri-value-num">{{roomInsight.maxSingleTransfer}}</text>
+        </view>
+        <view class="ri-row">
+          <text class="ri-label">积分流转量</text>
+          <text class="ri-value-num">{{roomInsight.totalTransfer}}</text>
+        </view>
+        <view class="ri-row">
+          <text class="ri-label">互动密度</text>
+          <view class="ri-density-wrap">
+            <view class="ri-density-bar">
+              <view class="ri-density-fill ri-density-{{roomInsight.networkDensity === 'HIGH' ? 'high' : roomInsight.networkDensity === 'MEDIUM' ? 'mid' : 'low'}}"
+                style="width:{{roomInsight.networkDensity === 'HIGH' ? '100' : roomInsight.networkDensity === 'MEDIUM' ? '60' : '25'}}%;">
+              </view>
+            </view>
+            <text class="ri-density-text">{{roomInsight.networkDensity}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- NETWORK MAP 积分关系图 -->
+      <view class="network-map" wx:if="{{roomNetwork && roomNetwork.nodes.length >= 2}}">
+        <view class="nm-header">
+          <text class="nm-cn">积分关系</text>
+          <text class="nm-en">NETWORK MAP</text>
+        </view>
+        <view class="nm-divider"></view>
+        <force-graph
+          nodes="{{roomNetwork.nodes}}"
+          links="{{roomNetwork.links}}"
+          width="{{300}}"
+          height="{{300}}">
+        </force-graph>
+      </view>
+
       <!-- 底部操作区 -->
       <view class="room-bottom-bar">
         <view class="rb-settle-btn" bindtap="quitRoom" wx:if="{{isOwner}}">

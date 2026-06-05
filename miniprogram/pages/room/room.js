@@ -46,6 +46,9 @@ Page({
     transferPreview: null,
     showNumpad: false,
     numpadValue: 0,
+    // 战局洞察
+    roomInsight: null,
+    roomNetwork: null,
     // 计分动画
     animActive: false,
     animCurX: 0,
@@ -244,6 +247,19 @@ Page({
       this.loadRanking(roomId),
       this.loadScoreRecords(roomId, true)
     ]);
+    this.loadInsightData(roomId);
+  },
+
+  async loadInsightData(roomId) {
+    try {
+      const [insight, network] = await Promise.all([
+        get(`/score/room/${roomId}/insight`),
+        get(`/score/room/${roomId}/network`)
+      ]);
+      this.setData({ roomInsight: insight, roomNetwork: network });
+    } catch (e) {
+      // 静默失败，不影响主流程
+    }
   },
 
   async loadRanking(roomId) {
@@ -542,12 +558,12 @@ Page({
           this._animatingScores[data.toUserId] = tM ? tM.displayScore : 0;
           this._optimisticScoreUpdateFromWS(data.fromUserId, data.toUserId, data.fromNewScore, data.toNewScore);
           this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-            return this.loadScoreRecords(roomId, true).finally(() => this.buildMemberGrid());
+            return this.loadScoreRecords(roomId, true).finally(() => { this.buildMemberGrid(); this.loadInsightData(roomId); });
           });
         } else {
           // 兼容：旧版后端未携带分数时，走 updateAllData
           this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-            return this.updateAllData(roomId);
+            return this.updateAllData(roomId).then(() => this.loadInsightData(roomId));
           });
         }
       } else {
