@@ -77,10 +77,11 @@ public class MirrorToolServiceImpl implements MirrorToolService {
         // 构建 taibu 参数
         String inputJson = buildTaibuInput(toolType, params, birthProfile);
 
-        // 调用 taibu
+        // 调用 taibu（域名用连字符，code 用下划线）
         TaibuRunResult taibuResult;
+        String taibuDomain = toolType.getCode().replace("_", "-");
         try {
-            String rawJson = taibuService.execute(toolType.getCode(), inputJson);
+            String rawJson = taibuService.execute(taibuDomain, inputJson);
             taibuResult = parseTaibuResult(rawJson);
         } catch (Exception e) {
             log.warn("taibu 执行失败: tool={}, error={}", toolType.getCode(), e.getMessage());
