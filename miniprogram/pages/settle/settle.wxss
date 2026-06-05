@@ -1,49 +1,49 @@
 .page-container {
-  height: 100vh;
-  background: #0A0A0A;
-  padding: 0 32rpx 60rpx;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(0, 175, 255, 0.06), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94, 92, 230, 0.04), transparent 30%),
+    #05070A;
+  padding: 0 28rpx 60rpx;
   box-sizing: border-box;
 }
 
-/* ===== 顶部栏 ===== */
+/* ===== 顶部关闭按钮 ===== */
 
-.header {
+.top-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 0 16rpx;
+  justify-content: flex-end;
+  padding: 20rpx 0 8rpx;
 }
 
-.header-info {
-  display: flex;
-  flex-direction: column;
+.close-btn-cyber {
+  padding: 8rpx;
 }
 
-.header-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #fff;
-}
-
-.header-room {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.35);
-  margin-top: 4rpx;
-}
-
-.close-btn {
-  width: 64rpx;
-  height: 64rpx;
+.close-ring {
+  width: 60rpx;
+  height: 60rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  border: 1rpx solid rgba(0, 175, 255, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: breathe 3s ease-in-out infinite;
 }
 
-.close-icon {
-  font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.5);
+@keyframes breathe {
+  0%, 100% { border-color: rgba(0, 175, 255, 0.25); box-shadow: 0 0 0 rgba(0, 175, 255, 0); }
+  50% { border-color: rgba(0, 175, 255, 0.50); box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.15); }
+}
+
+.close-x {
+  font-size: 26rpx;
+  color: rgba(0, 175, 255, 0.72);
+  font-weight: 300;
+}
+
+.close-btn-cyber:active .close-ring {
+  background: rgba(0, 175, 255, 0.08);
 }
 
 /* ===== 加载态 ===== */
@@ -53,48 +53,81 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 200rpx;
+  padding-top: 300rpx;
 }
 
-.loading-spinner {
-  width: 48rpx;
-  height: 48rpx;
-  border: 3rpx solid rgba(255, 255, 255, 0.1);
-  border-top-color: #0A84FF;
+.loading-dots {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+}
+
+.loading-dot {
+  width: 10rpx;
+  height: 10rpx;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  background: rgba(0, 175, 255, 0.50);
+  animation: dotPulse 1.2s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.dot-2 { animation-delay: 0.2s; }
+.dot-3 { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
 }
 
-.loading-text {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.3);
-  margin-top: 20rpx;
+.loading-label {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0, 175, 255, 0.55);
+}
+
+.loading-hint {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.25);
+  margin-top: 10rpx;
 }
 
 /* ===== 卡片通用 ===== */
 
 .section-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20rpx;
-  padding: 28rpx;
-  margin-top: 24rpx;
-}
-
-.chart-card {
-  padding: 20rpx 12rpx;
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  background: #0A0F18;
+  padding: 28rpx 26rpx;
   margin-bottom: 20rpx;
-  display: block;
+}
+
+.card-header {
+  margin-bottom: 16rpx;
+}
+
+.card-kicker {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 17rpx;
+  letter-spacing: 5rpx;
+  color: rgba(0, 175, 255, 0.50);
+  text-transform: uppercase;
+}
+
+.card-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 6rpx;
+}
+
+.card-line {
+  height: 1rpx;
+  margin-top: 14rpx;
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
+}
+
+.chart-wrap {
+  padding: 8rpx 4rpx;
 }
 
 /* ===== 排名列表 ===== */
@@ -108,38 +141,53 @@
 .rank-item {
   display: flex;
   align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.04);
 }
 
 .rank-item:last-child {
   border-bottom: none;
 }
 
+.rank-champion {
+  background: rgba(0, 175, 255, 0.03);
+  border-radius: 12rpx;
+  padding: 20rpx 12rpx;
+  border-bottom: none;
+  margin-bottom: 4rpx;
+}
+
 .rank-badge {
   width: 44rpx;
   height: 44rpx;
   border-radius: 10rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 16rpx;
+  margin-right: 14rpx;
   flex-shrink: 0;
 }
 
 .rank-top3 {
-  background: rgba(10, 132, 255, 0.15);
+  background: rgba(0, 175, 255, 0.12);
+}
+
+.badge-champion {
+  background: rgba(0, 175, 255, 0.20);
+  border: 1rpx solid rgba(0, 175, 255, 0.35);
+  box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.15);
 }
 
 .rank-num {
-  font-size: 24rpx;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 22rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.40);
 }
 
 .rank-top3 .rank-num {
-  color: #0A84FF;
+  color: #00AFFF;
 }
 
 .rank-avatar {
@@ -150,7 +198,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  margin-right: 16rpx;
+  margin-right: 14rpx;
   flex-shrink: 0;
 }
 
@@ -167,7 +215,7 @@
 
 .rank-name {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -175,15 +223,23 @@
 }
 
 .me-tag {
-  font-size: 20rpx;
-  color: #0A84FF;
+  font-size: 18rpx;
+  color: #00AFFF;
   margin-left: 8rpx;
+  padding: 2rpx 8rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.25);
+  border-radius: 6rpx;
   vertical-align: middle;
 }
 
 .rank-score {
-  font-size: 32rpx;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 30rpx;
   font-weight: 700;
   flex-shrink: 0;
   margin-left: 16rpx;
 }
+
+.reduce-motion .close-ring { animation: none; }
+.reduce-motion .loading-dot { animation: none; opacity: 0.6; }
+.reduce-motion .badge-champion { box-shadow: none; }

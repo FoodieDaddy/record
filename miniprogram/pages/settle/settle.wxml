@@ -1,72 +1,107 @@
-<scroll-view class="page-container" scroll-y enhanced show-scrollbar="{{false}}">
-
-  <!-- 顶部栏 -->
-  <view class="header">
-    <view class="header-info">
-      <text class="header-title">结算详情</text>
-      <text class="header-room" wx:if="{{roomNo}}">房间 {{roomNo}}</text>
-    </view>
-    <view class="close-btn" bindtap="handleClose">
-      <view class="close-icon">✕</view>
-    </view>
-  </view>
+<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y enhanced show-scrollbar="{{false}}">
 
   <!-- 加载态 -->
   <view class="loading-wrap" wx:if="{{loading}}">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">加载中...</text>
+    <view class="loading-dots">
+      <view class="loading-dot dot-1"></view>
+      <view class="loading-dot dot-2"></view>
+      <view class="loading-dot dot-3"></view>
+    </view>
+    <text class="loading-label">GENERATING REPORT</text>
+    <text class="loading-hint">正在解析战局数据</text>
   </view>
 
   <block wx:else>
-    <!-- 折线图卡片 -->
-    <view class="section-card chart-card">
-      <score-chart
-        timestamps="{{timestamps}}"
-        series="{{series}}"
-        visibleUsers="{{visibleUsers}}"
-        highlightUser="{{myUserId}}" />
+    <!-- 顶部关闭按钮 -->
+    <view class="top-bar">
+      <view class="close-btn-cyber" bindtap="handleClose">
+        <view class="close-ring">
+          <view class="close-x">✕</view>
+        </view>
+      </view>
     </view>
 
-    <!-- 玩家总分卡牌 -->
-    <view class="section-card">
-      <text class="section-title">总分一览</text>
-      <settle-table
-        memberScores="{{rankedMembers}}"
-        myUserId="{{myUserId}}" />
+    <!-- 1. 战局总结 -->
+    <battle-summary
+      winner="{{winner}}"
+      loser="{{loser}}"
+      maxSingle="{{maxSingle}}"
+      totalTransfer="{{totalTransfer}}"
+      transferCount="{{transferCount}}"
+      memberCount="{{memberCount}}"
+      roomNo="{{roomNo}}"
+      settleTime="{{settleTime}}" />
+
+    <!-- 2. 积分趋势图 -->
+    <view class="section-card" wx:if="{{series.length > 0}}">
+      <view class="card-header">
+        <view class="card-kicker">FLOW TIMELINE</view>
+        <view class="card-title">积分演化轨迹</view>
+        <view class="card-line"></view>
+      </view>
+      <view class="chart-wrap">
+        <score-chart
+          timestamps="{{timestamps}}"
+          series="{{series}}"
+          visibleUsers="{{visibleUsers}}"
+          eventMarkers="{{eventMarkers}}"
+          highlightUser="{{myUserId}}" />
+      </view>
     </view>
 
-    <!-- 排名列表 -->
-    <view class="section-card">
-      <text class="section-title">排名</text>
+    <!-- 3. 积分关系网络 -->
+    <score-network
+      wx:if="{{networkNodes.length > 0}}"
+      nodes="{{networkNodes}}"
+      links="{{networkLinks}}"
+      myUserId="{{myUserId}}" />
+
+    <!-- 4. 战局洞察 -->
+    <battle-insight
+      wx:if="{{insight}}"
+      mostActiveUser="{{insight.mostActiveUser}}"
+      mostFocusedUser="{{loser}}"
+      networkDensity="{{insight.networkDensity}}"
+      transferCount="{{insight.transferCount}}"
+      memberCount="{{memberCount}}" />
+
+    <!-- 5. 最终排名 -->
+    <view class="section-card" wx:if="{{rankedMembers.length > 0}}">
+      <view class="card-header">
+        <view class="card-kicker">FINAL STANDING</view>
+        <view class="card-title">最终排名</view>
+        <view class="card-line"></view>
+      </view>
       <view class="rank-list">
-        <view class="rank-item {{index === 0 ? 'rank-first' : ''}}"
-          wx:for="{{rankedMembers}}"
-          wx:key="userId">
-
-          <!-- 排名序号 -->
-          <view class="rank-badge {{index < 3 ? 'rank-top3' : ''}}">
+        <view class="rank-item {{index === 0 ? 'rank-champion' : ''}}"
+          wx:for="{{rankedMembers}}" wx:key="userId">
+          <view class="rank-badge {{index < 3 ? 'rank-top3' : ''}} {{index === 0 ? 'badge-champion' : ''}}">
             <text class="rank-num">{{index + 1}}</text>
           </view>
-
-          <!-- 头像 -->
           <view class="rank-avatar" style="background: {{item.avatarColor}}">
             <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="rank-avatar-img" mode="aspectFill" />
             <text wx:else class="rank-avatar-char">{{item.avatarChar}}</text>
           </view>
-
-          <!-- 昵称 -->
-          <text class="rank-name" style="color: {{item.userId == myUserId ? '#0A84FF' : 'rgba(255,255,255,0.85)'}}">
+          <text class="rank-name" style="color: {{item.userId == myUserId ? '#00AFFF' : 'rgba(255,255,255,0.85)'}}">
             {{item.nickname}}
             <text wx:if="{{item.userId == myUserId}}" class="me-tag">我</text>
           </text>
-
-          <!-- 分数 -->
           <text class="rank-score"
-            style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.5)'}}">
+            style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.35)'}}">
             {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
           </text>
         </view>
       </view>
     </view>
+
+    <!-- 6. 人格信号 -->
+    <persona-signal
+      wx:if="{{personaSignals}}"
+      socialActivity="{{personaSignals.socialActivity}}"
+      riskPreference="{{personaSignals.riskPreference}}"
+      resourceControl="{{personaSignals.resourceControl}}"
+      allianceTendency="{{personaSignals.allianceTendency}}" />
+
+    <view style="height: 60rpx;"></view>
   </block>
 </scroll-view>
