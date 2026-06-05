@@ -1,36 +1,33 @@
-<view class="battle-insight">
-  <view class="insight-header">
-    <view class="insight-kicker">BATTLE INSIGHT</view>
-    <view class="insight-title">战局洞察</view>
-    <view class="insight-line"></view>
+<view class="bi-card">
+  <view class="bi-header">
+    <text class="bi-cn">战局洞察</text>
+    <text class="bi-en">BATTLE INSIGHT</text>
   </view>
-
-  <view class="insight-grid">
-    <view class="insight-row">
-      <view class="insight-dot dot-blue"></view>
-      <text class="insight-label">最高活跃玩家</text>
-      <text class="insight-value">{{mostActiveUser.nickname || '--'}}</text>
+  <view class="bi-divider"></view>
+  <view class="bi-blocks">
+    <view class="bi-block">
+      <text class="bi-block-label">最活跃</text>
+      <text class="bi-block-value">{{mostActiveUser.nickname || '--'}}</text>
+      <text class="bi-block-sub" wx:if="{{mostActiveUser.count}}">互动{{mostActiveUser.count}}次</text>
     </view>
-
-    <view class="insight-row">
-      <view class="insight-dot dot-purple"></view>
-      <text class="insight-label">最受关注玩家</text>
-      <text class="insight-value">{{mostFocusedUser.nickname || '--'}}</text>
+    <view class="bi-block">
+      <text class="bi-block-label">最聚焦</text>
+      <text class="bi-block-value">{{mostFocusedUser.nickname || '--'}}</text>
     </view>
-
-    <view class="insight-row">
-      <view class="insight-dot dot-cyan"></view>
-      <text class="insight-label">互动密度</text>
-      <view class="insight-bar-wrap">
-        <view class="insight-bar-fill" style="width: {{networkDensity === 'HIGH' ? 85 : networkDensity === 'MEDIUM' ? 55 : 25}}%"></view>
+    <view class="bi-block">
+      <text class="bi-block-label">流转次数</text>
+      <text class="bi-block-num">{{transferCount}}</text>
+    </view>
+    <view class="bi-block">
+      <text class="bi-block-label">互动密度</text>
+      <view class="bi-density-wrap">
+        <view class="bi-density-bar">
+          <view class="bi-density-fill {{networkDensity === 'HIGH' ? 'bi-density-high' : networkDensity === 'MEDIUM' ? 'bi-density-mid' : 'bi-density-low'}}"
+            style="width:{{networkDensity === 'HIGH' ? 100 : networkDensity === 'MEDIUM' ? 60 : 25}}%;">
+          </view>
+        </view>
+        <text class="bi-density-text">{{networkDensity}}</text>
       </view>
-      <text class="insight-density">{{networkDensity === 'HIGH' ? '高' : networkDensity === 'MEDIUM' ? '中' : '低'}}</text>
-    </view>
-
-    <view class="insight-row">
-      <view class="insight-dot dot-green"></view>
-      <text class="insight-label">流转强度</text>
-      <text class="insight-value mono">{{transferCount}}次 / {{memberCount}}人</text>
     </view>
   </view>
 </view>
