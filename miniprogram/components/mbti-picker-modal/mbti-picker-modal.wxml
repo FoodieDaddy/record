@@ -1,0 +1,39 @@
+<view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
+  <view class="picker-header">
+    <text class="picker-title">直接输入 MBTI</text>
+    <text class="picker-subtitle">选择你的类型</text>
+    <view class="picker-close" bindtap="onClose">
+      <text class="close-icon">x</text>
+    </view>
+  </view>
+
+  <view class="picker-body">
+    <!-- 维度选择器 -->
+    <view class="dim-group" wx:for="{{dims}}" wx:key="key" wx:for-index="dimIdx">
+      <view class="dim-options">
+        <view
+          wx:for="{{item.options}}"
+          wx:key="*this"
+          wx:for-item="opt"
+          class="dim-btn {{item.selected === opt ? 'active' : ''}}"
+          bindtap="onSelect"
+          data-dimindex="{{dimIdx}}"
+          data-value="{{opt}}"
+        >
+          <text class="dim-letter">{{opt}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 结果预览 -->
+    <view class="preview">
+      <text class="preview-type">{{mbtiType}}</text>
+      <text class="preview-title">{{mbtiTitle}}</text>
+    </view>
+
+    <!-- 确认按钮 -->
+    <view class="picker-confirm" bindtap="onConfirm">
+      <text class="confirm-text">确认提交</text>
+    </view>
+  </view>
+</view>

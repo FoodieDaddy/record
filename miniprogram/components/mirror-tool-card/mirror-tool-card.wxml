@@ -1,0 +1,9 @@
+<view class="tool-card {{tool.locked ? 'locked' : ''}} {{tool.todayUsed ? 'used' : ''}}">
+  <view class="tool-icon">
+    <view class="icon-line"></view>
+  </view>
+  <text class="tool-name">{{tool.name}}</text>
+  <text class="tool-desc">{{tool.desc}}</text>
+  <text class="tool-lock" wx:if="{{tool.locked}}">{{tool.lockReason}}</text>
+  <text class="tool-used" wx:if="{{tool.todayUsed}}">今日已测</text>
+</view>

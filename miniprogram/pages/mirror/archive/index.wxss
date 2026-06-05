@@ -1,0 +1,132 @@
+.archive-page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  padding: 0 32rpx;
+}
+
+.tab-bar {
+  display: flex;
+  gap: 8rpx;
+  padding: 24rpx 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.tab-item {
+  padding: 12rpx 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 24rpx;
+  flex-shrink: 0;
+}
+
+.tab-item.active {
+  border-color: #0A84FF;
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.tab-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.tab-item.active .tab-text {
+  color: #0A84FF;
+}
+
+.archive-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.archive-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.archive-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.archive-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.archive-tool {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.archive-tag {
+  font-size: 20rpx;
+  color: #0A84FF;
+  padding: 2rpx 8rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.3);
+  border-radius: 6rpx;
+}
+
+.archive-title {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.92);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-question {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.34);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-time {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.2);
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.loading-more {
+  text-align: center;
+  padding: 32rpx;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.no-more {
+  text-align: center;
+  padding: 32rpx;
+}
+
+.no-more-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.15);
+}

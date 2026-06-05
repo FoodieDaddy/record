@@ -1,0 +1,74 @@
+<view class="report-page">
+  <view wx:if="{{loading}}" class="loading-state">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <block wx:elif="{{report}}">
+    <!-- 标题区 -->
+    <view class="report-header">
+      <text class="report-tool">{{report.toolName}}</text>
+      <text class="report-time">{{report.createdAt}}</text>
+    </view>
+
+    <!-- 状态标签 -->
+    <view class="report-tag-row" wx:if="{{report.tag}}">
+      <text class="report-tag" style="border-color: {{report.themeColor}}; color: {{report.themeColor}}">{{report.tag}}</text>
+      <text class="report-source" wx:if="{{report.source === 'fallback'}}">低置信度参考</text>
+    </view>
+
+    <!-- 标题 -->
+    <view class="report-title-row" wx:if="{{report.title}}">
+      <text class="report-title">{{report.title}}</text>
+    </view>
+
+    <!-- 问题 -->
+    <view class="report-card" wx:if="{{report.question}}">
+      <text class="card-label">问题</text>
+      <text class="card-value">{{report.question}}</text>
+    </view>
+
+    <!-- 解释摘要 -->
+    <view class="report-card" wx:if="{{report.summary}}">
+      <text class="card-label">镜像判读</text>
+      <text class="card-value summary">{{report.summary}}</text>
+    </view>
+
+    <!-- 建议 -->
+    <view class="report-card" wx:if="{{report.suggestions && report.suggestions.length > 0}}">
+      <text class="card-label">行动建议</text>
+      <view class="card-list">
+        <text wx:for="{{report.suggestions}}" wx:key="*this" class="list-item suggestion">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 预警 -->
+    <view class="report-card" wx:if="{{report.warnings && report.warnings.length > 0}}">
+      <text class="card-label">风险预警</text>
+      <view class="card-list">
+        <text wx:for="{{report.warnings}}" wx:key="*this" class="list-item warning">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 原始数据折叠 -->
+    <view class="raw-section">
+      <view class="raw-toggle" bindtap="toggleRaw">
+        <text class="raw-toggle-text">{{showRaw ? '收起原始数据' : '展开原始数据'}}</text>
+      </view>
+      <view class="raw-content" wx:if="{{showRaw}}">
+        <text class="raw-json">{{report.rawResult}}</text>
+      </view>
+    </view>
+
+    <!-- 底部安全提示 -->
+    <view class="disclaimer">
+      <text class="disclaimer-text">本结果基于输入信息生成，仅供复盘和娱乐参考。</text>
+    </view>
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="empty-text">报告不存在</text>
+    <view class="back-btn" bindtap="goBack">
+      <text class="back-text">返回</text>
+    </view>
+  </view>
+</view>

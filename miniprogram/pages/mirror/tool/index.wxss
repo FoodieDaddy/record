@@ -1,0 +1,137 @@
+.tool-page {
+  min-height: 100vh;
+  background: #0a0a0a;
+  padding: 0 32rpx 120rpx;
+}
+
+.tool-header {
+  padding: 40rpx 0 32rpx;
+}
+
+.tool-name {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.tool-subtitle {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.34);
+  letter-spacing: 4rpx;
+  margin-top: 8rpx;
+}
+
+.form-section {
+  margin-bottom: 32rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.52);
+  margin-bottom: 16rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.method-group {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.method-btn {
+  padding: 16rpx 32rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 12rpx;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.method-btn.active {
+  border-color: #0A84FF;
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.method-text {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.method-btn.active .method-text {
+  color: #0A84FF;
+}
+
+.number-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.number-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 12rpx;
+  padding: 20rpx;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 28rpx;
+}
+
+.form-picker {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 12rpx;
+  padding: 20rpx;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 28rpx;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.checkbox-label {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.safety-notice {
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.safety-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.submit-btn {
+  margin-top: 24rpx;
+  text-align: center;
+  padding: 28rpx 0;
+  background: #0A84FF;
+  border-radius: 20rpx;
+}
+
+.submit-btn.loading {
+  opacity: 0.6;
+}
+
+.submit-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 500;
+}

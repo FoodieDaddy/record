@@ -1,0 +1,117 @@
+.swipe-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0a;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: 0 48rpx;
+}
+
+.swipe-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 80rpx 0 40rpx;
+}
+
+.swipe-progress {
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.52);
+  font-family: 'SF Mono', monospace;
+}
+
+.swipe-close {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-icon {
+  font-size: 40rpx;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.swipe-card-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swipe-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(10, 132, 255, 0.2);
+  border-radius: 32rpx;
+  padding: 64rpx 48rpx;
+  min-height: 300rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.swipe-card.slide-right {
+  transform: translateX(120%);
+  opacity: 0;
+}
+
+.swipe-card.slide-left {
+  transform: translateX(-120%);
+  opacity: 0;
+}
+
+.question-text {
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.8;
+  text-align: center;
+}
+
+.swipe-actions {
+  display: flex;
+  gap: 24rpx;
+  padding: 48rpx 0 120rpx;
+}
+
+.action-btn {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.action-no {
+  border-color: rgba(255, 69, 58, 0.3);
+}
+
+.action-no .action-text {
+  color: #FF453A;
+}
+
+.action-mid .action-text {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.action-yes {
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.action-yes .action-text {
+  color: #0A84FF;
+}
+
+.action-text {
+  font-size: 28rpx;
+}
+
+/* Reduce Motion */
+.reduce-motion .swipe-card {
+  transition: none;
+}

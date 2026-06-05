@@ -1,0 +1,29 @@
+<view class="swipe-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
+  <!-- 顶部栏 -->
+  <view class="swipe-top">
+    <text class="swipe-progress">{{progress}}</text>
+    <view class="swipe-close" bindtap="onClose">
+      <text class="close-icon">x</text>
+    </view>
+  </view>
+
+  <!-- 题目卡片 -->
+  <view class="swipe-card-area">
+    <view class="swipe-card {{slideDirection === 'right' ? 'slide-right' : ''}} {{slideDirection === 'left' ? 'slide-left' : ''}}">
+      <text class="question-text">{{currentQuestion.text}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="swipe-actions">
+    <view class="action-btn action-no" bindtap="onSwipeLeft">
+      <text class="action-text">不像我</text>
+    </view>
+    <view class="action-btn action-mid" bindtap="onNotSure">
+      <text class="action-text">不确定</text>
+    </view>
+    <view class="action-btn action-yes" bindtap="onSwipeRight">
+      <text class="action-text">像我</text>
+    </view>
+  </view>
+</view>

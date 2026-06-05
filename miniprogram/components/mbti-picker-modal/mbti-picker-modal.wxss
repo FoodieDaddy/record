@@ -1,0 +1,130 @@
+.picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0a;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: 0 48rpx;
+}
+
+.picker-header {
+  padding: 80rpx 0 40rpx;
+  position: relative;
+}
+
+.picker-title {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.picker-subtitle {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.34);
+  margin-top: 8rpx;
+}
+
+.picker-close {
+  position: absolute;
+  top: 80rpx;
+  right: 0;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-icon {
+  font-size: 40rpx;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.picker-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
+}
+
+.dim-group {
+  width: 100%;
+}
+
+.dim-options {
+  display: flex;
+  gap: 20rpx;
+}
+
+.dim-btn {
+  flex: 1;
+  text-align: center;
+  padding: 32rpx 0;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+  border-radius: 16rpx;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dim-btn.active {
+  border-color: #0A84FF;
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.dim-letter {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.52);
+  font-family: 'SF Mono', monospace;
+}
+
+.dim-btn.active .dim-letter {
+  color: #0A84FF;
+}
+
+.preview {
+  margin: 48rpx 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.preview-type {
+  font-size: 80rpx;
+  font-weight: 700;
+  color: #0A84FF;
+  letter-spacing: 12rpx;
+  font-family: 'SF Mono', monospace;
+}
+
+.preview-title {
+  font-size: 32rpx;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.picker-confirm {
+  width: 100%;
+  text-align: center;
+  padding: 28rpx 0;
+  background: #0A84FF;
+  border-radius: 20rpx;
+  margin-top: auto;
+  margin-bottom: 80rpx;
+}
+
+.confirm-text {
+  font-size: 32rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.reduce-motion .dim-btn {
+  transition: none;
+}

@@ -3,7 +3,10 @@
     "pages/login/login",
     "pages/room/room",
     "pages/fortune/fortune",
-    "pages/gallery/gallery",
+    "pages/mirror/index",
+    "pages/mirror/tool/index",
+    "pages/mirror/report/index",
+    "pages/mirror/archive/index",
     "pages/profile/profile",
     "pages/voice-select/voice-select",
     "pages/settle/settle",
@@ -35,8 +38,8 @@
         "selectedIconPath": "images/tab-fortune-active.png"
       },
       {
-        "pagePath": "pages/gallery/gallery",
-        "text": "图库",
+        "pagePath": "pages/mirror/index",
+        "text": "镜像",
         "iconPath": "images/tab-gallery.png",
         "selectedIconPath": "images/tab-gallery-active.png"
       },

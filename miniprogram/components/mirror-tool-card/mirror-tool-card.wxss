@@ -1,0 +1,62 @@
+.tool-card {
+  width: calc(50% - 10rpx);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.tool-card.locked {
+  opacity: 0.4;
+}
+
+.tool-card.used {
+  border-color: rgba(10, 132, 255, 0.2);
+}
+
+.tool-icon {
+  width: 40rpx;
+  height: 40rpx;
+  margin-bottom: 8rpx;
+}
+
+.icon-line {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid rgba(10, 132, 255, 0.5);
+  border-radius: 8rpx;
+}
+
+.tool-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.tool-desc {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.34);
+  line-height: 1.4;
+}
+
+.tool-lock {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.2);
+  margin-top: 4rpx;
+}
+
+.tool-used {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  font-size: 18rpx;
+  color: #0A84FF;
+  padding: 2rpx 8rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.3);
+  border-radius: 6rpx;
+}
