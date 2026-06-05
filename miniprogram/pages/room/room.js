@@ -1209,10 +1209,11 @@ Page({
 
   async quitRoom() {
     const isOwner = this.data.isOwner;
-    const title = isOwner ? '确认解散房间？' : '确认退出？';
-    const content = isOwner ? '解散后将归档所有计分数据并展示积分总览' : '';
-    const { confirm } = await wx.showModal({ title, content });
-    if (!confirm) return;
+    // 非房主退出需要确认（房主已通过 SYSTEM WARNING 弹窗确认）
+    if (!isOwner) {
+      const { confirm } = await wx.showModal({ title: '确认退出？', content: '' });
+      if (!confirm) return;
+    }
     const roomId = this.data.currentRoom.roomId;
     try {
       if (isOwner) {
