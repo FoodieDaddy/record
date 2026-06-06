@@ -1,0 +1,56 @@
+<view class="ssp" wx:if="{{insight && insight.transferCount > 0}}">
+  <!-- 标题区 -->
+  <view class="ssp-header">
+    <view class="ssp-title-group">
+      <text class="ssp-cn">空间扫描</text>
+      <text class="ssp-en">SPACE SCAN</text>
+    </view>
+  </view>
+  <view class="ssp-divider"></view>
+
+  <!-- 摘要状态行 -->
+  <view class="ssp-status-row">
+    <view class="ssp-status-dot"></view>
+    <text class="ssp-status-text">空间状态：{{densityLabel}}</text>
+  </view>
+
+  <!-- 2x2 扫描格 -->
+  <view class="ssp-grid">
+    <!-- 活跃目标 -->
+    <view class="ssp-cell">
+      <text class="ssp-cell-label">活跃目标</text>
+      <text class="ssp-cell-en">ACTIVE TARGET</text>
+      <text class="ssp-cell-value" wx:if="{{insight.mostActiveUser}}">{{insight.mostActiveUser.nickname}}</text>
+      <text class="ssp-cell-value ssp-cell-na" wx:else>—</text>
+      <text class="ssp-cell-sub" wx:if="{{insight.mostActiveUser}}">互动 {{insight.mostActiveUser.count}} 次</text>
+    </view>
+
+    <!-- 峰值流向 -->
+    <view class="ssp-cell">
+      <text class="ssp-cell-label">峰值流向</text>
+      <text class="ssp-cell-en">PEAK FLOW</text>
+      <text class="ssp-cell-num">{{insight.maxSingleTransfer}}</text>
+      <text class="ssp-cell-sub">当前峰值事件</text>
+    </view>
+
+    <!-- 流转总量 -->
+    <view class="ssp-cell">
+      <text class="ssp-cell-label">流转总量</text>
+      <text class="ssp-cell-en">TOTAL VOLUME</text>
+      <text class="ssp-cell-num">{{insight.totalTransfer}}</text>
+      <text class="ssp-cell-sub">本轮累计</text>
+    </view>
+
+    <!-- 连接密度 -->
+    <view class="ssp-cell">
+      <text class="ssp-cell-label">连接密度</text>
+      <text class="ssp-cell-en">LINK DENSITY</text>
+      <view class="ssp-density">
+        <view class="ssp-density-track">
+          <view class="ssp-density-fill ssp-density-{{densityLevel}}" style="width: {{densityPercent}}%;"></view>
+        </view>
+        <text class="ssp-density-label">{{densityLabel}}</text>
+      </view>
+    </view>
+  </view>
+</view>

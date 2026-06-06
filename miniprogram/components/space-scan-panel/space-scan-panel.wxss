@@ -1,0 +1,182 @@
+/* ===== SPACE SCAN PANEL 空间扫描面板 ===== */
+.ssp {
+  padding: 24rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.12);
+  border-radius: 16rpx;
+  background:
+    linear-gradient(180deg, rgba(10, 132, 255, 0.02), transparent 40%),
+    rgba(255, 255, 255, 0.02);
+  margin-bottom: 16rpx;
+}
+
+/* 标题区 */
+.ssp-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.ssp-title-group {
+  display: flex;
+  flex-direction: column;
+}
+.ssp-cn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
+}
+.ssp-en {
+  font-size: 17rpx;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  margin-top: 2rpx;
+}
+
+.ssp-divider {
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.12), rgba(255, 255, 255, 0.04), transparent);
+  margin: 16rpx 0;
+}
+
+/* 摘要状态行 */
+.ssp-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+  padding: 12rpx 16rpx;
+  background: rgba(10, 132, 255, 0.03);
+  border: 1rpx solid rgba(10, 132, 255, 0.06);
+  border-radius: 10rpx;
+}
+.ssp-status-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #0A84FF;
+  box-shadow: 0 0 8rpx rgba(10, 132, 255, 0.5);
+  animation: statusBlink 2s ease-in-out infinite;
+}
+@keyframes statusBlink {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.ssp-status-text {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 1rpx;
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+}
+
+/* 2x2 扫描格 */
+.ssp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12rpx;
+}
+.ssp-cell {
+  padding: 20rpx 16rpx;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1rpx solid rgba(255, 255, 255, 0.05);
+  border-radius: 14rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  position: relative;
+  overflow: hidden;
+}
+.ssp-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.12), transparent);
+}
+.ssp-cell-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 1rpx;
+}
+.ssp-cell-en {
+  font-size: 14rpx;
+  color: rgba(255, 255, 255, 0.16);
+  letter-spacing: 3rpx;
+  font-family: monospace;
+  margin-bottom: 4rpx;
+}
+.ssp-cell-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ssp-cell-na {
+  color: rgba(255, 255, 255, 0.2);
+}
+.ssp-cell-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #00AFFF;
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+.ssp-cell-sub {
+  font-size: 18rpx;
+  color: rgba(255, 255, 255, 0.22);
+  letter-spacing: 1rpx;
+}
+
+/* 密度计 */
+.ssp-density {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: 4rpx;
+}
+.ssp-density-track {
+  height: 10rpx;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 5rpx;
+  overflow: hidden;
+  position: relative;
+}
+.ssp-density-fill {
+  height: 100%;
+  border-radius: 5rpx;
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  position: relative;
+}
+.ssp-density-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16rpx;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  filter: blur(4rpx);
+  border-radius: 0 5rpx 5rpx 0;
+}
+.ssp-density-high {
+  background: linear-gradient(90deg, #0A84FF, #5BE37A);
+}
+.ssp-density-mid {
+  background: linear-gradient(90deg, #0A84FF, #00C8FF);
+}
+.ssp-density-low {
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.4), #0A84FF);
+}
+.ssp-density-label {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+.reduce-motion .ssp-status-dot { animation: none; opacity: 0.7; }
+.reduce-motion .ssp-density-fill { transition: none; }

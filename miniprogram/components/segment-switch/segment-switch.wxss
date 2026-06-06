@@ -1,0 +1,51 @@
+.seg-switch {
+  display: inline-flex;
+}
+.seg-track {
+  display: flex;
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  border-radius: 28rpx;
+  padding: 4rpx;
+  gap: 2rpx;
+}
+.seg-thumb {
+  position: absolute;
+  top: 4rpx;
+  bottom: 4rpx;
+  width: calc(50% - 5rpx);
+  background: rgba(10, 132, 255, 0.12);
+  border: 1rpx solid rgba(10, 132, 255, 0.35);
+  border-radius: 24rpx;
+  transition: left 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+.seg-thumb-left {
+  left: 4rpx;
+}
+.seg-thumb-right {
+  left: calc(50% + 1rpx);
+}
+.seg-option {
+  position: relative;
+  z-index: 1;
+  padding: 8rpx 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80rpx;
+}
+.seg-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 1rpx;
+  transition: color 0.2s;
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+}
+.seg-option-on .seg-label {
+  color: #00AFFF;
+}
+.reduce-motion .seg-thumb {
+  transition: none;
+}

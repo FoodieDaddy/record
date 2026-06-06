@@ -1,0 +1,63 @@
+<wxs src="./flow-log-panel.wxs" module="fmt" />
+<view class="flp">
+  <!-- 标题区 -->
+  <view class="flp-header">
+    <view class="flp-title-group">
+      <text class="flp-cn">流向日志</text>
+      <text class="flp-en">FLOW LOG</text>
+    </view>
+    <view class="flp-controls">
+      <segment-switch options="{{['我的视角', '全域视角']}}" active="{{filterMine ? 0 : 1}}" bind:change="onViewChange" />
+      <view class="flp-matrix-btn" bindtap="openMatrix" wx:if="{{showMatrix}}">
+        <view class="icon-chart matrix-btn-icon-svg"></view>
+      </view>
+    </view>
+  </view>
+  <view class="flp-divider"></view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{groupedRecords.length === 0}}" class="flp-empty">
+    <view class="flp-empty-pulse"></view>
+    <text class="flp-empty-hint-cn">暂无流向数据</text>
+    <text class="flp-empty-hint-en">NO FLOW DATA</text>
+    <text class="flp-empty-desc">完成一次数值流转后，数据将在此呈现</text>
+  </view>
+
+  <!-- 记录列表 -->
+  <view wx:else class="flp-list">
+    <block wx:for="{{groupedRecords}}" wx:key="timeKey">
+      <!-- 时间组容器 -->
+      <view class="flp-group">
+        <view class="flp-time-anchor">
+          <view class="flp-time-dot"></view>
+          <text class="flp-time-text">{{item.timeDisplay}}</text>
+        </view>
+        <view class="flp-group-body">
+          <view class="flp-event {{rec.myRole ? 'flp-event-mine' : ''}}" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
+            <view class="flp-event-dot {{rec.myRole ? 'flp-event-dot-active' : ''}}"></view>
+            <text class="flp-name flp-name-from">{{rec.fromName}}</text>
+            <view class="flp-flow">
+              <view class="flp-beam"></view>
+              <text class="flp-amount {{rec.myRole === 'from' ? 'flp-amt-neg' : rec.myRole === 'to' ? 'flp-amt-pos' : 'flp-amt-neutral'}}">{{fmt.formatAmount(rec.amount)}}</text>
+              <view class="flp-beam"></view>
+              <text class="flp-arrow">→</text>
+            </view>
+            <text class="flp-name flp-name-to">{{rec.toName}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loadingMore}}" class="flp-loading">
+      <view class="flp-loading-dot"></view>
+      <text class="flp-loading-text">加载中...</text>
+    </view>
+
+    <!-- 结束提示 -->
+    <view wx:if="{{noMore && groupedRecords.length > 0}}" class="flp-end">
+      <text class="flp-end-cn">记录流已结束</text>
+      <text class="flp-end-en">END OF STREAM</text>
+    </view>
+  </view>
+</view>

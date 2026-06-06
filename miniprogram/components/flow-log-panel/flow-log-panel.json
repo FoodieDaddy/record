@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "segment-switch": "/components/segment-switch/segment-switch"
+  }
+}

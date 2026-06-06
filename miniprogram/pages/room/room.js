@@ -375,6 +375,12 @@ Page({
     this.rebuildGroupedRecords();
   },
 
+  /** 流向日志视角切换（组件事件） */
+  onToggleFilter(e) {
+    this.setData({ filterMine: e.detail.filterMine });
+    this.rebuildGroupedRecords();
+  },
+
   /** 滚动到底加载更多 */
   onScoreScrollToLower() {
     if (this.data.loadingMore || this._transferNoMore) return;

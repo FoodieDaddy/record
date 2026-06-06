@@ -401,13 +401,15 @@
                   wx:for="{{memberGrid}}" wx:key="userId"
                   bindtap="onTapMember" data-user-id="{{item.userId}}">
               <view class="mg-avatar-wrap">
-                <!-- 赛博环 -->
-                <view class="mg-cyber-ring {{item.userId === transferTo ? 'ring-selected' : ''}} {{item.score > 0 ? 'ring-positive' : item.score < 0 ? 'ring-negative' : ''}} {{item.isHost ? 'ring-host' : ''}}"></view>
-                <view class="auto-avatar" style="background:{{item.avatarColor}};" wx:if="{{!item.avatarUrl}}">
-                  <text class="auto-avatar-char">{{item.avatarChar}}</text>
-                </view>
-                <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
-                <!-- HOST 标签 -->
+                <helmet-avatar
+                  src="{{item.avatarUrl}}"
+                  size="sm"
+                  active="{{item.userId === transferTo}}"
+                  controller="{{item.isHost}}"
+                  dimmed="{{item.score < 0}}"
+                  showStatus="{{false}}"
+                  reduceMotion="{{!animationEnabled}}"
+                />
                 <view class="mg-host-badge" wx:if="{{item.isHost}}">主控</view>
               </view>
               <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
@@ -421,101 +423,21 @@
         </scroll-view>
       </view>
 
-      <!-- FLOW LOG 数值流 -->
-      <view class="flow-log">
-        <view class="fl-header">
-          <view class="fl-title-group">
-            <text class="fl-cn">数值流</text>
-            <text class="fl-en">FLOW</text>
-          </view>
-          <view style="display:flex;gap:12rpx;">
-            <view class="fl-filter {{filterMine ? 'fl-filter-on' : ''}}" bindtap="toggleFilterMine">
-              <view class="icon-person matrix-btn-icon-svg"></view>
-              <text class="fl-filter-text">我</text>
-            </view>
-            <view class="fl-overview-btn" bindtap="openMatrixPanel" wx:if="{{memberGrid.length >= 2}}">
-              <view class="icon-chart matrix-btn-icon-svg"></view>
-              <text class="fl-filter-text">总览</text>
-            </view>
-          </view>
-        </view>
-        <view class="fl-divider"></view>
+      <!-- FLOW LOG 流向日志终端 -->
+      <flow-log-panel
+        grouped-records="{{groupedRecords}}"
+        filter-mine="{{filterMine}}"
+        loading-more="{{loadingMore}}"
+        no-more="{{noMore}}"
+        show-matrix="{{memberGrid.length >= 2}}"
+        bind:toggleFilter="onToggleFilter"
+        bind:openMatrix="openMatrixPanel"
+      />
 
-        <!-- 空状态 -->
-        <view wx:if="{{groupedRecords.length === 0}}" class="fl-empty">
-          <view class="fl-empty-pulse"></view>
-          <text class="fl-empty-title">暂无流向数据</text>
-          <text class="fl-empty-text">完成一次数值流转后，数据将在此呈现</text>
-          <text class="fl-empty-hint"></text>
-        </view>
-
-        <!-- 记录列表 -->
-        <view wx:else class="fl-list">
-          <block wx:for="{{groupedRecords}}" wx:key="timeKey">
-            <view class="fl-time-header">
-              <text class="fl-time-dot">●</text>
-              <text class="fl-time-text">{{item.timeDisplay}}</text>
-            </view>
-            <view class="fl-item {{rec.myRole ? 'fl-item-mine' : ''}}" wx:for="{{item.records}}" wx:for-item="rec" wx:key="id">
-              <view class="fl-dot {{rec.myRole ? 'fl-dot-mine' : ''}}"></view>
-              <text class="fl-from-name">{{rec.fromName}}</text>
-              <view class="fl-arrow-wrap">
-                <view class="fl-arrow-line"></view>
-                <text class="fl-amount {{rec.myRole === 'from' ? 'fl-amt-red' : rec.myRole === 'to' ? 'fl-amt-green' : 'fl-amt-white'}}">{{fmt.formatAmount(rec.amount)}}</text>
-                <view class="fl-arrow-line"></view>
-                <text class="fl-arrow-head">→</text>
-              </view>
-              <text class="fl-to-name">{{rec.toName}}</text>
-            </view>
-          </block>
-          <view wx:if="{{loadingMore}}" class="fl-loading">
-            <text class="fl-loading-text">加载中...</text>
-          </view>
-          <view wx:if="{{noMore && groupedRecords.length > 0}}" class="fl-loading">
-            <text class="fl-loading-text">— 没有更多了 —</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- ROOM INSIGHT 空间洞察 -->
-      <view class="room-insight" wx:if="{{roomInsight && roomInsight.transferCount > 0}}">
-        <view class="ri-header">
-          <text class="ri-cn">空间洞察</text>
-          <text class="ri-en">SPACE INSIGHT</text>
-        </view>
-        <view class="ri-divider"></view>
-        <view class="ri-blocks">
-          <!-- 最活跃 -->
-          <view class="ri-block">
-            <text class="ri-block-label">本轮最活跃</text>
-            <text class="ri-block-value" wx:if="{{roomInsight.mostActiveUser}}">{{roomInsight.mostActiveUser.nickname}}</text>
-            <text class="ri-block-sub" wx:if="{{roomInsight.mostActiveUser}}">互动{{roomInsight.mostActiveUser.count}}次</text>
-            <text class="ri-block-value ri-block-na" wx:else>—</text>
-          </view>
-          <!-- 最大流转 -->
-          <view class="ri-block">
-            <text class="ri-block-label">最大流向</text>
-            <text class="ri-block-num">{{roomInsight.maxSingleTransfer}}</text>
-          </view>
-          <!-- 积分流转量 -->
-          <view class="ri-block">
-            <text class="ri-block-label">数值流转量</text>
-            <text class="ri-block-num">{{roomInsight.totalTransfer}}</text>
-          </view>
-          <!-- 互动密度 -->
-          <view class="ri-block">
-            <text class="ri-block-label">互动密度</text>
-            <view class="ri-density-wrap">
-              <view class="ri-density-bar">
-                <view class="ri-density-fill ri-density-{{roomInsight.networkDensity === 'HIGH' ? 'high' : roomInsight.networkDensity === 'MEDIUM' ? 'mid' : 'low'}}"
-                  style="width:{{roomInsight.networkDensity === 'HIGH' ? '100' : roomInsight.networkDensity === 'MEDIUM' ? '60' : '25'}}%;">
-                </view>
-              </view>
-              <text class="ri-density-text">{{roomInsight.networkDensity === 'HIGH' ? '高' : roomInsight.networkDensity === 'MEDIUM' ? '中' : '低'}}</text>
-            </view>
-          </view>
-        </view>
-      </view>
+      <!-- SPACE SCAN 空间扫描面板 -->
+      <space-scan-panel
+        insight="{{roomInsight}}"
+      />
 
       <!-- 底部操作区 -->
       <view class="room-bottom-bar">
@@ -551,38 +473,45 @@
     <view class="transfer-overlay {{showNumpad ? 'transfer-show' : ''}}" catchtap="closeNumpad">
       <view class="transfer-sheet" catchtap="preventClose">
         <view class="transfer-header">
-          <text class="transfer-kicker">TRANSFER</text>
+          <text class="transfer-kicker">FLOW SHIFT</text>
           <text class="transfer-subtitle">流向调整</text>
         </view>
 
         <!-- FROM → TO -->
         <view class="transfer-direction">
           <view class="transfer-player">
-            <text class="transfer-role-label">发起方</text>
-            <view class="auto-avatar-sm" style="background:{{transferFromInfo.avatarColor}};" wx:if="{{!transferFromInfo.avatarUrl && transferFromInfo}}">
-              <text class="auto-avatar-char-sm">{{transferFromInfo.avatarChar}}</text>
-            </view>
-            <image class="transfer-avatar" src="{{transferFromInfo.avatarUrl}}" wx:elif="{{transferFromInfo}}" mode="aspectFill"></image>
+            <text class="transfer-role-label">源成员</text>
+            <helmet-avatar
+              src="{{transferFromInfo.avatarUrl}}"
+              size="sm"
+              active
+              showStatus="{{false}}"
+              reduceMotion="{{!animationEnabled}}"
+            />
             <text class="transfer-player-name">{{t.truncateName(transferFromInfo.nickname)}}</text>
           </view>
           <view class="transfer-arrow-wrap">
             <view class="transfer-arrow-line"></view>
+            <view class="transfer-arrow-beam"></view>
             <text class="transfer-arrow-head">→</text>
           </view>
           <view class="transfer-player">
-            <text class="transfer-role-label">接收方</text>
-            <view class="auto-avatar-sm" style="background:{{transferToInfo.avatarColor}};" wx:if="{{!transferToInfo.avatarUrl && transferToInfo}}">
-              <text class="auto-avatar-char-sm">{{transferToInfo.avatarChar}}</text>
-            </view>
-            <image class="transfer-avatar" src="{{transferToInfo.avatarUrl}}" wx:elif="{{transferToInfo}}" mode="aspectFill"></image>
+            <text class="transfer-role-label">目标成员</text>
+            <helmet-avatar
+              src="{{transferToInfo.avatarUrl}}"
+              size="sm"
+              active
+              showStatus="{{false}}"
+              reduceMotion="{{!animationEnabled}}"
+            />
             <text class="transfer-player-name">{{t.truncateName(transferToInfo.nickname)}}</text>
           </view>
         </view>
 
         <!-- AMOUNT -->
         <view class="transfer-amount-section">
-          <text class="transfer-amount-label">数值</text>
-          <text class="transfer-display-value">{{numpadValue > 0 ? '+' : ''}}{{numpadValue || '0'}}</text>
+          <text class="transfer-amount-label">流向数值</text>
+          <text class="transfer-display-value">{{numpadValue || '0'}}</text>
         </view>
 
         <!-- 实时预览 -->
@@ -592,7 +521,7 @@
             <view class="tp-arrow">
               <text class="tp-score-old">{{transferPreview.fromOldScore}}</text>
               <text class="tp-arrow-icon">→</text>
-              <text class="tp-score" style="color:#FF4D4F;">{{transferPreview.fromNewScore}}</text>
+              <text class="tp-score tp-score-neg">-{{numpadValue}}</text>
             </view>
           </view>
           <view class="tp-divider"></view>
@@ -601,7 +530,7 @@
             <view class="tp-arrow">
               <text class="tp-score-old">{{transferPreview.toOldScore}}</text>
               <text class="tp-arrow-icon">→</text>
-              <text class="tp-score" style="color:#36FF74;">{{transferPreview.toNewScore}}</text>
+              <text class="tp-score tp-score-pos">+{{numpadValue}}</text>
             </view>
           </view>
         </view>
@@ -622,8 +551,8 @@
           <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">⌫</view>
         </view>
         <view class="transfer-actions">
-          <view class="transfer-confirm" bindtap="confirmNumpad">
-            <text class="transfer-confirm-text">确认记录</text>
+          <view class="transfer-confirm {{numpadValue > 0 ? '' : 'transfer-confirm-disabled'}}" bindtap="confirmNumpad">
+            <text class="transfer-confirm-text">确认调整</text>
             <text class="transfer-confirm-sub">CONFIRM</text>
           </view>
         </view>

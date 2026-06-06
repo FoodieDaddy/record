@@ -1,0 +1,11 @@
+<view class="seg-switch">
+  <view class="seg-track">
+    <view class="seg-thumb {{active === 0 ? 'seg-thumb-left' : 'seg-thumb-right'}}"></view>
+    <view class="seg-option {{active === 0 ? 'seg-option-on' : ''}}" bindtap="onTap" data-index="0">
+      <text class="seg-label">{{options[0]}}</text>
+    </view>
+    <view class="seg-option {{active === 1 ? 'seg-option-on' : ''}}" bindtap="onTap" data-index="1">
+      <text class="seg-label">{{options[1]}}</text>
+    </view>
+  </view>
+</view>

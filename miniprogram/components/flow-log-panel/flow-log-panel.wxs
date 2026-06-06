@@ -1,0 +1,22 @@
+/**
+ * 格式化金额（无正负号，用于积分记录）
+ */
+function formatAmount(score) {
+  if (score === 0) return '0';
+  var abs = score < 0 ? -score : score;
+  if (abs >= 100000000) {
+    var yi = abs / 100000000;
+    var rounded = Math.round(yi * 10) / 10;
+    return rounded + '亿';
+  }
+  if (abs >= 10000) {
+    var wan = abs / 10000;
+    var rounded2 = Math.round(wan * 10) / 10;
+    return rounded2 + '万';
+  }
+  return '' + abs;
+}
+
+module.exports = {
+  formatAmount: formatAmount
+};
