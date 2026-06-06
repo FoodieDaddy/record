@@ -1,6 +1,6 @@
 <wxs src="./room.wxs" module="fmt" />
 <wxs src="../../utils/truncate.wxs" module="t" />
-<view class="room-page {{!animationEnabled ? 'reduce-motion' : ''}}">
+<view class="room-page cockpit-page {{!animationEnabled ? 'reduce-motion' : ''}}">
   <!-- WS 断线遮罩 -->
   <view class="ws-mask {{wsReconnecting ? 'ws-mask--show' : ''}}" catchtap catchtouchmove="preventClose">
     <view class="ws-mask__card glass-card">
@@ -18,462 +18,329 @@
     </view>
   </view>
 
-  <!-- 已登录：无房间 -->
-  <view wx:elif="{{!currentRoom}}" class="empty-room">
-    <!-- 创建房间 -->
-    <view class="cyber-card create-card">
-      <!-- 系统状态 -->
-      <view class="cyber-system-bar">
-        <text class="cyber-system-name">脉冲终端</text>
-        <view class="cyber-system-status">
-          <view class="cyber-status-dot"></view>
-          <text class="cyber-status-text">在线</text>
-        </view>
+  <!-- 驾驶舱 Header（已登录时显示） -->
+  <view wx:if="{{isLoggedIn}}" class="cockpit-header">
+    <view class="header-kicker">COCKPIT ONLINE</view>
+    <view class="header-main">
+      <view>
+        <view class="page-title">驾驶舱</view>
+        <view class="page-subtitle">启动空间，记录脉冲</view>
       </view>
-      <view class="cyber-divider"></view>
-
-      <!-- 房间模式 -->
-      <view class="cyber-section-title">
-        <text class="cyber-cn">空间模式</text>
-        <text class="cyber-en">SPACE MODE</text>
-      </view>
-      <view class="cyber-mode-cards">
-        <view class="sr-t-base cyber-mode-card {{scoreMode === 1 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="1">
-          <view class="cyber-mode-head">
-            <text class="sr-t-base cyber-mode-dot {{scoreMode === 1 ? 'mode-dot-on' : ''}}"></text>
-            <text class="cyber-mode-name">自由流转</text>
-            <text class="sr-t-base cyber-mode-badge {{scoreMode === 1 ? 'badge-on' : ''}}">开放</text>
-          </view>
-          <text class="cyber-mode-desc">实时记录数值变化</text>
-        </view>
-        <view class="sr-t-base cyber-mode-card {{scoreMode === 2 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="2">
-          <view class="cyber-mode-head">
-            <text class="sr-t-base cyber-mode-dot {{scoreMode === 2 ? 'mode-dot-on' : ''}}"></text>
-            <text class="cyber-mode-name">本局录入</text>
-            <text class="sr-t-base cyber-mode-badge {{scoreMode === 2 ? 'badge-on' : ''}}">推荐</text>
-          </view>
-          <text class="cyber-mode-desc">每轮结束统一录入数值</text>
-        </view>
-      </view>
-
-      <!-- 本局录入配置 -->
-      <block wx:if="{{scoreMode === 2}}">
-        <view class="cyber-divider"></view>
-
-        <!-- 录入方式 -->
-        <view class="cyber-section-title">
-          <text class="cyber-cn">录入方式</text>
-          <text class="cyber-en">RECORD MODE</text>
-        </view>
-        <view class="cyber-cards">
-          <view class="sr-t-base cyber-opt-card {{roundInputMethod === 1 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="1">
-            <view class="cyber-opt-status" wx:if="{{roundInputMethod === 1}}">
-              <view class="cyber-opt-check"></view>
-              <text class="cyber-opt-status-text">已启用</text>
-            </view>
-            <text class="cyber-opt-title">主控填写</text>
-            <text class="cyber-opt-desc">由主控统一录入</text>
-            <text class="cyber-opt-hint">适合统一复盘</text>
-          </view>
-          <view class="sr-t-base cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
-            <view class="cyber-opt-status" wx:if="{{roundInputMethod === 2}}">
-              <view class="cyber-opt-check"></view>
-              <text class="cyber-opt-status-text">已启用</text>
-            </view>
-            <text class="cyber-opt-title">舰员自填</text>
-            <text class="cyber-opt-desc">每人提交自己结果</text>
-            <text class="cyber-opt-hint">待选择</text>
-          </view>
-        </view>
-        <view class="cyber-divider"></view>
-
-        <!-- 确认协议 -->
-        <view class="cyber-section-title">
-          <text class="cyber-cn">确认协议</text>
-          <text class="cyber-en">CONFIRM PROTOCOL</text>
-        </view>
-        <view class="cyber-chips">
-          <view class="sr-t-base cyber-chip {{trustMode === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="0">
-            <text class="sr-t-base cyber-chip-dot {{trustMode === 0 ? 'dot-on' : ''}}"></text>
-            <view class="cyber-chip-text">
-              <text class="cyber-chip-main">标准协议</text>
-              <text class="cyber-chip-sub">需要全员确认</text>
-            </view>
-          </view>
-          <view class="sr-t-base cyber-chip {{trustMode === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="1">
-            <text class="sr-t-base cyber-chip-dot {{trustMode === 1 ? 'dot-on' : ''}}"></text>
-            <view class="cyber-chip-text">
-              <text class="cyber-chip-main">快速协议</text>
-              <text class="cyber-chip-sub">直接生效</text>
-            </view>
-          </view>
-        </view>
-        <view class="cyber-divider"></view>
-
-        <!-- 积分模型 -->
-        <view class="cyber-section-title">
-          <text class="cyber-cn">数值模型</text>
-          <text class="cyber-en">VALUE MODEL</text>
-        </view>
-        <view class="cyber-chips">
-          <view class="sr-t-base cyber-chip {{zeroSumRequired === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="1">
-            <text class="sr-t-base cyber-chip-dot {{zeroSumRequired === 1 ? 'dot-on' : ''}}"></text>
-            <view class="cyber-chip-text">
-              <text class="cyber-chip-main">零和封存</text>
-              <text class="cyber-chip-sub">数值守恒</text>
-            </view>
-          </view>
-          <view class="sr-t-base cyber-chip {{zeroSumRequired === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="0">
-            <text class="sr-t-base cyber-chip-dot {{zeroSumRequired === 0 ? 'dot-on' : ''}}"></text>
-            <view class="cyber-chip-text">
-              <text class="cyber-chip-main">自由封存</text>
-              <text class="cyber-chip-sub">允许数值增减</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 确认时限（仅标准协议时显示） -->
-        <block wx:if="{{trustMode === 0}}">
-          <view class="cyber-divider"></view>
-          <view class="cyber-section-title">
-            <text class="cyber-cn">确认时限</text>
-            <text class="cyber-en">TIMEOUT</text>
-          </view>
-          <view class="cyber-chips cyber-timeout-chips">
-            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 15 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="15">
-              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 15 ? 'dot-on' : ''}}"></text>
-              <text class="cyber-chip-main">15秒</text>
-            </view>
-            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 30 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="30">
-              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 30 ? 'dot-on' : ''}}"></text>
-              <text class="cyber-chip-main">30秒</text>
-            </view>
-            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 60 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="60">
-              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 60 ? 'dot-on' : ''}}"></text>
-              <text class="cyber-chip-main">60秒</text>
-            </view>
-          </view>
-          <view class="cyber-timeout-action">
-            <text class="cyber-timeout-label">超时行为</text>
-            <view class="cyber-chips" style="flex:1">
-              <view class="sr-t-base cyber-chip {{autoTimeoutAction === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="1">
-                <text class="sr-t-base cyber-chip-dot {{autoTimeoutAction === 1 ? 'dot-on' : ''}}"></text>
-                <text class="cyber-chip-main">自动同意</text>
-              </view>
-              <view class="sr-t-base cyber-chip {{autoTimeoutAction === 2 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="2">
-                <text class="sr-t-base cyber-chip-dot {{autoTimeoutAction === 2 ? 'dot-on' : ''}}"></text>
-                <text class="cyber-chip-main">自动取消</text>
-              </view>
-            </view>
-          </view>
-        </block>
-      </block>
-
-      <!-- 配置预览 -->
-      <view class="cyber-divider"></view>
-      <view class="cyber-preview">
-        <text class="cyber-preview-title">当前配置</text>
-        <view class="cyber-preview-row">
-          <text class="cyber-preview-key">空间模式</text>
-          <text class="cyber-preview-val">{{scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
-        </view>
-        <block wx:if="{{scoreMode === 2}}">
-          <view class="cyber-preview-row">
-            <text class="cyber-preview-key">录入方式</text>
-            <text class="cyber-preview-val">{{roundInputMethod === 1 ? '主控填写' : '成员自填'}}</text>
-          </view>
-          <view class="cyber-preview-row">
-            <text class="cyber-preview-key">确认协议</text>
-            <text class="cyber-preview-val">{{trustMode === 0 ? '标准协议' : '快速协议'}}</text>
-          </view>
-          <view class="cyber-preview-row">
-            <text class="cyber-preview-key">数值模型</text>
-            <text class="cyber-preview-val">{{zeroSumRequired === 1 ? '零和封存' : '自由封存'}}</text>
-          </view>
-          <view class="cyber-preview-row" wx:if="{{trustMode === 0}}">
-            <text class="cyber-preview-key">确认时限</text>
-            <text class="cyber-preview-val">{{autoTimeoutSeconds}}秒</text>
-          </view>
-        </block>
-      </view>
-
-      <!-- 启动空间 -->
-      <view class="cyber-divider"></view>
-      <view class="cyber-create-btn" bindtap="createRoom">
-        <view class="sr-t-base cyber-create-inner {{creating ? 'btn-loading' : ''}}">
-          <text class="cyber-create-text">启动空间</text>
-          <text class="cyber-create-sub">INIT</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="divider-glow"><text class="divider-text">或者</text></view>
-
-    <!-- 接入空间 -->
-    <view class="cyber-card join-card">
-      <!-- 双层标题 -->
-      <view class="cyber-section-title">
-        <text class="cyber-cn">接入空间</text>
-        <text class="cyber-en">SPACE ACCESS</text>
-      </view>
-      <view class="cyber-divider"></view>
-
-      <!-- 扫描接入（主入口） -->
-      <view class="sr-t-base cyber-scan-card" bindtap="scanJoin">
-        <view class="cyber-scan-icon">
-          <view class="cyber-scan-corner cyber-scan-tl"></view>
-          <view class="cyber-scan-corner cyber-scan-tr"></view>
-          <view class="cyber-scan-corner cyber-scan-bl"></view>
-          <view class="cyber-scan-corner cyber-scan-br"></view>
-          <view class="cyber-scan-line"></view>
-        </view>
-        <view class="cyber-scan-text">
-          <text class="cyber-scan-title">扫描接入</text>
-          <text class="cyber-scan-sub">SPACE SCAN</text>
-        </view>
-        <text class="cyber-scan-hint">推荐方式 · 扫描主控二维码快速接入</text>
-      </view>
-      <view class="cyber-divider"></view>
-
-      <!-- 空间识别码输入 -->
-      <view class="cyber-section-title">
-        <text class="cyber-cn">空间识别码</text>
-        <text class="cyber-en">SPACE CODE</text>
-      </view>
-      <view class="sr-t-base cyber-terminal-input" bindtap="onTerminalTap">
-        <text class="cyber-terminal-prefix">SR-</text>
-        <input class="cyber-terminal-field" type="text" maxlength="6"
-               value="{{roomCodeRaw}}" placeholder="XXXXXX"
-               bindinput="onRoomCodeInput" bindblur="onRoomCodeBlur"
-               focus="{{terminalFocused}}" adjust-position="{{false}}" />
-        <view class="cyber-terminal-cursor" wx:if="{{terminalFocused && roomCodeRaw.length < 6}}"></view>
-      </view>
-
-      <!-- 房间状态反馈 -->
-      <view class="cyber-room-status" wx:if="{{roomCodeRaw.length >= 6}}">
-        <view class="cyber-status-row">
-          <view class="cyber-status-dot {{roomLookupValid ? 'dot-green' : 'dot-red'}}"></view>
-          <text class="cyber-status-msg {{roomLookupValid ? 'msg-green' : 'msg-red'}}">
-            {{roomLookupValid ? '空间存在' : (roomLookupMsg || '未发现空间')}}
-          </text>
-        </view>
-        <view class="cyber-room-preview" wx:if="{{roomLookupValid && roomPreview}}">
-          <view class="cyber-preview-row">
-            <text class="cyber-preview-key">空间模式</text>
-            <text class="cyber-preview-val">{{roomPreview.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
-          </view>
-          <view class="cyber-preview-row">
-            <text class="cyber-preview-key">在线舰员</text>
-            <text class="cyber-preview-val">{{roomPreview.memberCount || '?'}} / 16</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 接入按钮 -->
-      <view class="cyber-divider"></view>
-      <view class="cyber-create-btn" bindtap="joinByNo">
-        <view class="sr-t-base cyber-create-inner {{joining ? 'btn-loading' : ''}} {{roomCodeRaw.length >= 6 ? '' : 'btn-dim'}}">
-          <text class="cyber-create-text">接入空间</text>
-          <text class="cyber-create-sub">CONNECT</text>
-        </view>
-      </view>
-
-      <!-- 最近加入 -->
-      <block wx:if="{{recentRooms.length > 0}}">
-        <view class="cyber-divider"></view>
-        <view class="cyber-section-title">
-          <text class="cyber-cn">最近接入</text>
-          <text class="cyber-en">RECENT ACCESS</text>
-        </view>
-        <view class="cyber-recent-list">
-          <view class="sr-t-fast cyber-recent-item" wx:for="{{recentRooms}}" wx:key="roomNo"
-                bindtap="onRecentTap" data-room-no="{{item.roomNo}}">
-            <text class="cyber-recent-code">SR-{{item.roomNo}}</text>
-            <text class="cyber-recent-time">{{item.timeLabel}}</text>
-          </view>
-        </view>
-      </block>
-    </view>
-  </view>
-
-  <!-- 已登录：已有房间（首页快捷入口） -->
-  <view wx:elif="{{!viewingRoom}}" class="has-room">
-    <view class="glass-card-glow room-quick-card">
-      <view class="rq-header">
-        <view class="rq-info">
-          <text class="section-title">我的空间</text>
-          <text class="rq-room-no">{{currentRoom.roomNo}}</text>
-        </view>
-        <view class="rq-badge {{currentRoom.status === 1 ? 'badge-success' : 'badge-accent'}}">
-          {{currentRoom.status === 1 ? '已结束' : '进行中'}}
-        </view>
-      </view>
-      <view class="rq-meta">
-        <text class="text-tertiary text-xs">{{currentRoom.members ? currentRoom.members.length : 0}}人</text>
-      </view>
-      <view class="rq-actions">
-        <view class="sr-t-fast rq-action-btn" bindtap="copyRoomNo">
-          <view class="icon-clip"></view>
-          <text class="rq-action-text">复制接入码</text>
-        </view>
-        <view class="sr-t-fast rq-action-btn" bindtap="openShareSheet">
-          <view class="icon-link"></view>
-          <text class="rq-action-text">二维码</text>
-        </view>
-        <button class="sr-t-fast rq-action-btn" open-type="share">
-          <view class="icon-share"></view>
-          <text class="rq-action-text">分享</text>
-        </button>
-      </view>
-      <view class="flight-primary" style="margin-top:20rpx;" bindtap="enterRoom">
-        <text>进入空间</text>
+      <view class="sync-chip">
+        <view class="status-dot {{wsConnected ? 'status-dot--on' : ''}}"></view>
+        <text>{{wsConnected ? '链路在线' : '链路待接入'}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 已登录：在房间中 -->
-  <view wx:else class="room-content">
+  <!-- idle 状态：启动核心 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="launch-deck sr-hud-panel">
+    <view class="deck-grid"></view>
+
+    <view class="launch-core {{launching ? 'is-igniting' : ''}}">
+      <view class="core-ring core-ring-outer"></view>
+      <view class="core-ring core-ring-inner"></view>
+      <view class="core-center">
+        <view class="core-label">MISSION SPACE</view>
+        <view class="core-title">任务空间待机</view>
+        <view class="core-desc">接入舰员后开始记录脉冲轨迹</view>
+      </view>
+    </view>
+
+    <!-- 空间模式选择 -->
+    <view class="launch-config">
+      <view class="config-kicker">SPACE MODE</view>
+      <view class="config-chips">
+        <view class="config-chip {{scoreMode === 1 ? 'config-chip--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
+          <view class="chip-dot {{scoreMode === 1 ? 'chip-dot--on' : ''}}"></view>
+          <text>自由流转</text>
+        </view>
+        <view class="config-chip {{scoreMode === 2 ? 'config-chip--on' : ''}}" bindtap="selectScoreMode" data-mode="2">
+          <view class="chip-dot {{scoreMode === 2 ? 'chip-dot--on' : ''}}"></view>
+          <text>本局录入</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="launch-actions">
+      <button class="sr-btn sr-btn-primary {{launching ? 'sr-btn--loading' : ''}}" bindtap="handleStartSpace">
+        <text class="btn-text">启动空间</text>
+      </button>
+      <button class="sr-btn sr-btn-secondary" bindtap="openJoinPanel">
+        <text class="btn-text">接入空间</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 接入空间弹窗 -->
+  <view wx:if="{{joinPanelVisible}}" class="cockpit-mask" bindtap="closeJoinPanel">
+    <view class="join-panel sr-hud-panel" catchtap="preventClose">
+      <view class="panel-head">
+        <view>
+          <view class="panel-kicker">ACCESS CODE</view>
+          <view class="panel-title">接入空间</view>
+        </view>
+        <view class="panel-close" bindtap="closeJoinPanel">
+          <view class="icon-close"></view>
+        </view>
+      </view>
+
+      <view class="code-input-wrap">
+        <input
+          class="code-input"
+          value="{{joinCode}}"
+          maxlength="6"
+          placeholder="输入 6 位识别码"
+          placeholder-class="input-placeholder"
+          bindinput="onJoinCodeInput"
+        />
+      </view>
+
+      <button class="sr-btn sr-btn-primary {{joining ? 'sr-btn--loading' : ''}}" bindtap="handleJoinSpace">
+        <text class="btn-text">确认接入</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- idle 状态：已有空间快捷入口 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle' && currentRoom && !viewingRoom}}" class="reentry-card sr-card">
+    <view class="reentry-head">
+      <view class="reentry-kicker">MISSION ACTIVE</view>
+      <view class="reentry-title">进行中的任务空间</view>
+    </view>
+    <view class="reentry-info">
+      <view class="reentry-code">SR-{{currentRoom.roomNo}}</view>
+      <view class="reentry-meta">
+        <text>{{currentRoom.members ? currentRoom.members.length : 0}} 名舰员</text>
+        <text>{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+      </view>
+    </view>
+    <view class="reentry-actions">
+      <button class="sr-btn sr-btn-primary" bindtap="enterRoom">
+        <text class="btn-text">进入空间</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- active 状态：驾驶舱主界面 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'active'}}" class="cockpit-active">
     <!-- 顶部提示 -->
     <view class="top-toast {{toastMsg ? 'top-toast-show' : ''}} {{toastType === 'error' ? 'top-toast-error' : ''}}" wx:if="{{toastMsg}}">
       <text>{{toastMsg}}</text>
     </view>
 
-    <!-- 可滚动区域（积分总览打开时禁止滚动） -->
-    <scroll-view scroll-y="{{!showMatrixPanel && !showNumpad}}" class="{{showMatrixPanel || showNumpad ? 'scroll-locked' : ''}}" style="height:100vh;" bindscrolltolower="onScoreScrollToLower" lower-threshold="200">
-      <!-- ROOM TERMINAL 顶部终端栏 -->
-      <view class="room-terminal">
-        <view class="rt-top-row">
-          <text class="rt-kicker">空间终端 · SPACE</text>
-          <view class="rt-status">
-            <view class="rt-status-dot"></view>
-            <text class="rt-status-text">在线</text>
+    <scroll-view scroll-y class="cockpit-scroll" style="height:100vh;">
+
+      <!-- A. 空间识别区 -->
+      <view class="space-status-card sr-card">
+        <view class="space-id-block">
+          <view class="label">空间识别码</view>
+          <view class="space-code">{{currentRoom.roomNo}}</view>
+        </view>
+        <view class="space-meta">
+          <view class="meta-item">
+            <text class="meta-label">舰员</text>
+            <text class="meta-value">{{memberGrid.length}}/16</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-label">模式</text>
+            <text class="meta-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-label">状态</text>
+            <text class="meta-value">航程中</text>
           </view>
         </view>
-        <view class="rt-main-row">
-          <view class="rt-info-grid">
-            <view class="rt-info-seg">
-              <text class="rt-info-label">空间</text>
-              <text class="rt-info-value">{{currentRoom.roomNo}}</text>
-            </view>
-            <view class="rt-info-seg">
-              <text class="rt-info-label">模式</text>
-              <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
-            </view>
-            <view class="rt-info-seg">
-              <text class="rt-info-label">舰员</text>
-              <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
-            </view>
+        <view class="space-actions">
+          <view class="icon-btn" bindtap="copyRoomNo">
+            <view class="icon-clip"></view>
           </view>
-          <view class="rt-actions">
-            <view class="rt-action" bindtap="copyRoomNo">
-              <view class="icon-clip"></view>
+          <view class="icon-btn" bindtap="openShareSheet">
+            <view class="icon-share"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- B. 舰员席位矩阵 -->
+      <view class="crew-section">
+        <view class="section-head">
+          <view>
+            <view class="section-kicker">CREW MATRIX</view>
+            <view class="section-title">舰员席位</view>
+          </view>
+          <view class="section-count">{{memberGrid.length}}/16</view>
+        </view>
+
+        <view class="crew-grid">
+          <view
+            wx:for="{{seatList}}"
+            wx:key="seatKey"
+            class="crew-seat {{item.active ? 'is-active' : 'is-empty'}} {{item.isSelf ? 'is-self' : ''}} {{selectedCrew.userId === item.userId ? 'is-selected' : ''}}"
+            bindtap="handleSelectCrew"
+            data-user-id="{{item.userId}}"
+          >
+            <view class="seat-corner"></view>
+            <view class="seat-avatar-wrap">
+              <helmet-avatar
+                wx:if="{{item.active}}"
+                src="{{item.avatarUrl || ''}}"
+                size="sm"
+                active="{{selectedCrew.userId === item.userId}}"
+                controller="{{item.isHost}}"
+                showStatus="{{false}}"
+                reduceMotion="{{!animationEnabled}}"
+              />
+              <view wx:else class="empty-seat-mark"></view>
             </view>
-            <view class="rt-action" bindtap="openShareSheet">
-              <view class="icon-share"></view>
+
+            <view class="seat-name">{{item.displayName}}</view>
+            <view class="seat-score" wx:if="{{item.active}}">{{item.scoreText}}</view>
+            <view class="seat-state">
+              <view class="seat-dot"></view>
+              <text>{{item.active ? '在线' : '待接入'}}</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 本局录入状态条 -->
+      <!-- C. 记录脉冲控制区 -->
+      <view class="pulse-control sr-hud-panel">
+        <view class="section-head">
+          <view>
+            <view class="section-kicker">PULSE CONTROL</view>
+            <view class="section-title">记录脉冲</view>
+          </view>
+          <view class="target-chip" wx:if="{{selectedCrew}}">
+            指向 {{selectedCrew.displayName}}
+          </view>
+        </view>
+
+        <view class="pulse-input-row">
+          <button class="pulse-step" bindtap="decreasePulse">
+            <text>−</text>
+          </button>
+          <input
+            class="pulse-input"
+            type="number"
+            value="{{pulseValue}}"
+            bindinput="onPulseValueInput"
+            placeholder="0"
+            placeholder-class="input-placeholder"
+          />
+          <button class="pulse-step" bindtap="increasePulse">
+            <text>＋</text>
+          </button>
+        </view>
+
+        <button
+          class="sr-btn sr-btn-primary pulse-submit {{!selectedCrew || !pulseValue ? 'sr-btn--disabled' : ''}} {{submittingPulse ? 'sr-btn--loading' : ''}}"
+          bindtap="handleSubmitPulse"
+        >
+          <text class="btn-text">写入脉冲轨迹</text>
+        </button>
+        <view class="pulse-hint" wx:if="{{!selectedCrew}}">
+          请选择舰员席位
+        </view>
+      </view>
+
+      <!-- D. 脉冲轨迹 -->
+      <view class="trace-section sr-card">
+        <view class="section-head">
+          <view>
+            <view class="section-kicker">BLACK BOX BUFFER</view>
+            <view class="section-title">脉冲轨迹</view>
+          </view>
+          <view class="trace-status">
+            <view class="status-dot status-dot--on"></view>
+            <text>实时写入</text>
+          </view>
+        </view>
+
+        <scroll-view scroll-y class="trace-list" scroll-into-view="{{traceAnchor}}" style="max-height:520rpx;">
+          <view
+            wx:for="{{pulseTraces}}"
+            wx:key="id"
+            id="trace-{{item.id}}"
+            class="trace-item {{item.isNew ? 'is-new' : ''}}"
+          >
+            <view class="trace-line"></view>
+            <view class="trace-main">
+              <view class="trace-title">{{item.title}}</view>
+              <view class="trace-desc">{{item.desc}}</view>
+            </view>
+            <view class="trace-value {{item.valueClass}}">{{item.valueText}}</view>
+          </view>
+
+          <view wx:if="{{!pulseTraces.length}}" class="trace-empty">
+            <view class="empty-title">暂无脉冲轨迹</view>
+            <view class="empty-desc">记录后的数值流向会写入这里</view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- 本局录入状态条（保留现有组件） -->
       <round-status-bar
-        wx:if="{{currentRoom.scoreMode === 2}}"
+        wx:if="{{currentRoom.scoreMode === 2 && roundRecord}}"
         round="{{roundRecord}}"
         is-owner="{{isOwner}}"
         bind:tap="onRoundStatusTap"
         bind:cancel="onRoundCancel"
       />
 
-      <!-- 录入本局按钮（ROUND_RECORD 模式，无待处理录时显示） -->
+      <!-- 录入本局按钮 -->
       <view class="round-start-wrap" wx:if="{{currentRoom.scoreMode === 2 && !roundRecord && isOwner}}">
         <view class="round-start-btn" bindtap="startRound">
           <text class="round-start-text">录入本局</text>
         </view>
       </view>
 
-      <!-- PLAYER NETWORK 成员网络 -->
-      <view class="player-network">
-        <view class="pn-header">
-          <view class="pn-title-group">
-            <text class="pn-cn">舰员网络</text>
-            <text class="pn-en">NETWORK</text>
-          </view>
-          <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
-        </view>
-        <view class="pn-divider"></view>
-        <scroll-view class="member-grid-scroll" scroll-y="{{memberGrid.length > 8}}" enhanced show-scrollbar="{{false}}">
-          <view class="member-matrix">
-            <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-selected' : ''}}"
-                  wx:for="{{memberGrid}}" wx:key="userId"
-                  bindtap="onTapMember" data-user-id="{{item.userId}}">
-              <view class="mg-avatar-wrap">
-                <helmet-avatar
-                  src="{{item.avatarUrl || ''}}"
-                  size="sm"
-                  active="{{item.userId === transferTo}}"
-                  controller="{{item.isHost}}"
-                  dimmed="{{item.score < 0}}"
-                  showStatus="{{false}}"
-                  reduceMotion="{{!animationEnabled}}"
-                />
-                <view class="mg-host-badge" wx:if="{{item.isHost}}">主控</view>
-              </view>
-              <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
-              <text class="mg-score score-number" style="color:{{item.scoreColor}};">
-                {{fmt.formatScore(item.displayScore)}}
-              </text>
-              <!-- TARGET LOCKED -->
-              <text class="mg-target-lock" wx:if="{{item.userId === transferTo}}">目标锁定</text>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-
-      <!-- FLOW LOG 流向日志终端 -->
-      <flow-log-panel
-        grouped-records="{{groupedRecords}}"
-        filter-mine="{{filterMine}}"
-        loading-more="{{loadingMore}}"
-        no-more="{{noMore}}"
-        show-matrix="{{memberGrid.length >= 2}}"
-        bind:toggleFilter="onToggleFilter"
-        bind:openMatrix="openMatrixPanel"
-      />
-
-      <!-- SPACE SCAN 空间扫描面板 -->
-      <space-scan-panel
-        insight="{{roomInsight}}"
-      />
-
-      <!-- 底部操作区 -->
-      <view class="room-bottom-bar">
-        <view class="rb-settle-btn" bindtap="onSettleTap" wx:if="{{isOwner}}">
-          <text class="rb-settle-text">封存任务</text>
-          <text class="rb-settle-sub">SEAL</text>
-        </view>
-        <view class="rb-quit-btn" bindtap="quitRoom" wx:else>
-          <text class="rb-quit-text">断开空间</text>
-        </view>
-      </view>
-
-      <!-- 结算确认弹窗 -->
-      <view class="settle-confirm-mask {{showSettleConfirm ? 'sc-show' : ''}}" catchtap="closeSettleConfirm">
-        <view class="settle-confirm-card" catchtap="preventClose">
-          <text class="sc-kicker">WARNING</text>
-          <text class="sc-title">确认封存当前任务？</text>
-          <text class="sc-desc">封存后，本次任务的数值流向将进入档案库</text>
-          <view class="sc-actions">
-            <view class="sc-btn sc-btn-cancel" bindtap="closeSettleConfirm">
-              <text class="sc-btn-text">取消</text>
-            </view>
-            <view class="sc-btn sc-btn-confirm" bindtap="confirmSettle">
-              <text class="sc-btn-text">确认封存</text>
-            </view>
-          </view>
-        </view>
+      <!-- 底部操作栏 -->
+      <view class="bottom-command-bar">
+        <button class="sr-btn sr-btn-secondary" bindtap="copyRoomNo">
+          <text class="btn-text">发送识别码</text>
+        </button>
+        <button class="sr-btn sr-btn-danger-outline" bindtap="openSealConfirm" wx:if="{{isOwner}}">
+          <text class="btn-text">封存航程</text>
+        </button>
+        <button class="sr-btn sr-btn-danger-outline" bindtap="quitRoom" wx:else>
+          <text class="btn-text">断开空间</text>
+        </button>
       </view>
 
     </scroll-view>
+
+    <!-- 封存确认弹窗 -->
+    <view wx:if="{{sealConfirmVisible}}" class="cockpit-mask">
+      <view class="seal-panel sr-hud-panel">
+        <view class="seal-core">
+          <view class="seal-ring"></view>
+          <view class="seal-title">确认封存航程</view>
+          <view class="seal-desc">
+            当前脉冲轨迹将写入黑匣子，封存后不可继续记录。
+          </view>
+        </view>
+
+        <view class="seal-meta">
+          <view class="meta-item">
+            <text class="meta-label">舰员</text>
+            <text class="meta-value">{{memberGrid.length}}</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-label">轨迹</text>
+            <text class="meta-value">{{pulseTraces.length}}</text>
+          </view>
+        </view>
+
+        <view class="seal-actions">
+          <button class="sr-btn sr-btn-secondary" bindtap="closeSealConfirm">
+            <text class="btn-text">继续航程</text>
+          </button>
+          <button class="sr-btn sr-btn-danger-outline" bindtap="handleSealRoom">
+            <text class="btn-text">确认封存</text>
+          </button>
+        </view>
+      </view>
+    </view>
 
     <!-- TRANSFER TERMINAL 流转终端 -->
     <view class="transfer-overlay {{showNumpad ? 'transfer-show' : ''}}" catchtap="closeNumpad">
@@ -624,6 +491,15 @@
       bind:reject="onRoundReject"
       bind:close="onRoundConfirmClose"
     />
+  </view>
+
+  <!-- sealing 状态：黑匣子写入中 -->
+  <view wx:if="{{cockpitState === 'sealing'}}" class="sealing-overlay">
+    <view class="blackbox-write sr-hud-panel">
+      <view class="write-beam"></view>
+      <view class="write-title">黑匣子写入中</view>
+      <view class="write-desc">{{sealHeartbeatText}}</view>
+    </view>
   </view>
 
   <!-- 空间接入面板 -->
