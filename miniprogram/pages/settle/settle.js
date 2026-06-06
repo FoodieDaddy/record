@@ -145,7 +145,7 @@ Page({
     } catch (e) {
       console.error('加载战局报告失败', e);
       this.setData({ loading: false, loadError: true });
-      wx.showToast({ title: '加载失败', icon: 'none' });
+      wx.showToast({ title: '航程数据加载失败', icon: 'none' });
     }
   },
 

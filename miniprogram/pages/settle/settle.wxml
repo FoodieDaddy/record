@@ -7,31 +7,31 @@
       <view class="loading-dot dot-2"></view>
       <view class="loading-dot dot-3"></view>
     </view>
-    <text class="loading-label">正在生成档案卡...</text>
-    <text class="loading-hint">正在解析任务数据</text>
+    <text class="loading-label">正在生成航程档案...</text>
+    <text class="loading-hint">正在解析航程数据</text>
   </view>
 
   <!-- 加载失败 -->
   <view class="error-state" wx:elif="{{loadError}}">
     <text class="error-kicker">ERROR</text>
-    <text class="error-text">档案加载失败</text>
+    <text class="error-text">航程档案加载失败</text>
     <text class="error-hint">请返回后重试</text>
   </view>
 
   <!-- 空数据 -->
   <view class="empty-state" wx:elif="{{rankedMembers.length === 0}}">
     <text class="empty-kicker">EMPTY</text>
-    <text class="empty-text">暂无任务数据</text>
-    <text class="empty-hint">空间内未产生有效记录</text>
+    <text class="empty-text">暂无航程数据</text>
+    <text class="empty-hint">空间内未产生有效脉冲</text>
   </view>
 
   <block wx:else>
     <!-- MATCH DOSSIER 标题 -->
     <view class="dossier-header">
       <text class="dossier-kicker">DOSSIER</text>
-      <text class="dossier-title">任务档案</text>
+      <text class="dossier-title">航程档案</text>
       <view class="dossier-meta" wx:if="{{roomNo}}">
-        <text class="dossier-room">ROOM {{roomNo}}</text>
+        <text class="dossier-room">SPACE {{roomNo}}</text>
         <text class="dossier-time" wx:if="{{settleTime}}">{{settleTime}}</text>
       </view>
     </view>
