@@ -1,6 +1,7 @@
 const { get, put } = require('../../utils/request');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { generateNickname } = require('../../utils/nickname');
+const { truncate, getWidth } = require('../../utils/nickname-width');
 const { getMirrorProfile } = require('../../utils/mirror-api');
 const { getSettings, saveSettings } = require('../../utils/voice');
 const { vibrateShort } = require('../../utils/haptic');
@@ -332,8 +333,8 @@ Page({
     this.setData({ voiceName: voiceId });
   },
 
-  onVoiceToggle() {
-    const enabled = !this.data.voiceEnabled;
+  onVoiceSwitch(e) {
+    const enabled = e.detail.index === 1;
     this.setData({ voiceEnabled: enabled });
     saveSettings({ enabled });
     app.globalData.audioEnabled = enabled;
@@ -342,8 +343,8 @@ Page({
     vibrateShort('light');
   },
 
-  onAnimToggle() {
-    const enabled = !this.data.animEnabled;
+  onAnimSwitch(e) {
+    const enabled = e.detail.index === 1;
     this.setData({ animEnabled: enabled, animationEnabled: enabled });
     app.globalData.animationEnabled = enabled;
     wx.setStorageSync('animationEnabled', enabled);
@@ -351,8 +352,8 @@ Page({
     vibrateShort('light');
   },
 
-  onVibrateToggle() {
-    const enabled = !this.data.vibrateEnabled;
+  onVibrateSwitch(e) {
+    const enabled = e.detail.index === 1;
     this.setData({ vibrateEnabled: enabled });
     app.globalData.vibrateEnabled = enabled;
     wx.setStorageSync('vibrateEnabled', enabled);
@@ -449,7 +450,7 @@ Page({
 
   onNicknameInput(e) {
     let val = e.detail.value || '';
-    if (val.length > 6) val = val.substring(0, 6);
+    val = truncate(val);
     this.setData({ nickname: val });
     this.debouncedSave();
   },
@@ -459,8 +460,7 @@ Page({
   },
 
   shuffleNickname() {
-    let nickname = generateNickname();
-    if (nickname.length > 6) nickname = nickname.substring(0, 6);
+    let nickname = truncate(generateNickname());
     this.setData({ nickname });
     this.updateAvatar();
     this.debouncedSave();
@@ -520,12 +520,12 @@ Page({
       }
 
       await put('/user/me', {
-        nickname: nickname.trim().substring(0, 6),
+        nickname: truncate(nickname.trim()),
         avatarUrl: finalAvatarUrl || ''
       });
 
       app.updateUserInfo({
-        nickname: nickname.trim().substring(0, 6),
+        nickname: truncate(nickname.trim()),
         avatarUrl: finalAvatarUrl || ''
       });
 

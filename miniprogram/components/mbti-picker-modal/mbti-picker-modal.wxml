@@ -33,8 +33,8 @@
       <text class="picker-kicker">EDITOR</text>
       <text class="picker-title">人格协议编辑器</text>
     </view>
-    <view class="picker-close" bindtap="onClose">
-      <view class="close-icon-css"></view>
+    <view class="picker-close">
+      <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
     </view>
   </view>
 

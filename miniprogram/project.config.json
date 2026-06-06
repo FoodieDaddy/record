@@ -3,8 +3,8 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "folder",
-        "value": "/minitest"
+        "value": "/minitest",
+        "type": "folder"
       }
     ],
     "include": []
@@ -45,7 +45,7 @@
     "filterUnused": false
   },
   "compileType": "miniprogram",
-  "libVersion": "3.4.6",
+  "libVersion": "3.16.1",
   "appid": "wx9d93ece2b67f812b",
   "projectname": "smartrecord",
   "condition": {},

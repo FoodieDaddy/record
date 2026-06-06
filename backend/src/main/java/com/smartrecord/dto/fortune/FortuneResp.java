@@ -24,7 +24,10 @@ public class FortuneResp {
     @Schema(description = "风险警告 (Debuff) 列表", example = "[\"注意冲动计分\"]")
     private List<String> debuffs;
 
-    @Schema(description = "光球颜色 (HEX)", example = "#0A84FF")
+    @Schema(description = "主题色 (HEX)", example = "#0A84FF")
+    private String themeColor;
+
+    @Schema(description = "光球颜色 (HEX)，兼容旧字段", example = "#0A84FF")
     private String glowColor;
 
     @Schema(description = "精简状态标签 (2-4字)", example = "稳健")

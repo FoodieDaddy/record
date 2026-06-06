@@ -14,6 +14,7 @@
     "persona-signal": "/components/persona-signal/persona-signal",
     "helmet-avatar": "/components/helmet-avatar/index",
     "flow-log-panel": "/components/flow-log-panel/flow-log-panel",
-    "space-scan-panel": "/components/space-scan-panel/space-scan-panel"
+    "space-scan-panel": "/components/space-scan-panel/space-scan-panel",
+    "terminal-popup": "/components/terminal-popup/terminal-popup"
   }
 }

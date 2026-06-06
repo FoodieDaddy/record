@@ -1,0 +1,70 @@
+/* ===== sr-toast — 终端风格轻量提示 ===== */
+
+.sr-toast-wrap {
+  position: fixed;
+  top: 180rpx;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20rpx);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.sr-toast-wrap.toast-show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.sr-toast {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 28rpx;
+  border-radius: 10rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.18);
+  background: rgba(10, 15, 24, 0.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.40);
+  max-width: 560rpx;
+}
+
+.toast-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.toast-dot.dot-sync {
+  background: #30D158;
+  box-shadow: 0 0 6rpx rgba(48, 209, 88, 0.40);
+}
+
+.toast-dot.dot-info {
+  background: #00AFFF;
+  box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.40);
+}
+
+.toast-dot.dot-warn {
+  background: #FF9F0A;
+  box-shadow: 0 0 6rpx rgba(255, 159, 10, 0.40);
+}
+
+.toast-dot.dot-error {
+  background: #FF453A;
+  box-shadow: 0 0 6rpx rgba(255, 69, 58, 0.40);
+}
+
+.toast-text {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 1rpx;
+  line-height: 1.4;
+}
+
+/* Reduce Motion */
+.reduce-motion {
+  transition: none !important;
+}

@@ -99,6 +99,7 @@ Page({
     // 分享面板
     showShareSheet: false,
     qrLoading: false,
+    qrFailed: false,
     // 积分记录滚动高度（rpx）
     scoreRecordHeight: 400,
     // 本局录入
@@ -106,6 +107,7 @@ Page({
     showHostFill: false,
     showMemberFill: false,
     showRoundConfirm: false,
+    showRejectConfirm: false,
     // 顶部提示
     toastMsg: '',
     toastType: 'success'
@@ -517,7 +519,7 @@ Page({
       return;
     }
     if (data.type === 'ROUND_APPLIED') {
-      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
       this.updateAllData(roomId);
       // 播放情绪音频
       if (app.globalData.audioEnabled && data.scores) {
@@ -530,16 +532,24 @@ Page({
       return;
     }
     if (data.type === 'ROUND_REJECTED') {
-      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      if (this._toastTimer) { clearTimeout(this._toastTimer); this._toastTimer = null; }
+      this.setData({
+        roundRecord: null,
+        showHostFill: false,
+        showMemberFill: false,
+        showRoundConfirm: false,
+        showRejectConfirm: false,
+        toastMsg: ''
+      });
       this.showToast('本轮录入已被驳回', 'error');
       return;
     }
     if (data.type === 'ROUND_CANCELLED') {
-      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
       return;
     }
     if (data.type === 'ROUND_TIMEOUT') {
-      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
       if (data.action === 'auto_approve') {
         this.showToast('超时自动通过');
         this.updateAllData(roomId);
@@ -1042,12 +1052,11 @@ Page({
     }
   },
 
-  async confirmRound(e) {
-    const { agree } = e.detail;
+  async confirmRound() {
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      const resp = await post('/round/confirm', { roomId: room.roomId, agree });
+      const resp = await post('/round/confirm', { roomId: room.roomId, agree: true });
       this.setRoundRecord(resp);
       if (resp.status === 3 || resp.status === 4) {
         this.setData({ showRoundConfirm: false });
@@ -1062,7 +1071,7 @@ Page({
     if (!room) return;
     try {
       await post(`/round/cancel?roomId=${room.roomId}`);
-      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+      this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
     } catch (e) {
       wx.showToast({ title: e.message || '操作失败', icon: 'none' });
     }
@@ -1103,6 +1112,31 @@ Page({
     this.setData({ showRoundConfirm: false });
   },
 
+  /** round-confirm-modal 请求驳回，打开终端确认弹窗 */
+  onRoundReject() {
+    this.setData({ showRejectConfirm: true });
+  },
+
+  closeRejectConfirm() {
+    this.setData({ showRejectConfirm: false });
+  },
+
+  /** 确认驳回本轮 */
+  async confirmRoundReject() {
+    const room = this.data.currentRoom;
+    if (!room) return;
+    this.setData({ showRejectConfirm: false });
+    try {
+      const resp = await post('/round/confirm', { roomId: room.roomId, agree: false });
+      this.setRoundRecord(resp);
+      if (resp.status === 4) {
+        this.setData({ showRoundConfirm: false });
+      }
+    } catch (e) {
+      wx.showToast({ title: e.message || '操作失败', icon: 'none' });
+    }
+  },
+
   async loadPendingRound(roomId) {
     try {
       const resp = await get(`/round/pending?roomId=${roomId}`);
@@ -1141,6 +1175,18 @@ Page({
 
   // ========== 分享面板 ==========
 
+  /** 兼容多种后端返回结构，提取二维码 URL */
+  normalizeQrUrl(resp) {
+    if (!resp) return null;
+    // 直接字段
+    if (resp.qrCodeUrl) return resp.qrCodeUrl;
+    // 嵌套在 data 中
+    if (resp.data && resp.data.qrCodeUrl) return resp.data.qrCodeUrl;
+    if (resp.data && resp.data.url) return resp.data.url;
+    if (resp.url) return resp.url;
+    return null;
+  },
+
   async getQrCodeUrl(roomNo, roomId) {
     const cacheKey = `qr:${roomNo}`;
     const cached = wx.getStorageSync(cacheKey);
@@ -1150,7 +1196,7 @@ Page({
 
     const fetchUrl = async () => {
       const resp = await get(`/room/${roomId}`);
-      return resp?.qrCodeUrl || null;
+      return this.normalizeQrUrl(resp);
     };
 
     const url = await retryWithBackoff(fetchUrl, 3, 1000);
@@ -1165,14 +1211,23 @@ Page({
     const roomId = this.data.currentRoom?.roomId;
     if (!roomNo || !roomId) return;
 
-    this.setData({ showShareSheet: true });
+    this.setData({ showShareSheet: true, qrFailed: false });
 
     // 已有二维码则跳过
     if (this.data.currentRoom.qrCodeUrl) return;
 
-    const url = await this.getQrCodeUrl(roomNo, roomId);
-    if (url) {
-      this.setData({ 'currentRoom.qrCodeUrl': url });
+    this.setData({ qrLoading: true });
+    try {
+      const url = await this.getQrCodeUrl(roomNo, roomId);
+      if (url) {
+        this.setData({ 'currentRoom.qrCodeUrl': url, qrFailed: false });
+      } else {
+        this.setData({ qrFailed: true });
+      }
+    } catch (e) {
+      this.setData({ qrFailed: true });
+    } finally {
+      this.setData({ qrLoading: false });
     }
   },
 
@@ -1185,12 +1240,16 @@ Page({
     const roomNo = this.data.currentRoom?.roomNo;
     const roomId = this.data.currentRoom?.roomId;
     if (!roomNo || !roomId) return;
-    this.setData({ qrLoading: true });
+    this.setData({ qrLoading: true, qrFailed: false });
     try {
       const url = await this.getQrCodeUrl(roomNo, roomId);
       if (url) {
-        this.setData({ 'currentRoom.qrCodeUrl': url });
+        this.setData({ 'currentRoom.qrCodeUrl': url, qrFailed: false });
+      } else {
+        this.setData({ qrFailed: true });
       }
+    } catch (e) {
+      this.setData({ qrFailed: true });
     } finally {
       this.setData({ qrLoading: false });
     }
@@ -1266,17 +1325,21 @@ Page({
         // 3. 断开 WS
         app.disconnectWS();
         this._settling = false;
-        // 4. 有记分数据则展示结算弹层，否则直接回到空间列表
-        const hasData = settleResp && settleResp.memberScores && settleResp.memberScores.length > 0;
+        // 4. 有记分数据则展示结算弹层，否则提示空数据并回到空间列表
+        const hasData = settleResp && (
+          (settleResp.timestamps && settleResp.timestamps.length > 0) ||
+          (settleResp.series && settleResp.series.some(s => s.scores && s.scores.length > 0))
+        );
         if (hasData) {
           this.showSettleFromResp(settleResp);
         } else {
-          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
+          wx.showToast({ title: '暂无可封存数据', icon: 'none', duration: 2000 });
         }
       } else {
         await del(`/room/${roomId}/quit`);
         app.disconnectWS();
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
+        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
         wx.showToast({ title: '已退出', icon: 'success' });
       }
     } catch (e) {
@@ -1445,7 +1508,8 @@ Page({
       roundRecord: null,
       showHostFill: false,
       showMemberFill: false,
-      showRoundConfirm: false
+      showRoundConfirm: false,
+      showRejectConfirm: false
     });
   },
 

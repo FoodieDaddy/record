@@ -1,1 +1,6 @@
-{"component": true}
+{
+  "component": true,
+  "usingComponents": {
+    "sr-hatch-close": "/components/sr-hatch-close/sr-hatch-close"
+  }
+}

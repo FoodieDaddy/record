@@ -5,9 +5,6 @@
         <text class="kicker">HOST</text>
         <text class="title">主控填写</text>
       </view>
-      <view class="close-btn" bindtap="onClose">
-        <view class="close-icon"></view>
-      </view>
     </view>
 
     <scroll-view scroll-y class="member-list">
@@ -33,6 +30,13 @@
 
     <view class="hint" wx:if="{{zeroSum === 1}}">零和模式已开启，合计必须为 0。</view>
 
-    <button class="submit-btn" bindtap="onSubmit">确认提交</button>
+    <view class="btn-bottom-row">
+      <view class="btn-cancel" bindtap="onClose">
+        <text>取消本轮</text>
+      </view>
+      <view class="btn-submit" bindtap="onSubmit">
+        <text class="btn-submit-text">确认提交</text>
+      </view>
+    </view>
   </view>
 </view>

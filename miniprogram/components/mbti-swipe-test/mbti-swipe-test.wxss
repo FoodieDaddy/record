@@ -102,36 +102,11 @@
   position: absolute;
   top: 60rpx;
   right: 0;
-  width: 80rpx;
-  height: 80rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.close-icon-css {
-  width: 28rpx;
-  height: 28rpx;
-  position: relative;
-}
-
-.close-icon-css::before,
-.close-icon-css::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 24rpx;
-  height: 2rpx;
-  background: rgba(255, 255, 255, 0.30);
-}
-
-.close-icon-css::before {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.close-icon-css::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .swipe-card-area {

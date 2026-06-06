@@ -349,26 +349,28 @@
             <text class="rt-status-text">在线</text>
           </view>
         </view>
-        <view class="rt-info-grid">
-          <view class="rt-info-seg">
-            <text class="rt-info-label">空间</text>
-            <text class="rt-info-value">{{currentRoom.roomNo}}</text>
+        <view class="rt-main-row">
+          <view class="rt-info-grid">
+            <view class="rt-info-seg">
+              <text class="rt-info-label">空间</text>
+              <text class="rt-info-value">{{currentRoom.roomNo}}</text>
+            </view>
+            <view class="rt-info-seg">
+              <text class="rt-info-label">模式</text>
+              <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+            </view>
+            <view class="rt-info-seg">
+              <text class="rt-info-label">成员</text>
+              <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
+            </view>
           </view>
-          <view class="rt-info-seg">
-            <text class="rt-info-label">模式</text>
-            <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
-          </view>
-          <view class="rt-info-seg">
-            <text class="rt-info-label">成员</text>
-            <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
-          </view>
-        </view>
-        <view class="rt-actions">
-          <view class="rt-action" bindtap="copyRoomNo">
-            <view class="icon-clip"></view>
-          </view>
-          <view class="rt-action" bindtap="openShareSheet">
-            <view class="icon-share"></view>
+          <view class="rt-actions">
+            <view class="rt-action" bindtap="copyRoomNo">
+              <view class="icon-clip"></view>
+            </view>
+            <view class="rt-action" bindtap="openShareSheet">
+              <view class="icon-share"></view>
+            </view>
           </view>
         </view>
       </view>
@@ -399,8 +401,8 @@
           <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
         </view>
         <view class="pn-divider"></view>
-        <scroll-view class="member-h-scroll" scroll-x="{{memberGrid.length > 4}}" enhanced show-scrollbar="{{false}}">
-          <view class="member-h-list">
+        <scroll-view class="member-grid-scroll" scroll-y="{{memberGrid.length > 8}}" enhanced show-scrollbar="{{false}}">
+          <view class="member-matrix">
             <view class="mg-cell {{item.userId === transferTo ? 'mg-cell-selected' : ''}}"
                   wx:for="{{memberGrid}}" wx:key="userId"
                   bindtap="onTapMember" data-user-id="{{item.userId}}">
@@ -619,51 +621,92 @@
       round="{{roundRecord}}"
       my-user-id="{{myUserId}}"
       bind:confirm="confirmRound"
+      bind:reject="onRoundReject"
       bind:close="onRoundConfirmClose"
     />
   </view>
 
-  <!-- 分享面板（全局，可从首页或房间内打开） -->
+  <!-- 空间接入面板 -->
   <view class="share-overlay {{showShareSheet ? 'share-show' : ''}}" catchtap="closeShareSheet" catchtouchmove="preventClose">
     <view class="share-sheet" catchtap="preventClose">
-      <view class="detail-header">
-        <text class="section-title" style="margin-bottom:0;">邀请成员</text>
+      <view class="share-header">
+        <view class="share-title-area">
+          <text class="share-kicker">ACCESS PORTAL</text>
+          <text class="share-title">空间接入</text>
+        </view>
         <view class="fi fi--close" bindtap="closeShareSheet"></view>
       </view>
-      <!-- 二维码 -->
-      <view class="share-qr-section" wx:if="{{currentRoom.qrCodeUrl}}">
+
+      <!-- 二维码区域：加载中 -->
+      <view class="share-qr-section" wx:if="{{qrLoading}}">
+        <view class="share-qr-frame share-qr-loading">
+          <view class="share-qr-spinner"></view>
+          <text class="share-qr-loading-text">生成识别图中...</text>
+        </view>
+      </view>
+
+      <!-- 二维码区域：生成失败 -->
+      <view class="share-qr-section" wx:elif="{{qrFailed}}">
+        <view class="share-qr-frame share-qr-fail">
+          <text class="share-qr-fail-text">识别图生成失败</text>
+          <text class="share-qr-fail-hint">可使用识别码接入</text>
+          <view class="share-qr-retry" bindtap="retryLoadQrCode">
+            <text class="share-qr-retry-text">重新生成</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 二维码区域：有二维码 -->
+      <view class="share-qr-section" wx:elif="{{currentRoom.qrCodeUrl}}">
         <view class="share-qr-frame">
           <image class="share-qr-image" src="{{currentRoom.qrCodeUrl}}" mode="aspectFit" show-menu-by-longpress></image>
         </view>
-        <text class="text-tertiary text-xs">长按识别二维码接入空间</text>
+        <text class="share-qr-hint">长按识别二维码接入空间</text>
       </view>
+
+      <!-- 二维码区域：无二维码，显示识别码 -->
       <view class="share-qr-section" wx:else>
         <view class="share-qr-frame share-qr-placeholder">
           <text class="share-qr-room-no">{{currentRoom.roomNo}}</text>
         </view>
-        <text class="text-tertiary text-xs">接入码 {{currentRoom.roomNo}}</text>
+        <text class="share-qr-hint">识别码 {{currentRoom.roomNo}}</text>
       </view>
+
       <!-- 操作按钮 -->
       <view class="share-actions">
-        <button class="sr-t-fast share-action-btn" open-type="share">
+        <button class="share-action-btn" open-type="share">
           <view class="icon-chat share-action-svg"></view>
-          <text class="share-action-text">分享给好友</text>
+          <text class="share-action-text">分享空间</text>
         </button>
-        <view class="sr-t-fast share-action-btn" bindtap="sharePoster">
+        <view class="share-action-btn" bindtap="sharePoster">
           <view class="icon-image share-action-svg"></view>
-          <text class="share-action-text">保存图片</text>
+          <text class="share-action-text">保存识别图</text>
         </view>
-        <view class="sr-t-fast share-action-btn" bindtap="copyRoomLink">
+        <view class="share-action-btn" bindtap="copyRoomLink">
           <view class="icon-link share-action-svg"></view>
-          <text class="share-action-text">复制链接</text>
+          <text class="share-action-text">复制识别码</text>
         </view>
-        <view class="sr-t-fast share-action-btn" bindtap="scanJoin">
+        <view class="share-action-btn" bindtap="scanJoin">
           <view class="icon-cam share-action-svg"></view>
-          <text class="share-action-text">扫码加入</text>
+          <text class="share-action-text">扫码接入</text>
         </view>
       </view>
     </view>
   </view>
+
+  <!-- 驳回确认弹窗 -->
+  <terminal-popup
+    visible="{{showRejectConfirm}}"
+    title="操作确认"
+    subtitle="ROUND REJECT"
+    content="确认驳回本轮录入？驳回后本轮数据将被清除。"
+    cancel-text="返回"
+    confirm-text="确认驳回"
+    confirm-type="danger"
+    reduce-motion="{{!animationEnabled}}"
+    bind:cancel="closeRejectConfirm"
+    bind:confirm="confirmRoundReject"
+  />
 
   <!-- 战局报告弹层 -->
   <view class="settle-overlay {{showSettleOverlay ? 'settle-overlay--show' : ''}}" catchtouchmove="preventClose">

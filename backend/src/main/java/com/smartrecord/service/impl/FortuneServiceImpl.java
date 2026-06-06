@@ -133,16 +133,16 @@ public class FortuneServiceImpl implements FortuneService {
         FALLBACK_POOL.put(UserTag.HIGH_RISK, List.of(
                 buildFallback("波动读数较高，先把风险阈值下调",
                         List.of("校准意识增强", "场景识别较快", "调整空间充足"),
-                        List.of("风险敞口较大", "情绪波动影响判断"),
-                        "#FF2D55", "警戒"),
+                        List.of("峰谷落差偏大", "情绪波动影响判断"),
+                        "#FF453A", "波动校准"),
                 buildFallback("当前状态起伏明显，建议降频处理",
                         List.of("关键节点敏感", "反馈速度较快", "复盘材料充足"),
-                        List.of("结果波动较高", "需严格控制节奏"),
-                        "#AF52DE", "过载"),
+                        List.of("追速冲动残留", "需严格控制节奏"),
+                        "#FF453A", "高波警戒"),
                 buildFallback("纪律优先于强度，暂停线必须前置",
-                        List.of("极端情境适应力", "抗压能力可用", "回稳意识增强"),
-                        List.of("避免冒进心态", "务必设置暂停线"),
-                        "#FF375F", "警戒")
+                        List.of("累计积分正向", "回稳反应尚快", "节奏识别清晰"),
+                        List.of("峰谷落差偏大", "节奏冲动残留"),
+                        "#FF453A", "波动校准")
         ));
 
         FALLBACK_POOL.put(UserTag.STABLE, List.of(
@@ -433,15 +433,19 @@ public class FortuneServiceImpl implements FortuneService {
         ctx.durationMs = System.currentTimeMillis() - start;
 
         if (!response.isOk()) {
-            log.warn("LLM API 返回非 200: status={}, body={}", response.getStatus(), response.body());
-            ctx.rawResponse = "HTTP " + response.getStatus() + ": " + response.body();
+            String errBody = response.body();
+            log.warn("LLM API 返回非 200: status={}, bodyLen={}", response.getStatus(), errBody != null ? errBody.length() : 0);
+            ctx.rawResponse = "HTTP " + response.getStatus();
             throw new RuntimeException("LLM API error: " + response.getStatus());
         }
 
-        log.info("LLM API 响应体: {}", response.body());
-        ctx.rawResponse = response.body();
+        String responseBody = response.body();
+        log.info("LLM API 响应长度: {}", responseBody != null ? responseBody.length() : 0);
+        // 仅记录摘要到日志上下文，不存储完整 reasoning_content
+        ctx.rawResponse = responseBody != null && responseBody.length() > 500
+                ? responseBody.substring(0, 500) + "...(truncated)" : responseBody;
 
-        JSONObject respJson = JSONUtil.parseObj(response.body());
+        JSONObject respJson = JSONUtil.parseObj(responseBody);
         JSONObject choice = respJson.getJSONArray("choices").getJSONObject(0);
         JSONObject message = choice.getJSONObject("message");
         String content = message.getStr("content");
@@ -453,9 +457,6 @@ public class FortuneServiceImpl implements FortuneService {
             return null;
         }
 
-        if (content == null || content.isBlank()) {
-            content = message.getStr("reasoning_content");
-        }
         if (content == null || content.isBlank()) {
             throw new RuntimeException("LLM 返回空内容");
         }
@@ -504,8 +505,13 @@ public class FortuneServiceImpl implements FortuneService {
         return today + "，" + segment;
     }
 
+    /** 允许的主题色列表 */
+    private static final Set<String> ALLOWED_THEME_COLORS = Set.of(
+            "#0A84FF", "#32D74B", "#FF9F0A", "#FF453A"
+    );
+
     /**
-     * 解析 LLM 返回的 JSON
+     * 解析 LLM 返回的 JSON（含二次校验）
      */
     private FortuneResp parseLlmResponse(String content) {
         try {
@@ -520,16 +526,53 @@ public class FortuneServiceImpl implements FortuneService {
             if (start >= 0 && end > start) {
                 json = json.substring(start, end + 1);
             }
-            log.info("LLM 原始返回: {}", content);
+            log.info("LLM 返回 JSON 长度: {}", json.length());
             JSONObject obj = JSONUtil.parseObj(json);
+
+            // 校验 tag：4 个汉字左右
+            String tag = obj.getStr("tag", "");
+            if (tag.length() < 2 || tag.length() > 6) {
+                log.warn("LLM tag 不合规(长度{}): {}", tag.length(), tag);
+                throw new RuntimeException("tag 长度不合规");
+            }
+
+            // 校验 verdict：10-18 个中文字符
+            String verdict = obj.getStr("verdict", "");
+            if (verdict.length() < 8 || verdict.length() > 22) {
+                log.warn("LLM verdict 不合规(长度{}): {}", verdict.length(), verdict);
+                throw new RuntimeException("verdict 长度不合规");
+            }
+
+            // 校验 buffs：必须 3 条，每条 3-10 字符
             JSONArray buffsArr = obj.getJSONArray("buffs");
+            List<String> buffs = buffsArr != null ? buffsArr.toList(String.class) : List.of();
+            if (buffs.size() != 3 || buffs.stream().anyMatch(b -> b.length() < 3 || b.length() > 12)) {
+                log.warn("LLM buffs 不合规: {}", buffs);
+                throw new RuntimeException("buffs 不合规");
+            }
+
+            // 校验 debuffs：必须 2 条，每条 3-10 字符
             JSONArray debuffsArr = obj.getJSONArray("debuffs");
+            List<String> debuffs = debuffsArr != null ? debuffsArr.toList(String.class) : List.of();
+            if (debuffs.size() != 2 || debuffs.stream().anyMatch(d -> d.length() < 3 || d.length() > 12)) {
+                log.warn("LLM debuffs 不合规: {}", debuffs);
+                throw new RuntimeException("debuffs 不合规");
+            }
+
+            // 校验 themeColor
+            String themeColor = obj.getStr("themeColor", obj.getStr("glowColor", "#0A84FF"));
+            if (!ALLOWED_THEME_COLORS.contains(themeColor.toUpperCase())) {
+                log.warn("LLM themeColor 不合规: {}", themeColor);
+                themeColor = "#0A84FF";
+            }
+
             FortuneResp resp = FortuneResp.builder()
-                    .verdict(obj.getStr("verdict", "今日能量平稳"))
-                    .buffs(buffsArr != null ? buffsArr.toList(String.class) : List.of("策略稳态", "节奏可控", "风险免疫"))
-                    .debuffs(debuffsArr != null ? debuffsArr.toList(String.class) : List.of("情绪波动风险", "决策疲劳隐患"))
-                    .glowColor(obj.getStr("themeColor", obj.getStr("glowColor", "#0A84FF")))
-                    .tag(obj.getStr("tag", ""))
+                    .verdict(verdict)
+                    .buffs(buffs)
+                    .debuffs(debuffs)
+                    .themeColor(themeColor)
+                    .glowColor(themeColor)
+                    .tag(tag)
                     .source("llm")
                     .build();
             if (containsSensitiveWord(resp)) {
@@ -537,7 +580,7 @@ public class FortuneServiceImpl implements FortuneService {
             }
             return resp;
         } catch (Exception e) {
-            log.warn("解析 LLM 响应失败: {}", content, e);
+            log.warn("解析 LLM 响应失败，将使用兜底策略");
             throw new RuntimeException("LLM 响应解析失败", e);
         }
     }
@@ -565,6 +608,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .verdict(picked.getVerdict())
                 .buffs(picked.getBuffs())
                 .debuffs(picked.getDebuffs())
+                .themeColor(picked.getThemeColor())
                 .glowColor(picked.getGlowColor())
                 .tag(picked.getTag())
                 .userTag(userTag.name())
@@ -581,12 +625,13 @@ public class FortuneServiceImpl implements FortuneService {
         return pool.get(index);
     }
 
-    private static FortuneResp buildFallback(String verdict, List<String> buffs, List<String> debuffs, String glowColor, String tag) {
+    private static FortuneResp buildFallback(String verdict, List<String> buffs, List<String> debuffs, String themeColor, String tag) {
         return FortuneResp.builder()
                 .verdict(verdict)
                 .buffs(buffs)
                 .debuffs(debuffs)
-                .glowColor(glowColor)
+                .themeColor(themeColor)
+                .glowColor(themeColor)
                 .tag(tag)
                 .build();
     }

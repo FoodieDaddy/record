@@ -1,0 +1,11 @@
+<view
+  class="hatch-close {{danger ? 'hatch-danger' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}"
+  bindtap="onTap"
+  hover-class="hatch-pressed"
+  hover-stay-time="120"
+>
+  <view class="hatch-frame">
+    <view class="hatch-line hatch-line-tl"></view>
+    <view class="hatch-line hatch-line-tr"></view>
+  </view>
+</view>

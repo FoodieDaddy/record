@@ -42,38 +42,6 @@
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
 }
-.close-btn {
-  width: 56rpx;
-  height: 56rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1rpx solid rgba(255, 255, 255, 0.1);
-  border-radius: 12rpx;
-  background: rgba(255, 255, 255, 0.03);
-}
-.close-icon {
-  width: 24rpx;
-  height: 24rpx;
-  position: relative;
-}
-.close-icon::before,
-.close-icon::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 24rpx;
-  height: 2rpx;
-  background: rgba(255, 255, 255, 0.5);
-  transform-origin: center;
-}
-.close-icon::before {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-.close-icon::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
-}
 .member-list {
   max-height: 500rpx;
 }
@@ -131,16 +99,47 @@
   text-align: center;
   margin-top: 16rpx;
 }
-.submit-btn {
+
+/* 底部按钮行 */
+.btn-bottom-row {
+  display: flex;
+  gap: 20rpx;
   margin-top: 32rpx;
-  height: 80rpx;
-  line-height: 80rpx;
-  background: rgba(0, 170, 255, 0.15);
-  color: #00AFFF;
-  font-size: 30rpx;
-  border-radius: 16rpx;
-  border: 1rpx solid rgba(0, 170, 255, 0.4);
 }
-.submit-btn::after {
-  border: none;
+.btn-cancel {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1rpx solid rgba(255, 255, 255, 0.14);
+  border-radius: 16rpx;
+  color: #7C8698;
+  font-size: 28rpx;
+  letter-spacing: 2rpx;
+}
+.btn-cancel:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+.btn-submit {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 170, 255, 0.15);
+  border: 1rpx solid rgba(0, 170, 255, 0.4);
+  border-radius: 16rpx;
+  position: relative;
+  overflow: hidden;
+}
+.btn-submit:active {
+  background: rgba(0, 170, 255, 0.25);
+}
+.btn-submit-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #00AFFF;
+  letter-spacing: 2rpx;
 }

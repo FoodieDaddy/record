@@ -1,0 +1,6 @@
+<view class="sr-toast-wrap {{visible ? 'toast-show' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}" wx:if="{{visible}}">
+  <view class="sr-toast">
+    <view class="toast-dot {{dotType}}"></view>
+    <text class="toast-text">{{text}}</text>
+  </view>
+</view>

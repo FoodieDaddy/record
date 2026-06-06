@@ -38,24 +38,22 @@
           />
         </button>
         <view class="identity__info">
-          <text class="identity__kicker">成员代号</text>
+          <text class="identity__code-label">成员代号</text>
+          <text class="identity__player-code">{{playerCode}}</text>
           <view class="identity__name-row">
             <input
               class="identity__name-input"
               type="nickname"
               value="{{nickname}}"
               placeholder="点击授权代号"
-              maxlength="6"
               bindinput="onNicknameInput"
               bindblur="onNicknameBlur"
             />
-            <view class="identity__dice-btn fi fi--random" bindtap="shuffleNickname">
+            <view class="identity__edit-btn" bindtap="shuffleNickname">
               <view class="svg-icon svg-icon--dice"></view>
             </view>
           </view>
           <view class="identity__tag-row">
-            <text class="identity__player-code">{{playerCode}}</text>
-            <text class="identity__tag-sep">·</text>
             <text class="identity__level-tag">Lv.{{level}}</text>
             <text class="identity__tag-sep">·</text>
             <text class="identity__status-tag">{{levelTitle}}</text>
@@ -86,22 +84,34 @@
       <view class="stats-grid">
         <view class="stats-cell">
           <text class="stats-cell__label">净数值</text>
-          <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--negative' : ''}}">{{totalScore}}</text>
+          <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--negative' : 'stats-cell__value--zero'}}">{{totalScore}}</text>
+          <view class="stats-cell__bar">
+            <view class="stats-cell__bar-fill {{totalScore > 0 ? 'bar-positive' : totalScore < 0 ? 'bar-negative' : 'bar-zero'}}" style="width:{{totalScore > 0 ? Math.min(totalScore / 10, 100) : totalScore < 0 ? Math.min(-totalScore / 10, 100) : 2}}%;"></view>
+          </view>
           <text class="stats-cell__sub">累计数值</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">正反馈率</text>
-          <text class="stats-cell__value">{{winRate}}%</text>
+          <text class="stats-cell__value {{winRate >= 60 ? 'stats-cell__value--high' : winRate >= 40 ? 'stats-cell__value--mid' : 'stats-cell__value--low'}}">{{winRate}}%</text>
+          <view class="stats-cell__bar">
+            <view class="stats-cell__bar-fill {{winRate >= 60 ? 'bar-high' : winRate >= 40 ? 'bar-mid' : 'bar-low'}}" style="width:{{winRate}}%;"></view>
+          </view>
           <text class="stats-cell__sub">正反馈率</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">任务数</text>
-          <text class="stats-cell__value">{{matchCount}}</text>
+          <text class="stats-cell__value stats-cell__value--cyan">{{matchCount}}</text>
+          <view class="stats-cell__bar">
+            <view class="stats-cell__bar-fill bar-cyan" style="width:{{matchCount > 0 ? Math.min(matchCount * 2, 100) : 2}}%;"></view>
+          </view>
           <text class="stats-cell__sub">样本数</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">稳定性</text>
-          <text class="stats-cell__value">{{stability !== null ? stability : '--'}}</text>
+          <text class="stats-cell__value stats-cell__value--purple">{{stability !== null ? stability : '--'}}</text>
+          <view class="stats-cell__bar">
+            <view class="stats-cell__bar-fill bar-purple" style="width:{{stability !== null ? stability : 2}}%;"></view>
+          </view>
           <text class="stats-cell__sub">人格稳定度</text>
         </view>
       </view>
@@ -187,18 +197,12 @@
       <text class="term-kicker">系统控制</text>
       <text class="term-kicker-sub">CONTROL</text>
 
-      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">声音协议</text>
           <text class="sys-row__label-en">VOICE</text>
         </view>
-        <view class="avionics-switch {{voiceEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVoiceToggle">
-          <view class="avionics-switch__track {{voiceEnabled ? 'is-on' : ''}}">
-            <view class="avionics-switch__thumb"></view>
-          </view>
-          <text class="avionics-switch__status">{{voiceEnabled ? 'ACTIVE' : 'OFF'}}</text>
-        </view>
+        <segment-switch options="{{['OFF', 'ON']}}" active="{{voiceEnabled ? 1 : 0}}" bind:change="onVoiceSwitch" />
       </view>
 
       <!-- 音色模块 -->
@@ -213,32 +217,20 @@
         </view>
       </view>
 
-      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">动效协议</text>
           <text class="sys-row__label-en">FX</text>
         </view>
-        <view class="avionics-switch {{animEnabled ? 'avionics-switch--on' : ''}}" bindtap="onAnimToggle">
-          <view class="avionics-switch__track {{animEnabled ? 'is-on' : ''}}">
-            <view class="avionics-switch__thumb"></view>
-          </view>
-          <text class="avionics-switch__status">{{animEnabled ? 'ACTIVE' : 'OFF'}}</text>
-        </view>
+        <segment-switch options="{{['OFF', 'ON']}}" active="{{animEnabled ? 1 : 0}}" bind:change="onAnimSwitch" />
       </view>
 
-      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">触感协议</text>
           <text class="sys-row__label-en">HAPTIC</text>
         </view>
-        <view class="avionics-switch {{vibrateEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVibrateToggle">
-          <view class="avionics-switch__track {{vibrateEnabled ? 'is-on' : ''}}">
-            <view class="avionics-switch__thumb"></view>
-          </view>
-          <text class="avionics-switch__status">{{vibrateEnabled ? 'ACTIVE' : 'OFF'}}</text>
-        </view>
+        <segment-switch options="{{['OFF', 'ON']}}" active="{{vibrateEnabled ? 1 : 0}}" bind:change="onVibrateSwitch" />
       </view>
 
       <!-- 关于终端 -->

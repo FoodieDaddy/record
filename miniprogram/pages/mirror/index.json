@@ -6,6 +6,8 @@
     "radar-chart": "/components/radar-chart/radar-chart",
     "mbti-swipe-test": "/components/mbti-swipe-test/mbti-swipe-test",
     "mbti-picker-modal": "/components/mbti-picker-modal/mbti-picker-modal",
-    "terminal-popup": "/components/terminal-popup/terminal-popup"
+    "terminal-popup": "/components/terminal-popup/terminal-popup",
+    "sr-hatch-close": "/components/sr-hatch-close/sr-hatch-close",
+    "sr-toast": "/components/sr-toast/sr-toast"
   }
 }

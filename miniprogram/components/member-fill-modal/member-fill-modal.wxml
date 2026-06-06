@@ -5,9 +5,6 @@
         <text class="kicker">MEMBER</text>
         <text class="title">提交本局</text>
       </view>
-      <view class="close-btn" wx:if="{{!submitted}}" bindtap="onClose">
-        <view class="close-icon"></view>
-      </view>
     </view>
 
     <block wx:if="{{!submitted}}">
@@ -20,7 +17,14 @@
         bindinput="onInput"
         focus="{{true}}"
       />
-      <button class="submit-btn" bindtap="onSubmit">确认提交</button>
+      <view class="btn-bottom-row">
+        <view class="btn-cancel" bindtap="onClose">
+          <text>取消</text>
+        </view>
+        <view class="btn-submit" bindtap="onSubmit">
+          <text class="btn-submit-text">确认提交</text>
+        </view>
+      </view>
     </block>
 
     <block wx:else>

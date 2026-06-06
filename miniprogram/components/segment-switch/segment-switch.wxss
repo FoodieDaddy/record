@@ -4,47 +4,47 @@
 .seg-track {
   display: flex;
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
-  border-radius: 28rpx;
-  padding: 4rpx;
-  gap: 2rpx;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  border-radius: 4rpx;
+  padding: 3rpx;
+  gap: 0;
 }
 .seg-thumb {
   position: absolute;
-  top: 4rpx;
-  bottom: 4rpx;
-  width: calc(50% - 5rpx);
+  top: 3rpx;
+  bottom: 3rpx;
+  width: calc(50% - 3rpx);
   background: rgba(10, 132, 255, 0.12);
   border: 1rpx solid rgba(10, 132, 255, 0.35);
-  border-radius: 24rpx;
-  transition: left 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  border-radius: 2rpx;
+  transition: left 0.2s cubic-bezier(0.32, 0.72, 0, 1);
   pointer-events: none;
 }
 .seg-thumb-left {
-  left: 4rpx;
+  left: 3rpx;
 }
 .seg-thumb-right {
-  left: calc(50% + 1rpx);
+  left: calc(50% + 0rpx);
 }
 .seg-option {
   position: relative;
   z-index: 1;
-  padding: 8rpx 20rpx;
+  padding: 10rpx 24rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 80rpx;
+  min-width: 72rpx;
 }
 .seg-label {
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.38);
-  letter-spacing: 1rpx;
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.34);
+  letter-spacing: 2rpx;
   transition: color 0.2s;
-  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
 }
 .seg-option-on .seg-label {
-  color: #00AFFF;
+  color: #00C8FF;
 }
 .reduce-motion .seg-thumb {
   transition: none;

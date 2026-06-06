@@ -250,8 +250,8 @@
 }
 
 .identity__avatar-btn {
-  width: 144rpx;
-  height: 144rpx;
+  width: 128rpx;
+  height: 128rpx;
   border-radius: 50%;
   border: none;
   display: flex;
@@ -272,55 +272,65 @@
 .identity__info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
-.identity__kicker {
-  display: block;
+.identity__code-label {
   font-size: 16rpx;
   letter-spacing: 3rpx;
-  color: rgba(0, 170, 255, 0.56);
+  color: rgba(10, 132, 255, 0.56);
   font-weight: 600;
-  margin-bottom: 6rpx;
+}
+
+.identity__player-code {
+  font-size: 20rpx;
+  color: rgba(10, 132, 255, 0.72);
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  margin-bottom: 4rpx;
 }
 
 .identity__name-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 8rpx;
 }
 
 .identity__name-input {
   flex: 1;
-  height: 56rpx;
+  min-width: 0;
+  height: 52rpx;
   background: transparent;
   border: none;
-  color: var(--text-main);
+  color: #00C8FF;
   font-size: 36rpx;
   font-weight: 700;
+  letter-spacing: 2rpx;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-shadow: 0 0 14rpx rgba(0, 200, 255, 0.22);
 }
 
 .identity__name-input::placeholder {
   color: var(--text-muted);
   font-weight: 400;
+  text-shadow: none;
 }
 
-.identity__dice-btn {
-  width: 56rpx;
-  height: 56rpx;
+.identity__edit-btn {
+  width: 48rpx;
+  height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1rpx solid rgba(0, 170, 255, 0.2);
-  border-radius: 12rpx;
+  border: 1rpx solid rgba(0, 170, 255, 0.18);
+  border-radius: 8rpx;
   background: rgba(0, 170, 255, 0.04);
 }
 
-.identity__dice-btn:active {
+.identity__edit-btn:active {
   opacity: 0.5;
   background: rgba(0, 170, 255, 0.1);
 }
@@ -329,14 +339,6 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
-}
-
-.identity__player-code {
-  font-size: 20rpx;
-  color: var(--primary);
-  font-family: monospace;
-  letter-spacing: 2rpx;
-  opacity: 0.8;
 }
 
 .identity__tag-sep {
@@ -354,7 +356,7 @@
 
 .identity__status-tag {
   font-size: 18rpx;
-  color: var(--success);
+  color: rgba(255, 255, 255, 0.52);
   font-family: monospace;
   letter-spacing: 2rpx;
 }
@@ -415,7 +417,7 @@
   flex-direction: column;
   align-items: center;
   gap: 6rpx;
-  padding: 20rpx 0;
+  padding: 20rpx 12rpx;
   border-radius: 12rpx;
   background: rgba(255, 255, 255, 0.02);
   border: 1rpx solid rgba(255, 255, 255, 0.04);
@@ -424,7 +426,7 @@
 .stats-cell__label {
   font-size: 18rpx;
   letter-spacing: 3rpx;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.46);
   font-weight: 600;
 }
 
@@ -432,21 +434,69 @@
   font-size: 44rpx;
   font-weight: 700;
   color: var(--text-main);
-  font-family: monospace;
-  letter-spacing: 1rpx;
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+  letter-spacing: 4rpx;
 }
 
 .stats-cell__value--positive {
-  color: var(--success);
+  color: #30D158;
 }
 
 .stats-cell__value--negative {
-  color: var(--danger);
+  color: #FF453A;
 }
+
+.stats-cell__value--zero {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.stats-cell__value--high {
+  color: #30D158;
+}
+
+.stats-cell__value--mid {
+  color: #0A84FF;
+}
+
+.stats-cell__value--low {
+  color: #FF9F0A;
+}
+
+.stats-cell__value--cyan {
+  color: #00C8FF;
+}
+
+.stats-cell__value--purple {
+  color: #5E5CE6;
+}
+
+.stats-cell__bar {
+  width: 80%;
+  height: 4rpx;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2rpx;
+  overflow: hidden;
+  margin: 4rpx 0;
+}
+
+.stats-cell__bar-fill {
+  height: 100%;
+  border-radius: 2rpx;
+  min-width: 4rpx;
+}
+
+.bar-positive { background: #30D158; }
+.bar-negative { background: #FF453A; }
+.bar-zero { background: rgba(255, 255, 255, 0.24); }
+.bar-high { background: #30D158; }
+.bar-mid { background: #0A84FF; }
+.bar-low { background: #FF9F0A; }
+.bar-cyan { background: #00C8FF; }
+.bar-purple { background: #5E5CE6; }
 
 .stats-cell__sub {
   font-size: 18rpx;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.38);
 }
 
 .stats__footer {
@@ -634,7 +684,7 @@
   gap: 8rpx;
   width: 150rpx;
   flex-shrink: 0;
-  opacity: 0.3;
+  opacity: 0.52;
 }
 
 .achievement-badge--on {
@@ -781,14 +831,14 @@
 
 .sys-row__label-en {
   font-size: 18rpx;
-  color: rgba(10,132,255,0.52);
-  letter-spacing: 4rpx;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 5rpx;
 }
 
 .sys-row__label-zh {
   font-size: 26rpx;
   font-weight: 600;
-  color: var(--text-main);
+  color: #00C8FF;
   letter-spacing: 1rpx;
 }
 
@@ -801,51 +851,6 @@
 .sys-row__value-text {
   font-size: 26rpx;
   color: var(--text-secondary);
-}
-
-/* 航电开关：与 settings 页统一 track + thumb + status 结构 */
-.avionics-switch {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex-shrink: 0;
-}
-.avionics-switch__track {
-  position: relative;
-  width: 96rpx;
-  height: 48rpx;
-  border-radius: 24rpx;
-  border: 1rpx solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.04);
-  transition: border-color 0.25s, background-color 0.25s;
-}
-.avionics-switch__track.is-on {
-  border-color: rgba(10,132,255,0.45);
-  background: rgba(10,132,255,0.12);
-}
-.avionics-switch__thumb {
-  position: absolute;
-  top: 4rpx;
-  left: 4rpx;
-  width: 38rpx;
-  height: 38rpx;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.35);
-  transition: transform 0.25s, background-color 0.25s;
-}
-.avionics-switch__track.is-on .avionics-switch__thumb {
-  transform: translateX(48rpx);
-  background: #0A84FF;
-  box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
-}
-.avionics-switch__status {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 20rpx;
-  letter-spacing: 3rpx;
-  color: rgba(255,255,255,0.34);
-}
-.avionics-switch--on .avionics-switch__status {
-  color: #0A84FF;
 }
 
 
@@ -1129,9 +1134,6 @@
 .reduce-motion .terminal__glow,
 .reduce-motion .level__bar-fill,
 .reduce-motion .term-card,
-.reduce-motion .avionics-switch,
-.reduce-motion .avionics-switch__track,
-.reduce-motion .avionics-switch__thumb,
 .reduce-motion .voice-sheet,
 .reduce-motion .voice-mask,
 .reduce-motion .sys-row--sub {

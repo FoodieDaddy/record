@@ -17,8 +17,8 @@
         <text class="progress-pct">{{progressPercent}}%</text>
       </view>
     </view>
-    <view class="swipe-close" bindtap="onClose">
-      <view class="close-icon-css"></view>
+    <view class="swipe-close">
+      <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
     </view>
   </view>
 

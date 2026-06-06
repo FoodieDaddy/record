@@ -38,7 +38,9 @@
         <view class="protocol-grid">
           <view class="protocol-row">
             <text class="protocol-label">协议编号</text>
-            <text class="protocol-value protocol-code">SR-MBTI-{{mbti.mbtiType}}</text>
+            <view class="protocol-value protocol-code">
+              <text class="pc-prefix">SR</text><text class="pc-sep">-</text><text class="pc-core">MBTI</text><text class="pc-sep">-</text><text class="pc-type">{{mbti.mbtiType}}</text>
+            </view>
           </view>
           <view class="protocol-row">
             <text class="protocol-label">身份标签</text>
@@ -323,7 +325,7 @@
 
   <!-- 固定底部：飞控主控条 -->
   <view class="dossier-bar {{reduceMotion ? '' : 'scan-glow'}}" wx:if="{{!loading}}" bindtap="generateDossier">
-    <text class="flight-primary dossier-btn">生成档案</text>
+    <text class="flight-primary dossier-btn">人格复制</text>
   </view>
 
   <!-- MBTI 滑动测试 -->
@@ -351,11 +353,61 @@
     subtitle="WARNING"
     content="退出后本次校准不会保存。"
     cancelText="继续校准"
-    confirmText="退出"
+    confirmText="撤出"
     confirmType="danger"
     reduceMotion="{{reduceMotion}}"
     bind:cancel="onExitCancel"
     bind:confirm="onExitConfirm"
   />
+
+  <!-- 隐藏 Canvas -->
+  <canvas type="2d" id="personaCardCanvas" class="persona-card-canvas"></canvas>
+
+  <!-- 预览弹窗 -->
+  <view wx:if="{{showCardPreview}}" class="card-preview-mask" catchtouchmove="noop">
+    <view class="card-preview-panel">
+      <view class="preview-head">
+        <text class="preview-title">人格复制</text>
+        <sr-hatch-close bind:close="closeCardPreview" reduceMotion="{{reduceMotion}}" />
+      </view>
+      <image class="preview-img" src="{{cardTempPath}}" mode="widthFix" />
+      <view class="preview-actions">
+        <view class="preview-btn preview-btn-primary" bindtap="saveCard">
+          <text class="preview-btn-text">保存到相册</text>
+        </view>
+        <button class="preview-btn preview-btn-share" open-type="share">
+          <text class="preview-btn-text">分享给朋友</text>
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 生成扫描动画 -->
+  <view class="scan-overlay {{generatingCard ? 'scan-active' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}" wx:if="{{generatingCard}}">
+    <view class="scan-ring"></view>
+    <view class="scan-terminal">
+      <text class="scan-line {{scanStep >= 1 ? 'scan-line-show' : ''}}">[SCAN] 读取协议参数</text>
+      <text class="scan-line {{scanStep >= 2 ? 'scan-line-show' : ''}}">[MIRROR] 生成任务镜像</text>
+      <text class="scan-line {{scanStep >= 3 ? 'scan-line-show' : ''}}">[LOCK] 档案封装完成</text>
+    </view>
+  </view>
+
+  <!-- 权限确认弹窗 -->
+  <terminal-popup
+    wx:if="{{showPermDialog}}"
+    visible="{{showPermDialog}}"
+    title="需要相册权限"
+    subtitle="PERMISSION"
+    content="保存档案图需要相册访问权限。"
+    cancelText="取消"
+    confirmText="去设置"
+    confirmType="primary"
+    reduceMotion="{{reduceMotion}}"
+    bind:cancel="onPermCancel"
+    bind:confirm="onPermConfirm"
+  />
+
+  <!-- 终端 Toast -->
+  <sr-toast id="srToast" reduceMotion="{{reduceMotion}}" />
 
 </view>

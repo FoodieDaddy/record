@@ -1,35 +1,41 @@
-<scroll-view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{phase !== 'generating'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+<scroll-view class="strategy-page {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{pageMode !== 'generating'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
 
-  <!-- ═══ idle 屏 ═══ -->
-  <view class="idle-screen" wx:if="{{phase === 'idle'}}">
-    <view class="idle-header">
-      <view class="page-kicker">STRATEGY</view>
-      <view class="page-date">[ {{currentDate}} ]</view>
+  <!-- ═══ launch / relaunchReady 启动卡牌页 ═══ -->
+  <view class="strategy-launch" wx:if="{{pageMode === 'launch' || pageMode === 'relaunchReady'}}">
+
+    <!-- 顶部标题 -->
+    <view class="strategy-launch-header">
+      <text class="strategy-launch-title">今日策略</text>
+      <text class="strategy-launch-kicker">CORE STATUS</text>
+      <text class="strategy-launch-date">{{currentDate}}</text>
     </view>
 
-    <view class="sr-section-head" style="margin: 0 48rpx 48rpx;">
-      <view>
-        <text class="sr-title">今日策略</text>
-        <text class="sr-kicker">STRATEGY · DAILY</text>
-      </view>
+    <!-- 复位状态条（仅 relaunchReady） -->
+    <view class="strategy-reset-bar" wx:if="{{pageMode === 'relaunchReady'}}">
+      <view class="strategy-reset-dot"></view>
+      <text class="strategy-reset-text">核心已复位 · 点击卡牌启动新一轮策略推演</text>
     </view>
 
-    <view class="core-stage" bindtap="onTapDraw">
-      <view class="avionics-core">
-        <view class="core-inner">
-          <view class="core-ring core-ring--1"></view>
-          <view class="core-ring core-ring--2"></view>
-          <view class="core-ring core-ring--3"></view>
-          <view class="core-dot"></view>
-        </view>
-      </view>
+    <!-- 核心卡牌 -->
+    <view class="strategy-core-wrap">
       <view class="scan-ring scan-ring--idle"></view>
-      <view class="tap-hint">校准今日状态</view>
+      <view class="strategy-core-card {{pageMode === 'relaunchReady' ? 'strategy-core-card--armed' : ''}}" bindtap="onTapLaunchCore">
+        <view class="strategy-core-visual">
+          <view class="core-inner">
+            <view class="core-ring core-ring--1"></view>
+            <view class="core-ring core-ring--2"></view>
+            <view class="core-ring core-ring--3"></view>
+            <view class="core-dot"></view>
+          </view>
+        </view>
+        <view class="strategy-core-label">策略核心</view>
+        <view class="strategy-core-sublabel">点击启动</view>
+      </view>
     </view>
 
-    <view class="idle-info">
-      <view class="idle-info-label">系统将结合：</view>
-      <view class="idle-info-tags">人格协议 · 任务镜像 · 历史行为</view>
+    <!-- 底部说明 -->
+    <view class="strategy-launch-info">
+      <text class="strategy-launch-info-text">同步身份协议与历史样本，生成今日策略参考</text>
     </view>
 
     <view class="countdown-bar" wx:if="{{countdownText}}">
@@ -38,10 +44,12 @@
     </view>
   </view>
 
-  <!-- ═══ generating 屏 ═══ -->
-  <view class="gen-screen {{genFadeOut ? 'gen-fade-out' : ''}}" wx:if="{{phase === 'generating'}}">
-    <view class="gen-core-area">
-      <view class="gen-core gen-core--breathing">
+  <!-- ═══ generating 计算页 ═══ -->
+  <view class="strategy-generate" wx:if="{{pageMode === 'generating'}}">
+
+    <!-- 核心舱 HUD -->
+    <view class="strategy-reactor">
+      <view class="strategy-reactor-core">
         <view class="core-inner">
           <view class="core-ring core-ring--1"></view>
           <view class="core-ring core-ring--2"></view>
@@ -52,137 +60,134 @@
       <view class="scan-ring scan-ring--gen"></view>
     </view>
 
-    <view class="gen-title-block">
-      <text class="gen-main-title">正在推演今日策略</text>
-      <text class="gen-sub-title">系统正在结合人格协议与历史行为模型，生成最优行动建议</text>
+    <!-- 主文案 -->
+    <view class="strategy-gen-label">
+      <text class="strategy-gen-kicker">STRATEGY CORE</text>
+      <text class="strategy-gen-sub">系统正在同步身份协议、历史样本与今日状态</text>
     </view>
 
-    <view class="gen-checklist">
-      <view class="gen-check-item {{item.done ? 'gen-check-item--done' : ''}}"
+    <!-- 进度步骤 -->
+    <view class="strategy-progress-rail">
+      <view class="strategy-step-item {{item.done ? 'strategy-step-item--done' : index === step ? 'strategy-step-item--active' : ''}}"
             wx:for="{{stages}}" wx:key="index">
-        <view class="gen-check-mark {{item.done ? 'gen-check-mark--done' : index === step ? 'gen-check-mark--active' : ''}}"></view>
-        <text class="gen-check-label">{{item.label}}</text>
+        <view class="strategy-step-dot {{item.done ? 'strategy-step-dot--done' : index === step ? 'strategy-step-dot--active' : ''}}"></view>
+        <text class="strategy-step-label">{{item.label}}</text>
       </view>
-      <view class="gen-check-count">{{stagesDoneCount}} / 4</view>
+      <view class="strategy-step-count">{{stagesDoneCount}} / 4</view>
     </view>
 
-    <view class="gen-terminal">
-      <view class="gen-log-line {{item.visible ? 'gen-log-line--visible' : ''}}"
+    <!-- 日志流 -->
+    <view class="strategy-terminal">
+      <view class="strategy-log-line {{item.visible ? 'strategy-log-line--visible' : ''}}"
             wx:for="{{logs}}" wx:key="index">
-        <text class="gen-log-prefix">{{item.prefix}}</text>
-        <text class="gen-log-text {{item.typing ? 'gen-log-typing' : ''}}">{{item.text}}</text>
-      </view>
-    </view>
-
-    <view class="gen-timeout" wx:if="{{timeoutLevel === 'warning'}}">
-      <text class="gen-timeout-text">推演仍在进行，请稍候</text>
-    </view>
-    <view class="gen-timeout gen-timeout--long" wx:if="{{timeoutLevel === 'critical'}}">
-      <text class="gen-timeout-text">推演耗时较长，可继续等待或重新发起</text>
-      <view class="gen-timeout-actions">
-        <view class="gen-timeout-btn" bindtap="onTapWait">继续等待</view>
-        <view class="gen-timeout-btn gen-timeout-btn--primary" bindtap="onTapRetry">重新推演</view>
+        <text class="strategy-log-prefix">{{item.prefix}}</text>
+        <text class="strategy-log-text {{item.typing ? 'strategy-log-typing' : ''}}">{{item.text}}</text>
       </view>
     </view>
   </view>
 
-  <!-- ═══ success 屏 ═══ -->
-  <view class="success-screen" wx:if="{{phase === 'success'}}">
-    <view class="success-header">
-      <view class="page-kicker">STRATEGY</view>
-      <view class="page-date">[ {{currentDate}} ]</view>
+  <!-- ═══ result 结果页 ═══ -->
+  <view class="strategy-result" wx:if="{{pageMode === 'result'}}" style="--accent: {{themeColor}};">
+
+    <!-- 顶部标题区 -->
+    <view class="strategy-result-header">
+      <text class="strategy-result-title">今日策略</text>
+      <text class="strategy-result-kicker">CORE STATUS</text>
+      <text class="strategy-result-date">{{currentDate}}</text>
     </view>
 
-    <view class="sr-section-head" style="margin: 0 16rpx 32rpx;">
-      <view>
-        <text class="sr-title">今日策略</text>
-        <text class="sr-kicker">STRATEGY · DAILY</text>
-      </view>
-      <text class="sr-status-code" wx:if="{{strategy.tag}}">{{strategy.tag}}</text>
+    <!-- 状态胶囊 -->
+    <view class="strategy-tag-pill" wx:if="{{strategy.tag}}" style="border-color: {{themeColor}}40; background: {{themeColor}}12; color: {{themeColor}};">
+      <text>{{strategy.tag}}</text>
     </view>
 
-    <!-- 策略主题卡 -->
-    <view class="strategy-hero-card sr-card">
-      <view class="strategy-theme-head">
-        <text class="strategy-theme-label">策略主题</text>
-        <text class="strategy-theme-code">THEME</text>
+    <!-- HUD 芯片 -->
+    <view class="strategy-hud-chips">
+      <view class="strategy-hud-chip">
+        <text class="strategy-hud-chip-label">数据源</text>
+        <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
       </view>
-      <text class="strategy-theme-text">{{strategyTheme || '节奏校准'}}</text>
-      <text class="strategy-summary-text">{{strategySummary || '当前策略已生成。建议先观察场上节奏，再根据反馈调整行动。'}}</text>
-    </view>
-
-    <view class="result-card" style="--accent: {{strategy.glowColor || '#00AFFF'}};" wx:if="{{strategy.verdict || strategy.title}}">
-      <view class="result-card-glow"></view>
-      <view class="result-card-header" wx:if="{{strategy.title}}">
-        <view class="result-card-title">{{strategy.title}}</view>
-        <view class="result-card-subtitle" wx:if="{{strategy.subtitle}}">{{strategy.subtitle}}</view>
+      <view class="strategy-hud-chip">
+        <text class="strategy-hud-chip-label">观测窗口</text>
+        <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
       </view>
-      <view class="result-card-body" wx:if="{{strategy.verdict}}">
-        <view class="result-card-verdict-label">核心洞察 <text class="verdict-kicker">INSIGHT</text></view>
-        <view class="result-card-verdict">{{strategy.verdict}}</view>
-      </view>
-      <view class="result-card-divider" wx:if="{{strategy.title && strategy.verdict}}"></view>
-      <view class="result-tags-inline" wx:if="{{strategy.tags && strategy.tags.length}}">
-        <view class="result-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</view>
+      <view class="strategy-hud-chip">
+        <text class="strategy-hud-chip-label">状态噪声</text>
+        <text class="strategy-hud-chip-value">{{userTagLabel}}</text>
       </view>
     </view>
 
-    <view class="result-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
-      <view class="result-section-title">
-        <text class="result-section-icon">+</text>
-        <text class="result-section-zh">行动优势</text>
-        <text class="result-section-kicker">ADVANTAGE</text>
+    <!-- 核心洞察 -->
+    <view class="strategy-insight" wx:if="{{strategy.verdict}}">
+      <view class="strategy-section-head">
+        <text class="strategy-section-title">核心洞察</text>
+        <text class="strategy-section-kicker">INSIGHT</text>
       </view>
-      <view class="result-list-card">
-        <view class="result-list-item result-list-item--buff" wx:for="{{strategy.buffs}}" wx:key="index">
-          <text class="vector-index vector-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
-          <text class="result-list-text">{{item}}</text>
+      <text class="strategy-insight-text">{{strategy.verdict}}</text>
+    </view>
+
+    <!-- 策略读数 -->
+    <view class="strategy-reading" wx:if="{{strategy.title}}">
+      <view class="strategy-reading-head">
+        <text class="strategy-reading-name">{{strategy.title}}</text>
+        <text class="strategy-reading-sub" wx:if="{{strategy.subtitle}}">{{strategy.subtitle}}</text>
+      </view>
+      <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
+        <text class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- 行动优势 -->
+    <view class="strategy-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
+      <view class="strategy-section-head">
+        <text class="strategy-section-icon strategy-section-icon--pos">+</text>
+        <text class="strategy-section-title strategy-section-title--pos">行动优势</text>
+        <text class="strategy-section-kicker">ADVANTAGE</text>
+      </view>
+      <view class="strategy-list-card">
+        <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="index">
+          <text class="strategy-list-index strategy-list-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+          <text class="strategy-list-text">{{item}}</text>
         </view>
       </view>
     </view>
 
-    <view class="result-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
-      <view class="result-section-title">
-        <text class="result-section-icon result-section-icon--risk">!</text>
-        <text class="result-section-zh">风险提示</text>
-        <text class="result-section-kicker result-section-kicker--risk">RISK</text>
+    <!-- 风险提示 -->
+    <view class="strategy-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
+      <view class="strategy-section-head">
+        <text class="strategy-section-icon strategy-section-icon--neg">!</text>
+        <text class="strategy-section-title strategy-section-title--neg">风险提示</text>
+        <text class="strategy-section-kicker strategy-section-kicker--neg">RISK</text>
       </view>
-      <view class="result-list-card">
-        <view class="result-list-item result-list-item--risk" wx:for="{{strategy.debuffs}}" wx:key="index">
-          <text class="vector-index vector-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
-          <text class="result-list-text">{{item}}</text>
+      <view class="strategy-list-card strategy-list-card--risk">
+        <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="index">
+          <text class="strategy-list-index strategy-list-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+          <text class="strategy-list-text">{{item}}</text>
         </view>
       </view>
     </view>
 
-    <view class="result-actions">
-      <view class="flight-secondary" bindtap="onTapRefresh">
-        <text class="result-btn-label">重新推演</text>
-        <text class="result-btn-code">REGEN</text>
-      </view>
-      <view class="flight-primary" bindtap="onTapShare">
-        <text class="result-btn-label">发送策略卡</text>
-        <text class="result-btn-code result-btn-code--primary">SHARE</text>
-      </view>
-    </view>
-
+    <!-- 刷新倒计时 -->
     <view class="countdown-bar" wx:if="{{countdownText}}">
       <text class="countdown-label">刷新倒计时 </text>
       <text class="countdown-value">{{countdownText}}</text>
     </view>
-  </view>
 
-  <!-- ═══ error 屏 ═══ -->
-  <view class="error-screen" wx:if="{{phase === 'error'}}">
-    <view class="error-icon"><text class="error-icon-symbol">!</text></view>
-    <view class="error-title">策略推演失败</view>
-    <view class="error-text">系统暂时无法生成今日策略</view>
-    <view class="error-actions">
-      <view class="error-btn" bindtap="onTapRetryError">重试</view>
+    <!-- 底部操作区 -->
+    <view class="strategy-result-spacer"></view>
+    <view class="strategy-actions">
+      <view class="strategy-action-btn strategy-action-btn--secondary" bindtap="onTapRegenerate">
+        <text class="strategy-action-text">重新推演</text>
+        <text class="strategy-action-kicker">REGEN</text>
+      </view>
+      <view class="strategy-action-btn strategy-action-btn--primary" bindtap="onTapShare">
+        <text class="strategy-action-text">分享策略卡</text>
+        <text class="strategy-action-kicker">SHARE</text>
+      </view>
     </view>
   </view>
 
-  <!-- ═══ 海报弹层 ═══ -->
+  <!-- ═══ 海报弹层（保留原逻辑） ═══ -->
   <view wx:if="{{phase === 'poster_generating' || phase === 'poster_preview'}}" class="poster-mask" catchtap="noop">
     <view class="poster-container">
 
@@ -216,19 +221,49 @@
 
   <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
 
-  <!-- 重新生成确认弹窗 -->
-  <terminal-popup
-    wx:if="{{showRefreshConfirm}}"
-    visible="{{showRefreshConfirm}}"
-    title="重新推演"
-    subtitle="REGENERATE"
-    content="确定要重新推演今日策略？"
-    cancelText="取消"
-    confirmText="确认"
-    confirmType="primary"
-    reduceMotion="{{reduceMotion}}"
-    bind:cancel="onRefreshCancel"
-    bind:confirm="onRefreshConfirm"
-  />
+  <!-- ═══ 重新推演弹窗（完全自定义 · 推进舱风格） ═══ -->
+  <view class="strategy-regen-mask {{showRegenerateModal ? 'strategy-regen-mask--show' : ''}}" wx:if="{{showRegenerateModal}}" catchtap="noop">
+    <view class="strategy-regen-modal {{reduceMotion ? '' : 'strategy-regen-modal--animate'}}">
+
+      <!-- 顶部能量轨道 -->
+      <view class="strategy-modal-rail">
+        <view class="strategy-modal-rail-fill"></view>
+      </view>
+
+      <!-- 小标签 -->
+      <view class="strategy-modal-tag">核心复位</view>
+
+      <!-- 主标题 -->
+      <view class="strategy-modal-title">重新启动策略核心</view>
+
+      <!-- 英文装饰 -->
+      <view class="strategy-modal-kicker">RE-IGNITION</view>
+
+      <!-- 推进核心图形 -->
+      <view class="strategy-modal-core">
+        <view class="strategy-modal-core-bar">
+          <view class="strategy-modal-core-seg strategy-modal-core-seg--1"></view>
+          <view class="strategy-modal-core-seg strategy-modal-core-seg--2"></view>
+          <view class="strategy-modal-core-seg strategy-modal-core-seg--3"></view>
+        </view>
+        <view class="strategy-modal-core-block"></view>
+      </view>
+
+      <!-- 说明 -->
+      <view class="strategy-modal-desc">
+        当前策略将收起，核心回到待启动状态。再次点击核心卡牌后，系统会重新推演今日策略。
+      </view>
+
+      <!-- 按钮 -->
+      <view class="strategy-modal-actions">
+        <view class="strategy-modal-btn" bindtap="onCancelRegenerate">
+          <text>保持当前</text>
+        </view>
+        <view class="strategy-modal-btn strategy-modal-btn--primary" bindtap="onConfirmRegenerate">
+          <text>复位核心</text>
+        </view>
+      </view>
+    </view>
+  </view>
 
 </scroll-view>

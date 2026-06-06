@@ -38,6 +38,27 @@ function sanitizeStrategy(strategy) {
   }
 }
 
+/** 主题色归一化：themeColor > glowColor > userTag 推导 > 默认蓝 */
+function normalizeThemeColor(strategy) {
+  const VALID_COLORS = ['#0A84FF', '#32D74B', '#FF9F0A', '#FF453A']
+  if (strategy.themeColor && VALID_COLORS.includes(strategy.themeColor.toUpperCase())) {
+    return strategy.themeColor
+  }
+  if (strategy.glowColor && VALID_COLORS.includes(strategy.glowColor.toUpperCase())) {
+    return strategy.glowColor
+  }
+  const tagColorMap = {
+    WINNING_STREAK: '#32D74B',
+    LOSING_STREAK: '#FF9F0A',
+    HIGH_RISK: '#FF453A',
+    STABLE: '#0A84FF',
+  }
+  if (strategy.userTag && tagColorMap[strategy.userTag]) {
+    return tagColorMap[strategy.userTag]
+  }
+  return '#0A84FF'
+}
+
 function deriveStrategyMeta(strategy) {
   if (!strategy) return { strategyTheme: '节奏校准', strategySummary: '当前策略已生成。建议先观察场上节奏，再根据反馈调整行动。' }
   const theme = strategy.tag || (strategy.tags && strategy.tags[0]) || '节奏校准'
@@ -45,24 +66,42 @@ function deriveStrategyMeta(strategy) {
   return { strategyTheme: theme, strategySummary: summary }
 }
 
-/* ===== 推演日志流 ===== */
+/** userTag 映射中文标签 */
+function mapUserTagToLabel(userTag) {
+  const map = {
+    WINNING_STREAK: '连胜态',
+    LOSING_STREAK: '连败态',
+    HIGH_RISK: '高风险',
+    STABLE: '稳健态',
+  }
+  return map[userTag] || '待同步'
+}
+
+/** source 映射中文 */
+function mapSourceToLabel(source) {
+  if (source === 'llm') return 'LLM'
+  if (source === 'fallback') return '本地'
+  return '待同步'
+}
+
+/* ===== 推演日志流（中文化） ===== */
 const CALC_LOG_LINES = [
-  { stage: 0, prefix: '[SCAN]',      text: '读取人格协议...' },
-  { stage: 0, prefix: '[SCAN]',      text: '读取任务镜像...' },
-  { stage: 1, prefix: '[ANALYSIS]',  text: '构建策略向量...' },
-  { stage: 1, prefix: '[VECTOR]',    text: '风险模型同步...' },
-  { stage: 2, prefix: '[MATCH]',     text: '匹配策略原型...' },
-  { stage: 2, prefix: '[OK]',        text: '策略已锁定' },
+  { stage: 0, prefix: '[SYS]',  text: '人格协议同步完成' },
+  { stage: 0, prefix: '[SYS]',  text: '任务镜像读取中' },
+  { stage: 1, prefix: '[CORE]', text: '策略向量构建中' },
+  { stage: 1, prefix: '[RISK]', text: '风险噪声校准中' },
+  { stage: 2, prefix: '[CORE]', text: '策略原型匹配中' },
+  { stage: 2, prefix: '[SYS]',  text: '策略卡生成中' },
 ]
 
 Page({
   data: {
-    phase: 'idle',         // idle | generating | success | poster_generating | poster_preview | error
+    pageMode: 'launch',     // launch | generating | result | relaunchReady
     animationEnabled: true,
     reduceMotion: false,
-    showRefreshConfirm: false,
+    showRegenerateModal: false,
+    forcePending: false,
     currentDate: '',
-    lunarInfo: '',
     countdownText: '',
     nextRefreshAt: '',
 
@@ -71,22 +110,28 @@ Page({
     step: 0,
     stages: [
       { label: '人格协议同步', done: false },
-      { label: '任务镜像分析', done: false },
-      { label: '策略向量构建', done: false },
-      { label: '生成最终建议', done: false },
+      { label: '画像校准', done: false },
+      { label: '策略向量生成', done: false },
+      { label: '策略卡输出', done: false },
     ],
     stagesDoneCount: 0,
-    timeoutLevel: 'normal',  // normal | warning | critical
 
-    // success
+    // result
     strategy: null,
     strategyTheme: '',
     strategySummary: '',
+    themeColor: '#0A84FF',
 
-    // error
+    // HUD 芯片
+    sourceLabel: '待同步',
+    solarTermLabel: '待同步',
+    userTagLabel: '待同步',
+
+    // error (generating 失败时短暂显示 toast 后回 launch)
     error: null,
 
-    // poster
+    // poster (独立于 pageMode，用于海报弹层)
+    phase: '',
     posterPath: '',
     posterError: '',
   },
@@ -98,6 +143,7 @@ Page({
   _calcApiDone: false,
   _calcResult: null,
   _posterImagePath: '',
+  _requesting: false,
 
   /* ==================== 生命周期 ==================== */
 
@@ -138,51 +184,57 @@ Page({
         const strategy = sanitizeStrategy(cached.data)
         wx.setStorageSync('strategy_result', { date: today, data: strategy })
         const meta = deriveStrategyMeta(strategy)
+        const themeColor = normalizeThemeColor(strategy)
         this.setData({
-          phase: 'success',
+          pageMode: 'result',
           strategy,
           strategyTheme: meta.strategyTheme,
           strategySummary: meta.strategySummary,
+          themeColor,
           nextRefreshAt: strategy.nextRefreshAt || '',
+          sourceLabel: mapSourceToLabel(strategy.source),
+          solarTermLabel: strategy.solarTerm || '待同步',
+          userTagLabel: mapUserTagToLabel(strategy.userTag),
         })
         return
       }
     } catch (e) {}
-    this.setData({ phase: 'idle' })
+    this.setData({ pageMode: 'launch' })
   },
 
-  /* ==================== idle 状态 ==================== */
+  /* ==================== 启动核心卡牌 ==================== */
 
-  onTapDraw() {
-    if (this.data.phase !== 'idle') return
+  onTapLaunchCore() {
+    if (this.data.pageMode === 'generating') return
     vibrateShort('light')
-    this._startGeneration()
+    this._startGeneration({ force: this.data.forcePending })
   },
 
   /* ==================== generating 状态 ==================== */
 
-  _startGeneration() {
+  _startGeneration({ force } = {}) {
+    if (this._requesting) return
+    this._requesting = true
+
     this._clearCalcTimers()
     this._calcAnimDone = false
     this._calcApiDone = false
     this._calcResult = null
 
-    // 重置阶段清单
     const stages = this.data.stages.map(s => ({ ...s, done: false }))
     this.setData({
-      phase: 'generating',
+      pageMode: 'generating',
+      forcePending: false,
       logs: [],
       step: 0,
       stages,
       stagesDoneCount: 0,
-      timeoutLevel: 'normal',
       error: null,
     })
 
-    // 并行启动：日志动画 + API 调用
     this._runLogAnimation()
 
-    const params = this._forceRefresh ? { force: true } : undefined
+    const params = force ? { force: true } : undefined
     this._forceRefresh = false
 
     get('/fortune/today', params).then(data => {
@@ -194,29 +246,10 @@ Page({
       this._calcResult = { error: err.message || '连接中断，请重试' }
       this._tryFinishCalc()
     })
-
-    // 超时处理
-    this._setupTimeoutGuards()
-  },
-
-  /** 超时守卫：5s 警告，10s 临界 */
-  _setupTimeoutGuards() {
-    const t5 = setTimeout(() => {
-      if (this.data.phase !== 'generating') return
-      this.setData({ timeoutLevel: 'warning' })
-    }, 5000)
-    this._calcTimers.push(t5)
-
-    const t10 = setTimeout(() => {
-      if (this.data.phase !== 'generating') return
-      this.setData({ timeoutLevel: 'critical' })
-    }, 10000)
-    this._calcTimers.push(t10)
   },
 
   /** 日志动画：setTimeout 链，每条间隔 1200ms */
   _runLogAnimation() {
-    // 动效静默时直接跳过动画，立即标记完成
     if (!this.data.animationEnabled) {
       const stages = this.data.stages.map(s => ({ ...s, done: true }))
       this.setData({ stages, stagesDoneCount: 4 })
@@ -229,11 +262,9 @@ Page({
     let currentStage = -1
 
     lines.forEach((line, i) => {
-      // 每条日志出现
       const showTimer = setTimeout(() => {
-        if (this.data.phase !== 'generating') return
+        if (this.data.pageMode !== 'generating') return
 
-        // 阶段切换：标记前一阶段 done
         if (line.stage !== currentStage) {
           if (currentStage >= 0) {
             const stages = [...this.data.stages]
@@ -248,16 +279,14 @@ Page({
           this.setData({ step: line.stage })
         }
 
-        // 添加日志行（typing 状态）
         const logs = [...this.data.logs]
         logs.push({ prefix: line.prefix, text: line.text, visible: true, typing: true })
         this.setData({ logs })
       }, 500 + i * 1200)
       this._calcTimers.push(showTimer)
 
-      // 关闭 typing 光标
       const typeTimer = setTimeout(() => {
-        if (this.data.phase !== 'generating') return
+        if (this.data.pageMode !== 'generating') return
         const logs = [...this.data.logs]
         if (logs[i]) {
           logs[i] = { ...logs[i], typing: false }
@@ -267,10 +296,8 @@ Page({
       this._calcTimers.push(typeTimer)
     })
 
-    // 动画完成
     const doneTimer = setTimeout(() => {
-      if (this.data.phase !== 'generating') return
-      // 标记最后一个阶段 done
+      if (this.data.pageMode !== 'generating') return
       const lastStage = lines[lines.length - 1].stage
       const stages = [...this.data.stages]
       stages[lastStage].done = true
@@ -289,7 +316,6 @@ Page({
   _tryFinishCalc() {
     if (!this._calcAnimDone || !this._calcApiDone) return
 
-    // 标记 stage[3] done
     const stages = [...this.data.stages]
     stages[3].done = true
     this.setData({
@@ -297,42 +323,31 @@ Page({
       stagesDoneCount: 4,
     })
 
-    // 短暂延迟让最后阶段清单动画可见
     const finishTimer = setTimeout(() => {
       this._finishCalc(this._calcResult)
     }, 600)
     this._calcTimers.push(finishTimer)
   },
 
-  /** 清理推演定时器 */
   _clearCalcTimers() {
     this._calcTimers.forEach(t => clearTimeout(t))
     this._calcTimers = []
   },
 
-  /** 超时后继续等待 */
-  onTapWait() {
-    // 仅重置超时等级，继续等待 API 返回
-    this.setData({ timeoutLevel: 'normal' })
-  },
-
-  /** 超时后重新推演 */
-  onTapRetry() {
-    this._clearCalcTimers()
-    this._forceRefresh = true
-    this._startGeneration()
-  },
-
-  /** 退场：进入 success 或 error */
+  /** 退场：进入 result 或回 launch */
   _finishCalc(result) {
+    this._requesting = false
+    this._clearCalcTimers()
+
     if (result.error) {
-      this.setData({ phase: 'error', error: result.error })
+      this.setData({ pageMode: 'launch', error: null })
+      wx.showToast({ title: '策略生成失败', icon: 'none' })
       return
     }
 
     const strategy = sanitizeStrategy(result.strategy)
+    const themeColor = normalizeThemeColor(strategy)
 
-    // 缓存到本地
     try {
       const today = this.data.currentDate.replace(/\./g, '-')
       wx.setStorageSync('strategy_result', { date: today, data: strategy })
@@ -341,30 +356,48 @@ Page({
     const meta = deriveStrategyMeta(strategy)
 
     this.setData({
-      phase: 'success',
+      pageMode: 'result',
       strategy,
       strategyTheme: meta.strategyTheme,
       strategySummary: meta.strategySummary,
+      themeColor,
       nextRefreshAt: strategy.nextRefreshAt || '',
+      sourceLabel: mapSourceToLabel(strategy.source),
+      solarTermLabel: strategy.solarTerm || '待同步',
+      userTagLabel: mapUserTagToLabel(strategy.userTag),
     })
   },
 
-  /* ==================== success 状态 ==================== */
+  /* ==================== result → 重新推演弹窗 ==================== */
 
-  onTapRefresh() {
-    this.setData({ showRefreshConfirm: true })
+  onTapRegenerate() {
+    vibrateShort('light')
+    this.setData({ showRegenerateModal: true })
   },
 
-  onRefreshCancel() {
-    this.setData({ showRefreshConfirm: false })
+  onCancelRegenerate() {
+    this.setData({ showRegenerateModal: false })
   },
 
-  onRefreshConfirm() {
-    this.setData({ showRefreshConfirm: false })
+  onConfirmRegenerate() {
+    vibrateShort('light')
     try { wx.removeStorageSync('strategy_result') } catch (e) {}
-    this._forceRefresh = true
-    this._startGeneration()
+    this.setData({
+      showRegenerateModal: false,
+      pageMode: 'relaunchReady',
+      forcePending: true,
+      strategy: null,
+      strategyTheme: '',
+      strategySummary: '',
+      themeColor: '#0A84FF',
+      sourceLabel: '待同步',
+      solarTermLabel: '待同步',
+      userTagLabel: '待同步',
+    })
+    // 注意：禁止调用接口
   },
+
+  /* ==================== 分享 / 海报 ==================== */
 
   onTapShare() {
     this.setData({ phase: 'poster_generating', posterError: '' })
@@ -373,13 +406,11 @@ Page({
     }, 300)
   },
 
-  /* ==================== poster_generating 状态 ==================== */
-
   _renderPosterCanvas() {
     const query = wx.createSelectorQuery().in(this)
     query.select('#posterCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
-        this.setData({ phase: 'success', posterError: '画布初始化失败' })
+        this.setData({ phase: 'result', posterError: '画布初始化失败' })
         wx.showToast({ title: '生成失败', icon: 'none' })
         return
       }
@@ -396,9 +427,11 @@ Page({
 
       const s = this.data.strategy
       if (!s) {
-        this.setData({ phase: 'success', posterError: '策略数据缺失' })
+        this.setData({ phase: 'result', posterError: '策略数据缺失' })
         return
       }
+
+      const accentColor = this.data.themeColor || '#0A84FF'
 
       // === 背景 #05070A ===
       ctx.fillStyle = '#05070A'
@@ -421,7 +454,7 @@ Page({
       ctx.fillStyle = glowGrad
       ctx.fillRect(0, 0, W, 500)
 
-      // === 外框（更窄边距，最大化内容区） ===
+      // === 外框 ===
       ctx.strokeStyle = 'rgba(0, 175, 255, 0.2)'
       ctx.lineWidth = 2
       ctx.shadowColor = 'rgba(0, 175, 255, 0.25)'
@@ -441,7 +474,7 @@ Page({
       ctx.fillText('今日策略', W / 2, 80)
       ctx.font = '14px Courier New'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
-      ctx.fillText('STRATEGY · HAPPY 记分器', W / 2, 106)
+      ctx.fillText('STRATEGY · PULSE TERMINAL', W / 2, 106)
 
       // 顶部分隔线
       ctx.strokeStyle = 'rgba(0, 175, 255, 0.1)'
@@ -458,32 +491,23 @@ Page({
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
       ctx.fillText('STRATEGY WINDOW', W / 2, 196)
 
-      // === 中央：title 大字（加光晕） ===
-      ctx.textAlign = 'center'
-      ctx.font = 'bold 60px sans-serif'
-      ctx.shadowColor = 'rgba(0, 175, 255, 0.2)'
-      ctx.shadowBlur = 24
-      ctx.fillStyle = '#F5F5F7'
-      const titleY = 320
-      ctx.fillText(s.title || '', W / 2, titleY)
-      ctx.shadowBlur = 0
-
-      // subtitle 英文
-      if (s.subtitle) {
-        ctx.font = '18px Courier New'
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)'
-        ctx.fillText(s.subtitle.toUpperCase(), W / 2, titleY + 46)
+      // === 中央：tag 状态胶囊 ===
+      if (s.tag) {
+        const tagW = ctx.measureText(s.tag).width + 60
+        ctx.save()
+        ctx.globalAlpha = 0.12
+        ctx.fillStyle = accentColor
+        ctx.fillRect(W / 2 - tagW / 2, 220, tagW, 44)
+        ctx.globalAlpha = 0.3
+        ctx.strokeStyle = accentColor
+        ctx.strokeRect(W / 2 - tagW / 2, 220, tagW, 44)
+        ctx.restore()
+        ctx.font = 'bold 22px sans-serif'
+        ctx.fillStyle = '#F5F5F7'
+        ctx.fillText(s.tag, W / 2, 248)
       }
 
-      // 分隔线
-      ctx.strokeStyle = 'rgba(0, 175, 255, 0.25)'
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(W / 2 - 100, titleY + 72)
-      ctx.lineTo(W / 2 + 100, titleY + 72)
-      ctx.stroke()
-
-      // === verdict 判词（加粗 + 微光晕，自动换行） ===
+      // === verdict 判词 ===
       ctx.font = 'bold 34px sans-serif'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
       ctx.textAlign = 'center'
@@ -491,69 +515,27 @@ Page({
       ctx.shadowBlur = 16
       const verdictText = s.verdict || ''
       const verdictLines = this._wrapText(ctx, verdictText, W - 160)
-      let vy = titleY + 130
+      let vy = 320
       verdictLines.forEach(line => {
         ctx.fillText(line, W / 2, vy)
         vy += 52
       })
       ctx.shadowBlur = 0
 
-      // === tags 标签（背景块样式） ===
-      if (s.tags && s.tags.length > 0) {
-        const tagY = vy + 30
-        ctx.font = '18px Courier New'
-
-        // 计算总宽度以居中
-        const tagPadding = 24
-        const tagGap = 16
-        let totalTagWidth = 0
-        const tagWidths = s.tags.map(t => {
-          const w = ctx.measureText(t).width + tagPadding * 2
-          totalTagWidth += w
-          return w
-        })
-        totalTagWidth += tagGap * (s.tags.length - 1)
-
-        let tx = (W - totalTagWidth) / 2
-        s.tags.forEach((t, i) => {
-          const tw = tagWidths[i]
-          const th = 40
-
-          // 标签背景
-          ctx.fillStyle = 'rgba(0, 175, 255, 0.06)'
-          ctx.strokeStyle = 'rgba(0, 175, 255, 0.15)'
-          ctx.lineWidth = 1
-          const r = 6
-          ctx.beginPath()
-          ctx.moveTo(tx + r, tagY)
-          ctx.lineTo(tx + tw - r, tagY)
-          ctx.arcTo(tx + tw, tagY, tx + tw, tagY + r, r)
-          ctx.lineTo(tx + tw, tagY + th - r)
-          ctx.arcTo(tx + tw, tagY + th, tx + tw - r, tagY + th, r)
-          ctx.lineTo(tx + r, tagY + th)
-          ctx.arcTo(tx, tagY + th, tx, tagY + th - r, r)
-          ctx.lineTo(tx, tagY + r)
-          ctx.arcTo(tx, tagY, tx + r, tagY, r)
-          ctx.closePath()
-          ctx.fill()
-          ctx.stroke()
-
-          // 标签文字
-          ctx.fillStyle = 'rgba(0, 175, 255, 0.65)'
-          ctx.textAlign = 'center'
-          ctx.fillText(t, tx + tw / 2, tagY + 27)
-
-          tx += tw + tagGap
-        })
-      }
+      // 分隔线
+      ctx.strokeStyle = 'rgba(0, 175, 255, 0.25)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(W / 2 - 100, vy + 20)
+      ctx.lineTo(W / 2 + 100, vy + 20)
+      ctx.stroke()
 
       // === buffs / debuffs 区域 ===
-      let infoY = vy + 120
+      let infoY = vy + 70
       const infoX = 80
       const infoMaxW = W - 160
 
       if (s.buffs && s.buffs.length > 0) {
-        // 区块标题
         ctx.font = '16px Courier New'
         ctx.fillStyle = 'rgba(48, 209, 88, 0.4)'
         ctx.textAlign = 'left'
@@ -563,7 +545,6 @@ Page({
         ctx.font = '22px sans-serif'
         ctx.fillStyle = 'rgba(255, 255, 255, 0.62)'
         s.buffs.forEach(b => {
-          // 绿色指示点
           ctx.fillStyle = '#30D158'
           ctx.beginPath()
           ctx.arc(infoX + 6, infoY - 6, 4, 0, Math.PI * 2)
@@ -590,7 +571,6 @@ Page({
 
         ctx.font = '22px sans-serif'
         s.debuffs.forEach(d => {
-          // 红色指示点
           ctx.fillStyle = '#FF453A'
           ctx.beginPath()
           ctx.arc(infoX + 6, infoY - 6, 4, 0, Math.PI * 2)
@@ -620,7 +600,7 @@ Page({
       ctx.textAlign = 'center'
       ctx.fillText('PULSE TERMINAL · STRATEGY ARCHIVE', W / 2, H - 38)
 
-      // === 导出图片（2x 分辨率） ===
+      // === 导出图片 ===
       wx.canvasToTempFilePath({
         canvas,
         x: 0, y: 0,
@@ -636,7 +616,7 @@ Page({
           })
         },
         fail: () => {
-          this.setData({ phase: 'success', posterError: '海报导出失败' })
+          this.setData({ phase: 'result', posterError: '海报导出失败' })
           wx.showToast({ title: '生成失败', icon: 'none' })
         },
       })
@@ -690,14 +670,7 @@ Page({
   },
 
   onClosePoster() {
-    this.setData({ phase: 'success', posterPath: '', posterError: '' })
-  },
-
-  /* ==================== error 状态 ==================== */
-
-  onTapRetryError() {
-    this._forceRefresh = true
-    this._startGeneration()
+    this.setData({ phase: 'result', posterPath: '', posterError: '' })
   },
 
   /* ==================== 通用工具 ==================== */
@@ -710,7 +683,7 @@ Page({
     const s = this.data.strategy
     if (!s) return {}
     const result = {
-      title: `今日策略：${s.title || ''}`,
+      title: `今日策略：${s.tag || ''}`,
       path: '/pages/fortune/fortune',
     }
     if (this._posterImagePath) {

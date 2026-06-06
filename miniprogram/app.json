@@ -4,7 +4,6 @@
     "pages/room/room",
     "pages/fortune/fortune",
     "pages/mirror/index",
-    "pages/mirror-dossier/mirror-dossier",
     "pages/profile/profile",
     "pages/settings/settings",
     "pages/voice-select/voice-select",

@@ -179,39 +179,11 @@
 }
 
 .picker-close {
-  width: 72rpx;
-  height: 72rpx;
+  width: 64rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8rpx;
-  border: 1rpx solid rgba(124, 134, 152, 0.24);
-  background: transparent;
-}
-
-.close-icon-css {
-  width: 24rpx;
-  height: 24rpx;
-  position: relative;
-}
-
-.close-icon-css::before,
-.close-icon-css::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 20rpx;
-  height: 2rpx;
-  background: rgba(124, 134, 152, 0.70);
-}
-
-.close-icon-css::before {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.close-icon-css::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .picker-hint {
@@ -429,12 +401,12 @@
 }
 
 .apply-btn.apply-success {
-  border-color: rgba(48, 209, 88, 0.50);
-  background: rgba(48, 209, 88, 0.08);
+  border-color: rgba(48, 209, 88, 0.30);
+  background: rgba(48, 209, 88, 0.05);
 }
 
 .apply-btn.apply-success .apply-text {
-  color: #30D158;
+  color: rgba(48, 209, 88, 0.85);
 }
 
 .apply-btn.apply-error {

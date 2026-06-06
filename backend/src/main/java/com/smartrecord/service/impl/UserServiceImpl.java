@@ -268,11 +268,30 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 截断昵称到最大 6 个字符
+     * 截断昵称到最大 6 个中文宽度单位
+     * CJK 字符 = 1 单位，其他字符 = 0.5 单位
      */
     private String truncateNickname(String nickname) {
         if (nickname == null) return null;
-        return nickname.length() > 6 ? nickname.substring(0, 6) : nickname;
+        double width = 0;
+        int end = 0;
+        for (int i = 0; i < nickname.length(); i++) {
+            char ch = nickname.charAt(i);
+            double cw = isCJK(ch) ? 1.0 : 0.5;
+            if (width + cw > 6) break;
+            width += cw;
+            end = i + 1;
+        }
+        return nickname.substring(0, end);
+    }
+
+    private boolean isCJK(char ch) {
+        return (ch >= 0x4E00 && ch <= 0x9FFF)
+            || (ch >= 0x3400 && ch <= 0x4DBF)
+            || (ch >= 0x3000 && ch <= 0x303F)
+            || (ch >= 0xFF00 && ch <= 0xFFEF)
+            || (ch >= 0x3040 && ch <= 0x309F)
+            || (ch >= 0x30A0 && ch <= 0x30FF);
     }
 
     /**

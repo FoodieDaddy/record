@@ -105,7 +105,15 @@ Page({
     // 弹窗控制
     showSwipeTest: false,
     showMbtiPicker: false,
-    showExitConfirm: false
+    showExitConfirm: false,
+
+    // 人格复制
+    showCardPreview: false,
+    generatingCard: false,
+    scanStep: 0,
+    cardTempPath: '',
+    showPermDialog: false,
+    generatedAt: ''
   },
 
   onLoad() {
@@ -113,11 +121,44 @@ Page({
       !app.globalData.animationEnabled ||
       app.globalData.reduceMotion === true;
     this.setData({ reduceMotion: reduceMotion });
+    this._toastRef = null;
+    this._scanTimers = [];
+    this._generatedAt = this._formatDate();
     this.loadProfile();
   },
 
+  onUnload() {
+    this._clearScanTimers();
+  },
+
+  onReady() {
+    this._toastRef = this.selectComponent('#srToast');
+  },
+
+  _showToast(text, type, duration) {
+    if (this._toastRef) {
+      this._toastRef.show(text, type, duration);
+    }
+  },
+
+  _clearScanTimers() {
+    for (var i = 0; i < this._scanTimers.length; i++) {
+      clearTimeout(this._scanTimers[i]);
+    }
+    this._scanTimers = [];
+  },
+
+  _formatDate() {
+    var now = new Date();
+    return now.getFullYear() + '.'
+      + String(now.getMonth() + 1).padStart(2, '0') + '.'
+      + String(now.getDate()).padStart(2, '0');
+  },
+
+  noop() {},
+
   onShow() {
-    if (this.data.loadedOnce && this.data.needRefresh) {
+    if (this.data.loadedOnce) {
       this.loadProfile(true);
     }
   },
@@ -176,6 +217,7 @@ Page({
         confidenceChecklist: confidenceChecklist,
         personaSignals: signals,
         evolution: evolution,
+        generatedAt: this._generatedAt,
         loading: false,
         loadedOnce: true,
         needRefresh: false
@@ -184,7 +226,7 @@ Page({
       this.loadStats();
     } catch (e) {
       this.setData({ loading: false, loadedOnce: true });
-      wx.showToast({ title: '镜像加载失败', icon: 'none' });
+      this._showToast('镜像加载失败', 'dot-error');
     }
   },
 
@@ -254,17 +296,369 @@ Page({
         personaSignals: signals
       });
       this.loadStats();
-      wx.showToast({ title: '已同步', icon: 'none' });
+      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
     } catch (e) {
-      wx.showToast({ title: '同步失败', icon: 'none' });
+      this._showToast('同步失败，请重试', 'dot-error');
     } finally {
       wx.hideLoading();
     }
   },
 
-  // 生成人格档案
+  // ---- 人格复制 ----
   generateDossier() {
-    wx.navigateTo({ url: '/pages/mirror-dossier/mirror-dossier' });
+    if (this.data.generatingCard) return;
+    this._clearScanTimers();
+    this.setData({ generatingCard: true, scanStep: 0 });
+
+    var self = this;
+    var reduceMotion = this.data.reduceMotion;
+
+    if (reduceMotion) {
+      this.setData({ scanStep: 3 });
+      this._doDrawCard();
+      return;
+    }
+
+    var t1 = setTimeout(function () { self.setData({ scanStep: 1 }); }, 400);
+    var t2 = setTimeout(function () { self.setData({ scanStep: 2 }); }, 900);
+    var t3 = setTimeout(function () {
+      self.setData({ scanStep: 3 });
+      self._doDrawCard();
+    }, 1500);
+    this._scanTimers = [t1, t2, t3];
+  },
+
+  async _doDrawCard() {
+    try {
+      var path = await this._drawPersonaCard();
+      this.setData({
+        cardTempPath: path,
+        generatingCard: false,
+        scanStep: 0,
+        showCardPreview: true
+      });
+    } catch (e) {
+      this.setData({ generatingCard: false, scanStep: 0 });
+      this._showToast('生成失败，请稍后重试', 'dot-error');
+    }
+  },
+
+  closeCardPreview() {
+    this.setData({ showCardPreview: false, cardTempPath: '' });
+  },
+
+  // ---- Canvas 绘制 ----
+  _drawPersonaCard() {
+    var self = this;
+    return new Promise(function (resolve, reject) {
+      var query = wx.createSelectorQuery().in(self);
+      query.select('#personaCardCanvas')
+        .fields({ node: true, size: true })
+        .exec(function (res) {
+          if (!res || !res[0]) {
+            reject(new Error('canvas not found'));
+            return;
+          }
+
+          var canvas = res[0].node;
+          var ctx = canvas.getContext('2d');
+          var dpr = wx.getSystemInfoSync().pixelRatio || 2;
+          var W = 750;
+          var H = 1200;
+
+          canvas.width = W * dpr;
+          canvas.height = H * dpr;
+          ctx.scale(dpr, dpr);
+
+          self._drawBg(ctx, W, H);
+          self._drawContent(ctx, W, H);
+
+          wx.canvasToTempFilePath({
+            canvas: canvas,
+            x: 0,
+            y: 0,
+            width: W,
+            height: H,
+            destWidth: W * dpr,
+            destHeight: H * dpr,
+            success: function (fileRes) {
+              resolve(fileRes.tempFilePath);
+            },
+            fail: reject
+          }, self);
+        });
+    });
+  },
+
+  _drawBg(ctx, W, H) {
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillRect(0, 0, W, H);
+
+    var grad = ctx.createRadialGradient(160, 0, 0, 160, 0, 420);
+    grad.addColorStop(0, 'rgba(10,132,255,0.18)');
+    grad.addColorStop(1, 'rgba(10,132,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(10,132,255,0.28)';
+    ctx.lineWidth = 2;
+    this._roundRect(ctx, 44, 44, W - 88, H - 88, 28);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    for (var y = 76; y < H - 76; y += 16) {
+      ctx.beginPath();
+      ctx.moveTo(60, y);
+      ctx.lineTo(W - 60, y);
+      ctx.stroke();
+    }
+  },
+
+  _drawContent(ctx, W, H) {
+    var d = this.data;
+    var mbti = d.mbti || {};
+    var battle = d.battlePersona || {};
+    var reading = d.reading || {};
+    var signals = d.personaSignals || [];
+    var padL = 72;
+    var contentW = W - padL * 2;
+
+    // Header
+    ctx.fillStyle = 'rgba(10,132,255,0.50)';
+    ctx.font = '18px sans-serif';
+    this._fillLetterSpaced(ctx, 'PERSONA ARCHIVE', padL, 80);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText('人格档案卡', padL, 130);
+
+    this._drawDivider(ctx, padL, 158, contentW);
+
+    // MBTI 类型
+    ctx.fillStyle = '#0A84FF';
+    ctx.font = 'bold 56px sans-serif';
+    ctx.fillText(mbti.mbtiType || '--', padL, 232);
+
+    if (mbti.mbtiTitle) {
+      ctx.fillStyle = 'rgba(255,255,255,0.78)';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle), padL + 190, 230);
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.42)';
+    ctx.font = '22px sans-serif';
+    ctx.fillText('置信度 ' + (mbti.confidence || 0) + '%', padL, 278);
+
+    var source = mbti.mbtiSource === 'test' ? '20题校准' : '直接输入';
+    ctx.fillText('来源 ' + source, padL + 220, 278);
+
+    this._drawDivider(ctx, padL, 306, contentW);
+
+    // 五维数据
+    ctx.fillStyle = 'rgba(10,132,255,0.50)';
+    ctx.font = '20px sans-serif';
+    this._fillLetterSpaced(ctx, 'RADAR DATA', padL, 346);
+
+    var dims = d.radarDimensions || [];
+    if (dims.length > 0 && battle.generated) {
+      var dimY = 382;
+      for (var di = 0; di < dims.length; di++) {
+        var dim = dims[di];
+        ctx.fillStyle = 'rgba(255,255,255,0.48)';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(dim.label, padL, dimY);
+        ctx.fillStyle = '#00AFFF';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(String(dim.value), padL + 140, dimY);
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        this._roundRect(ctx, padL + 200, dimY - 12, contentW - 200, 10, 5);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,175,255,0.45)';
+        var barW = Math.max(4, (dim.value / 100) * (contentW - 200));
+        this._roundRect(ctx, padL + 200, dimY - 12, barW, 10, 5);
+        ctx.fill();
+        dimY += 40;
+      }
+    }
+
+    var dividerY = battle.generated && dims.length > 0 ? 590 : 370;
+    this._drawDivider(ctx, padL, dividerY, contentW);
+
+    // 系统判读
+    var readingY = dividerY + 36;
+    ctx.fillStyle = 'rgba(10,132,255,0.50)';
+    ctx.font = '20px sans-serif';
+    this._fillLetterSpaced(ctx, 'SYSTEM READING', padL, readingY);
+
+    var readingText = this._buildReadingText(reading);
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = '22px sans-serif';
+    this._drawWrappedText(ctx, readingText, padL, readingY + 36, contentW, 34, 5);
+
+    // 人格信号
+    var signalY = readingY + 220;
+    ctx.fillStyle = 'rgba(10,132,255,0.50)';
+    ctx.font = '20px sans-serif';
+    this._fillLetterSpaced(ctx, 'PERSONA SIGNAL', padL, signalY);
+
+    if (signals.length > 0) {
+      var chipX = padL;
+      var chipY = signalY + 36;
+      for (var si = 0; si < signals.length; si++) {
+        var label = sanitizeMirrorText(signals[si]);
+        var chipW = Math.min(200, 48 + label.length * 24);
+        if (chipX + chipW > W - padL) {
+          chipX = padL;
+          chipY += 52;
+        }
+        this._drawChip(ctx, chipX, chipY, chipW, 38, label);
+        chipX += chipW + 14;
+      }
+    }
+
+    // Footer
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('生成时间 ' + d.generatedAt, padL, H - 100);
+
+    ctx.fillStyle = 'rgba(10,132,255,0.35)';
+    ctx.font = '16px sans-serif';
+    this._fillLetterSpaced(ctx, 'PULSE TERMINAL · SMART RECORD', padL, H - 70);
+  },
+
+  _buildReadingText(reading) {
+    if (!reading || !reading.available) {
+      return '暂无系统判读。完成更多对局后将生成更稳定的档案。';
+    }
+    var parts = [];
+    if (reading.observation) parts.push(sanitizeMirrorText(reading.observation));
+    if (reading.deviation) parts.push(sanitizeMirrorText(reading.deviation));
+    if (reading.risk) parts.push(sanitizeMirrorText(reading.risk));
+    if (reading.growthAdvice) parts.push(sanitizeMirrorText(reading.growthAdvice));
+    if (parts.length === 0 && reading.text) parts.push(reading.text);
+    return parts.length > 0
+      ? parts.join('。')
+      : '暂无系统判读。完成更多任务后将生成更稳定的档案。';
+  },
+
+  _fillLetterSpaced(ctx, text, x, y) {
+    var chars = text.split('');
+    var cx = x;
+    for (var i = 0; i < chars.length; i++) {
+      ctx.fillText(chars[i], cx, y);
+      cx += ctx.measureText(chars[i]).width + 4;
+    }
+  },
+
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  },
+
+  _drawDivider(ctx, x, y, w) {
+    ctx.strokeStyle = 'rgba(10,132,255,0.20)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.stroke();
+  },
+
+  _drawWrappedText(ctx, text, x, y, maxW, lineH, maxLines) {
+    var content = text || '';
+    var line = '';
+    var lineCount = 0;
+
+    for (var i = 0; i < content.length; i++) {
+      var ch = content[i];
+      if (ch === '\n') {
+        ctx.fillText(line, x, y);
+        line = '';
+        y += lineH;
+        lineCount++;
+        if (lineCount >= maxLines) return;
+        continue;
+      }
+
+      if (ctx.measureText(line + ch).width > maxW && line.length > 0) {
+        ctx.fillText(line, x, y);
+        line = ch;
+        y += lineH;
+        lineCount++;
+        if (lineCount >= maxLines) {
+          ctx.fillText(line + '...', x, y);
+          return;
+        }
+      } else {
+        line += ch;
+      }
+    }
+
+    if (line) {
+      ctx.fillText(line, x, y);
+    }
+  },
+
+  _drawChip(ctx, x, y, w, h, text) {
+    ctx.fillStyle = 'rgba(10,132,255,0.08)';
+    ctx.strokeStyle = 'rgba(10,132,255,0.30)';
+    ctx.lineWidth = 1;
+    this._roundRect(ctx, x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#0A84FF';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(text, x + 16, y + 27);
+  },
+
+  // ---- 保存到相册 ----
+  saveCard() {
+    var path = this.data.cardTempPath;
+    if (!path) {
+      this._showToast('请先生成档案卡', 'dot-warn');
+      return;
+    }
+
+    var self = this;
+    wx.saveImageToPhotosAlbum({
+      filePath: path,
+      success: function () {
+        self._showToast('档案图已保存', 'dot-sync');
+      },
+      fail: function (err) {
+        if (err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
+          self.setData({ showPermDialog: true });
+          return;
+        }
+        self._showToast('保存未完成，请稍后重试', 'dot-error');
+      }
+    });
+  },
+
+  onPermCancel() {
+    this.setData({ showPermDialog: false });
+  },
+
+  onPermConfirm() {
+    this.setData({ showPermDialog: false });
+    wx.openSetting();
+  },
+
+  // ---- 分享 ----
+  onShareAppMessage() {
+    var mbti = this.data.mbti || {};
+    return {
+      title: '我的人格档案：' + (mbti.mbtiType || '--') + ' ' + sanitizeMirrorText(mbti.mbtiTitle || ''),
+      path: '/pages/mirror/index',
+      imageUrl: this.data.cardTempPath || ''
+    };
   },
 
   // MBTI 测试
@@ -297,10 +691,10 @@ Page({
     try {
       await api.submitMbtiTest({ testVersion: detail.testVersion, answers: detail.answers });
       this.setData({ showSwipeTest: false });
-      wx.showToast({ title: '校准完成', icon: 'success' });
+      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
       this.loadProfile(true);
     } catch (err) {
-      wx.showToast({ title: '提交失败', icon: 'none' });
+      this._showToast('提交失败，请重试', 'dot-error');
     }
   },
 
@@ -308,15 +702,14 @@ Page({
     try {
       await api.submitMbtiDirect({ mbtiCode: e.detail.mbtiCode });
       this.setData({ showMbtiPicker: false });
-      wx.showToast({ title: '设置成功', icon: 'success' });
+      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
       this.loadProfile(true);
     } catch (err) {
-      // 通知 picker 显示错误状态
       var picker = this.selectComponent('#mbtiPicker');
       if (picker && picker.showError) {
         picker.showError('同步失败，请重试');
       } else {
-        wx.showToast({ title: '提交失败', icon: 'none' });
+        this._showToast('同步失败，请重试', 'dot-error');
       }
     }
   }
