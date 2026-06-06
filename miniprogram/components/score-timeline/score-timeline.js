@@ -368,7 +368,7 @@ Component({
       ctx.restore();
 
       // 内圈白色高光
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#E2F2FF';
       ctx.beginPath();
       ctx.arc(px, py, 2, 0, Math.PI * 2);
       ctx.fill();

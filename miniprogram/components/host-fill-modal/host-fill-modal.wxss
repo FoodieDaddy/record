@@ -17,7 +17,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  border: 1rpx solid rgba(0, 170, 255, 0.15);
+  border: 1rpx solid rgba(10, 132, 255, 0.15);
 }
 .header {
   display: flex;
@@ -33,14 +33,14 @@
 .kicker {
   font-size: 18rpx;
   letter-spacing: 4rpx;
-  color: rgba(0, 170, 255, 0.72);
+  color: rgba(10, 132, 255, 0.72);
   font-family: monospace;
   text-transform: uppercase;
 }
 .title {
   font-size: 36rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
 }
 .member-list {
   max-height: 500rpx;
@@ -54,22 +54,22 @@
 }
 .member-name {
   font-size: 30rpx;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
   flex: 1;
 }
 .score-input {
   width: 200rpx;
   height: 64rpx;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: 12rpx;
   text-align: center;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
   font-size: 30rpx;
   transition: border-color 0.2s;
 }
 .score-input:focus {
-  border-color: rgba(0, 170, 255, 0.4);
+  border-color: rgba(10, 132, 255, 0.4);
 }
 .summary {
   display: flex;
@@ -78,24 +78,24 @@
   gap: 12rpx;
   margin-top: 24rpx;
   padding: 16rpx;
-  background: rgba(0, 170, 255, 0.06);
-  border: 1rpx solid rgba(0, 170, 255, 0.12);
+  background: rgba(10, 132, 255, 0.06);
+  border: 1rpx solid rgba(10, 132, 255, 0.12);
   border-radius: 12rpx;
 }
 .total-label {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--text-secondary);
 }
 .total-value {
   font-size: 36rpx;
   font-weight: 600;
 }
-.total-value.zero { color: rgba(255, 255, 255, 0.38); }
-.total-value.positive { color: #30D158; }
-.total-value.negative { color: #FF453A; }
+.total-value.zero { color: rgba(140, 176, 205, 0.38); }
+.total-value.positive { color: var(--success) }
+.total-value.negative { color: var(--danger) }
 .hint {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(140, 176, 205, 0.38);
   text-align: center;
   margin-top: 16rpx;
 }
@@ -113,14 +113,14 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1rpx solid rgba(255, 255, 255, 0.14);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: 16rpx;
-  color: #7C8698;
+  color: var(--text-secondary);
   font-size: 28rpx;
   letter-spacing: 2rpx;
 }
 .btn-cancel:active {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg);
 }
 .btn-submit {
   flex: 1;
@@ -128,18 +128,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 170, 255, 0.15);
-  border: 1rpx solid rgba(0, 170, 255, 0.4);
+  background: rgba(10, 132, 255, 0.15);
+  border: 1rpx solid rgba(10, 132, 255, 0.4);
   border-radius: 16rpx;
   position: relative;
   overflow: hidden;
 }
 .btn-submit:active {
-  background: rgba(0, 170, 255, 0.25);
+  background: rgba(10, 132, 255, 0.25);
 }
 .btn-submit-text {
   font-size: 28rpx;
   font-weight: 600;
-  color: #00AFFF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
 }

@@ -350,7 +350,7 @@
     wx:if="{{showExitConfirm}}"
     visible="{{showExitConfirm}}"
     title="系统警告"
-    subtitle="WARNING"
+    subtitle="WARN"
     content="退出后本次校准不会保存。"
     cancelText="继续校准"
     confirmText="撤出"

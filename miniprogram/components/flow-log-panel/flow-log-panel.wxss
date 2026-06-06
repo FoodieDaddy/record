@@ -22,12 +22,12 @@
 .flp-cn {
   font-size: 28rpx;
   font-weight: 600;
-  color: #00C8FF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
 }
 .flp-en {
   font-size: 17rpx;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(126, 156, 180, 0.28);
   letter-spacing: 4rpx;
   font-family: monospace;
   margin-top: 2rpx;
@@ -43,13 +43,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: 50%;
   transition: background-color 0.2s;
 }
 .flp-matrix-btn:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(126, 156, 180, 0.10);
 }
 
 .flp-divider {
@@ -70,7 +70,7 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #0A84FF;
+  background: var(--accent)
   opacity: 0.3;
   animation: emptyPulse 2.5s ease-in-out infinite;
   margin-bottom: 12rpx;
@@ -81,18 +81,18 @@
 }
 .flp-empty-hint-cn {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-tertiary);
   letter-spacing: 2rpx;
 }
 .flp-empty-hint-en {
   font-size: 16rpx;
-  color: rgba(255, 255, 255, 0.18);
+  color: rgba(126, 156, 180, 0.18);
   letter-spacing: 4rpx;
   font-family: monospace;
 }
 .flp-empty-desc {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.24);
+  color: rgba(126, 156, 180, 0.24);
   margin-top: 8rpx;
 }
 
@@ -117,13 +117,13 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #0A84FF;
+  background: var(--accent)
   box-shadow: 0 0 10rpx rgba(10, 132, 255, 0.5);
   flex-shrink: 0;
 }
 .flp-time-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-tertiary);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
@@ -159,7 +159,7 @@
   flex-shrink: 0;
 }
 .flp-event-dot-active {
-  background: #0A84FF;
+  background: var(--accent)
   box-shadow: 0 0 8rpx rgba(10, 132, 255, 0.6);
 }
 
@@ -174,11 +174,11 @@
   max-width: 150rpx;
 }
 .flp-name-from {
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
   text-align: right;
 }
 .flp-name-to {
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-primary);
 }
 
 /* 流向核心 */
@@ -209,7 +209,7 @@
   color: #FF6B6B;
 }
 .flp-amt-neutral {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--text-secondary);
 }
 .flp-arrow {
   font-size: 20rpx;
@@ -229,7 +229,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #0A84FF;
+  background: var(--accent)
   animation: loadBlink 1.2s ease-in-out infinite;
 }
 @keyframes loadBlink {
@@ -238,7 +238,7 @@
 }
 .flp-loading-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(126, 156, 180, 0.30);
   font-family: monospace;
   letter-spacing: 2rpx;
 }
@@ -253,12 +253,12 @@
 }
 .flp-end-cn {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(126, 156, 180, 0.22);
   letter-spacing: 2rpx;
 }
 .flp-end-en {
   font-size: 15rpx;
-  color: rgba(255, 255, 255, 0.12);
+  color: rgba(126, 156, 180, 0.12);
   letter-spacing: 4rpx;
   font-family: monospace;
 }

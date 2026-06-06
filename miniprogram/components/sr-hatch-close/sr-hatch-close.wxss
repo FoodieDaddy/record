@@ -13,9 +13,9 @@
     88% 100%, 12% 100%,
     0% 88%, 0% 12%
   );
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg);
   border: none; /* clip-path 下 border 不生效，用 box-shadow 模拟描边 */
-  box-shadow: inset 0 0 0 1rpx rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 1rpx rgba(126, 156, 180, 0.16);
   position: relative;
 }
 
@@ -59,7 +59,7 @@
   top: 50%;
   width: 20rpx;
   height: 2rpx;
-  background: rgba(255, 255, 255, 0.48);
+  background: rgba(140, 176, 205, 0.48);
   border-radius: 1rpx;
   transition: background 0.15s;
 }

@@ -90,7 +90,7 @@ function drawToCanvas(ctx, nickname, size) {
   ctx.fillStyle = color;
   ctx.fill();
 
-  ctx.fillStyle = '#FFFFFF';
+  ctx.fillStyle = '#E2F2FF';
   ctx.font = `bold ${Math.round(size * 0.4)}px -apple-system, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

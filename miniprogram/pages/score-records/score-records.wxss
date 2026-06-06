@@ -28,7 +28,7 @@
   display: block;
   font-size: 36rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.94);
+  color: var(--text-primary);
   margin-top: 4rpx;
 }
 
@@ -52,7 +52,7 @@
   width: 48rpx;
   height: 48rpx;
   border: 3rpx solid rgba(0, 175, 255, 0.15);
-  border-top-color: #00AFFF;
+  border-top-color: var(--color-cyan)
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -79,13 +79,13 @@
 
 .empty-text {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   margin-bottom: 8rpx;
 }
 
 .empty-hint {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(126, 156, 180, 0.28);
 }
 
 .error-state {
@@ -106,18 +106,18 @@
 
 .error-text {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   margin-bottom: 8rpx;
 }
 
 .error-hint {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(126, 156, 180, 0.28);
 }
 
 /* ===== 净积分摘要卡 ===== */
 .yield-summary-card {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--bg-card);
   border: 1rpx solid rgba(0, 175, 255, 0.12);
   border-radius: 18rpx;
   padding: 28rpx;
@@ -129,7 +129,7 @@
   margin-top: 2rpx;
   font-size: 18rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.34);
+  color: rgba(126, 156, 180, 0.34);
   letter-spacing: 4rpx;
   font-family: 'SF Mono', 'Courier New', monospace;
 }
@@ -137,7 +137,7 @@
 .card-label {
   display: block;
   font-size: 22rpx;
-  color: #00C8FF;
+  color: var(--color-cyan)
   font-weight: 700;
   letter-spacing: 2rpx;
   margin-bottom: 8rpx;
@@ -152,21 +152,21 @@
 }
 
 .text-positive {
-  color: #36FF74;
+  color: var(--success);
 }
 
 .text-negative {
-  color: #FF4D4F;
+  color: var(--danger);
 }
 
 .text-zero {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
 }
 
 /* ===== 采样状态卡 ===== */
 .sample-card {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: 18rpx;
   padding: 24rpx;
   margin-bottom: 20rpx;
@@ -182,19 +182,19 @@
 .sample-current {
   font-size: 40rpx;
   font-weight: 700;
-  color: #00AFFF;
+  color: var(--color-cyan)
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
 .sample-sep {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.24);
+  color: rgba(126, 156, 180, 0.24);
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
 .sample-target {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(140, 176, 205, 0.38);
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
@@ -204,7 +204,7 @@
 }
 
 .curve-locked-card {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-card);
   border: 1rpx solid rgba(0, 175, 255, 0.12);
   border-radius: 18rpx;
   padding: 40rpx 28rpx;
@@ -247,24 +247,24 @@
 
 .locked-text {
   font-size: 28rpx;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   margin-bottom: 8rpx;
 }
 
 .locked-sub {
   font-size: 24rpx;
-  color: #00AFFF;
+  color: var(--color-cyan)
   font-family: 'SF Mono', 'Courier New', monospace;
   margin-bottom: 12rpx;
 }
 
 .locked-hint {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(126, 156, 180, 0.28);
 }
 
 .curve-chart-card {
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--bg-card);
   border: 1rpx solid rgba(0, 175, 255, 0.12);
   border-radius: 18rpx;
   padding: 24rpx;
@@ -283,7 +283,7 @@
 }
 
 .match-card {
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--bg-card);
   border: 1rpx solid rgba(0, 175, 255, 0.12);
   border-radius: 18rpx;
   padding: 28rpx;
@@ -303,14 +303,14 @@
 .match-card__room {
   font-size: 26rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
   letter-spacing: 2rpx;
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
 .match-card__time {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-tertiary);
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
@@ -324,14 +324,14 @@
 .match-card__label {
   font-size: 18rpx;
   font-weight: 600;
-  color: #00AFFF;
+  color: var(--color-cyan)
   letter-spacing: 3rpx;
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
 .match-card__label-cn {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-tertiary);
 }
 
 .match-card__players {
@@ -358,15 +358,15 @@
 }
 
 .role-me {
-  color: #00AFFF;
+  color: var(--color-cyan)
   border: 1rpx solid rgba(0, 175, 255, 0.30);
   background: rgba(0, 175, 255, 0.08);
 }
 
 .role-opponent {
-  color: rgba(255, 255, 255, 0.38);
-  border: 1rpx solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.03);
+  color: rgba(140, 176, 205, 0.38);
+  border: 1rpx solid rgba(126, 156, 180, 0.10);
+  background: var(--bg-card);
 }
 
 .match-player__avatar {
@@ -381,7 +381,7 @@
 
 .match-player__char {
   font-size: 20rpx;
-  color: #fff;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -394,7 +394,7 @@
 
 .match-player__name {
   font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-primary);
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -403,7 +403,7 @@
 .match-player__score {
   font-size: 28rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   font-family: 'SF Mono', 'Courier New', monospace;
   flex-shrink: 0;
   text-align: right;
@@ -411,11 +411,11 @@
 }
 
 .match-player__score.positive {
-  color: #36FF74;
+  color: var(--success);
 }
 
 .match-player__score.negative {
-  color: #FF4D4F;
+  color: var(--danger);
 }
 
 .match-card__footer {
@@ -428,7 +428,7 @@
 
 .match-card__footer-label {
   font-size: 18rpx;
-  color: #00AFFF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
   font-family: 'SF Mono', 'Courier New', monospace;
   opacity: 0.7;
@@ -436,7 +436,7 @@
 
 .match-card__footer-cn {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.42);
+  color: var(--text-tertiary);
   flex: 1;
 }
 

@@ -19,14 +19,14 @@
   margin-top: 6rpx;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(255, 255, 255, 0.34);
+  color: rgba(126, 156, 180, 0.34);
   text-transform: uppercase;
 }
 
 .network-title {
   font-size: 26rpx;
   font-weight: 700;
-  color: #00C8FF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
 }
 
@@ -40,7 +40,7 @@
   align-items: center;
   gap: 4rpx;
   padding: 8rpx 16rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.10);
+  border: 1rpx solid rgba(126, 156, 180, 0.10);
   border-radius: 8rpx;
   margin-top: 8rpx;
   flex-shrink: 0;
@@ -48,12 +48,12 @@
 
 .toggle-text {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.50);
+  color: var(--text-secondary);
 }
 
 .toggle-arrow {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.40);
+  color: var(--text-tertiary);
   display: inline-block;
   transform: rotate(-90deg);
   transition: transform 0.2s;
@@ -96,8 +96,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 2rpx solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.06);
+  border: 2rpx solid rgba(126, 156, 180, 0.10);
+  background: var(--glass-bg);
 }
 
 .node-avatar--me {
@@ -113,7 +113,7 @@
 .node-avatar-char {
   font-size: 22rpx;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .node-name {
@@ -193,7 +193,7 @@
   top: 50%;
   width: 16rpx;
   height: 2rpx;
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--text-tertiary);
 }
 
 .detail-close-icon::before {
@@ -218,13 +218,13 @@
 
 .detail-cell-label {
   font-size: 18rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--text-tertiary);
   letter-spacing: 1rpx;
 }
 
 .detail-cell-value {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.80);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -1,32 +1,55 @@
-/* ===== 全局主题：暗黑 + 毛玻璃 ===== */
+/* ===== 全局主题：冷蓝终端色阶 ===== */
 page {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #141414;
-  --bg-card: rgba(255, 255, 255, 0.05);
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-hover: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-light: rgba(255, 255, 255, 0.15);
+  /* — 背景 — */
+  --bg-deep: #05070A;
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #0A0F18;
+  --bg-panel: rgba(8, 18, 28, 0.72);
+  --bg-panel-soft: rgba(10, 24, 36, 0.50);
+  --bg-card: rgba(255, 255, 255, 0.035);
+  --glass-bg: rgba(255, 255, 255, 0.045);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+
+  /* — 文字（冷蓝白色阶） — */
+  --text-primary: rgba(226, 242, 255, 0.90);
+  --text-secondary: rgba(176, 208, 235, 0.62);
+  --text-tertiary: rgba(140, 176, 205, 0.42);
+  --text-disabled: rgba(126, 156, 180, 0.26);
+
+  /* — 线框 — */
+  --line-subtle: rgba(120, 190, 255, 0.10);
+  --line-cyan: rgba(0, 200, 255, 0.24);
+  --line-danger: rgba(255, 69, 58, 0.36);
+  --glass-border: rgba(10, 132, 255, 0.16);
+  --glass-border-light: rgba(255, 255, 255, 0.08);
+
+  /* — 语义色 — */
+  --color-primary: #0A84FF;
+  --color-cyan: #00C8FF;
+  --color-purple: #5E5CE6;
+  --color-green: #30D158;
+  --color-orange: #FF9F0A;
+  --color-red: #FF453A;
+  --accent: #0A84FF;
+  --accent-glow: rgba(10, 132, 255, 0.22);
+  --accent-light: rgba(10, 132, 255, 0.10);
+  --success: #30D158;
+  --success-glow: rgba(48, 209, 88, 0.12);
+  --danger: #FF453A;
+  --danger-glow: rgba(255, 69, 58, 0.10);
+  --warning: #FF9F0A;
+
+  /* — 排名 — */
+  --gold: #FF9F0A;
+  --silver: rgba(176, 208, 235, 0.56);
+  --bronze: rgba(140, 176, 205, 0.38);
+
+  /* — 阴影 — */
   --glass-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
   --glass-shadow-lg: 0 16rpx 48rpx rgba(0, 0, 0, 0.4);
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.55);
-  --text-tertiary: rgba(255, 255, 255, 0.3);
-  --accent: #4f8cff;
-  --accent-glow: rgba(79, 140, 255, 0.25);
-  --accent-light: rgba(79, 140, 255, 0.12);
-  --success: #34d399;
-  --success-glow: rgba(52, 211, 153, 0.15);
-  --danger: #f87171;
-  --danger-glow: rgba(248, 113, 113, 0.12);
-  --warning: #fbbf24;
-  --gold: #fbbf24;
-  --silver: #94a3b8;
-  --bronze: #d97706;
-  --color-neon-cyan: #00FFFF;
-  --color-electric-purple: #8B00FF;
-  --color-amber: #FFB000;
-  --border-radius: 24rpx;
+
+  /* — 圆角/间距 — */
+  --border-radius: 28rpx;
   --border-radius-sm: 16rpx;
   --border-radius-xs: 12rpx;
   --spacing-xs: 12rpx;
@@ -35,7 +58,10 @@ page {
   --spacing-lg: 48rpx;
   --spacing-xl: 64rpx;
 
-  background: var(--bg-primary);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
+    var(--bg-primary);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   font-size: 28rpx;
@@ -78,7 +104,7 @@ page {
   transform: translateX(-50%);
   width: 60%;
   height: 1rpx;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.35), transparent);
 }
 
 /* 紧凑卡片 */
@@ -106,72 +132,76 @@ page {
   margin-bottom: 24rpx;
 }
 
-/* ===== 主按钮 ===== */
+/* ===== 主按钮（终端风格） ===== */
 .btn-primary {
-  background: linear-gradient(135deg, #5a9bff, #3d7aed);
-  color: #ffffff;
-  border: none;
+  background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(0,200,255,0.08));
+  color: var(--color-cyan);
+  border: 1rpx solid rgba(10,132,255,0.45);
   border-radius: var(--border-radius-sm);
   padding: 24rpx 48rpx;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  transition: opacity 0.2s;
+  letter-spacing: 4rpx;
+  transition: opacity 0.2s, background-color 0.2s, border-color 0.2s;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 0 24rpx rgba(10,132,255,0.08);
 }
-.btn-primary::after {
+.btn-primary::before {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-  opacity: 0;
-  transition: opacity 0.2s;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.45), transparent);
 }
 .btn-primary:active {
-  opacity: 0.85;
-}
-.btn-primary:active::after {
-  opacity: 1;
+  background: linear-gradient(135deg, rgba(10,132,255,0.32), rgba(0,200,255,0.14));
 }
 .btn-primary[disabled] {
-  background: rgba(79, 140, 255, 0.25);
-  color: rgba(255, 255, 255, 0.35);
+  background: rgba(10, 132, 255, 0.10);
+  color: var(--text-disabled);
+  border-color: rgba(10,132,255,0.18);
+  box-shadow: none;
 }
 
 /* 小型主按钮 */
 .btn-primary-sm {
-  background: linear-gradient(135deg, #5a9bff, #3d7aed);
-  color: #ffffff;
-  border: none;
+  background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(0,200,255,0.08));
+  color: var(--color-cyan);
+  border: 1rpx solid rgba(10,132,255,0.45);
   border-radius: var(--border-radius-xs);
   padding: 14rpx 28rpx;
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 3rpx;
   text-align: center;
 }
 .btn-primary-sm:active { opacity: 0.85; }
 
 /* ===== 次要按钮 ===== */
 .btn-secondary {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-  border: 1rpx solid var(--glass-border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: var(--border-radius-sm);
   padding: 24rpx 48rpx;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 500;
   text-align: center;
+  letter-spacing: 3rpx;
 }
 .btn-secondary:active {
-  background: var(--glass-bg-hover);
+  background: var(--glass-bg);
 }
 
 /* 小型次要按钮 */
 .btn-secondary-sm {
-  background: var(--glass-bg);
-  color: var(--text-primary);
-  border: 1rpx solid var(--glass-border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1rpx solid var(--glass-border-light);
   border-radius: var(--border-radius-xs);
   padding: 14rpx 28rpx;
   font-size: 24rpx;
@@ -179,21 +209,21 @@ page {
   text-align: center;
 }
 
-/* ===== 危险按钮 ===== */
+/* ===== 危险按钮（透明底 + 红色细描边） ===== */
 .btn-danger {
-  background: var(--danger-glow);
+  background: rgba(255,69,58,0.06);
   color: var(--danger);
-  border: 1rpx solid rgba(248, 113, 113, 0.2);
+  border: 1rpx solid rgba(255,69,58,0.35);
   border-radius: var(--border-radius-sm);
   text-align: center;
 }
 .btn-danger:active {
-  background: rgba(248, 113, 113, 0.2);
+  background: rgba(255,69,58,0.14);
 }
 
 /* ===== 输入框 ===== */
 .input-glass {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--border-radius-sm);
   padding: 24rpx 32rpx;
@@ -202,7 +232,7 @@ page {
   transition: border-color 0.2s;
 }
 .input-glass:focus {
-  border-color: rgba(79, 140, 255, 0.4);
+  border-color: rgba(10, 132, 255, 0.4);
 }
 .input-glass::placeholder {
   color: var(--text-tertiary);
@@ -301,7 +331,7 @@ page {
   color: var(--danger);
 }
 .badge-warning {
-  background: rgba(251, 191, 36, 0.12);
+  background: rgba(255, 159, 10, 0.12);
   color: var(--warning);
 }
 
@@ -332,7 +362,7 @@ page {
 
 /* ===== 骨架屏 ===== */
 .skeleton {
-  background: linear-gradient(90deg, var(--glass-bg) 25%, rgba(255,255,255,0.08) 50%, var(--glass-bg) 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.025) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.025) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: var(--border-radius-xs);
@@ -348,7 +378,7 @@ page {
   display: block;
   font-size: 34rpx;
   font-weight: 700;
-  color: #00C8FF;
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 
@@ -357,14 +387,14 @@ page {
   margin-top: 8rpx;
   font-size: 18rpx;
   letter-spacing: 4rpx;
-  color: rgba(255,255,255,0.34);
+  color: rgba(226,242,255,0.34);
 }
 
 .page-zh-title {
   display: block;
   font-size: 46rpx;
   font-weight: 700;
-  color: rgba(255,255,255,0.94);
+  color: var(--text-primary);
   letter-spacing: 3rpx;
 }
 
@@ -373,7 +403,7 @@ page {
   margin-top: 12rpx;
   font-size: 20rpx;
   letter-spacing: 6rpx;
-  color: rgba(10,132,255,0.56);
+  color: rgba(10,132,255,0.48);
 }
 
 /* ===== 赛博终端通用组件 (sr-*) ===== */
@@ -401,6 +431,14 @@ page {
   opacity: 0.7;
 }
 
+.sr-card-secondary {
+  position: relative;
+  border-radius: 24rpx;
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
 .sr-section-head {
   display: flex;
   justify-content: space-between;
@@ -413,7 +451,7 @@ page {
   font-size: 32rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
-  color: #00C8FF;
+  color: var(--color-cyan);
 }
 
 .sr-kicker {
@@ -421,7 +459,7 @@ page {
   margin-top: 8rpx;
   font-size: 18rpx;
   letter-spacing: 5rpx;
-  color: rgba(255,255,255,0.34);
+  color: rgba(226,242,255,0.34);
 }
 
 .sr-status-code {
@@ -429,7 +467,7 @@ page {
   border-radius: 999rpx;
   border: 1rpx solid rgba(48,209,88,0.28);
   background: rgba(48,209,88,0.08);
-  color: #30D158;
+  color: var(--success);
   font-size: 22rpx;
   letter-spacing: 2rpx;
 }
@@ -447,7 +485,7 @@ page {
   border-radius: 8rpx;
   border: 1rpx solid rgba(10,132,255,0.28);
   background: rgba(10,132,255,0.06);
-  color: #0A84FF;
+  color: var(--accent);
   font-size: 22rpx;
   letter-spacing: 2rpx;
 }
@@ -474,7 +512,7 @@ page {
   border: 1rpx solid rgba(10,132,255,0.45);
   background:
     linear-gradient(135deg, rgba(10,132,255,0.22), rgba(0,200,255,0.08));
-  color: #00C8FF;
+  color: var(--color-cyan);
   font-size: 30rpx;
   font-weight: 700;
   letter-spacing: 5rpx;
@@ -486,9 +524,9 @@ page {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 16rpx;
-  border: 1rpx solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.025);
-  color: rgba(255,255,255,0.62);
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 28rpx;
   letter-spacing: 4rpx;
   text-align: center;
@@ -504,7 +542,7 @@ page {
   font-size: 30rpx;
   font-weight: 700;
   line-height: 1.2;
-  color: #00C8FF;
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 
@@ -514,7 +552,7 @@ page {
   font-size: 18rpx;
   line-height: 1.2;
   letter-spacing: 5rpx;
-  color: rgba(255,255,255,0.34);
+  color: rgba(226,242,255,0.34);
 }
 
 /* ===== 页面主标题：白色中文 + 蓝色英文 ===== */
@@ -526,7 +564,7 @@ page {
   display: block;
   font-size: 46rpx;
   font-weight: 700;
-  color: rgba(255,255,255,0.94);
+  color: var(--text-primary);
   letter-spacing: 3rpx;
 }
 
@@ -535,7 +573,7 @@ page {
   margin-top: 12rpx;
   font-size: 20rpx;
   letter-spacing: 6rpx;
-  color: rgba(10,132,255,0.56);
+  color: rgba(10,132,255,0.48);
 }
 
 /* ===== 小状态码 ===== */
@@ -546,7 +584,7 @@ page {
   border-radius: 999rpx;
   border: 1rpx solid rgba(48,209,88,0.26);
   background: rgba(48,209,88,0.08);
-  color: #30D158;
+  color: var(--success);
   font-size: 22rpx;
   letter-spacing: 2rpx;
 }
@@ -621,7 +659,7 @@ page {
   border-radius: 16rpx;
   border: 1rpx solid rgba(10,132,255,0.45);
   background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(0,200,255,0.08));
-  color: #00C8FF;
+  color: var(--color-cyan);
   font-size: 30rpx;
   font-weight: 700;
   letter-spacing: 5rpx;
@@ -665,15 +703,15 @@ page {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: 16rpx;
-  border: 1rpx solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.025);
-  color: rgba(255,255,255,0.62);
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 28rpx;
   letter-spacing: 4rpx;
   text-align: center;
 }
 .flight-secondary:active {
-  background: rgba(255,255,255,0.06);
+  background: var(--glass-bg);
 }
 
 /* ===== 飞控危险按钮 ===== */
@@ -683,7 +721,7 @@ page {
   border-radius: 16rpx;
   border: 1rpx solid rgba(255,69,58,0.35);
   background: rgba(255,69,58,0.06);
-  color: #FF453A;
+  color: var(--danger);
   font-size: 28rpx;
   letter-spacing: 4rpx;
   text-align: center;
@@ -698,15 +736,15 @@ page {
   align-items: center;
   padding: 12rpx 24rpx;
   border-radius: 12rpx;
-  border: 1rpx solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.025);
-  color: rgba(255,255,255,0.56);
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 24rpx;
   letter-spacing: 2rpx;
 }
 .flight-chip.is-active {
   border-color: rgba(10,132,255,0.45);
-  color: #00C8FF;
+  color: var(--color-cyan);
   background: rgba(10,132,255,0.08);
 }
 .flight-chip.is-active::before {
@@ -715,7 +753,7 @@ page {
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #00C8FF;
+  background: var(--color-cyan);
   margin-right: 10rpx;
   box-shadow: 0 0 8rpx rgba(0,200,255,0.6);
 }
@@ -732,8 +770,8 @@ page {
   width: 96rpx;
   height: 48rpx;
   border-radius: 24rpx;
-  border: 1rpx solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.04);
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--glass-bg);
   transition: border-color 0.25s, background-color 0.25s;
 }
 .avionics-switch__track.is-on {
@@ -747,26 +785,26 @@ page {
   width: 38rpx;
   height: 38rpx;
   border-radius: 50%;
-  background: rgba(255,255,255,0.35);
+  background: rgba(226,242,255,0.35);
   transition: transform 0.25s, background-color 0.25s;
 }
 .avionics-switch__track.is-on .avionics-switch__thumb {
   transform: translateX(48rpx);
-  background: #0A84FF;
+  background: var(--accent);
   box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
 }
 .avionics-switch__label {
   font-size: 28rpx;
-  color: rgba(255,255,255,0.72);
+  color: var(--text-primary);
 }
 .avionics-switch__status {
   font-size: 20rpx;
   letter-spacing: 3rpx;
   margin-left: 12rpx;
-  color: rgba(255,255,255,0.34);
+  color: rgba(226,242,255,0.34);
 }
 .avionics-switch__track.is-on .avionics-switch__status {
-  color: #0A84FF;
+  color: var(--accent);
 }
 
 /* ===== 飞控线图标 ===== */
@@ -777,13 +815,13 @@ page {
   width: 48rpx;
   height: 48rpx;
   border-radius: 12rpx;
-  border: 1rpx solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.025);
-  color: rgba(255,255,255,0.56);
+  border: 1rpx solid var(--glass-border-light);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 28rpx;
 }
 .fi:active {
-  background: rgba(255,255,255,0.06);
+  background: var(--glass-bg);
 }
 .fi--close::before,
 .fi--copy::before,
@@ -860,12 +898,12 @@ page {
 .terminal-modal__title {
   font-size: 32rpx;
   font-weight: 700;
-  color: rgba(255,255,255,0.92);
+  color: var(--text-primary);
   margin-bottom: 20rpx;
 }
 .terminal-modal__content {
   font-size: 26rpx;
-  color: rgba(255,255,255,0.56);
+  color: var(--text-secondary);
   line-height: 1.7;
   margin-bottom: 40rpx;
 }

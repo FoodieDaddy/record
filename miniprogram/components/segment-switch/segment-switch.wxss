@@ -4,8 +4,8 @@
 .seg-track {
   display: flex;
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-card);
+  border: 1rpx solid rgba(126, 156, 180, 0.12);
   border-radius: 4rpx;
   padding: 3rpx;
   gap: 0;
@@ -38,13 +38,13 @@
 }
 .seg-label {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.34);
+  color: rgba(126, 156, 180, 0.34);
   letter-spacing: 2rpx;
   transition: color 0.2s;
   font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
 }
 .seg-option-on .seg-label {
-  color: #00C8FF;
+  color: var(--color-cyan)
 }
 .reduce-motion .seg-thumb {
   transition: none;

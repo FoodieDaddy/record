@@ -54,7 +54,7 @@
   margin-top: 6rpx;
   font-size: 28rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.90);
+  color: var(--text-primary);
 }
 
 .tp-body {
@@ -63,13 +63,13 @@
 
 .tp-content {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.60);
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .tp-actions {
   display: flex;
-  border-top: 1rpx solid rgba(255, 255, 255, 0.06);
+  border-top: 1rpx solid var(--line-subtle);
 }
 
 .tp-btn {
@@ -84,16 +84,16 @@
 }
 
 .tp-btn-cancel {
-  color: rgba(255, 255, 255, 0.50);
+  color: var(--text-secondary);
   border-right: 1rpx solid rgba(255, 255, 255, 0.06);
 }
 
 .tp-btn-cancel:active {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--glass-bg);
 }
 
 .tp-btn-danger {
-  color: #FF4D4F;
+  color: var(--danger);
 }
 
 .tp-btn-danger:active {
@@ -101,7 +101,7 @@
 }
 
 .tp-btn-primary {
-  color: #00AFFF;
+  color: var(--color-cyan)
 }
 
 .tp-btn-primary:active {

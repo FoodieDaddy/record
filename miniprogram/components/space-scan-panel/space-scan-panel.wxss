@@ -22,12 +22,12 @@
 .ssp-cn {
   font-size: 28rpx;
   font-weight: 600;
-  color: #00C8FF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
 }
 .ssp-en {
   font-size: 17rpx;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(126, 156, 180, 0.28);
   letter-spacing: 4rpx;
   font-family: monospace;
   margin-top: 2rpx;
@@ -54,7 +54,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #0A84FF;
+  background: var(--accent)
   box-shadow: 0 0 8rpx rgba(10, 132, 255, 0.5);
   animation: statusBlink 2s ease-in-out infinite;
 }
@@ -64,7 +64,7 @@
 }
 .ssp-status-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(140, 176, 205, 0.45);
   letter-spacing: 1rpx;
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
 }
@@ -77,7 +77,7 @@
 }
 .ssp-cell {
   padding: 20rpx 16rpx;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card);
   border: 1rpx solid rgba(255, 255, 255, 0.05);
   border-radius: 14rpx;
   display: flex;
@@ -97,12 +97,12 @@
 }
 .ssp-cell-label {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(140, 176, 205, 0.45);
   letter-spacing: 1rpx;
 }
 .ssp-cell-en {
   font-size: 14rpx;
-  color: rgba(255, 255, 255, 0.16);
+  color: rgba(126, 156, 180, 0.16);
   letter-spacing: 3rpx;
   font-family: monospace;
   margin-bottom: 4rpx;
@@ -110,24 +110,24 @@
 .ssp-cell-value {
   font-size: 28rpx;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .ssp-cell-na {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--text-disabled);
 }
 .ssp-cell-num {
   font-size: 36rpx;
   font-weight: 700;
-  color: #00AFFF;
+  color: var(--color-cyan)
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
 }
 .ssp-cell-sub {
   font-size: 18rpx;
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(126, 156, 180, 0.22);
   letter-spacing: 1rpx;
 }
 
@@ -140,7 +140,7 @@
 }
 .ssp-density-track {
   height: 10rpx;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--glass-bg);
   border-radius: 5rpx;
   overflow: hidden;
   position: relative;
@@ -158,7 +158,7 @@
   right: 0;
   width: 16rpx;
   height: 100%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--text-disabled);
   filter: blur(4rpx);
   border-radius: 0 5rpx 5rpx 0;
 }
@@ -173,7 +173,7 @@
 }
 .ssp-density-label {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-tertiary);
   font-family: monospace;
   letter-spacing: 2rpx;
 }

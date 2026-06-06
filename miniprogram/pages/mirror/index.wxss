@@ -6,7 +6,7 @@
   box-sizing: border-box;
   padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 140rpx);
   background: #05070A;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text-primary);
 }
 
 
@@ -16,7 +16,7 @@
   margin-top: 4rpx;
   font-size: 32rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text-primary);
   letter-spacing: 2rpx;
 }
 
@@ -38,7 +38,7 @@
   margin-top: 4rpx;
   font-size: 18rpx;
   letter-spacing: 5rpx;
-  color: rgba(255, 255, 255, 0.30);
+  color: rgba(126, 156, 180, 0.30);
   text-transform: uppercase;
 }
 
@@ -68,11 +68,11 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.20);
+  background: var(--text-disabled);
 }
 
 .sync-dot-active {
-  background: #36FF74;
+  background: var(--success);
   box-shadow: 0 0 8rpx rgba(54, 255, 116, 0.50);
 }
 
@@ -98,9 +98,9 @@
 }
 
 .term-btn.ghost {
-  border-color: rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.55);
+  border-color: rgba(126, 156, 180, 0.10);
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 .term-btn:active {
@@ -122,9 +122,9 @@
 }
 
 .term-btn-sm.ghost {
-  border-color: rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.50);
+  border-color: rgba(126, 156, 180, 0.10);
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 /* 飞控次按钮覆写：保持紧凑尺寸 */
@@ -156,14 +156,14 @@
 
 .empty-hint {
   font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.60);
+  color: var(--text-secondary);
 }
 
 .empty-desc {
   display: block;
   margin-top: 8rpx;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
   line-height: 1.5;
 }
 
@@ -187,13 +187,13 @@
 
 .protocol-label {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.48);
+  color: rgba(140, 176, 205, 0.48);
 }
 
 .protocol-value {
   font-size: 26rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-primary);
 }
 
 .protocol-value.protocol-code {
@@ -206,16 +206,16 @@
 }
 
 .pc-prefix {
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(140, 176, 205, 0.38);
 }
 
 .pc-sep {
-  color: rgba(255, 255, 255, 0.20);
+  color: var(--text-disabled);
   margin: 0 2rpx;
 }
 
 .pc-core {
-  color: rgba(255, 255, 255, 0.56);
+  color: var(--text-secondary);
 }
 
 .pc-type {
@@ -225,7 +225,7 @@
 }
 
 .protocol-value.status-active {
-  color: #36FF74;
+  color: var(--success);
 }
 
 .protocol-actions {
@@ -261,13 +261,13 @@
 
 .locked-hint {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.40);
+  color: var(--text-tertiary);
 }
 
 .locked-bar-track {
   height: 8rpx;
   border-radius: 4rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
   overflow: hidden;
 }
 
@@ -282,7 +282,7 @@
   display: block;
   margin-top: 12rpx;
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.30);
+  color: rgba(126, 156, 180, 0.30);
   text-align: center;
 }
 
@@ -303,12 +303,12 @@
 .tag-name {
   font-size: 26rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-primary);
 }
 
 .tag-sample {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
 }
 
 .stat-row {
@@ -326,7 +326,7 @@
 
 .stat-label {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.40);
+  color: var(--text-tertiary);
 }
 
 .stat-val {
@@ -349,7 +349,7 @@
 .confidence-val {
   font-size: 48rpx;
   font-weight: 800;
-  color: #00AFFF;
+  color: var(--color-cyan);
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
@@ -361,7 +361,7 @@
 .confidence-bar-track {
   height: 6rpx;
   border-radius: 3rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
   overflow: hidden;
 }
 
@@ -393,7 +393,7 @@
 }
 
 .check-done {
-  background: #36FF74;
+  background: var(--success);
   box-shadow: 0 0 6rpx rgba(54, 255, 116, 0.40);
 }
 
@@ -403,7 +403,7 @@
 
 .checklist-label {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-secondary);
 }
 
 .confidence-init {
@@ -453,7 +453,7 @@
 .init-hint,
 .scanning-hint {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(126, 156, 180, 0.25);
 }
 
 /* ===== 4. PERSONA DEVIATION ===== */
@@ -475,7 +475,7 @@
 
 .dev-label {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
   letter-spacing: 2rpx;
 }
 
@@ -488,7 +488,7 @@
 }
 
 .dev-type-blue {
-  color: #00AFFF;
+  color: var(--color-cyan);
 }
 
 .dev-type-orange {
@@ -530,7 +530,7 @@
 }
 
 .dev-arrow.dim::after {
-  border-left-color: rgba(255, 255, 255, 0.10);
+  border-left-color: rgba(126, 156, 180, 0.10);
 }
 
 .dev-percent {
@@ -541,14 +541,14 @@
 }
 
 .dev-percent.dim {
-  color: rgba(255, 255, 255, 0.20);
+  color: var(--text-disabled);
 }
 
 .dev-bar-track {
   margin-top: 16rpx;
   height: 4rpx;
   border-radius: 2rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
   overflow: hidden;
 }
 
@@ -562,7 +562,7 @@
 .dev-summary {
   margin-top: 12rpx;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(140, 176, 205, 0.45);
   line-height: 1.5;
 }
 
@@ -586,12 +586,12 @@
 
 .dev-status-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
 }
 
 .dev-status-hint {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.22);
+  color: rgba(126, 156, 180, 0.22);
 }
 
 /* ===== 5. SYSTEM READING ===== */
@@ -618,7 +618,7 @@
 
 .reading-sub-text {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
   line-height: 1.6;
 }
 
@@ -629,7 +629,7 @@
 
 .reading-locked-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
 }
 
 /* ===== 6. PERSONA SIGNAL ===== */
@@ -696,8 +696,8 @@
 }
 
 .evo-dot-current {
-  border-color: #00AFFF;
-  background: #00AFFF;
+  border-color: var(--color-cyan);
+  background: var(--color-cyan);
   box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.50);
 }
 
@@ -719,14 +719,14 @@
 
 .evo-date {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
   font-variant-numeric: tabular-nums;
 }
 
 .evo-type {
   font-size: 26rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-primary);
   font-family: 'SF Mono', 'Courier New', monospace;
   letter-spacing: 2rpx;
 }
@@ -746,12 +746,12 @@
 
 .evo-empty-text {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(126, 156, 180, 0.35);
 }
 
 .evo-empty-hint {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.20);
+  color: var(--text-disabled);
 }
 
 /* ===== 固定底部：飞控主控条 ===== */
@@ -896,7 +896,7 @@
 .preview-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text-primary);
 }
 
 .preview-img {
@@ -919,8 +919,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 18rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.035);
+  border: 1rpx solid rgba(126, 156, 180, 0.10);
+  background: var(--bg-card);
   padding: 0;
   margin: 0;
   line-height: 80rpx;
@@ -932,7 +932,7 @@
 }
 
 .preview-btn:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--glass-bg-hover);
 }
 
 .preview-btn-primary {
@@ -945,12 +945,12 @@
 }
 
 .preview-btn-share {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
 }
 
 .preview-btn-text {
   font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-primary);
 }
 
 .preview-btn-primary .preview-btn-text {
@@ -987,7 +987,7 @@
   height: 120rpx;
   border-radius: 50%;
   border: 2rpx solid rgba(0, 175, 255, 0.30);
-  border-top-color: #00AFFF;
+  border-top-color: var(--color-cyan);
   animation: scanRingSpin 1.2s linear infinite;
 }
 

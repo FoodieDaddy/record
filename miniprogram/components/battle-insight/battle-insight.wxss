@@ -14,7 +14,7 @@
 .bi-cn {
   font-size: 26rpx;
   font-weight: 700;
-  color: #00C8FF;
+  color: var(--color-cyan)
   letter-spacing: 2rpx;
 }
 
@@ -22,7 +22,7 @@
   font-family: 'SF Mono', 'Courier New', monospace;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(255, 255, 255, 0.34);
+  color: rgba(126, 156, 180, 0.34);
   margin-top: 6rpx;
 }
 
@@ -39,7 +39,7 @@
 
 .bi-block {
   padding: 16rpx;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card);
   border: 1rpx solid rgba(255, 255, 255, 0.05);
   border-radius: 12rpx;
   display: flex;
@@ -49,13 +49,13 @@
 
 .bi-block-label {
   font-size: 20rpx;
-  color: #7C8698;
+  color: var(--text-secondary);
 }
 
 .bi-block-value {
   font-size: 26rpx;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -63,13 +63,13 @@
 
 .bi-block-sub {
   font-size: 20rpx;
-  color: #00AFFF;
+  color: var(--color-cyan)
 }
 
 .bi-block-num {
   font-size: 36rpx;
   font-weight: 700;
-  color: #00AFFF;
+  color: var(--color-cyan)
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
 }
@@ -83,7 +83,7 @@
 .bi-density-bar {
   flex: 1;
   height: 8rpx;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--glass-bg);
   border-radius: 4rpx;
   overflow: hidden;
 }
@@ -94,13 +94,13 @@
   transition: width 0.3s;
 }
 
-.bi-density-high { background: #36FF74; }
-.bi-density-mid { background: #00AFFF; }
-.bi-density-low { background: #FF4D4F; }
+.bi-density-high { background: var(--success); }
+.bi-density-mid { background: var(--color-cyan) }
+.bi-density-low { background: var(--danger); }
 
 .bi-density-text {
   font-size: 18rpx;
-  color: #7C8698;
+  color: var(--text-secondary);
   font-family: monospace;
   letter-spacing: 1rpx;
   flex-shrink: 0;
