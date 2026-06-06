@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS `room` (
   `id`          BIGINT       NOT NULL COMMENT '雪花 ID',
   `room_no`     VARCHAR(8)   NOT NULL COMMENT '唯一房间号',
   `owner_id`    BIGINT       NOT NULL COMMENT '房主',
-  `score_mode`  TINYINT      NOT NULL DEFAULT 1 COMMENT '记分模式：1-自由流转 2-赢家统录',
+  `score_mode`  TINYINT      NOT NULL DEFAULT 1 COMMENT '记分模式：1-自由流转 2-主控统录',
   `status`      TINYINT      NOT NULL DEFAULT 0 COMMENT '0-使用中 1-已归档',
   `all_record`    JSON         DEFAULT NULL COMMENT '对局流水明细（settle 时归档）',
   `last_active_at` DATETIME    DEFAULT NULL COMMENT '最后一次记分/转账时间',
@@ -50,4 +50,3 @@ CREATE TABLE IF NOT EXISTS `room_member` (
   UNIQUE KEY `uk_room_user` (`room_id`, `user_id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='房间成员表';
-

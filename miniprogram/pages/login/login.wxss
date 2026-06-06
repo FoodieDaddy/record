@@ -33,7 +33,7 @@
   z-index: 0;
 }
 
-/* ===== 品牌区 ===== */
+/* ===== 识别区 ===== */
 .brand {
   position: relative;
   z-index: 1;

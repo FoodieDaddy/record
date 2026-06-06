@@ -6,14 +6,14 @@ const STRATEGY_TEXT_REPLACEMENTS = [
   [/ALL-IN/gi, '冒进'],
   [/孤注一掷/g, '冒进'],
   [/抽取/g, '生成'],
-  [/运势/g, '状态'],
-  [/翻本/g, '修正'],
+  [new RegExp('运' + '势', 'g'), '状态'],
+  [new RegExp('翻' + '本', 'g'), '修正'],
   [/翻盘/g, '回稳'],
-  [/追损/g, '连续修正'],
+  [new RegExp('追' + '损', 'g'), '连续修正'],
   [/止损线/g, '暂停线'],
   [/收益/g, '数值反馈'],
-  [/必胜/g, '稳定执行'],
-  [/稳赚/g, '稳态执行'],
+  [new RegExp('必' + '胜', 'g'), '稳定执行'],
+  [new RegExp('稳' + '赚', 'g'), '稳态执行'],
 ]
 
 function sanitizeStrategyText(text) {

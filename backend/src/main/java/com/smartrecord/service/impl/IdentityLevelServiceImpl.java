@@ -70,7 +70,7 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
         // 1. 查询已结算场次（quitTime 不为空的去重房间数）
         int matchCount = roomMemberMapper.countSettledRooms(userId);
 
-        // 2. 查询所有已结算的 room_member 记录，计算总分和胜率
+        // 2. 查询所有已结算的 room_member 记录，计算总分和正反馈率
         List<RoomMember> settledRecords = roomMemberMapper.selectList(
                 new LambdaQueryWrapper<RoomMember>()
                         .eq(RoomMember::getUserId, userId)

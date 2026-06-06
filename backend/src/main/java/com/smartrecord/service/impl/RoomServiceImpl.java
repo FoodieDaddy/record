@@ -137,7 +137,16 @@ public class RoomServiceImpl implements RoomService {
         String metaKey = "sr:room:" + rid + ":meta";
         Boolean isMember = redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId);
         if (Boolean.TRUE.equals(isMember)) {
-            return getRoomDetail(rid);
+            throw new BizException(4009, "你已接入当前空间，无需重复接入");
+        }
+
+        RoomMember existingMember = roomMemberMapper.selectOne(
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getRoomId, rid)
+                        .eq(RoomMember::getUserId, userId)
+                        .isNull(RoomMember::getQuitTime));
+        if (existingMember != null) {
+            throw new BizException(4009, "你已接入当前空间，无需重复接入");
         }
 
         // 3. 检查房间状态
