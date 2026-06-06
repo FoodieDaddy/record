@@ -1,0 +1,215 @@
+/* ===== 太空头盔头像框 ===== */
+
+.ha {
+  position: relative;
+  width: 96rpx;
+  height: 96rpx;
+  flex-shrink: 0;
+}
+
+.ha--sm {
+  width: 64rpx;
+  height: 64rpx;
+}
+
+.ha--md {
+  width: 96rpx;
+  height: 96rpx;
+}
+
+.ha--lg {
+  width: 144rpx;
+  height: 144rpx;
+}
+
+/* 底部辉光 */
+.ha__glow {
+  position: absolute;
+  left: 8%;
+  top: 8%;
+  width: 84%;
+  height: 84%;
+  border-radius: 50%;
+  background: rgba(10, 132, 255, 0.16);
+  filter: blur(14rpx);
+  opacity: 0.8;
+}
+
+/* 头盔外壳 */
+.ha__shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(180, 220, 255, 0.22);
+  box-shadow:
+    inset 0 0 18rpx rgba(255, 255, 255, 0.06),
+    0 0 18rpx rgba(10, 132, 255, 0.16);
+}
+
+/* 头像主体 */
+.ha__img {
+  position: absolute;
+  left: 10%;
+  top: 10%;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+}
+
+/* 玻璃面罩 */
+.ha__visor {
+  position: absolute;
+  left: 6%;
+  top: 6%;
+  width: 88%;
+  height: 88%;
+  border-radius: 50%;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.18), transparent 34%),
+    linear-gradient(320deg, rgba(10, 132, 255, 0.10), transparent 46%);
+  pointer-events: none;
+}
+
+/* 弧形高光 */
+.ha__reflection {
+  position: absolute;
+  left: 24%;
+  top: 12%;
+  width: 38%;
+  height: 16%;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.22);
+  transform: rotate(-18deg);
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* 金属外框 */
+.ha__frame {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3rpx solid rgba(210, 230, 255, 0.18);
+  box-shadow:
+    inset 0 0 0 1rpx rgba(10, 132, 255, 0.28),
+    inset 0 -8rpx 12rpx rgba(10, 132, 255, 0.08);
+  pointer-events: none;
+}
+
+/* 两侧接口 */
+.ha__lock {
+  position: absolute;
+  top: 42%;
+  width: 8rpx;
+  height: 20%;
+  border-radius: 8rpx;
+  background: rgba(160, 190, 255, 0.24);
+  box-shadow: 0 0 10rpx rgba(10, 132, 255, 0.20);
+}
+
+.ha__lock--left {
+  left: 2%;
+}
+
+.ha__lock--right {
+  right: 2%;
+}
+
+/* 底部锁边 */
+.ha__bottom-lock {
+  position: absolute;
+  left: 34%;
+  bottom: 0;
+  width: 32%;
+  height: 10rpx;
+  border-radius: 10rpx 10rpx 0 0;
+  background: rgba(160, 190, 255, 0.20);
+  box-shadow: 0 0 10rpx rgba(10, 132, 255, 0.18);
+}
+
+/* 状态点 */
+.ha__status {
+  position: absolute;
+  right: 4rpx;
+  bottom: 6rpx;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #30D158;
+  box-shadow: 0 0 12rpx rgba(48, 209, 88, 0.72);
+}
+
+
+/* ===== 激活状态 ===== */
+
+.ha.is-active .ha__shell {
+  border-color: rgba(10, 132, 255, 0.52);
+  box-shadow:
+    inset 0 0 20rpx rgba(255, 255, 255, 0.08),
+    0 0 26rpx rgba(10, 132, 255, 0.32);
+}
+
+.ha.is-active .ha__glow {
+  opacity: 1;
+}
+
+/* 主控标识 */
+.ha.is-controller .ha__frame {
+  border-color: rgba(10, 132, 255, 0.62);
+}
+
+/* 灰态 */
+.ha.is-dimmed {
+  opacity: 0.42;
+  filter: grayscale(0.35);
+}
+
+
+/* ===== 小尺寸简化 ===== */
+
+.ha--sm .ha__reflection {
+  opacity: 0.24;
+}
+
+.ha--sm .ha__lock,
+.ha--sm .ha__bottom-lock {
+  display: none;
+}
+
+
+/* ===== 大尺寸增强 ===== */
+
+.ha--lg .ha__frame {
+  border-width: 4rpx;
+}
+
+.ha--lg .ha__bottom-lock {
+  height: 14rpx;
+}
+
+
+/* ===== 呼吸光动效 ===== */
+
+.ha.is-active:not(.reduce-motion) .ha__glow {
+  animation: haPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes haPulse {
+  0%, 100% {
+    opacity: 0.68;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+.reduce-motion view,
+.reduce-motion image {
+  animation: none !important;
+  transition: none !important;
+}

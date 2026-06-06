@@ -8,7 +8,7 @@
     <view class="card-hint">完成 20 个快速判断，建立你的初始博弈人格模型。</view>
     <view class="card-actions">
       <view class="primary-btn" bindtap="onStartTest">20题校准</view>
-      <view class="ghost-btn" bindtap="onDirectInput">直接输入</view>
+      <view class="ghost-btn" bindtap="onDirectInput">协议修订</view>
     </view>
     <view class="card-disclaimer">MBTI 结果将参与镜像判读，但不作为心理诊断。</view>
   </block>
@@ -25,12 +25,12 @@
     </view>
     <view class="mbti-meta">
       <text class="mbti-confidence">置信度 {{mbti.confidence}}%</text>
-      <text class="mbti-source">{{mbti.mbtiSource === 'test' ? '滑动校准' : '直接输入'}}</text>
+      <text class="mbti-source">{{mbti.mbtiSource === 'test' ? '滑动校准' : '协议修订'}}</text>
       <text class="mbti-time" wx:if="{{mbti.updatedAtShort}}">更新于 {{mbti.updatedAtShort}}</text>
       <text class="mbti-time" wx:elif="{{mbti.calibratedAt}}">{{mbti.calibratedAt}}</text>
     </view>
     <view class="card-actions">
-      <view class="ghost-btn" bindtap="onStartTest">重新测试</view>
+      <view class="ghost-btn" bindtap="onStartTest">重新校准</view>
       <view class="ghost-btn" bindtap="onDirectInput">修改类型</view>
     </view>
   </block>

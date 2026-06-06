@@ -14,7 +14,7 @@
       <view class="card-header">
         <view class="card-title">人格协议</view>
         <view class="card-kicker">PROTOCOL · MBTI</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
         <view class="sync-indicator" wx:if="{{mbti.calibrated}}">
           <view class="sync-dot {{syncActive ? 'sync-dot-active' : ''}}"></view>
           <text class="sync-label">已同步</text>
@@ -70,7 +70,7 @@
       <view class="card-header">
         <view class="card-title">任务镜像</view>
         <view class="card-kicker">MIRROR · MISSION</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <!-- 锁定态：进度条 -->
@@ -117,7 +117,7 @@
       <view class="card-header">
         <view class="card-title">人格可信度</view>
         <view class="card-kicker">CONFIDENCE · LEVEL</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <block wx:if="{{personaConfidence >= 25}}">
@@ -158,7 +158,7 @@
       <view class="card-header">
         <view class="card-title">人格偏差</view>
         <view class="card-kicker">DEVIATION · MATCH</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <block wx:if="{{personaMatch.available}}">
@@ -213,7 +213,7 @@
       <view class="card-header">
         <view class="card-title">系统判读</view>
         <view class="card-kicker">READING · ANALYSIS</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <block wx:if="{{reading.available}}">
@@ -262,7 +262,7 @@
       <view class="card-header">
         <view class="card-title">人格信号</view>
         <view class="card-kicker">SIGNAL · SCAN</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <block wx:if="{{personaSignals.length > 0}}">
@@ -291,7 +291,7 @@
       <view class="card-header">
         <view class="card-title">人格演化</view>
         <view class="card-kicker">EVOLUTION · TRACK</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
 
       <block wx:if="{{evolution.length > 0}}">

@@ -1,3 +1,4 @@
+const app = getApp()
 const config = require('../../config')
 const voiceUtil = require('../../utils/voice')
 const { get } = require('../../utils/request')
@@ -16,10 +17,12 @@ Page({
     selectedFile: '',
     playingId: '',
     scrollTo: '',
-    showSheet: false
+    showSheet: false,
+    animationEnabled: true
   },
 
   onLoad() {
+    this.setData({ animationEnabled: app.globalData.animationEnabled !== false })
     this.loadCatalog()
     // 延迟触发抽屉滑入动画
     setTimeout(() => this.setData({ showSheet: true }), 50)

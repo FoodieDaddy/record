@@ -3,7 +3,7 @@
     <text class="bi-cn">空间洞察</text>
     <text class="bi-en">INSIGHT</text>
   </view>
-  <view class="bi-divider"></view>
+  <view class="sr-card-line bi-divider"></view>
   <view class="bi-blocks">
     <view class="bi-block">
       <text class="bi-block-label">最活跃</text>

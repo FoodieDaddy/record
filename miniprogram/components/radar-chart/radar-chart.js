@@ -64,8 +64,13 @@ Component({
     },
     detached() {
       this._stopScanAnimation();
+      this._stopPulseAnimation();
       if (this._animFrameId && this._canvas) {
         this._canvas.cancelAnimationFrame(this._animFrameId);
+      }
+      if (this._tooltipTimer) {
+        clearTimeout(this._tooltipTimer);
+        this._tooltipTimer = null;
       }
     }
   },

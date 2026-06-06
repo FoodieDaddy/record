@@ -36,19 +36,19 @@
         <text class="cyber-en">SPACE MODE</text>
       </view>
       <view class="cyber-mode-cards">
-        <view class="cyber-mode-card {{scoreMode === 1 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="1">
+        <view class="sr-t-base cyber-mode-card {{scoreMode === 1 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="1">
           <view class="cyber-mode-head">
-            <text class="cyber-mode-dot {{scoreMode === 1 ? 'mode-dot-on' : ''}}"></text>
+            <text class="sr-t-base cyber-mode-dot {{scoreMode === 1 ? 'mode-dot-on' : ''}}"></text>
             <text class="cyber-mode-name">自由流转</text>
-            <text class="cyber-mode-badge {{scoreMode === 1 ? 'badge-on' : ''}}">开放</text>
+            <text class="sr-t-base cyber-mode-badge {{scoreMode === 1 ? 'badge-on' : ''}}">开放</text>
           </view>
           <text class="cyber-mode-desc">实时记录数值变化</text>
         </view>
-        <view class="cyber-mode-card {{scoreMode === 2 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="2">
+        <view class="sr-t-base cyber-mode-card {{scoreMode === 2 ? 'cyber-mode-active' : ''}}" bindtap="selectScoreMode" data-mode="2">
           <view class="cyber-mode-head">
-            <text class="cyber-mode-dot {{scoreMode === 2 ? 'mode-dot-on' : ''}}"></text>
+            <text class="sr-t-base cyber-mode-dot {{scoreMode === 2 ? 'mode-dot-on' : ''}}"></text>
             <text class="cyber-mode-name">本局录入</text>
-            <text class="cyber-mode-badge {{scoreMode === 2 ? 'badge-on' : ''}}">推荐</text>
+            <text class="sr-t-base cyber-mode-badge {{scoreMode === 2 ? 'badge-on' : ''}}">推荐</text>
           </view>
           <text class="cyber-mode-desc">每轮结束统一录入数值</text>
         </view>
@@ -64,7 +64,7 @@
           <text class="cyber-en">RECORD MODE</text>
         </view>
         <view class="cyber-cards">
-          <view class="cyber-opt-card {{roundInputMethod === 1 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="1">
+          <view class="sr-t-base cyber-opt-card {{roundInputMethod === 1 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="1">
             <view class="cyber-opt-status" wx:if="{{roundInputMethod === 1}}">
               <text class="cyber-opt-check">✓</text>
               <text class="cyber-opt-status-text">已启用</text>
@@ -73,7 +73,7 @@
             <text class="cyber-opt-desc">由主控统一录入</text>
             <text class="cyber-opt-hint">适合统一复盘</text>
           </view>
-          <view class="cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
+          <view class="sr-t-base cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
             <view class="cyber-opt-status" wx:if="{{roundInputMethod === 2}}">
               <text class="cyber-opt-check">✓</text>
               <text class="cyber-opt-status-text">已启用</text>
@@ -91,15 +91,15 @@
           <text class="cyber-en">CONFIRM PROTOCOL</text>
         </view>
         <view class="cyber-chips">
-          <view class="cyber-chip {{trustMode === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="0">
-            <text class="cyber-chip-dot {{trustMode === 0 ? 'dot-on' : ''}}"></text>
+          <view class="sr-t-base cyber-chip {{trustMode === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="0">
+            <text class="sr-t-base cyber-chip-dot {{trustMode === 0 ? 'dot-on' : ''}}"></text>
             <view class="cyber-chip-text">
               <text class="cyber-chip-main">标准协议</text>
               <text class="cyber-chip-sub">需要全员确认</text>
             </view>
           </view>
-          <view class="cyber-chip {{trustMode === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="1">
-            <text class="cyber-chip-dot {{trustMode === 1 ? 'dot-on' : ''}}"></text>
+          <view class="sr-t-base cyber-chip {{trustMode === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectTrustMode" data-value="1">
+            <text class="sr-t-base cyber-chip-dot {{trustMode === 1 ? 'dot-on' : ''}}"></text>
             <view class="cyber-chip-text">
               <text class="cyber-chip-main">快速协议</text>
               <text class="cyber-chip-sub">直接生效</text>
@@ -114,15 +114,15 @@
           <text class="cyber-en">VALUE MODEL</text>
         </view>
         <view class="cyber-chips">
-          <view class="cyber-chip {{zeroSumRequired === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="1">
-            <text class="cyber-chip-dot {{zeroSumRequired === 1 ? 'dot-on' : ''}}"></text>
+          <view class="sr-t-base cyber-chip {{zeroSumRequired === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="1">
+            <text class="sr-t-base cyber-chip-dot {{zeroSumRequired === 1 ? 'dot-on' : ''}}"></text>
             <view class="cyber-chip-text">
               <text class="cyber-chip-main">零和封存</text>
               <text class="cyber-chip-sub">数值守恒</text>
             </view>
           </view>
-          <view class="cyber-chip {{zeroSumRequired === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="0">
-            <text class="cyber-chip-dot {{zeroSumRequired === 0 ? 'dot-on' : ''}}"></text>
+          <view class="sr-t-base cyber-chip {{zeroSumRequired === 0 ? 'cyber-chip-active' : ''}}" bindtap="selectZeroSum" data-value="0">
+            <text class="sr-t-base cyber-chip-dot {{zeroSumRequired === 0 ? 'dot-on' : ''}}"></text>
             <view class="cyber-chip-text">
               <text class="cyber-chip-main">自由封存</text>
               <text class="cyber-chip-sub">允许数值增减</text>
@@ -138,28 +138,28 @@
             <text class="cyber-en">TIMEOUT</text>
           </view>
           <view class="cyber-chips cyber-timeout-chips">
-            <view class="cyber-chip {{autoTimeoutSeconds === 15 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="15">
-              <text class="cyber-chip-dot {{autoTimeoutSeconds === 15 ? 'dot-on' : ''}}"></text>
+            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 15 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="15">
+              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 15 ? 'dot-on' : ''}}"></text>
               <text class="cyber-chip-main">15秒</text>
             </view>
-            <view class="cyber-chip {{autoTimeoutSeconds === 30 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="30">
-              <text class="cyber-chip-dot {{autoTimeoutSeconds === 30 ? 'dot-on' : ''}}"></text>
+            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 30 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="30">
+              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 30 ? 'dot-on' : ''}}"></text>
               <text class="cyber-chip-main">30秒</text>
             </view>
-            <view class="cyber-chip {{autoTimeoutSeconds === 60 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="60">
-              <text class="cyber-chip-dot {{autoTimeoutSeconds === 60 ? 'dot-on' : ''}}"></text>
+            <view class="sr-t-base cyber-chip {{autoTimeoutSeconds === 60 ? 'cyber-chip-active' : ''}}" bindtap="selectTimeout" data-value="60">
+              <text class="sr-t-base cyber-chip-dot {{autoTimeoutSeconds === 60 ? 'dot-on' : ''}}"></text>
               <text class="cyber-chip-main">60秒</text>
             </view>
           </view>
           <view class="cyber-timeout-action">
             <text class="cyber-timeout-label">超时行为</text>
             <view class="cyber-chips" style="flex:1">
-              <view class="cyber-chip {{autoTimeoutAction === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="1">
-                <text class="cyber-chip-dot {{autoTimeoutAction === 1 ? 'dot-on' : ''}}"></text>
+              <view class="sr-t-base cyber-chip {{autoTimeoutAction === 1 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="1">
+                <text class="sr-t-base cyber-chip-dot {{autoTimeoutAction === 1 ? 'dot-on' : ''}}"></text>
                 <text class="cyber-chip-main">自动同意</text>
               </view>
-              <view class="cyber-chip {{autoTimeoutAction === 2 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="2">
-                <text class="cyber-chip-dot {{autoTimeoutAction === 2 ? 'dot-on' : ''}}"></text>
+              <view class="sr-t-base cyber-chip {{autoTimeoutAction === 2 ? 'cyber-chip-active' : ''}}" bindtap="selectAutoTimeoutAction" data-value="2">
+                <text class="sr-t-base cyber-chip-dot {{autoTimeoutAction === 2 ? 'dot-on' : ''}}"></text>
                 <text class="cyber-chip-main">自动取消</text>
               </view>
             </view>
@@ -198,7 +198,7 @@
       <!-- 启动空间 -->
       <view class="cyber-divider"></view>
       <view class="cyber-create-btn" bindtap="createRoom">
-        <view class="cyber-create-inner {{creating ? 'btn-loading' : ''}}">
+        <view class="sr-t-base cyber-create-inner {{creating ? 'btn-loading' : ''}}">
           <text class="cyber-create-text">开启空间</text>
           <text class="cyber-create-sub">INIT</text>
         </view>
@@ -217,7 +217,7 @@
       <view class="cyber-divider"></view>
 
       <!-- 扫描接入（主入口） -->
-      <view class="cyber-scan-card" bindtap="scanJoin">
+      <view class="sr-t-base cyber-scan-card" bindtap="scanJoin">
         <view class="cyber-scan-icon">
           <view class="cyber-scan-corner cyber-scan-tl"></view>
           <view class="cyber-scan-corner cyber-scan-tr"></view>
@@ -238,7 +238,7 @@
         <text class="cyber-cn">空间识别码</text>
         <text class="cyber-en">SPACE CODE</text>
       </view>
-      <view class="cyber-terminal-input" bindtap="onTerminalTap">
+      <view class="sr-t-base cyber-terminal-input" bindtap="onTerminalTap">
         <text class="cyber-terminal-prefix">SR-</text>
         <input class="cyber-terminal-field" type="text" maxlength="6"
                value="{{roomCodeRaw}}" placeholder="XXXXXX"
@@ -270,7 +270,7 @@
       <!-- 接入按钮 -->
       <view class="cyber-divider"></view>
       <view class="cyber-create-btn" bindtap="joinByNo">
-        <view class="cyber-create-inner {{joining ? 'btn-loading' : ''}} {{roomCodeRaw.length >= 6 ? '' : 'btn-dim'}}">
+        <view class="sr-t-base cyber-create-inner {{joining ? 'btn-loading' : ''}} {{roomCodeRaw.length >= 6 ? '' : 'btn-dim'}}">
           <text class="cyber-create-text">接入空间</text>
           <text class="cyber-create-sub">CONNECT</text>
         </view>
@@ -284,7 +284,7 @@
           <text class="cyber-en">RECENT ACCESS</text>
         </view>
         <view class="cyber-recent-list">
-          <view class="cyber-recent-item" wx:for="{{recentRooms}}" wx:key="roomNo"
+          <view class="sr-t-fast cyber-recent-item" wx:for="{{recentRooms}}" wx:key="roomNo"
                 bindtap="onRecentTap" data-room-no="{{item.roomNo}}">
             <text class="cyber-recent-code">SR-{{item.roomNo}}</text>
             <text class="cyber-recent-time">{{item.timeLabel}}</text>
@@ -310,15 +310,15 @@
         <text class="text-tertiary text-xs">{{currentRoom.members ? currentRoom.members.length : 0}}人</text>
       </view>
       <view class="rq-actions">
-        <view class="rq-action-btn" bindtap="copyRoomNo">
+        <view class="sr-t-fast rq-action-btn" bindtap="copyRoomNo">
           <view class="icon-clip"></view>
           <text class="rq-action-text">复制接入码</text>
         </view>
-        <view class="rq-action-btn" bindtap="openShareSheet">
+        <view class="sr-t-fast rq-action-btn" bindtap="openShareSheet">
           <view class="icon-link"></view>
           <text class="rq-action-text">二维码</text>
         </view>
-        <button class="rq-action-btn" open-type="share">
+        <button class="sr-t-fast rq-action-btn" open-type="share">
           <view class="icon-share"></view>
           <text class="rq-action-text">分享</text>
         </button>
@@ -637,19 +637,19 @@
       </view>
       <!-- 操作按钮 -->
       <view class="share-actions">
-        <button class="share-action-btn" open-type="share">
+        <button class="sr-t-fast share-action-btn" open-type="share">
           <view class="icon-chat share-action-svg"></view>
           <text class="share-action-text">分享给好友</text>
         </button>
-        <view class="share-action-btn" bindtap="sharePoster">
+        <view class="sr-t-fast share-action-btn" bindtap="sharePoster">
           <view class="icon-image share-action-svg"></view>
           <text class="share-action-text">保存图片</text>
         </view>
-        <view class="share-action-btn" bindtap="copyRoomLink">
+        <view class="sr-t-fast share-action-btn" bindtap="copyRoomLink">
           <view class="icon-link share-action-svg"></view>
           <text class="share-action-text">复制链接</text>
         </view>
-        <view class="share-action-btn" bindtap="scanJoin">
+        <view class="sr-t-fast share-action-btn" bindtap="scanJoin">
           <view class="icon-cam share-action-svg"></view>
           <text class="share-action-text">扫码加入</text>
         </view>

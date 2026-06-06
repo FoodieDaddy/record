@@ -50,9 +50,8 @@
 }
 
 .card-line {
+  /* 继承 app.wxss .sr-card-line，仅覆盖 margin-top */
   margin-top: 10rpx;
-  height: 1rpx;
-  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
 }
 
 /* ---- 状态指示灯 ---- */

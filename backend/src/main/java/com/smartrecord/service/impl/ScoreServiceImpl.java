@@ -856,8 +856,8 @@ public class ScoreServiceImpl implements ScoreService {
         }
 
         // 互动密度
-        String metaKey = ROOM_PREFIX + roomId + ":meta";
-        Long memberCount = redisTemplate.opsForHash().size(metaKey);
+        String scoresKey = ROOM_PREFIX + roomId + ":scores";
+        Long memberCount = redisTemplate.opsForZSet().size(scoresKey);
         int n = memberCount != null ? memberCount.intValue() : 0;
         double density = (n > 1) ? (double) events.size() / (n * (n - 1)) : 0;
         String densityLevel = density > 0.3 ? "HIGH" : density > 0.1 ? "MEDIUM" : "LOW";

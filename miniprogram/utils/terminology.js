@@ -83,6 +83,26 @@ const TERMINOLOGY = {
   hapticProtocol: '触感协议',
   aboutTerminal: '关于终端',
 
+  // 状态语言
+  statusStandby: '等待接入',
+  statusOnline: '空间已开启',
+  statusMissionActive: '任务进行中',
+  statusSealPending: '任务待封存',
+  statusSealed: '任务已封存',
+  statusClosed: '空间已关闭',
+
+  // 黑匣子
+  blackBox: '黑匣子记录',
+
+  // 系统编号前缀
+  spacePrefix: 'SP',
+  missionPrefix: 'MS',
+  dossierPrefix: 'DS',
+
+  // 结构推演（替代玄学表达）
+  structureDeduction: '结构推演',
+  fieldAnalysis: '场域分析',
+
   // 通用
   online: '在线',
   offline: '离线',

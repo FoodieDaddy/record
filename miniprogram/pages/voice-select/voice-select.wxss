@@ -112,7 +112,6 @@
   padding: 20rpx 20rpx;
   margin: 4rpx 12rpx;
   border-radius: 16rpx;
-  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-item.active {
@@ -127,7 +126,6 @@
 .sidebar-name {
   font-size: 26rpx;
   color: rgba(255, 255, 255, 0.4);
-  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -161,7 +159,6 @@
   border-radius: 20rpx;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid transparent;
-  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .voice-card.selected {
@@ -246,4 +243,15 @@
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+
+/* ===== 动效静默 ===== */
+.reduce-motion .play-icon.spin {
+  animation: none !important;
+}
+.reduce-motion .mask,
+.reduce-motion .sheet,
+.reduce-motion .sidebar-item,
+.reduce-motion .voice-card {
+  transition: none !important;
 }

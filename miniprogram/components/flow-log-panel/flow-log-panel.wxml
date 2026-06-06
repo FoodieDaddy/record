@@ -7,7 +7,7 @@
       <text class="flp-en">FLOW LOG</text>
     </view>
     <view class="flp-controls">
-      <segment-switch options="{{['我的视角', '全域视角']}}" active="{{filterMine ? 0 : 1}}" bind:change="onViewChange" />
+      <segment-switch options="{{['身份视角', '全域视角']}}" active="{{filterMine ? 0 : 1}}" bind:change="onViewChange" />
       <view class="flp-matrix-btn" bindtap="openMatrix" wx:if="{{showMatrix}}">
         <view class="icon-chart matrix-btn-icon-svg"></view>
       </view>

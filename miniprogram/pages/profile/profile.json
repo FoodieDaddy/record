@@ -2,5 +2,7 @@
   "navigationBarTitleText": "身份终端",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
-  "usingComponents": {}
+  "usingComponents": {
+    "helmet-avatar": "/components/helmet-avatar/index"
+  }
 }

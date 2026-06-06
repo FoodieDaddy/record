@@ -7,6 +7,7 @@ Page({
     roomId: '',
     roomNo: '',
     loading: true,
+    loadError: false,
     animationEnabled: true,
     settleTime: '',
     // 战局总结
@@ -45,7 +46,7 @@ Page({
   },
 
   async loadData(roomId) {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: false });
     try {
       const [chartData, roomData, insightData, networkData] = await Promise.all([
         get(`/score/room/${roomId}/chart`),
@@ -143,7 +144,7 @@ Page({
       });
     } catch (e) {
       console.error('加载战局报告失败', e);
-      this.setData({ loading: false });
+      this.setData({ loading: false, loadError: true });
       wx.showToast({ title: '加载失败', icon: 'none' });
     }
   },

@@ -6,7 +6,8 @@
 Component({
   properties: {
     points: { type: Array, value: [] },
-    highlightColor: { type: String, value: '#0A84FF' }
+    highlightColor: { type: String, value: '#0A84FF' },
+    reduceMotion: { type: Boolean, value: false }
   },
 
   data: {

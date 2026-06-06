@@ -548,6 +548,13 @@ page {
   letter-spacing: 2rpx;
 }
 
+/* ===== 卡片内分割线（蓝色渐变） ===== */
+.sr-card-line {
+  height: 1rpx;
+  margin-top: 14rpx;
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
+}
+
 /* ===== 终端卡片（全局） ===== */
 .terminal-card {
   position: relative;
@@ -575,4 +582,26 @@ page {
     transparent
   );
   opacity: 0.72;
+}
+
+/* ===== 终端交互过渡（统一 5 属性） ===== */
+.sr-t-base {
+  transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+.sr-t-fast {
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* ===== 全局动效静默兜底 ===== */
+.reduce-motion view,
+.reduce-motion text,
+.reduce-motion button,
+.reduce-motion image,
+.reduce-motion scroll-view,
+.reduce-motion swiper,
+.reduce-motion input,
+.reduce-motion textarea,
+.reduce-motion canvas {
+  animation: none !important;
+  transition: none !important;
 }

@@ -3,7 +3,7 @@
     {
       "id": "female",
       "name": "女声",
-      "icon": "👩",
+      "icon": "F",
       "voices": [
         { "id": "std_01", "name": "晓晓", "file": "std_01_xiaoxiao.mp3", "gender": "female", "desc": "温暖女声", "voice": "zh-CN-XiaoxiaoNeural" },
         { "id": "std_02", "name": "晓依", "file": "std_02_xiaoyi.mp3", "gender": "female", "desc": "活泼女声", "voice": "zh-CN-XiaoyiNeural" },
@@ -18,7 +18,7 @@
     {
       "id": "male",
       "name": "男声",
-      "icon": "👨",
+      "icon": "M",
       "voices": [
         { "id": "std_03", "name": "云健", "file": "std_03_yunjian.mp3", "gender": "male", "desc": "激情男声", "voice": "zh-CN-YunjianNeural" },
         { "id": "std_04", "name": "云希", "file": "std_04_yunxi.mp3", "gender": "male", "desc": "阳光男声", "voice": "zh-CN-YunxiNeural" },
@@ -31,7 +31,7 @@
     {
       "id": "funny",
       "name": "搞怪",
-      "icon": "😂",
+      "icon": "FX",
       "voices": [
         { "id": "fn_01", "name": "急速甜妹", "file": "funny_01_fast_high.mp3", "gender": "female", "desc": "快速高音", "voice": "zh-CN-XiaoxiaoNeural", "rate": "+60%", "pitch": "+80Hz" },
         { "id": "fn_02", "name": "闪电小子", "file": "funny_02_speedy.mp3", "gender": "male", "desc": "极速尖细", "voice": "zh-CN-YunxiaNeural", "rate": "+80%", "pitch": "+100Hz" },

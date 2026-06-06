@@ -21,9 +21,16 @@
     <text class="loading-text">正在同步数值数据...</text>
   </view>
 
+  <!-- 加载失败 -->
+  <view class="error-state" wx:elif="{{loadError}}">
+    <text class="error-kicker">ERROR</text>
+    <text class="error-text">数据同步失败</text>
+    <text class="error-hint">下拉刷新重试</text>
+  </view>
+
   <!-- 空状态 -->
   <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
-    <text class="empty-kicker">暂无任务档案</text>
+    <text class="empty-kicker">EMPTY</text>
     <text class="empty-text">暂无任务档案</text>
     <text class="empty-hint">完成一次任务封存后，脉冲日志将写入身份终端</text>
   </view>

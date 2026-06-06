@@ -1,4 +1,4 @@
-<view class="login-page">
+<view class="login-page {{!animationEnabled ? 'reduce-motion' : ''}}">
   <!-- 背景扫描线 -->
   <view class="scanline"></view>
 

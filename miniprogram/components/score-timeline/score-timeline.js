@@ -18,7 +18,8 @@ Component({
     /** 积分数组（与 timestamps 一一对应） */
     scores: { type: Array, value: [] },
     /** 图表高度 rpx */
-    canvasHeight: { type: Number, value: 400 }
+    canvasHeight: { type: Number, value: 400 },
+    reduceMotion: { type: Boolean, value: false }
   },
 
   observers: {
@@ -93,6 +94,11 @@ Component({
 
     _startEntryAnimation() {
       if (this._animFrameId && this._canvas) this._canvas.cancelAnimationFrame(this._animFrameId);
+
+      if (this.data.reduceMotion) {
+        this._draw(1);
+        return;
+      }
 
       const { timestamps } = this.data;
       if (!timestamps || timestamps.length < 2) {

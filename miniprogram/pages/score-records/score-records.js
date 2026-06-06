@@ -5,6 +5,7 @@ const app = getApp();
 Page({
   data: {
     loading: true,
+    loadError: false,
     animationEnabled: true,
     netYield: 0,
     sampleCount: 0,
@@ -19,7 +20,7 @@ Page({
   },
 
   async loadYieldLog() {
-    this.setData({ loading: true });
+    this.setData({ loading: true, loadError: false });
     try {
       const resp = await get('/score/yield-log');
       if (!resp) return;
@@ -42,6 +43,7 @@ Page({
       });
     } catch (e) {
       console.error('加载积分流水失败', e);
+      this.setData({ loadError: true });
     } finally {
       this.setData({ loading: false });
     }

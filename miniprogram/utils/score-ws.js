@@ -6,7 +6,7 @@
  * - 页面只订阅/取消事件，不控制连接生命周期
  * - 自动重连（3 秒延迟），手动断开后不重连
  */
-const DEBUG_WS = true; // 开发阶段打开，上线关掉
+const DEBUG_WS = false;
 
 function debugLog(...args) {
   if (DEBUG_WS) console.log(...args);
@@ -52,7 +52,7 @@ class ScoreWS {
     const config = require('../config');
     const wsUrl = `${config.wsUrl}/ws/score?roomId=${roomId}&token=${app.globalData.token}`;
 
-    console.log('[score-ws] connect url:', wsUrl);
+    debugLog('[score-ws] connecting roomId:', roomId);
     this.socketTask = wx.connectSocket({
       url: wsUrl,
       success: () => debugLog('[WS] 连接中...'),

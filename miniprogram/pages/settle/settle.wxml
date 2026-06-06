@@ -11,6 +11,20 @@
     <text class="loading-hint">正在解析任务数据</text>
   </view>
 
+  <!-- 加载失败 -->
+  <view class="error-state" wx:elif="{{loadError}}">
+    <text class="error-kicker">ERROR</text>
+    <text class="error-text">档案加载失败</text>
+    <text class="error-hint">请返回后重试</text>
+  </view>
+
+  <!-- 空数据 -->
+  <view class="empty-state" wx:elif="{{rankedMembers.length === 0}}">
+    <text class="empty-kicker">EMPTY</text>
+    <text class="empty-text">暂无任务数据</text>
+    <text class="empty-hint">空间内未产生有效记录</text>
+  </view>
+
   <block wx:else>
     <!-- MATCH DOSSIER 标题 -->
     <view class="dossier-header">
@@ -27,7 +41,7 @@
       <view class="card-header">
         <view class="card-title">实时序列</view>
         <view class="card-kicker">SEQUENCE</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
       <view class="rank-list">
         <view class="rank-item {{index === 0 ? 'rank-champion' : ''}}"
@@ -67,7 +81,7 @@
       <view class="card-header">
         <view class="card-title">数值演化轨迹</view>
         <view class="card-kicker">TIMELINE</view>
-        <view class="card-line"></view>
+        <view class="sr-card-line card-line"></view>
       </view>
       <view class="chart-wrap">
         <score-chart

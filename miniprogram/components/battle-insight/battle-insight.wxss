@@ -27,9 +27,7 @@
 }
 
 .bi-divider {
-  height: 1rpx;
-  margin-top: 14rpx;
-  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
+  /* 继承 app.wxss .sr-card-line */
 }
 
 .bi-blocks {

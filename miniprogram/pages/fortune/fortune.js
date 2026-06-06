@@ -11,7 +11,7 @@ const STRATEGY_TEXT_REPLACEMENTS = [
   [/翻盘/g, '回稳'],
   [/追损/g, '连续修正'],
   [/止损线/g, '暂停线'],
-  [/收益/g, '积分反馈'],
+  [/收益/g, '数值反馈'],
   [/必胜/g, '稳定执行'],
   [/稳赚/g, '稳态执行'],
 ]
@@ -48,7 +48,7 @@ function deriveStrategyMeta(strategy) {
 /* ===== 推演日志流 ===== */
 const CALC_LOG_LINES = [
   { stage: 0, prefix: '[SCAN]',      text: '读取人格协议...' },
-  { stage: 0, prefix: '[SCAN]',      text: '读取战绩镜像...' },
+  { stage: 0, prefix: '[SCAN]',      text: '读取任务镜像...' },
   { stage: 1, prefix: '[ANALYSIS]',  text: '构建策略向量...' },
   { stage: 1, prefix: '[VECTOR]',    text: '风险模型同步...' },
   { stage: 2, prefix: '[MATCH]',     text: '匹配策略原型...' },
@@ -71,7 +71,7 @@ Page({
     step: 0,
     stages: [
       { label: '人格协议同步', done: false },
-      { label: '战绩镜像分析', done: false },
+      { label: '任务镜像分析', done: false },
       { label: '策略向量构建', done: false },
       { label: '生成最终建议', done: false },
     ],

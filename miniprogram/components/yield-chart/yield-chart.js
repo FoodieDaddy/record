@@ -5,7 +5,8 @@
 
 Component({
   properties: {
-    points: { type: Array, value: [] }
+    points: { type: Array, value: [] },
+    reduceMotion: { type: Boolean, value: false }
   },
 
   data: {

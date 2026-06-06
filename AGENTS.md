@@ -4,7 +4,9 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## 项目概述
 
-Happy记分器 — 多人实时协同记分微信小程序，集成赛博运势、镜像人格分析、语音播报等增值模块。后端 Java 21 (Spring Boot 3.2.5) + 前端原生微信小程序。
+脉冲终端（Smart Record）是一个多人实时协同记录与复盘微信小程序。产品主线是「空间记录 → 策略提示 → 行为画像 → 身份沉淀」：用户在空间中记录数值流向，结算后进入档案和趋势复盘；策略页提供冷静的状态/行动建议；镜像页呈现 MBTI 校准与行为画像；身份页管理玩家档案、等级、成就、声音、动效与触感协议。
+
+当前技术栈：后端 Java 21 + Spring Boot 3.2.5 + MyBatis-Plus + MySQL + Redis/Redisson + WebSocket；前端为原生微信小程序，视觉定位为黑底、蓝光、克制的数据终端。
 
 ## 启动命令
 
@@ -18,60 +20,73 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 # 前端：微信开发者工具导入 miniprogram/ 目录
 ```
 
-## 架构要点
+## 当前架构事实
 
-- **一个房间 = 一次对局**：无 session 概念，settle 时数据归档到 room.all_record JSON
-- **双记分模式**：自由流转（Mode 1，任何人可对任何人记分）+ 本局录入（Mode 2，轮次制批量录入）
-- **实时数据走 Redis**：排行榜 (Sorted Set)、批次得分 (Hash)、流水 (ZSet)、分布式锁 (Redisson)
-- **持久化走 MySQL**：settle 时同步写入 room.all_record + room_member.final_score
-- **图片直传阿里云 OSS**：后端签发预签名 PUT URL，前端压缩后直传，不经过后端中转
-- **实时推送**：WebSocket (`/ws/score`)，房间级广播，记分/轮次/成员变动推送给同房间所有玩家
-- **雪花 ID**：所有实体 ID 由 `SnowflakeIdGenerator` 生成，非数据库自增
-- **虚拟线程**：JDK 21 虚拟线程全面启用（`spring.threads.virtual.enabled=true`），异步任务复用 `asyncExecutor` 虚拟线程池
-- **用户设置持久化**：user_detail 表存储语音/动画/震动设置，通过 `PUT /user/detail` 防抖保存
-- **启动恢复**：CacheWarmUpRunner 启动时从 MySQL 重建所有活跃房间的 Redis 状态
-- **自动结算**：RoomTimeoutTask 每 5 分钟扫描，3 小时无活动的房间自动归档/解散
+- **一个空间 = 一次任务/对局记录**：没有 session 表；结算时把运行期数据归档到 `room.all_record`，成员最终值写入 `room_member.final_score`，`quit_time` 标记历史样本。
+- **双记录模式**：Mode 1 自由流转（成员之间直接记录数值流向）；Mode 2 本局录入（start → submit → confirm/reject/cancel/apply，支持主控填写和成员自填）。
+- **Redis 优先但不是纯 Redis**：运行期分数、成员元信息、流向事件、待处理本局录、总览缓存都在 Redis；当前实现仍会在创建/加入/记分/轮次生效时访问 MySQL。不要把「MySQL 零参与」描述成既成事实，后续只能作为性能收敛目标。
+- **实时推送**：WebSocket `/ws/score` 以房间为广播单位，推送 `TRANSFER`、`SCORE_UPDATE`、`MEMBER_JOIN/LEAVE`、`ROUND_*`、`SETTINGS_CHANGED`、`SETTLE` 等事件。
+- **持久化边界**：创建空间、成员关系、用户设置、镜像档案、策略日志、身份等级进入 MySQL；结算和本局录生效会写 MySQL；趋势/身份/镜像主要从历史归档数据计算。
+- **图片与头像**：后端签发 OSS 预签名 PUT URL；前端压缩后直传；本地默认头像和 `helmet-avatar` 组件负责头像终端化展示。
+- **雪花 ID**：所有实体 ID 由 `SnowflakeIdGenerator` 生成，禁止依赖数据库自增。
+- **虚拟线程**：`spring.threads.virtual.enabled=true`，异步任务复用 `asyncExecutor` 虚拟线程池。
+- **启动恢复**：`CacheWarmUpRunner` 会从 MySQL 活跃空间重建 Redis 元信息、房间号映射和排行榜。
+- **超时任务**：`RoomTimeoutTask` 每 5 分钟扫描 3 小时无活动空间。当前自由流转模式主要写 `events`，自动结算逻辑必须同时检查 `events` 与 `batches`，不能只看批次列表。
 
 ## 核心模块
 
-### 记分系统
-- **自由流转 (Mode 1)**：POST `/score/transfer`，A 对 B 记分，Redisson 分布式锁保证并发安全
-- **本局录入 (Mode 2)**：轮次生命周期 start → submit → confirm/reject → cancel，支持房主统录/成员自录两种输入方式
-- **结算归档**：POST `/score/room/{rid}/settle` 归档数据到 MySQL，广播 WS `SETTLE`
-- **趋势分析**：GET `/score/trend` 跨场次净得分折线图
+### 空间与记录系统
+
+- **创建/接入空间**：`POST /room`、`POST /room/join`，房间号由 Redis `SETNX` 预占生成，成员上限 16。
+- **自由流转**：`POST /score/transfer`，Lua 原子更新 `sr:room:{rid}:scores`，流向事件写入 `sr:room:{rid}:events`，WS 推送双方最新分数。
+- **本局录入**：`POST /round/start`、`/round/submit`、`/round/confirm`、`/round/cancel`，待处理状态在 Redis，生效后写 `round_record` 与 `round_record_detail`。
+- **结算归档**：`POST /score/room/{rid}/settle`，归档 `room.all_record`，更新 `room_member.final_score/quit_time`，清理运行期 Redis key，广播 `SETTLE`。
+- **复盘数据**：`/score/room/{rid}/chart`、`/score/room/{rid}/insight`、`/score/room/{rid}/network`、`/score/trend`、`/score/yield-log`。
 
 ### 镜像模块 (Mirror)
-- **战斗人格**：分析最近 10 场净得分，4 维度（稳定性/进攻性/回撤控制/波动风险）→ 7 种人格原型
-- **MBTI 校准**：20 题滑动测试 或 直接选择 16 种类型
-- **综合解读**：MBTI + 战斗人格联合分析，生成策略标签和解读文本
-- **五维雷达图**：进攻性/稳定性/参局率/翻盘力/控场力，需 3+ 场解锁
+
+- **人格协议**：20 题滑动测试或直接选择 16 种 MBTI 类型。
+- **任务镜像**：基于历史归档样本生成战绩人格、人格可信度、人格偏差和系统判读。
+- **五维雷达图**：进攻性、稳定性、参局率、回稳力、控场力，3+ 场封存后解锁。
 - API：`/mirror/profile`、`/mirror/mbti/test`、`/mirror/mbti/direct`、`/mirror/stats`
 
-### 运势模块 (Fortune)
-- **赛博运势**：LLM 主引擎 + 静态兜底双引擎，农历/干支/节气集成
-- **用户标签**：连胜/连败/高风险/稳健 四类，影响运势生成
-- **Redis 缓存**：4 小时 TTL，支持 `?force=true` 绕过缓存重新生成
+### 策略模块 (Fortune / Oracle Core)
+
+- **今日策略**：LLM 主引擎 + 静态兜底双引擎，结合历史行为标签、农历/节气意象，但输出必须是状态管理、行动建议、风险控制。
+- **用户标签**：连胜、连败、高风险、稳健四类影响策略原型。
+- **缓存与刷新**：Redis 4 小时 TTL，`?force=true` 可绕过缓存重新生成。
+- **安全过滤**：LLM 输出命中敏感词必须丢弃并使用 fallback；前端展示层也要做二次替换。
 - API：`GET /fortune/today`
 
 ### 语音/TTS 系统
-- **双引擎**：Edge-TTS (CLI) 主引擎 + MiMo TTS API 副引擎，ffmpeg 后处理为 44.1kHz 128kbps MP3
-- **语音播报**：记分到达时接收方听到 TTS 播报（队列防重叠）
-- **情绪音效**：记分/轮次确认时播放随机胜负音效
-- **音色目录**：`voices.json` 启动加载，支持分类/预览/速率配置
+
+- **TTS**：Edge-TTS CLI 主引擎，MiMo TTS API 副引擎，ffmpeg 后处理为 44.1kHz 128kbps MP3。
+- **语音播报**：自由流转接收方听到 TTS 播报，`utils/voice.js` 队列防重叠。
+- **情绪音效**：记分或本局录生效时为对应用户播放情绪音频。
+- **音色目录**：`voices.json` 启动加载，支持分类、试听、rate/pitch 配置。分类图标不得使用原生彩色 Emoji，必须用线框图标或纯文本代码。
 - API：`/tts/audio`、`/tts/benchmark`、`/voice/catalog`、`/voice/preview`
 
-## 数据库表（8 张）
+### 身份终端
+
+ - **身份档案**：昵称、头像、成员代号、本地乐观更新与防抖保存。
+ - **数据矩阵**：趋势、净数值、样本数、稳定性、成就。
+ - **系统控制**：声音协议、音色模块、动效协议、触感协议和断开终端。
+ - API：`/user/me`、`/user/detail`、`/user/identity-level`
+
+## 数据库表（当前实体 10 张）
 
 | 表 | 用途 |
 |---|---|
 | `user` | 用户基本信息（openid/nickname/avatarUrl） |
 | `user_detail` | 用户设置（语音/动画/震动开关） |
-| `room` | 房间（含 scoreMode、roundInputMethod、allRecord JSON 归档） |
+| `room` | 空间（含 scoreMode、roundInputMethod、trustMode、zeroSumRequired、allRecord JSON 归档） |
 | `room_member` | 房间成员（含 quit_time、final_score） |
-| `round_record` | 轮次记录（状态机：pending → confirm → applied/rejected/cancelled） |
-| `round_record_detail` | 轮次明细（每用户得分） |
+| `round_record` | 本局录记录（状态机：pending_member_input / pending_confirm / applied / rejected / cancelled） |
+| `round_record_detail` | 本局录明细（每用户得分） |
 | `user_mirror_profile` | 镜像档案（MBTI + 战斗人格 + 综合解读，PK=userId） |
-| `mirror_birth_profile` | 出生档案（预留星盘/紫微集成） |
+| `mirror_birth_profile` | 出生档案（预留，不在当前主流程展示） |
+| `fortune_log` | 策略生成日志（prompt、响应、source、耗时、错误） |
+| `user_identity_level` | 身份等级、经验、稳定度 |
 
 ## 代码规范
 
@@ -84,15 +99,17 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 
 ## 非显而易见的模式
 
-- 房间号生成：Redis SETNX，32 字符集（去 O/0/I/L），6 位，碰撞重试最多 10 次
-- 记分并发控制：Redisson `tryLock(5s, 30s)`，锁 key 为 `sr:room:{rid}:lock`
-- Redis key 前缀：`sr:room:{rid}:meta` (Hash)、`sr:room:{rid}:scores` (ZSet)、`sr:room:{rid}:batches` (List)、`sr:room:{rid}:batch:{ts}` (Hash)、`sr:room:{rid}:events` (ZSet)、`sr:room:{rid}:overview` (String)、`sr:room_no:{roomNo}` (String)、`sr:user:rooms:{uid}` (Set)、`sr:user:{uid}` (String)
-- 得分聚合：进行中读 Redis Sorted Set，已结算读 room.all_record JSON
+- 房间号生成：Redis `SETNX`，字符集去 O/0/I/L，6 位，碰撞重试最多 10 次
+- 运行期锁：`sr:room:{rid}:lock`，Redisson `tryLock(5s, 30s)`；自由流转核心扣加分走 Lua。
+- Redis key：`sr:room:{rid}:meta`、`scores`、`batches`、`batch:{ts}`、`events`、`overview`、`roundConfig`、`round`、`round:details`、`round:members`、`round:confirms`、`sr:room_no:{roomNo}`、`sr:user:rooms:{uid}`、`sr:user:{uid}`、`sr:fortune:{uid}:{date}`。
+- 得分聚合：进行中优先读 Redis ZSet / events；已结算读 `room.all_record` 与 `room_member.final_score`。
 - 小程序码：后端调微信 `getUnlimited` API → 字节流 → OSS PUT → 返回访问 URL
 - 前端设置防抖：昵称/头像/语音/动画/震动统一 2 秒防抖 + onHide 刷盘，本地缓存即时生效，服务端延迟持久化
 - 震动守卫：所有 `wx.vibrateShort` 通过 `utils/haptic.js` 封装，`vibrateEnabled=false` 时跳过
-- 镜像缓存：mirror profile 30 分钟 Redis TTL，stats 24 小时 TTL
-- 运势缓存：4 小时 Redis TTL，`?force=true` 绕过
+- 动效守卫：页面根节点必须绑定 `reduce-motion`，JS 动画和定时器必须先判断 `app.globalData.animationEnabled`
+- WebSocket：前端 `utils/score-ws.js` 是全局单例事件总线；页面只订阅/取消，不随页面销毁断开连接
+- 镜像缓存：profile 30 分钟 Redis TTL，stats 24 小时 TTL
+- 策略缓存：4 小时 Redis TTL，`?force=true` 绕过
 - TTS 队列：前端 `voice.js` 维护播放队列，防止多条播报重叠
 
 ## 安全注意
@@ -100,6 +117,9 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 - `application.yml` 中的密码和密钥仅用于本地开发，生产环境必须替换
 - 不要将 `target/` 目录提交到版本控制
 - JWT secret 至少 256 位
+- 禁止在 console、日志、错误提示中输出 JWT、微信 code、OSS 签名 URL 的敏感 query
+- WebSocket 可以通过 query token 兼容旧客户端，但前端不得打印完整连接 URL；后续优先使用 `Sec-WebSocket-Protocol: access_token.<jwt>`
+- 运行时页面、Prompt、fallback、分享文案不得出现审核高风险词；文档可以列出禁词用于约束，但不得复制到用户可见页面
 
 ## 端口规划（避开常用端口）
 
@@ -109,62 +129,48 @@ cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn spring-boot:run
 | MySQL | 13306 |
 | Redis | 16379 |
 
-# ⚡️ Smart Record 全局工程架构与 UI 约束宪法 (Master Prompt)
+# Smart Record 全局工程架构与 UI 约束宪法 (Master Prompt)
 
-在执行任何开发任务前，必须以本指令为最高约束。本项目运行在 2核2G 的极限环境下，追求极致的高性能与旗舰级美学体验。
+执行任何开发任务前，先区分三类信息：**当前事实** 是代码已经具备的行为；**硬约束** 是本次改动必须遵守的边界；**收敛目标** 是后续优化方向，不能在文档、注释、提交说明中写成已完成能力。
 
-## 1. 系统物理边界与核心架构 (The 2C2G Constraints)
-- **CPU 瓶颈约束**：后端采用 2C2G 容器部署，严禁任何可能触发 CPU 广播风暴的逻辑。
-- **并发与容量上限**：房间人数严格限制 `MAX_MEMBERS = 16`。
-  - **强制校验**：加入房间前，必须通过 Redis `SCARD` 或 `HLEN` 前置校验，超过阈值立即执行 Fail-fast，前端统一拦截业务错误码（如 4003）并进行温和提示，严禁报错。
-- **纯 Redis 流转架构**：
-  - 打牌期间，MySQL 零参与。所有状态（分数、座次、成员）只存在于 Redis 中，通过 Lua 脚本原子操作。
-  - **优雅降级**：必须全局捕获 Redis 异常（`RedisConnectionFailureException` 等），返回 HTTP 200 + Code 503，严禁暴露堆栈。
+## 1. 运行边界与架构约束
 
----
+- **2C2G 极限环境**：后端按 2 核 2G 容器预算设计，严禁引入高频全房间轮询、无差别广播、阻塞式批量计算、运行期大对象 JSON 反复序列化等 CPU/内存放大逻辑。
+- **成员上限**：空间成员数严格限制 `MAX_MEMBERS = 16`。加入空间前必须先做 Redis 侧容量校验，超过阈值立即 fail-fast，前端用温和提示承接业务错误码，不能把异常堆栈或服务端错误直接暴露给用户。
+- **Redis 优先，逐步收敛**：当前实现已经把分数、成员元信息、流向事件、待处理本局录、总览缓存放在 Redis，但创建、加入、部分记分生效和归档仍会访问 MySQL。新增运行期功能必须优先使用 Redis Hash/ZSet/List 与 Lua 原子操作；MySQL 热路径只能作为待收敛技术债处理。
+- **持久化边界**：MySQL 负责用户、空间元数据、成员关系、用户设置、镜像档案、策略日志、身份等级、结算归档。运行期频繁变化状态不得新增 MySQL 读写依赖。
+- **Redis 降级**：Redis 连接失败、脚本失败、锁失败必须被业务层捕获，统一返回 `Result` 结构和可识别 code；页面只展示简短状态提示，不展示堆栈、类名、连接串。
+- **实时同步**：WebSocket 必须维持全局单例与稳定回调引用。页面只订阅/取消事件，不在普通页面生命周期里反复销毁连接。任何调试日志都不能打印 JWT、完整 WS URL、微信 code 或 OSS 签名 query。
+- **超时归档**：自动结算/解散必须同时识别 `events` 与 `batches`，自由流转模式不能因为没有批次记录就被误判为空空间。
 
-## 2. 产品总气质
+## 2. 产品定位
 
-Smart Record 不是普通记分小程序，也不是传统设置工具。
+Smart Record 不是普通表单工具，也不是传统娱乐小程序。它的主体验是：
 
-整体风格定位为：
+```text
+空间记录 -> 策略提示 -> 行为画像 -> 身份沉淀
+```
 
-> 赛博策略终端 / 玩家数据档案 / 积分复盘工具
-
-核心关键词：
+整体气质：
 
 ```text
 黑底、蓝光、克制、冷静、数据感、终端感、策略感、身份感、复盘感
 ```
 
-禁止做成：
+四个主 Tab 的职责：
 
-```text
-微信表单页、传统设置页、棋牌工具页、赌博工具页、占卜运势页、儿童化游戏界面、大红大金玄学风
-```
+| Tab | 定位 | 主要体验 |
+|---|---|---|
+| 空间 | 记录终端 | 启动空间、接入空间、记录数值流向、结算归档 |
+| 策略 | 策略终端 | 生成今日状态提示、行动建议、风险提醒、策略卡 |
+| 镜像 | 行为画像 | MBTI 校准、历史表现画像、人格一致性、雷达图 |
+| 身份 | 身份终端 | 用户档案、等级、成就、声音、动效、触感、设置入口 |
 
-产品主线：
+禁止把产品做成：微信默认表单页、传统设置页、娱乐押注工具、玄学工具、儿童化游戏界面、大红大金视觉、满屏营销卡片。
 
-```text
-房间 = 记录现实
-灵感 = 获得策略提示
-镜像 = 认识自己的行为画像
-我的 = 沉淀玩家身份
-```
+## 3. 视觉系统
 
----
-
-## 3. 全局视觉规范
-
-### 背景
-
-统一黑底：
-
-```css
-background: #0A0A0A;
-```
-
-可以使用极弱径向光：
+统一黑底，允许极弱径向光：
 
 ```css
 background:
@@ -173,9 +179,7 @@ background:
   #0A0A0A;
 ```
 
-不要使用大面积纯蓝、大面积渐变、彩色背景。
-
-### 主色
+主色令牌：
 
 ```css
 --color-primary: #0A84FF;
@@ -184,276 +188,148 @@ background:
 --color-green: #30D158;
 --color-orange: #FF9F0A;
 --color-red: #FF453A;
-```
-
-蓝色是主高亮色。绿色只用于「在线 / 成功 / 已连接」。红色只用于危险、退出、错误，不要大面积使用。
-
-### 文字颜色
-
-```css
 --text-main: rgba(255,255,255,0.92);
 --text-secondary: rgba(255,255,255,0.56);
 --text-muted: rgba(255,255,255,0.38);
 --text-disabled: rgba(255,255,255,0.24);
 ```
 
-正文透明度不要低于 `0.40`。装饰性英文可以低到 `0.28`，但不能影响关键阅读。
+- 蓝色只做主高亮和数据焦点；绿色只表达在线、成功、已连接；红色只用于危险、退出、错误。
+- 正文透明度不要低于 `0.40`；装饰性英文可低到 `0.28`，但不能承载关键含义。
+- 普通页面不要大面积纯蓝、大面积渐变、全屏发光或单色系铺满。
+- 旧 `.glass-card` 可以保留兼容，但新 UI 优先使用 `sr-*` 终端令牌；普通卡片不要全部 `backdrop-filter` 或全部 `box-shadow`。
 
-### 卡片
-
-统一使用暗色玻璃卡，但不要滥用毛玻璃。
-
-主卡：
+推荐卡片：
 
 ```css
-.primary-card {
+.sr-card {
   border-radius: 28rpx;
   border: 1rpx solid rgba(10,132,255,0.18);
   background: rgba(255,255,255,0.035);
 }
-```
 
-次级卡：
-
-```css
-.secondary-card {
+.sr-card-secondary {
   border-radius: 24rpx;
   border: 1rpx solid rgba(255,255,255,0.08);
   background: rgba(255,255,255,0.025);
 }
 ```
 
-只允许少数主卡使用 `backdrop-filter: blur(14px);`。普通卡片不要全部 blur，不要全部 box-shadow。
+## 4. 终端风格细节
 
----
+赛博终端感来自克制层级，不来自堆砌发光元素。
 
-## 4. 赛博风细节
+允许：细描边、切角按钮、弱扫描线、HUD 小标签、状态点、数据条、极少量英文 kicker、数字等宽。
 
-赛博风不是大量英文、不是满屏发光、不是控制台日志堆砌。应该是：克制、少字、强层级、精确线框、冷色微光，像终端不像后台表单。
+禁止：大面积发光、所有文字都变蓝、每个按钮都有光晕、持续粒子、控制台日志堆砌、大量英文缩写、AI 长段解释。
 
-允许使用：细描边、切角按钮、扫描线、HUD小标签、弱英文副标题、数据条、状态点。
-
-禁止滥用：大面积发光、全部文字蓝色、全部按钮发光、大量 console 日志、大量英文缩写、大段 AI 废话。
-
----
-
-## 5. 中英文使用规则
-
-页面主要面向中文用户，所有关键功能必须使用中文。英文只能作为弱装饰、副标题或状态标签。
-
-推荐格式：
+所有关键功能必须使用中文。英文只能作为弱装饰、副标题或状态标签：
 
 ```text
-房间模式          ROOM MODE
+空间模式          SPACE MODE
 人格档案          PERSONA PROFILE
 ```
 
-中文为主，英文为辅。英文样式：
+不要出现纯英文主按钮。主操作使用「启动空间 / 接入空间 / 生成策略 / 更新协议 / 封存结果」这类中文动词。
+
+## 5. 页面分工
+
+### 空间页（记录终端）
+
+负责创建空间、接入空间、空间配置、成员布局、数值记录、实时流水、结算归档。文案使用「空间」「识别码」「接入」「封存」「记录」，避免普通表单感。
+
+### 策略页（策略终端）
+
+负责今日状态、行动建议、风险提醒、策略卡分享。展示内容必须是复盘建议、节奏提醒、状态管理、风险控制，不做结果预测，不承诺收益，不引导冒进。
+
+### 镜像页（行为画像）
+
+负责 MBTI 协议、历史表现画像、人格一致性、五维雷达图、画像分享。镜像判读必须短、冷静、数据感，不写大段 AI 心理鸡汤。
+
+### 身份页（身份终端）
+
+负责用户身份、等级、总积分、样本数、成就、设置入口、声音/动效/触感协议。首页只放高频身份信息，详细开关进入二级设置或折叠区域。
+
+## 6. 组件与布局规范
+
+- **按钮**：主按钮高度 72rpx-88rpx，不超过 96rpx。优先细描边、切角、状态点，不做传统大圆角纯蓝按钮。
+- **异步按钮**：必须使用「文本绝对居中 + 图标/Loading 绝对定位」结构，Loading 状态文字位置不能抖动。
+- **危险操作**：退出、删除、解散使用透明底 + 红色细描边，不做大红底按钮。
+- **线框图标**：全站 WXML/WXSS/运行时数据禁止原生彩色 Emoji。图标使用纯色线框、CSS icon、SVG path 或图标字体。
+- **成员简易模式**：16 人以内使用 4x4 矩阵网格，配合 `scroll-view` 和 `max-height: 600rpx`，大数字必须格式化并防溢出。
+- **座位模式**：使用绝对定位舞台，中央仅作为空间参考点，成员通过 `pos-top` / `pos-bottom` / `pos-left` / `pos-right` 环绕排布。
+- **弹窗**：用 `wx:if` 懒渲染；底部抽屉、确认弹窗、选择器必须支持 reduce-motion 的静默展开。
+
+## 7. 动效静默管理
+
+- 全局开关为 `animationEnabled`，状态来自 `app.globalData` 与 Storage。
+- 核心页面根节点必须绑定 `reduce-motion`：
+
+```xml
+<view class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}">
+```
+
+- `app.wxss` 必须提供全局兜底：
 
 ```css
-.kicker {
-  font-size: 18rpx;
-  letter-spacing: 4rpx;
-  color: rgba(10,132,255,0.72);
+.reduce-motion * {
+  animation: none !important;
+  transition: none !important;
 }
 ```
 
-不要出现纯英文主按钮（如 CREATE ROOM / CONNECT / STANDARD），应该改为中文（启动房间 / 接入房间 / 标准协议）。
+- JS 动画、Canvas 动画、分数滚动、雷达扫描、打字机日志、粒子、`requestAnimationFrame`、长链 `setTimeout` 执行前必须判断 `app.globalData.animationEnabled`。
+- 所有 timer / animation frame 必须在 `onHide` 或 `onUnload` 清理。
+- 动效允许轻微渐入、短扫描线、按钮按压、数值滚动；禁止持续强发光、复杂滚动联动、长时间 loading、无法跳过的打字动画。
 
----
+## 8. 文案与审核安全
 
-## 6. 按钮规范
+运行时页面、Prompt、fallback、分享图文必须避开审核高风险词。文档可以列出禁词用于约束，但不得把禁词复制到用户可见页面。
 
-### 主按钮
-
-不要用传统大圆角蓝色按钮，推荐赛博切角或细描边按钮。主按钮高度 72rpx - 88rpx，不要超过 96rpx。按钮不要全屏宽，除非是底部主操作。
-
-### 次按钮
-
-用于修改类型、重新测试、重新生成、取消等。
-
-```css
-border: 1rpx solid rgba(255,255,255,0.14);
-background: rgba(255,255,255,0.02);
-color: rgba(255,255,255,0.68);
-```
-
-### 危险按钮
-
-退出登录、删除类操作：
-
-```css
-color: rgba(255,69,58,0.86);
-border: 1rpx solid rgba(255,69,58,0.24);
-background: transparent;
-```
-
-不要大红字单独悬浮。
-
----
-
-## 7. 页面分工
-
-### 房间页（记录终端）
-
-负责：创建房间、加入房间、积分记录、房间配置。
-
-风格：房间初始化系统、接入空间、配置终端，不要像普通表单。
-
-创建房间主文案「启动房间」，加入房间主文案「接入房间 / 扫描接入 / 房间识别码」。不要用「房间号」「验证码」。
-
-### 灵感页（策略灵感终端）
-
-负责：生成今日策略提示、行动建议、风险提醒、分享策略卡。
-
-禁止表达为：塔罗、抽牌、占卜、运势、神谕、预测输赢。
-
-推荐文案：校准今日状态、生成你的策略提示、今日策略、行动建议、风险提醒、分享策略卡。
-
-结果内容必须是复盘建议、状态管理、节奏提醒、风险控制，不能是输赢预测、收益承诺、玄学解释、赌博建议。
-
-### 镜像页（玩家行为画像）
-
-负责：MBTI人格、战绩镜像、人格一致性、分享画像。
-
-应该回答：我是一个什么样的玩家？我的行为数据和人格是否一致？
-
-避免：塔罗、黄历、运势、占卜工具矩阵、大量 AI 判读长文。
-
-### 我的页（身份终端）
-
-负责：玩家身份、总积分、胜率、对局数、人格标签、数据中心、成就、设置入口。
-
-不要做成传统设置页。设置应该降级到二级入口「设置中心」，首页不要堆满开关。
-
----
-
-## 8. 极致极简视觉美学 (UI/UX Guidelines)
-
-- **严禁彩色 Emoji**：全站 WXML/WXSS 中严禁出现原生彩色 Emoji。所有 UI 元素必须使用纯色线框 SVG (Line Icons)。
-- **Glassmorphism 质感**：
-  - 底色 `#0A0A0A`，卡片背景 `rgba(255, 255, 255, 0.04)`，模糊度 `blur(20px)`，边框 `1px solid rgba(255, 255, 255, 0.08)`。
-  - 高亮强调色统一为 `#0A84FF`。
-- **布局防抖逻辑**：所有异步 Loading 按钮，必须使用"文本绝对居中 + 图标绝对定位"的结构，确保文字在 Loading 状态下偏移量为 0。
-
----
-
-## 9. 成员与座位布局模式 (Member Layouts)
-
-- **简易模式 (Simple Mode)**：4x4 矩阵网格，必须配合 `scroll-view` 与 `max-height: 600rpx`，防止撑爆首屏。
-- **座位模式 (Seat Mode)**：使用"绝对定位舞台 (Absolute Positioning Stage)"。中央设为虚拟桌子参考点，玩家通过 `pos-top`, `pos-bottom`, `pos-left`, `pos-right` 环绕排布，营造空间秩序感。
-
----
-
-## 10. 全局动效静默管理 (Animation Management)
-
-- **开关集成**：全局开关 `animationEnabled` (全局控制：`app.globalData` + `Storage`)。
-- **JS 守卫**：记分流程、飞行粒子、分数滚动动画必须在执行前判断 `if (!app.globalData.animationEnabled)`，跳过所有 `requestAnimationFrame` 和定时器。
-- **CSS 静默机制**：
-  - 核心页面根节点必须绑定：`class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}"`。
-  - `app.wxss` 全局覆盖规则：
-    ```css
-    .reduce-motion * { animation: none !important; transition: none !important; }
-    ```
-
-动效允许：轻微翻转、轻微浮动、渐入、细线扫描、按钮按压反馈。
-
-动效禁止：持续强发光、大面积粒子、大量 console 打字动画、长时间 loading、滚动时复杂动画。
-
-加载时间超过 1.5 秒必须给状态反馈。同类动画必须支持 `reduce-motion`。
-
----
-
-## 11. 敏感词规避
-
-为了小程序审核安全，所有页面、Prompt、fallback、分享图文都必须避开高风险词。
-
-禁止出现：棋牌、赌博、赌、下注、押注、筹码、牌局、牌桌、打牌、麻将、扑克、德州、梭哈、赢钱、赚钱、发财、稳赚、必胜、翻本、追损、运势、算命、占卜、塔罗、抽牌、神谕、卦象、黄历、风水、开运、转运、改运、预测输赢、胜率提升。
-
-推荐替换：牌局→对局/回合/场景、筹码→积分、输赢→结果波动/反馈、运势→今日状态/今日策略、抽牌→生成策略、占卜→策略参考/状态分析、翻本→情绪化修正。
-
-所有 AI 生成内容必须经过敏感词过滤。命中敏感词时，丢弃生成结果，使用 fallback。
-
----
-
-## 12. AI 文案风格
-
-MiMo 或其他 LLM 输出必须遵守：不预测结果、不承诺收益、不鼓励冒进、不涉及赌博、不使用玄学解释、不使用传统算命口吻。
-
-推荐语气：冷静、克制、短句、策略终端感、复盘视角。
-
-示例安全文案：「今日适合降低试探频率，先明确目标，再进入行动。避免被短期反馈打乱节奏。」
-
-不要写：「今日运势很好，适合出手。」
-
----
-
-## 13. 前端性能最佳实践
-
-- **音频单例模式**：音色试听必须维护单例 `InnerAudioContext`，执行 `stop() -> src替换 -> play()`，严禁重复创建实例。
-- **组件化交互**：记分键盘、成员卡片、底部抽屉，必须具备高级弹性动效（`cubic-bezier`），但在 `reduce-motion` 类名作用下必须实现 0 延迟的静默展示。
-- **弹窗使用 `wx:if` 懒渲染**，不要用 `hidden`。
-- **页面滚动时不 setData**，普通卡片不用 blur 和阴影。
-- **WXSS 禁止 `transition: all;`**，改为显式属性：`transition: opacity .2s, transform .2s, background-color .2s;`
-- 避免每张卡片都 backdrop-filter / box-shadow、大量 DOM 装饰节点、setData 写入大对象。
-
----
-
-## 14. TabBar 图标风格
-
-Tab 图标统一：线框、圆角、低复杂度、24px 逻辑尺寸、未选中灰白、选中蓝色、少量发光。
-
-当前四个 Tab：房间=记录终端、灵感=策略灵感、镜像=玩家画像、我的=身份终端。
-
-图标必须一致，不要一个拟物、一个线框、一个填充风。
-
----
-
-## 15. 表单设计规范
-
-避免传统表单感。不要大量使用「标签+双按钮」「标签+开关」「标签+输入框」。
-
-应改为：终端选择卡、配置预览、状态点、HUD标签、分组标题。
-
-例如创建房间，不要：
+禁止出现在运行时用户可见内容中：
 
 ```text
-MODE
-[FREE FLOW] [ROUND INPUT]
+棋牌、赌博、赌、下注、押注、筹码、牌局、牌桌、打牌、麻将、扑克、德州、梭哈、赢钱、赚钱、发财、稳赚、必胜、翻本、追损、运势、算命、占卜、塔罗、抽牌、神谕、卦象、黄历、风水、开运、转运、改运、预测输赢、胜率提升
 ```
 
-应该：
+推荐替换：
 
 ```text
-房间模式          ROOM MODE
-
-自由流转          实时记录积分变化
-本局录入          每轮结束统一录入
+对局/回合/场景、积分、结果波动、今日状态、今日策略、生成策略、策略参考、状态分析、情绪化修正
 ```
 
----
+AI 输出必须通过敏感词过滤。命中时丢弃生成结果，使用静态 fallback。推荐语气：冷静、克制、短句、策略终端感、复盘视角。
 
-## 16. 文案长度规范
+## 9. 前端性能规范
 
-- 卡片标题：2 - 6 字
-- 说明文案：12 - 28 字
-- 策略结果 summary：50 - 90 字
-- 镜像判读：50 字以内
+- 音色试听维护单例 `InnerAudioContext`，执行 `stop() -> src 替换 -> play()`，禁止重复创建实例。
+- 页面滚动时不 `setData`，触摸绘图必须节流到一帧一次。
+- WXSS 禁止 `transition: all;`，改成明确属性：`transition: opacity .2s, transform .2s, background-color .2s;`
+- Canvas 组件必须在不可见或 reduce-motion 时停止扫描/脉冲动画。
+- 普通卡片不用 blur 和阴影；仅主视觉卡、抽屉、浮层允许少量模糊。
+- `setData` 只写必要字段，避免整块 `room`、大数组、图表数据在高频事件里反复写入。
 
-不要写长段 AI 解释。
+## 10. 当前优先技术债
 
----
+这些不是架构原则，而是下一轮优化必须优先排查的已知问题：
 
-## 17. 统一禁用项
+- `miniprogram/pages/room/room.wxml` 根节点仍缺少 `reduce-motion` 绑定。
+- `miniprogram/pages/voice-select/voice-select.wxml` 页面根节点缺少全局动效静默类。
+- `miniprogram/utils/score-ws.js` 当前 `DEBUG_WS = true`，且会打印带 token 的完整连接 URL。
+- `backend/src/main/resources/voices.json` 分类 icon 仍使用原生彩色 Emoji。
+- `miniprogram/pages/room/room.js` 获取二维码时仍按 `resp.data.qrCodeUrl` 读取，和当前 request 封装返回形态不一致。
+- `backend/src/main/java/com/smartrecord/task/RoomTimeoutTask.java` 自动结算检查不能只看 `batches`，必须兼容自由流转 `events`。
+- `ScoreServiceImpl.getRoomInsight` 不应直接用包含 owner/status 等字段的 meta `HLEN` 作为成员密度。
 
-全项目禁止：彩色 Emoji、大红大金玄学风、赌场感视觉、扑克/麻将/牌桌图形、赚钱暗示、收益承诺、无限抽取、每日运势、占卜口吻。
+## 11. 最终体验目标
 
----
+用户感知应该是：
 
-## 18. 最终设计目标
+```text
+我在启动一个记录空间。
+我在获得一条策略提示。
+我在查看自己的行为画像。
+我在管理自己的身份终端。
+```
 
-用户体验应该是：「我在启动一个记录空间 / 我在获得一条策略提示 / 我在查看自己的行为画像 / 我在管理自己的玩家身份」。
-
-而不是：「我在填表 / 我在算命 / 我在玩牌 / 我在看设置」。
-
-所有页面必须服务于：记录 → 复盘 → 画像 → 身份。
+所有页面必须服务于：记录 -> 复盘 -> 画像 -> 身份。

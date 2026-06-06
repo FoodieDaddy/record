@@ -38,6 +38,8 @@ Page({
     ranking: [],
     submitting: false,
     audioEnabled: true,
+    animationEnabled: true,
+    wsReconnecting: false,
     // 成员网格
     memberGrid: [],
     myUserId: '',
@@ -96,6 +98,7 @@ Page({
     // 历史场次
     // 分享面板
     showShareSheet: false,
+    qrLoading: false,
     // 积分记录滚动高度（rpx）
     scoreRecordHeight: 400,
     // 本局录入
@@ -114,6 +117,7 @@ Page({
     this.setData({
       isLoggedIn: !!app.globalData.token,
       audioEnabled,
+      animationEnabled: app.globalData.animationEnabled !== false,
       myUserId: String(app.globalData.userId || '')
     });
     this.calcScoreRecordHeight();
@@ -122,6 +126,17 @@ Page({
       this._onWsMessage = this.onWsMessage.bind(this);
     }
     scoreWS.on('message', this._onWsMessage);
+    // WS 断线/重连状态
+    if (!this._onWsClose) {
+      this._onWsClose = () => this.setData({ wsReconnecting: true });
+      this._onWsOpen = () => this.setData({ wsReconnecting: false });
+    }
+    scoreWS.on('close', this._onWsClose);
+    scoreWS.on('open', this._onWsOpen);
+    // 如果 WS 已经是断开状态，立即显示遮罩
+    if (!scoreWS.isConnected && scoreWS.roomId) {
+      this.setData({ wsReconnecting: true });
+    }
     if (app.globalData.token && !this.data.viewingRoom) {
       this.loadMyRooms();
       this.loadRecentRooms();
@@ -141,6 +156,10 @@ Page({
     // 仅取消订阅，不销毁全局连接
     if (this._onWsMessage) {
       scoreWS.off('message', this._onWsMessage);
+    }
+    if (this._onWsClose) {
+      scoreWS.off('close', this._onWsClose);
+      scoreWS.off('open', this._onWsOpen);
     }
     // 清理定时器
     if (this._rollTimer) {
@@ -176,10 +195,10 @@ Page({
     } catch (e) {}
   },
 
-  // ========== 房间加载 ==========
+  // ========== 空间加载 ==========
 
   async loadMyRooms() {
-    // 结算弹层展示中，忽略房间列表刷新（避免覆盖结算状态）
+    // 结算弹层展示中，忽略空间列表刷新（避免覆盖结算状态）
     if (this._showingSettle) return;
     this.setData({ loading: true });
     try {
@@ -201,7 +220,7 @@ Page({
         this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
       }
     } catch (e) {
-      console.error('加载房间失败', e);
+      console.error('加载空间失败', e);
     } finally {
       this.setData({ loading: false });
     }
@@ -418,7 +437,7 @@ Page({
 
   // ========== WebSocket ==========
 
-  /** 连接房间 WebSocket（通过全局单例） */
+  /** 连接空间 WebSocket（通过全局单例） */
   connectWS(roomId) {
     app.connectWS(roomId);
   },
@@ -600,7 +619,7 @@ Page({
     }
   },
 
-  /** 刷新房间全部数据：排行榜 + 积分记录 + 房间信息（含成员列表） */
+  /** 刷新空间全部数据：排行榜 + 积分记录 + 空间信息（含成员列表） */
   async updateAllData(roomId) {
     await Promise.all([
       this.loadRanking(roomId),
@@ -621,11 +640,11 @@ Page({
         this.enrichMembers(room);
       }
     } catch (e) {
-      console.error('刷新房间信息失败', e);
+      console.error('刷新空间信息失败', e);
     }
   },
 
-  // ========== 创建/加入房间 ==========
+  // ========== 创建/加入空间 ==========
 
   enterRoom() {
     const room = this.data.currentRoom;
@@ -715,7 +734,7 @@ Page({
     });
   },
 
-  // ========== 最近房间 ==========
+  // ========== 最近空间 ==========
   loadRecentRooms() {
     try {
       const list = wx.getStorageSync('recentRooms') || [];
@@ -793,7 +812,7 @@ Page({
       this.saveRecentRoom(roomNo, room.scoreMode);
       // 先加载排名数据（含成员信息），再构建成员网格，避免 0 分闪烁
       await this.loadRoomData(room.roomId);
-      // 刷新完整房间信息（成员列表可能比 join 响应更完整）
+      // 刷新完整空间信息（成员列表可能比 join 响应更完整）
       this.reloadRoomInfo(room.roomId);
       this.connectWS(room.roomId);
       if (room.scoreMode === 2) {
@@ -802,7 +821,7 @@ Page({
       wx.showToast({ title: '已接入空间', icon: 'success' });
     } catch (e) {
       if (e && e.code === 4003) {
-        // 房间已满
+        // 空间已满
         wx.showToast({ title: '当前空间已满员（最多16人）', icon: 'none', duration: 2500 });
         this.setData({ roomCodeRaw: roomNo.slice(0, 5), joinRoomNo: roomNo.slice(0, 5), terminalFocused: true });
       } else if (e && e.code === 4009) {
@@ -1131,7 +1150,7 @@ Page({
 
     const fetchUrl = async () => {
       const resp = await get(`/room/${roomId}`);
-      return resp?.data?.qrCodeUrl || null;
+      return resp?.qrCodeUrl || null;
     };
 
     const url = await retryWithBackoff(fetchUrl, 3, 1000);
@@ -1159,6 +1178,22 @@ Page({
 
   closeShareSheet() {
     this.setData({ showShareSheet: false });
+  },
+
+  async retryLoadQrCode() {
+    if (this.data.qrLoading) return;
+    const roomNo = this.data.currentRoom?.roomNo;
+    const roomId = this.data.currentRoom?.roomId;
+    if (!roomNo || !roomId) return;
+    this.setData({ qrLoading: true });
+    try {
+      const url = await this.getQrCodeUrl(roomNo, roomId);
+      if (url) {
+        this.setData({ 'currentRoom.qrCodeUrl': url });
+      }
+    } finally {
+      this.setData({ qrLoading: false });
+    }
   },
 
   copyRoomLink() {
@@ -1225,13 +1260,13 @@ Page({
         wx.showLoading({ title: '正在归档...' });
         // 1. 先归档数据
         const settleResp = await post(`/score/room/${roomId}/settle`);
-        // 2. 解散房间（必须 await，确保后端清理完成）
+        // 2. 解散空间（必须 await，确保后端清理完成）
         await del(`/room/${roomId}/quit`);
         wx.hideLoading();
         // 3. 断开 WS
         app.disconnectWS();
         this._settling = false;
-        // 4. 有记分数据则展示结算弹层，否则直接回到房间列表
+        // 4. 有记分数据则展示结算弹层，否则直接回到空间列表
         const hasData = settleResp && settleResp.memberScores && settleResp.memberScores.length > 0;
         if (hasData) {
           this.showSettleFromResp(settleResp);
@@ -1378,7 +1413,7 @@ Page({
     }
   },
 
-  /** 关闭结算弹层，回到房间列表 */
+  /** 关闭结算弹层，回到空间列表 */
   closeSettleOverlay() {
     this._showingSettle = false;
     this._settling = false;

@@ -6,10 +6,12 @@ Page({
     loading: false,
     connecting: false,
     steps: [],
-    accessGranted: false
+    accessGranted: false,
+    animationEnabled: true
   },
 
   onShow() {
+    this.setData({ animationEnabled: app.globalData.animationEnabled !== false });
     if (app.globalData.token) {
       wx.switchTab({ url: '/pages/room/room' });
     }

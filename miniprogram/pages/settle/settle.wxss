@@ -126,9 +126,7 @@
 }
 
 .card-line {
-  height: 1rpx;
-  margin-top: 14rpx;
-  background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
+  /* 继承 app.wxss .sr-card-line */
 }
 
 .chart-wrap {
@@ -244,6 +242,41 @@
   flex-shrink: 0;
   margin-left: 16rpx;
 }
+
+/* ===== 错误 / 空状态 ===== */
+
+.error-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 280rpx;
+}
+
+.error-kicker,
+.empty-kicker {
+  font-size: 20rpx;
+  color: rgba(0, 175, 255, 0.56);
+  letter-spacing: 4rpx;
+  font-family: 'SF Mono', 'Courier New', monospace;
+  margin-bottom: 12rpx;
+}
+
+.error-text,
+.empty-text {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.50);
+  margin-bottom: 8rpx;
+}
+
+.error-hint,
+.empty-hint {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* ===== 动效静默 ===== */
 
 .reduce-motion .loading-dot { animation: none; opacity: 0.6; }
 .reduce-motion .badge-champion { box-shadow: none; }

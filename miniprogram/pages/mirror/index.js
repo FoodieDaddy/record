@@ -27,7 +27,7 @@ function normalizeRadarDimensions(dimensions) {
 // 人格标签 → 信号关键词
 var PERSONA_SIGNAL_MAP = {
   STABLE_CONTROL: ['节奏控制', '低失误', '稳健决策', '长期主义'],
-  AGGRESSIVE_PUSH: ['主动进攻', '窗口捕捉', '高频决策', '积分最大化'],
+  AGGRESSIVE_PUSH: ['主动进攻', '窗口捕捉', '高频决策', '数值最大化'],
   VOLATILE_BURST: ['爆发型', '高波动', '极限操作', '情绪驱动'],
   DEFENSIVE_COUNTER: ['防守反击', '耐心等待', '低频高效', '信息积累'],
   SLOW_OBSERVER: ['后发制人', '信息导向', '节奏观察', '稳定输出'],
@@ -146,8 +146,8 @@ Page({
       var personaConfidence = res.personaConfidence || 0;
       var confidenceChecklist = [
         { label: 'MBTI校准', done: mbti.calibrated },
-        { label: '3场结算', done: battle.sampleSize >= 3 },
-        { label: '战绩画像', done: battle.generated },
+        { label: '3场封存', done: battle.sampleSize >= 3 },
+        { label: '任务画像', done: battle.generated },
         { label: '基础数据', done: mbti.calibrated || battle.sampleSize > 0 }
       ];
 

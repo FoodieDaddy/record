@@ -13,7 +13,8 @@ Component({
     series: { type: Array, value: [] },
     visibleUsers: { type: Array, value: [] },
     highlightUser: { type: String, value: '' },
-    eventMarkers: { type: Array, value: [] }
+    eventMarkers: { type: Array, value: [] },
+    reduceMotion: { type: Boolean, value: false }
   },
 
   data: {
@@ -285,32 +286,46 @@ Component({
       if (this._touchIdx >= 0 && this._touchIdx < n) {
         const tx = xScale(this._touchIdx);
 
-        // 虚线竖线
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        ctx.lineWidth = 0.5;
-        ctx.setLineDash([4, 4]);
+        // 虚线竖线 — 青色微光
+        ctx.save();
+        ctx.strokeStyle = 'rgba(99,211,255,0.18)';
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(tx, pad.top);
         ctx.lineTo(tx, h - pad.bottom);
         ctx.stroke();
         ctx.setLineDash([]);
+        ctx.restore();
 
-        // 各 series 的触控圆点
+        // 各 series 的触控锁定点
         visibleSeries.forEach((s) => {
           if (!s.scores) return;
           const color = getColor(s.nickname);
           const val = s.scores[indices[this._touchIdx]] || 0;
           const cy = yScale(val);
           if (isNaN(cy)) return;
-          ctx.strokeStyle = color;
+
+          // 外层发光环
+          ctx.save();
+          ctx.strokeStyle = 'rgba(99,211,255,0.35)';
           ctx.lineWidth = 1.5;
+          ctx.shadowColor = 'rgba(99,211,255,0.48)';
+          ctx.shadowBlur = 16;
           ctx.beginPath();
-          ctx.arc(tx, cy, 5, 0, Math.PI * 2);
+          ctx.arc(tx, cy, 8, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.fillStyle = '#141414';
+          ctx.restore();
+
+          // 内层实心点
+          ctx.save();
+          ctx.fillStyle = '#63D3FF';
+          ctx.shadowColor = '#63D3FF';
+          ctx.shadowBlur = 8;
           ctx.beginPath();
-          ctx.arc(tx, cy, 3, 0, Math.PI * 2);
+          ctx.arc(tx, cy, 3.5, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         });
 
         // Canvas Tooltip
@@ -351,61 +366,130 @@ Component({
         if (found) targetName = found.nickname;
       }
 
-      // ===== 组装两行文本 =====
+      // ===== 组装文本 =====
       const timeStr = this._fmtTime(ts);
-      const text1 = `${timeStr} | 结余: ${currentScore}`;
+      // 行1: TIME 11:02  结余 -55
+      const labelTime = 'TIME';
+      const text1b = timeStr;
+      const labelBal = '结余';
+      const text1d = String(currentScore);
 
-      let text2 = '';
-      let text2Color = '#FFFFFF';
+      // 行2: ← 对手名  +555
+      let arrow = '';
+      let text2b = '';
+      let deltaStr = '';
+      let text2Color = 'rgba(255,255,255,0.5)';
       if (delta > 0) {
-        text2 = `← ${targetName || '未知'}  +${delta}`;
-        text2Color = '#32D74B';
+        arrow = '←';
+        text2b = targetName || '未知';
+        deltaStr = '+' + delta;
+        text2Color = '#5BE37A';
       } else if (delta < 0) {
-        text2 = `→ ${targetName || '未知'}  ${delta}`;
-        text2Color = '#FF453A';
+        arrow = '→';
+        text2b = targetName || '未知';
+        deltaStr = String(delta);
+        text2Color = '#FF6B6B';
       } else {
-        text2 = '无数值变动';
-        text2Color = 'rgba(255,255,255,0.5)';
+        arrow = '—';
+        text2b = '无变动';
+        deltaStr = '0';
+        text2Color = 'rgba(255,255,255,0.38)';
       }
 
       // ===== 计算框体尺寸 =====
-      ctx.font = 'bold 11px sans-serif';
-      const w1 = ctx.measureText(text1).width;
-      const w2 = ctx.measureText(text2).width;
-      const boxW = Math.max(w1, w2) + 24;
-      const lineH = 20;
-      const boxH = lineH * 2 + 16;
+      const padX = 14;
+      const padY = 10;
+      const lineH = 19;
 
-      // 碰撞检测：超出右边界则翻转到左侧
-      let boxX = tx + 12;
+      ctx.font = '600 10px "SF Mono", "Menlo", monospace';
+      const labelTimeW = ctx.measureText(labelTime).width;
+      const timeW = ctx.measureText(text1b).width;
+      const balW = ctx.measureText(labelBal).width;
+      const scoreW = ctx.measureText(text1d).width;
+      const row1W = labelTimeW + 6 + timeW + 16 + balW + 6 + scoreW;
+
+      ctx.font = '600 11px "SF Mono", "Menlo", monospace';
+      const arrowW = ctx.measureText(arrow).width;
+      const nameW = ctx.measureText(text2b).width;
+      const deltaW = ctx.measureText(deltaStr).width;
+      const row2W = arrowW + 6 + nameW + 16 + deltaW;
+
+      const boxW = Math.max(row1W, row2W) + padX * 2;
+      const boxH = lineH * 2 + padY * 2 + 2;
+
+      // 边缘避让
+      let boxX = tx + 14;
       if (boxX + boxW > canvasW - 8) {
-        boxX = tx - boxW - 12;
+        boxX = tx - boxW - 14;
       }
-      const boxY = pad.top + 8;
+      if (boxX < 8) boxX = 8;
+      const boxY = pad.top + 10;
 
-      // ===== 绘制毛玻璃背景 =====
+      // ===== 毛玻璃背景 + 蓝色边缘光 =====
       ctx.save();
-      ctx.fillStyle = 'rgba(20, 20, 20, 0.88)';
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-      ctx.lineWidth = 1;
-      this._roundRect(ctx, boxX, boxY, boxW, boxH, 8);
+      // 阴影
+      ctx.shadowColor = 'rgba(10,132,255,0.12)';
+      ctx.shadowBlur = 24;
+      ctx.fillStyle = 'rgba(12, 12, 16, 0.92)';
+      this._roundRect(ctx, boxX, boxY, boxW, boxH, 10);
       ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // 边框
+      ctx.strokeStyle = 'rgba(99,211,255,0.18)';
+      ctx.lineWidth = 0.8;
+      this._roundRect(ctx, boxX, boxY, boxW, boxH, 10);
+      ctx.stroke();
+
+      // 顶部蓝色微光线
+      ctx.strokeStyle = 'rgba(99,211,255,0.28)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(boxX + 14, boxY + 0.5);
+      ctx.lineTo(boxX + boxW - 14, boxY + 0.5);
       ctx.stroke();
       ctx.restore();
 
       // ===== 绘制文本 =====
       ctx.save();
       ctx.textBaseline = 'top';
-      ctx.font = 'bold 11px sans-serif';
 
-      // 第一行：时间 | 结余
+      // 第一行：TIME 11:02  结余 -55
+      let cx = boxX + padX;
+      const y1 = boxY + padY;
+
+      ctx.font = '600 10px "SF Mono", "Menlo", monospace';
       ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.fillText(text1, boxX + 12, boxY + 8);
+      ctx.fillStyle = 'rgba(99,211,255,0.56)';
+      ctx.fillText(labelTime, cx, y1);
+      cx += labelTimeW + 6;
 
-      // 第二行：箭头 + 对手 + 变动额
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.fillText(text1b, cx, y1);
+      cx += timeW + 16;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.38)';
+      ctx.fillText(labelBal, cx, y1);
+      cx += balW + 6;
+
+      ctx.fillStyle = currentScore >= 0 ? 'rgba(255,255,255,0.88)' : 'rgba(255,255,255,0.88)';
+      ctx.fillText(text1d, cx, y1);
+
+      // 第二行：← 对手  +555
+      const y2 = y1 + lineH + 2;
+      cx = boxX + padX;
+
+      ctx.font = '600 11px "SF Mono", "Menlo", monospace';
       ctx.fillStyle = text2Color;
-      ctx.fillText(text2, boxX + 12, boxY + 8 + lineH);
+      ctx.fillText(arrow, cx, y2);
+      cx += arrowW + 6;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.62)';
+      ctx.fillText(text2b, cx, y2);
+      cx += nameW + 16;
+
+      ctx.fillStyle = text2Color;
+      ctx.fillText(deltaStr, cx, y2);
 
       ctx.restore();
     },
@@ -439,20 +523,20 @@ Component({
         const y = yScale(v);
         if (y < pad.top - 2 || y > pad.top + chartH + 2) continue;
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 0.5;
-        ctx.setLineDash([3, 3]);
+        ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(pad.left, y);
         ctx.lineTo(w - pad.right, y);
         ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = '10px sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.24)';
+        ctx.font = '600 9px "SF Mono", "Menlo", monospace';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this._formatAxisValue(v), pad.left - 6, y);
+        ctx.fillText(this._formatAxisValue(v), pad.left - 8, y);
       }
       ctx.restore();
     },
@@ -465,8 +549,8 @@ Component({
       const step = n > 1 ? (n - 1) / (labelCount - 1) : 0;
 
       ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.font = '10px sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.22)';
+      ctx.font = '600 9px "SF Mono", "Menlo", monospace';
       ctx.textBaseline = 'top';
 
       for (let i = 0; i < labelCount; i++) {

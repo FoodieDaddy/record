@@ -26,12 +26,14 @@
       <text class="term-kicker-sub">PROFILE</text>
       <view class="identity__row">
         <button class="identity__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-          <view class="identity__avatar-ring">
-            <view class="identity__avatar-auto" style="background:{{avatarColor}};" wx:if="{{!avatarUrl}}">
-              <text class="identity__avatar-char">{{avatarChar}}</text>
-            </view>
-            <image class="identity__avatar-img" src="{{avatarUrl}}" wx:else></image>
-          </view>
+          <helmet-avatar
+            src="{{avatarUrl}}"
+            size="lg"
+            active="{{true}}"
+            controller="{{true}}"
+            showStatus="{{false}}"
+            reduceMotion="{{!animationEnabled}}"
+          />
         </button>
         <view class="identity__info">
           <text class="identity__kicker">成员代号</text>

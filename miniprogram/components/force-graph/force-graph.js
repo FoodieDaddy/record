@@ -5,7 +5,8 @@ Component({
     nodes: { type: Array, value: [] },
     links: { type: Array, value: [] },
     width: { type: Number, value: 300 },
-    height: { type: Number, value: 300 }
+    height: { type: Number, value: 300 },
+    reduceMotion: { type: Boolean, value: false }
   },
 
   data: {
@@ -34,7 +35,7 @@ Component({
   methods: {
     initSimulation() {
       const { nodes, links, width, height } = this.data
-      const reduceMotion = !app.globalData.animationEnabled
+      const reduceMotion = this.data.reduceMotion || !app.globalData.animationEnabled
       const cx = width / 2
       const cy = height / 2
 

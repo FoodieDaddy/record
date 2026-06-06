@@ -6,15 +6,15 @@
         <text class="target-char">{{targetChar}}</text>
       </view>
       <text class="target-name">{{targetName}}</text>
-      <text class="text-tertiary text-xs">得分方</text>
+      <text class="text-tertiary text-xs">接收方</text>
     </view>
 
-    <!-- 分值输入 -->
+    <!-- 数值输入 -->
     <view class="amount-section">
-      <input class="amount-input" type="digit" value="{{amount}}" bindinput="onAmountInput" placeholder="输入分值" focus="{{visible}}" />
+      <input class="amount-input" type="digit" value="{{amount}}" bindinput="onAmountInput" placeholder="输入数值" focus="{{visible}}" />
     </view>
 
-    <!-- 快捷分值 -->
+    <!-- 快捷数值 -->
     <view class="quick-amounts">
       <view class="quick-btn" wx:for="{{quickAmounts}}" wx:key="*this" bindtap="onQuickAmount" data-value="{{item}}">
         +{{item}}
@@ -28,7 +28,7 @@
     <view class="modal-actions">
       <button class="btn-cancel" bindtap="onClose">取消</button>
       <button class="btn-confirm" bindtap="onConfirm" disabled="{{!canConfirm}}">
-        确认计分
+        确认记录
       </button>
     </view>
   </view>

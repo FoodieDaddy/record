@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page {{!animationEnabled ? 'reduce-motion' : ''}}">
   <!-- 蒙层 -->
   <view class="mask {{showSheet ? 'visible' : ''}}" bindtap="closeSheet"></view>
 
@@ -9,7 +9,7 @@
 
     <!-- Header -->
     <view class="header">
-      <text class="header-title">选择音色</text>
+      <text class="header-title">声音协议</text>
       <view class="close-btn" bindtap="closeSheet">
         <text class="close-icon">×</text>
       </view>
@@ -22,12 +22,12 @@
         <view
           wx:for="{{categories}}"
           wx:key="id"
-          class="sidebar-item {{activeTab === index ? 'active' : ''}}"
+          class="sr-t-fast sidebar-item {{activeTab === index ? 'active' : ''}}"
           bindtap="switchTab"
           data-index="{{index}}"
         >
-          <text class="sidebar-icon">{{item.icon}}</text>
-          <text class="sidebar-name">{{item.name}}</text>
+          <view class="sidebar-icon sidebar-icon--{{item.id}}">{{item.icon}}</view>
+          <text class="sr-t-fast sidebar-name">{{item.name}}</text>
         </view>
       </scroll-view>
 
@@ -39,7 +39,7 @@
         <block wx:for="{{categories[activeTab].voices}}" wx:key="id">
           <view
             id="v-{{item.id}}"
-            class="voice-card {{selectedId === item.id ? 'selected' : ''}} {{playingId === item.id ? 'playing' : ''}}"
+            class="sr-t-fast voice-card {{selectedId === item.id ? 'selected' : ''}} {{playingId === item.id ? 'playing' : ''}}"
             bindtap="playVoice"
             data-id="{{item.id}}"
             data-file="{{item.file}}"

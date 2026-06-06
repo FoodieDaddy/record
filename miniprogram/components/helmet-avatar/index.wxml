@@ -1,0 +1,17 @@
+<view class="ha ha--{{size}} {{active ? 'is-active' : ''}} {{dimmed ? 'is-dimmed' : ''}} {{controller ? 'is-controller' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}">
+  <view class="ha__glow"></view>
+  <view class="ha__shell">
+    <image
+      class="ha__img"
+      src="{{src || defaultAvatar}}"
+      mode="aspectFill"
+    />
+    <view class="ha__visor"></view>
+    <view class="ha__reflection"></view>
+    <view class="ha__frame"></view>
+    <view class="ha__lock ha__lock--left"></view>
+    <view class="ha__lock ha__lock--right"></view>
+    <view class="ha__bottom-lock"></view>
+  </view>
+  <view wx:if="{{showStatus}}" class="ha__status"></view>
+</view>
