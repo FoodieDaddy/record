@@ -127,6 +127,17 @@
   color: rgba(255, 255, 255, 0.50);
 }
 
+/* 飞控次按钮覆写：保持紧凑尺寸 */
+.term-btn-sm.flight-secondary {
+  height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 6rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  width: 180rpx;
+}
+
 .term-btn-sm:active {
   background: rgba(0, 175, 255, 0.12);
 }
@@ -354,19 +365,20 @@
   gap: 12rpx;
 }
 
-.checklist-icon {
-  width: 32rpx;
-  font-size: 22rpx;
-  font-weight: 700;
-  text-align: center;
+.checklist-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .check-done {
-  color: #36FF74;
+  background: #36FF74;
+  box-shadow: 0 0 6rpx rgba(54, 255, 116, 0.40);
 }
 
 .check-pending {
-  color: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .checklist-label {
@@ -722,23 +734,18 @@
   color: rgba(255, 255, 255, 0.20);
 }
 
-/* ===== 固定底部：生成档案按钮 ===== */
+/* ===== 固定底部：飞控主控条 ===== */
 
 .dossier-spacer {
   height: 20rpx;
 }
 
-.dossier-btn-fixed {
+.dossier-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 108rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
+  padding: 16rpx 32rpx calc(env(safe-area-inset-bottom) + 16rpx);
   background: #0A0F18;
   border-top: 1rpx solid rgba(0, 175, 255, 0.20);
   z-index: 100;
@@ -762,20 +769,13 @@
   100% { left: 100%; }
 }
 
-.dossier-text {
-  font-size: 24rpx;
-  font-weight: 700;
-  letter-spacing: 4rpx;
-  color: rgba(0, 175, 255, 0.90);
+.dossier-btn {
+  display: block;
+  width: 100%;
 }
 
-.dossier-sub {
-  font-size: 18rpx;
-  color: rgba(255, 255, 255, 0.35);
-}
-
-.dossier-btn-fixed:active {
-  background: rgba(0, 175, 255, 0.06);
+.dossier-bar:active {
+  opacity: 0.8;
 }
 
 /* ===== Skeleton ===== */

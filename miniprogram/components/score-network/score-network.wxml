@@ -41,7 +41,9 @@
         <text class="detail-score" style="color: {{nodeDetails.score >= 0 ? '#32D74B' : '#FF453A'}}">
           {{nodeDetails.score > 0 ? '+' : ''}}{{nodeDetails.score}}
         </text>
-        <view class="detail-close" bindtap="closeDetail">✕</view>
+        <view class="detail-close" bindtap="closeDetail">
+          <view class="detail-close-icon"></view>
+        </view>
       </view>
       <view class="detail-grid">
         <view class="detail-cell">

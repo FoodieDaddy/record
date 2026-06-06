@@ -441,13 +441,29 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
-.preview-close {
+.preview-close-icon {
   width: 48rpx;
   height: 48rpx;
-  line-height: 48rpx;
-  text-align: center;
-  font-size: 36rpx;
-  color: rgba(255, 255, 255, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.close-line {
+  position: absolute;
+  width: 24rpx;
+  height: 2rpx;
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 1rpx;
+}
+
+.close-line-tl {
+  transform: rotate(45deg);
+}
+
+.close-line-tr {
+  transform: rotate(-45deg);
 }
 
 .preview-img {

@@ -18,7 +18,7 @@
       </view>
     </view>
     <view class="swipe-close" bindtap="onClose">
-      <text class="close-icon">x</text>
+      <view class="close-icon-css"></view>
     </view>
   </view>
 

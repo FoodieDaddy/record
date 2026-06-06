@@ -129,10 +129,10 @@
 
     <!-- 操作按钮 -->
     <view class="dossier-actions">
-      <view class="action-btn-primary" bindtap="openCardPanel">
+      <view class="action-btn-primary flight-primary" bindtap="openCardPanel">
         <text class="action-btn-text">生成档案卡</text>
       </view>
-      <view class="action-btn-secondary" bindtap="copyDossier">
+      <view class="action-btn-secondary flight-secondary" bindtap="copyDossier">
         <text class="action-btn-sec-text">复制文字</text>
       </view>
     </view>
@@ -156,8 +156,8 @@
     <view class="card-panel" catchtap="noop">
       <view class="panel-handle"></view>
       <view class="panel-head">
-        <text class="panel-title">档案卡生成</text>
-        <text class="panel-kicker">PERSONA CARD</text>
+        <text class="panel-title">档案输出舱</text>
+        <text class="panel-kicker">OUTPUT BAY</text>
       </view>
       <text class="panel-desc">将当前人格档案生成图片卡片，便于保存或分享。</text>
       <view class="panel-actions">
@@ -183,7 +183,10 @@
     <view class="card-preview-panel">
       <view class="preview-head">
         <text class="preview-title">档案卡预览</text>
-        <text class="preview-close" bindtap="closeCardPreview">x</text>
+        <view class="preview-close-icon" bindtap="closeCardPreview">
+          <view class="close-line close-line-tl"></view>
+          <view class="close-line close-line-tr"></view>
+        </view>
       </view>
       <image
         class="preview-img"

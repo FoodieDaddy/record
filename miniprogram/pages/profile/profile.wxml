@@ -27,7 +27,7 @@
       <view class="identity__row">
         <button class="identity__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
           <helmet-avatar
-            src="{{avatarUrl}}"
+            src="{{avatarUrl || ''}}"
             size="lg"
             active="{{true}}"
             controller="{{true}}"
@@ -47,7 +47,7 @@
               bindinput="onNicknameInput"
               bindblur="onNicknameBlur"
             />
-            <view class="identity__dice-btn" bindtap="shuffleNickname">
+            <view class="identity__dice-btn fi fi--random" bindtap="shuffleNickname">
               <view class="svg-icon svg-icon--dice"></view>
             </view>
           </view>

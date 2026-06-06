@@ -13,7 +13,7 @@
         </view>
         <view class="vo-close" bindtap="closePanel">
           <view class="vo-close-ring">
-            <view class="vo-close-x">✕</view>
+            <view class="vo-close-icon"></view>
           </view>
         </view>
       </view>
@@ -50,7 +50,7 @@
                     bindtap="onRelationTap" data-user-id="{{item.userId}}">
                 <view class="relation-left">
                   <helmet-avatar
-                    src="{{item.avatarUrl}}"
+                    src="{{item.avatarUrl || ''}}"
                     size="sm"
                     showStatus="{{false}}"
                   />
@@ -79,7 +79,7 @@
         </view>
         <view class="vo-close" bindtap="closeMatrixDetail">
           <view class="vo-close-ring">
-            <view class="vo-close-x">✕</view>
+            <view class="vo-close-icon"></view>
           </view>
         </view>
       </view>
@@ -89,7 +89,7 @@
       <view class="detail-parties">
         <view class="detail-party">
           <helmet-avatar
-            src="{{detailFrom.avatarUrl}}"
+            src="{{detailFrom.avatarUrl || ''}}"
             size="md"
             showStatus="{{false}}"
           />
@@ -102,7 +102,7 @@
         </view>
         <view class="detail-party">
           <helmet-avatar
-            src="{{detailTo.avatarUrl}}"
+            src="{{detailTo.avatarUrl || ''}}"
             size="md"
             showStatus="{{false}}"
           />

@@ -208,8 +208,12 @@
   }
 }
 
-.reduce-motion view,
-.reduce-motion image {
+.ha.reduce-motion .ha__glow,
+.ha.reduce-motion .ha__img,
+.ha.reduce-motion .ha__shell,
+.ha.reduce-motion .ha__visor,
+.ha.reduce-motion .ha__reflection,
+.ha.reduce-motion .ha__frame {
   animation: none !important;
   transition: none !important;
 }

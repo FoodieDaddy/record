@@ -15,8 +15,8 @@
       </view>
     </view>
 
-    <view class="card-stage" bindtap="onTapDraw">
-      <view class="oracle-card">
+    <view class="mission-stage" bindtap="onTapDraw">
+      <view class="strategy-core">
         <view class="card-inner">
           <view class="card-ring card-ring--1"></view>
           <view class="card-ring card-ring--2"></view>
@@ -25,7 +25,7 @@
         </view>
       </view>
       <view class="scan-ring scan-ring--idle"></view>
-      <view class="tap-hint">点击生成</view>
+      <view class="tap-hint">校准今日状态</view>
     </view>
 
     <view class="idle-info">
@@ -61,7 +61,7 @@
     <view class="gen-checklist">
       <view class="gen-check-item {{item.done ? 'gen-check-item--done' : ''}}"
             wx:for="{{stages}}" wx:key="index">
-        <text class="gen-check-mark">{{item.done ? '✓' : (index === step ? '...' : '·')}}</text>
+        <view class="gen-check-mark {{item.done ? 'gen-check-mark--done' : index === step ? 'gen-check-mark--active' : ''}}"></view>
         <text class="gen-check-label">{{item.label}}</text>
       </view>
       <view class="gen-check-count">{{stagesDoneCount}} / 4</view>
@@ -158,12 +158,12 @@
     </view>
 
     <view class="result-actions">
-      <view class="result-btn result-btn--secondary" bindtap="onTapRefresh">
-        <text class="result-btn-label">重新生成</text>
+      <view class="flight-secondary" bindtap="onTapRefresh">
+        <text class="result-btn-label">重新推演</text>
         <text class="result-btn-code">REGEN</text>
       </view>
-      <view class="result-btn result-btn--primary" bindtap="onTapShare">
-        <text class="result-btn-label">分享策略卡</text>
+      <view class="flight-primary" bindtap="onTapShare">
+        <text class="result-btn-label">发送策略卡</text>
         <text class="result-btn-code result-btn-code--primary">SHARE</text>
       </view>
     </view>
@@ -176,7 +176,7 @@
 
   <!-- ═══ error 屏 ═══ -->
   <view class="error-screen" wx:if="{{phase === 'error'}}">
-    <view class="error-icon">!</view>
+    <view class="error-icon"><text class="error-icon-symbol">!</text></view>
     <view class="error-title">策略推演失败</view>
     <view class="error-text">系统暂时无法生成今日策略</view>
     <view class="error-actions">
@@ -189,7 +189,7 @@
     <view class="poster-container">
 
       <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
-        <text class="poster-gen-text">正在生成档案...</text>
+        <text class="poster-gen-text">正在生成策略卡...</text>
         <view class="poster-gen-bar">
           <view class="poster-gen-bar-fill"></view>
         </view>
@@ -222,9 +222,9 @@
   <terminal-popup
     wx:if="{{showRefreshConfirm}}"
     visible="{{showRefreshConfirm}}"
-    title="重新生成"
+    title="重新推演"
     subtitle="REGENERATE"
-    content="确定要重新生成今日策略？"
+    content="确定要重新推演今日策略？"
     cancelText="取消"
     confirmText="确认"
     confirmType="primary"

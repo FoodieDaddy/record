@@ -7,7 +7,7 @@
       <view class="loading-dot dot-2"></view>
       <view class="loading-dot dot-3"></view>
     </view>
-    <text class="loading-label">正在生成档案...</text>
+    <text class="loading-label">正在生成档案卡...</text>
     <text class="loading-hint">正在解析任务数据</text>
   </view>
 
@@ -39,7 +39,7 @@
     <!-- 1. 最终排名 -->
     <view class="section-card" wx:if="{{rankedMembers.length > 0}}">
       <view class="card-header">
-        <view class="card-title">实时序列</view>
+        <view class="card-title">封存序列</view>
         <view class="card-kicker">SEQUENCE</view>
         <view class="sr-card-line card-line"></view>
       </view>

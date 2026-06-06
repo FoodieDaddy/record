@@ -61,14 +61,35 @@
   background: rgba(10,132,255,0.08);
 }
 
-.vo-close-x {
-  font-size: 22rpx;
-  color: rgba(255,255,255,0.38);
-  line-height: 1;
+.vo-close-icon {
+  width: 20rpx;
+  height: 20rpx;
+  position: relative;
 }
 
-.vo-close:active .vo-close-x {
-  color: rgba(10,132,255,0.72);
+.vo-close-icon::before,
+.vo-close-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18rpx;
+  height: 2rpx;
+  background: rgba(255,255,255,0.38);
+  transform-origin: center;
+}
+
+.vo-close-icon::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.vo-close-icon::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.vo-close:active .vo-close-icon::before,
+.vo-close:active .vo-close-icon::after {
+  background: rgba(10,132,255,0.72);
 }
 
 /* ===== 数值总览面板 ===== */

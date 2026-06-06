@@ -72,7 +72,7 @@
     </view>
 
     <button
-      class="login-btn {{loading ? 'is-loading' : ''}}"
+      class="login-btn flight-primary {{loading ? 'is-loading' : ''}}"
       hover-class="login-btn--hover"
       hover-stay-time="100"
       bindtap="onLogin"

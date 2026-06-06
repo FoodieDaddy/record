@@ -10,6 +10,6 @@
   </block>
 
   <view class="cancel-btn" wx:if="{{isOwner && (round.status === 1 || round.status === 2)}}" catchtap="onCancel">
-    取消
+    <text class="cancel-text">取消</text>
   </view>
 </view>

@@ -34,7 +34,7 @@
       <text class="picker-title">人格协议编辑器</text>
     </view>
     <view class="picker-close" bindtap="onClose">
-      <text class="close-icon">x</text>
+      <view class="close-icon-css"></view>
     </view>
   </view>
 
@@ -98,7 +98,7 @@
       <view class="apply-btn {{syncing ? 'apply-syncing' : ''}} {{syncSuccess ? 'apply-success' : ''}} {{syncError ? 'apply-error' : ''}}" bindtap="onConfirm">
         <text class="apply-kicker">APPLY</text>
         <text class="apply-text" wx:if="{{syncing}}">人格协议同步中...</text>
-        <text class="apply-text" wx:elif="{{syncSuccess}}">✓ 人格协议已更新</text>
+        <text class="apply-text" wx:elif="{{syncSuccess}}">人格协议已更新</text>
         <text class="apply-text apply-error-text" wx:elif="{{syncError}}">{{syncError}}</text>
         <text class="apply-text" wx:else>同步人格协议</text>
       </view>

@@ -1,6 +1,6 @@
 <wxs src="./room.wxs" module="fmt" />
 <wxs src="../../utils/truncate.wxs" module="t" />
-<view class="room-page">
+<view class="room-page {{!animationEnabled ? 'reduce-motion' : ''}}">
   <!-- WS 断线遮罩 -->
   <view class="ws-mask {{wsReconnecting ? 'ws-mask--show' : ''}}" catchtap catchtouchmove="preventClose">
     <view class="ws-mask__card glass-card">
@@ -12,7 +12,7 @@
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
     <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
-    <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可开启或接入空间</text>
+    <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可启动或接入空间</text>
     <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
   </view>
 
@@ -66,7 +66,7 @@
         <view class="cyber-cards">
           <view class="sr-t-base cyber-opt-card {{roundInputMethod === 1 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="1">
             <view class="cyber-opt-status" wx:if="{{roundInputMethod === 1}}">
-              <text class="cyber-opt-check">✓</text>
+              <view class="cyber-opt-check"></view>
               <text class="cyber-opt-status-text">已启用</text>
             </view>
             <text class="cyber-opt-title">主控填写</text>
@@ -75,7 +75,7 @@
           </view>
           <view class="sr-t-base cyber-opt-card {{roundInputMethod === 2 ? 'cyber-opt-active' : ''}}" bindtap="selectRoundInputMethod" data-value="2">
             <view class="cyber-opt-status" wx:if="{{roundInputMethod === 2}}">
-              <text class="cyber-opt-check">✓</text>
+              <view class="cyber-opt-check"></view>
               <text class="cyber-opt-status-text">已启用</text>
             </view>
             <text class="cyber-opt-title">成员自填</text>
@@ -199,7 +199,7 @@
       <view class="cyber-divider"></view>
       <view class="cyber-create-btn" bindtap="createRoom">
         <view class="sr-t-base cyber-create-inner {{creating ? 'btn-loading' : ''}}">
-          <text class="cyber-create-text">开启空间</text>
+          <text class="cyber-create-text">启动空间</text>
           <text class="cyber-create-sub">INIT</text>
         </view>
       </view>
@@ -402,7 +402,7 @@
                   bindtap="onTapMember" data-user-id="{{item.userId}}">
               <view class="mg-avatar-wrap">
                 <helmet-avatar
-                  src="{{item.avatarUrl}}"
+                  src="{{item.avatarUrl || ''}}"
                   size="sm"
                   active="{{item.userId === transferTo}}"
                   controller="{{item.isHost}}"
@@ -482,7 +482,7 @@
           <view class="transfer-player">
             <text class="transfer-role-label">源成员</text>
             <helmet-avatar
-              src="{{transferFromInfo.avatarUrl}}"
+              src="{{transferFromInfo.avatarUrl || ''}}"
               size="sm"
               active
               showStatus="{{false}}"
@@ -498,7 +498,7 @@
           <view class="transfer-player">
             <text class="transfer-role-label">目标成员</text>
             <helmet-avatar
-              src="{{transferToInfo.avatarUrl}}"
+              src="{{transferToInfo.avatarUrl || ''}}"
               size="sm"
               active
               showStatus="{{false}}"
@@ -620,7 +620,7 @@
     <view class="share-sheet" catchtap="preventClose">
       <view class="detail-header">
         <text class="section-title" style="margin-bottom:0;">邀请成员</text>
-        <view class="detail-close" bindtap="closeShareSheet">×</view>
+        <view class="fi fi--close" bindtap="closeShareSheet"></view>
       </view>
       <!-- 二维码 -->
       <view class="share-qr-section" wx:if="{{currentRoom.qrCodeUrl}}">
@@ -665,7 +665,7 @@
       <view class="settle-top-bar">
         <view class="settle-close-cyber" bindtap="closeSettleOverlay">
           <view class="settle-close-ring">
-            <view class="settle-close-x">✕</view>
+            <view class="fi fi--close"></view>
           </view>
         </view>
       </view>

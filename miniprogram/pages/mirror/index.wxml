@@ -25,9 +25,9 @@
       <block wx:if="{{!mbti.calibrated}}">
         <view class="protocol-empty">
           <text class="empty-hint">未完成人格校准</text>
-          <text class="empty-desc">完成 20 个快速判断，建立你的初始博弈人格模型。</text>
+          <text class="empty-desc">完成 20 个快速判断，建立你的初始行为人格模型。</text>
           <view class="card-actions">
-            <view class="term-btn" bindtap="startMbtiTest">认知校准</view>
+            <view class="term-btn" bindtap="startMbtiTest">启动校准</view>
             <view class="term-btn ghost" bindtap="openMbtiPicker">直接选择</view>
           </view>
         </view>
@@ -59,8 +59,8 @@
         </view>
 
         <view class="protocol-actions">
-          <view class="term-btn-sm" bindtap="startMbtiTest">重新校准</view>
-          <view class="term-btn-sm ghost" bindtap="openMbtiPicker">人格重构</view>
+          <view class="term-btn-sm flight-secondary" bindtap="startMbtiTest">校准协议</view>
+          <view class="term-btn-sm flight-secondary" bindtap="openMbtiPicker">修订协议</view>
         </view>
       </block>
     </view>
@@ -133,7 +133,7 @@
         <!-- Checklist -->
         <view class="checklist-wrap">
           <view class="checklist-row" wx:for="{{confidenceChecklist}}" wx:key="label">
-            <text class="checklist-icon {{item.done ? 'check-done' : 'check-pending'}}">{{item.done ? '✓' : '—'}}</text>
+            <view class="checklist-dot {{item.done ? 'check-done' : 'check-pending'}}"></view>
             <text class="checklist-label">{{item.label}}</text>
           </view>
         </view>
@@ -321,10 +321,9 @@
 
   </block>
 
-  <!-- 固定底部：生成档案按钮 -->
-  <view class="dossier-btn-fixed {{reduceMotion ? '' : 'scan-glow'}}" wx:if="{{!loading}}" bindtap="generateDossier">
-    <text class="dossier-text">生成档案</text>
-    <text class="dossier-sub">DOSSIER</text>
+  <!-- 固定底部：飞控主控条 -->
+  <view class="dossier-bar {{reduceMotion ? '' : 'scan-glow'}}" wx:if="{{!loading}}" bindtap="generateDossier">
+    <text class="flight-primary dossier-btn">生成档案</text>
   </view>
 
   <!-- MBTI 滑动测试 -->

@@ -667,8 +667,12 @@
   margin-bottom: 8rpx;
 }
 .cyber-opt-check {
-  font-size: 18rpx;
-  color: #00BFFF;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #00BFFF;
+  box-shadow: 0 0 8rpx rgba(0, 191, 255, 0.45);
+  flex-shrink: 0;
 }
 .cyber-opt-status-text {
   font-size: 16rpx;
@@ -1513,6 +1517,13 @@
   background: rgba(255,255,255,0.08);
 }
 
+/* 弹窗头部内关闭图标：去除 fi 默认边框，保持轻量 */
+.detail-header .fi {
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+}
+
 /* ===== 计分动画 ===== */
 .transfer-anim-overlay {
   position: fixed;
@@ -2209,6 +2220,11 @@
   justify-content: center;
   animation: settleBreathe 3s ease-in-out infinite;
 }
+.settle-close-ring .fi {
+  border: none;
+  background: none;
+  color: rgba(0, 175, 255, 0.72);
+}
 
 @keyframes settleBreathe {
   0%, 100% { border-color: rgba(0, 175, 255, 0.25); box-shadow: 0 0 0 rgba(0, 175, 255, 0); }
@@ -2617,5 +2633,4 @@
   font-size: 28rpx;
   letter-spacing: 2rpx;
 }
-
 

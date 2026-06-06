@@ -31,8 +31,8 @@
   <!-- 空状态 -->
   <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
     <text class="empty-kicker">EMPTY</text>
-    <text class="empty-text">暂无任务档案</text>
-    <text class="empty-hint">完成一次任务封存后，脉冲日志将写入身份终端</text>
+    <text class="empty-text">暂无封存记录</text>
+    <text class="empty-hint">完成一次空间封存后写入日志</text>
   </view>
 
   <!-- 有数据时 -->
@@ -92,8 +92,8 @@
           <text class="match-card__time">{{item.settledAt}}</text>
         </view>
         <view class="match-card__result">
-          <text class="match-card__label">RESULT</text>
-          <text class="match-card__label-cn">任务结果</text>
+          <text class="match-card__label">SUMMARY</text>
+          <text class="match-card__label-cn">封存摘要</text>
         </view>
         <view class="match-card__players">
           <view

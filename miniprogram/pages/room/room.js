@@ -781,7 +781,7 @@ Page({
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
-      wx.showToast({ title: '空间已开启', icon: 'success' });
+      wx.showToast({ title: '空间已启动', icon: 'success' });
     } catch (e) {
       wx.showToast({ title: (e && e.message) || '创建失败', icon: 'none', duration: 2000 });
     } finally {

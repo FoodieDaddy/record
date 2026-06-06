@@ -5,7 +5,7 @@
   <!-- 未校准状态 -->
   <block wx:if="{{!mbti.calibrated}}">
     <view class="card-desc">未完成人格镜像校准</view>
-    <view class="card-hint">完成 20 个快速判断，建立你的初始博弈人格模型。</view>
+    <view class="card-hint">完成 20 个快速判断，建立你的初始行为人格模型。</view>
     <view class="card-actions">
       <view class="primary-btn" bindtap="onStartTest">20题校准</view>
       <view class="ghost-btn" bindtap="onDirectInput">协议修订</view>

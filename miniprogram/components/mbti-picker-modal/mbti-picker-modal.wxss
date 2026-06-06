@@ -189,9 +189,29 @@
   background: transparent;
 }
 
-.close-icon {
-  font-size: 32rpx;
-  color: rgba(124, 134, 152, 0.70);
+.close-icon-css {
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.close-icon-css::before,
+.close-icon-css::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20rpx;
+  height: 2rpx;
+  background: rgba(124, 134, 152, 0.70);
+}
+
+.close-icon-css::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-icon-css::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .picker-hint {

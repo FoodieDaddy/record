@@ -605,3 +605,276 @@ page {
   animation: none !important;
   transition: none !important;
 }
+
+/* ==========================================================
+   飞控座舱风格 — 全局控件 token
+   ========================================================== */
+
+/* ===== 飞控主按钮 ===== */
+.flight-primary {
+  position: relative;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(10,132,255,0.45);
+  background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(0,200,255,0.08));
+  color: #00C8FF;
+  font-size: 30rpx;
+  font-weight: 700;
+  letter-spacing: 5rpx;
+  box-shadow: 0 0 32rpx rgba(10,132,255,0.10);
+  text-align: center;
+  overflow: hidden;
+}
+.flight-primary::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.55), transparent);
+}
+.flight-primary:active {
+  background: linear-gradient(135deg, rgba(10,132,255,0.32), rgba(0,200,255,0.14));
+}
+.flight-primary.is-loading {
+  color: transparent;
+}
+.flight-primary.is-loading .flight-loading {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 36rpx;
+  height: 36rpx;
+  border: 3rpx solid rgba(0,200,255,0.3);
+  border-top-color: #00C8FF;
+  border-radius: 50%;
+  animation: fpSpin 0.8s linear infinite;
+}
+@keyframes fpSpin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ===== 飞控次按钮 ===== */
+.flight-secondary {
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.025);
+  color: rgba(255,255,255,0.62);
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+  text-align: center;
+}
+.flight-secondary:active {
+  background: rgba(255,255,255,0.06);
+}
+
+/* ===== 飞控危险按钮 ===== */
+.flight-danger {
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(255,69,58,0.35);
+  background: rgba(255,69,58,0.06);
+  color: #FF453A;
+  font-size: 28rpx;
+  letter-spacing: 4rpx;
+  text-align: center;
+}
+.flight-danger:active {
+  background: rgba(255,69,58,0.14);
+}
+
+/* ===== 飞控拨片 ===== */
+.flight-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 24rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.025);
+  color: rgba(255,255,255,0.56);
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+}
+.flight-chip.is-active {
+  border-color: rgba(10,132,255,0.45);
+  color: #00C8FF;
+  background: rgba(10,132,255,0.08);
+}
+.flight-chip.is-active::before {
+  content: '';
+  display: inline-block;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #00C8FF;
+  margin-right: 10rpx;
+  box-shadow: 0 0 8rpx rgba(0,200,255,0.6);
+}
+
+/* ===== 航电开关 ===== */
+.avionics-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+.avionics-switch__track {
+  position: relative;
+  width: 96rpx;
+  height: 48rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.avionics-switch__track.is-on {
+  border-color: rgba(10,132,255,0.45);
+  background: rgba(10,132,255,0.12);
+}
+.avionics-switch__thumb {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transition: transform 0.25s, background-color 0.25s;
+}
+.avionics-switch__track.is-on .avionics-switch__thumb {
+  transform: translateX(48rpx);
+  background: #0A84FF;
+  box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
+}
+.avionics-switch__label {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.72);
+}
+.avionics-switch__status {
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  margin-left: 12rpx;
+  color: rgba(255,255,255,0.34);
+}
+.avionics-switch__track.is-on .avionics-switch__status {
+  color: #0A84FF;
+}
+
+/* ===== 飞控线图标 ===== */
+.fi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.025);
+  color: rgba(255,255,255,0.56);
+  font-size: 28rpx;
+}
+.fi:active {
+  background: rgba(255,255,255,0.06);
+}
+.fi--close::before,
+.fi--copy::before,
+.fi--share::before,
+.fi--scan::before,
+.fi--arrow::before,
+.fi--random::before {
+  content: '';
+  display: block;
+}
+/* 关闭图标：X 线条 */
+.fi--close {
+  position: relative;
+}
+.fi--close::before,
+.fi--close::after {
+  content: '';
+  position: absolute;
+  width: 20rpx;
+  height: 2rpx;
+  background: currentColor;
+  top: 50%;
+  left: 50%;
+}
+.fi--close::before { transform: translate(-50%, -50%) rotate(45deg); }
+.fi--close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+/* ===== 飞控底部主控条 ===== */
+.flight-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, transparent, rgba(10,10,10,0.95) 30%);
+  z-index: 100;
+}
+
+/* ===== 终端弹窗遮罩 ===== */
+.terminal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.terminal-modal {
+  width: 640rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(10,132,255,0.22);
+  background: linear-gradient(180deg, rgba(30,30,30,0.98), rgba(18,18,18,0.98));
+  box-shadow: 0 0 48rpx rgba(10,132,255,0.08);
+  padding: 48rpx 40rpx;
+  position: relative;
+}
+.terminal-modal::before {
+  content: '';
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.5), transparent);
+}
+.terminal-modal__kicker {
+  font-size: 18rpx;
+  letter-spacing: 5rpx;
+  color: rgba(10,132,255,0.48);
+  margin-bottom: 12rpx;
+}
+.terminal-modal__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  margin-bottom: 20rpx;
+}
+.terminal-modal__content {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.56);
+  line-height: 1.7;
+  margin-bottom: 40rpx;
+}
+.terminal-modal__actions {
+  display: flex;
+  gap: 20rpx;
+}
+.terminal-modal__actions .flight-primary,
+.terminal-modal__actions .flight-secondary,
+.terminal-modal__actions .flight-danger {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: 26rpx;
+}
