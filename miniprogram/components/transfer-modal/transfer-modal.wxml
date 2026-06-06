@@ -28,7 +28,7 @@
     <view class="modal-actions">
       <button class="btn-cancel" bindtap="onClose">取消</button>
       <button class="btn-confirm" bindtap="onConfirm" disabled="{{!canConfirm}}">
-        确认记录
+        确认记录脉冲
       </button>
     </view>
   </view>

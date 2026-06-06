@@ -34,7 +34,7 @@ Component({
       }));
       const hasEmpty = members.some(m => scoreInputs[m.userId] === '' || scoreInputs[m.userId] === undefined);
       if (hasEmpty) {
-        wx.showToast({ title: '请填写所有成员数值', icon: 'none' });
+        wx.showToast({ title: '请填写所有舰员数值', icon: 'none' });
         return;
       }
       if (zeroSum === 1 && totalScore !== 0) {
