@@ -1,4 +1,4 @@
-<view class="radar-wrap">
+<view class="radar-wrap {{heroMode ? 'radar-hero' : ''}}">
   <canvas
     type="2d"
     id="radarCanvas"
@@ -6,6 +6,11 @@
     style="width:{{size}}rpx;height:{{size}}rpx;"
     bindtap="onCanvasTap"
   ></canvas>
+
+  <!-- hero 模式中心标签 -->
+  <view class="hero-center" wx:if="{{heroMode && heroLabel}}">
+    <text class="hero-center-text">{{heroLabel}}</text>
+  </view>
 
   <!-- 浮窗 -->
   <view

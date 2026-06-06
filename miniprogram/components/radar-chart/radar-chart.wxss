@@ -47,3 +47,29 @@
   text-align: center;
   line-height: 1.5;
 }
+
+/* hero 模式 */
+.radar-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.hero-center-text {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--color-cyan, #00C8FF);
+  font-family: 'SF Mono', 'Courier New', monospace;
+  letter-spacing: 6rpx;
+  text-shadow: 0 0 16rpx rgba(0, 200, 255, 0.30);
+}

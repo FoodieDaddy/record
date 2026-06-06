@@ -40,6 +40,14 @@ Component({
     locked: {
       type: Boolean,
       value: false
+    },
+    heroMode: {
+      type: Boolean,
+      value: false
+    },
+    heroLabel: {
+      type: String,
+      value: ''
     }
   },
 
