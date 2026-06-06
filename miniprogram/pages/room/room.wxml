@@ -11,10 +11,10 @@
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
-    <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
-    <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可启动或接入空间</text>
+    <text class="text-lg text-bold" style="margin-bottom:12rpx;">终端未接入</text>
+    <text class="text-secondary" style="margin-bottom:40rpx;">接入终端后可启动或接入任务空间</text>
     <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
-      <text>去登录</text>
+      <text>接入终端</text>
     </view>
   </view>
 

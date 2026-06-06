@@ -793,7 +793,7 @@ Page({
       this.connectWS(room.roomId);
       wx.showToast({ title: '空间已启动', icon: 'success' });
     } catch (e) {
-      wx.showToast({ title: (e && e.message) || '创建失败', icon: 'none', duration: 2000 });
+      wx.showToast({ title: (e && e.message) || '启动失败', icon: 'none', duration: 2000 });
     } finally {
       this.setData({ creating: false });
     }
@@ -838,7 +838,7 @@ Page({
         // 身份重叠：弹窗引导修改昵称
         this.setData({ showNameCollisionModal: true });
       } else {
-        wx.showToast({ title: (e && e.message) || '加入失败', icon: 'none', duration: 2000 });
+        wx.showToast({ title: (e && e.message) || '接入失败', icon: 'none', duration: 2000 });
       }
     }
   },
@@ -982,7 +982,7 @@ Page({
         toUserId: transferTo,
         amount
       });
-      this.showToast('记录成功');
+      this.showToast('脉冲已记录');
     } catch (e) {
       console.error('记录失败', e);
       // 回滚：重新拉取权威数据
@@ -1027,7 +1027,7 @@ Page({
       if (room.trustMode === 0 && resp.status === 2) {
         this.setData({ showRoundConfirm: true });
       }
-      this.showToast('录入成功');
+      this.showToast('录入已提交');
     } catch (e) {
       wx.showToast({ title: e.message || '提交失败', icon: 'none' });
     }
@@ -1309,14 +1309,14 @@ Page({
     const isOwner = this.data.isOwner;
     // 非房主退出需要确认（房主已通过 SYSTEM WARNING 弹窗确认）
     if (!isOwner) {
-      const { confirm } = await wx.showModal({ title: '确认退出？', content: '' });
+      const { confirm } = await wx.showModal({ title: '确认退出当前空间？', content: '' });
       if (!confirm) return;
     }
     const roomId = this.data.currentRoom.roomId;
     try {
       if (isOwner) {
         this._settling = true;
-        wx.showLoading({ title: '正在归档...' });
+        wx.showLoading({ title: '正在封存航程...' });
         // 1. 先归档数据
         const settleResp = await post(`/score/room/${roomId}/settle`);
         // 2. 解散空间（必须 await，确保后端清理完成）
@@ -1334,13 +1334,13 @@ Page({
           this.showSettleFromResp(settleResp);
         } else {
           this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
-          wx.showToast({ title: '暂无可封存数据', icon: 'none', duration: 2000 });
+          wx.showToast({ title: '暂无可封存的航程数据', icon: 'none', duration: 2000 });
         }
       } else {
         await del(`/room/${roomId}/quit`);
         app.disconnectWS();
         this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
-        wx.showToast({ title: '已退出', icon: 'success' });
+        wx.showToast({ title: '已断开', icon: 'success' });
       }
     } catch (e) {
       this._settling = false;
