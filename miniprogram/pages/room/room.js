@@ -189,6 +189,7 @@ Page({
       clearTimeout(this._toastTimer);
       this._toastTimer = null;
     }
+    this.stopSealHeartbeat();
   },
 
   updateCockpitState() {
@@ -320,29 +321,8 @@ Page({
     try {
       this.setData({ transferTo: this.data.selectedCrew.userId });
       await this.submitTransfer(amount);
-      const traces = this.data.pulseTraces.slice();
-      const fromName = '我';
-      const toName = this.data.selectedCrew.displayName;
-      traces.push({
-        id: Date.now(),
-        title: `${fromName} → ${toName}`,
-        desc: `脉冲 ${amount > 0 ? '+' : ''}${amount} 已写入缓冲区`,
-        valueText: `${amount > 0 ? '+' : ''}${amount}`,
-        valueClass: amount < 0 ? 'is-negative' : '',
-        isNew: true
-      });
-      this.setData({
-        pulseTraces: traces,
-        pulseValue: '',
-        traceAnchor: `trace-${traces[traces.length - 1].id}`
-      });
-      const traceId = traces[traces.length - 1].id;
-      setTimeout(() => {
-        const current = this.data.pulseTraces.map(t =>
-          t.id === traceId ? { ...t, isNew: false } : t
-        );
-        this.setData({ pulseTraces: current });
-      }, 3000);
+      this.addPulseTrace('我', this.data.selectedCrew.displayName, amount);
+      this.setData({ pulseValue: '' });
     } catch (err) {
       // submitTransfer 内部已有错误处理
     } finally {
@@ -392,6 +372,33 @@ Page({
       clearInterval(this._sealHeartbeatTimer);
       this._sealHeartbeatTimer = null;
     }
+  },
+
+  /** 添加脉冲轨迹，自动截断旧记录并设置 isNew 标记 */
+  addPulseTrace(fromName, toName, amount) {
+    const MAX_TRACES = 50;
+    const traces = this.data.pulseTraces.slice();
+    this._traceSeq = (this._traceSeq || 0) + 1;
+    const id = this._traceSeq;
+    traces.push({
+      id,
+      title: `${fromName} → ${toName}`,
+      desc: `脉冲 ${amount > 0 ? '+' : ''}${amount} 已写入缓冲区`,
+      valueText: `${amount > 0 ? '+' : ''}${amount}`,
+      valueClass: amount < 0 ? 'is-negative' : '',
+      isNew: true
+    });
+    if (traces.length > MAX_TRACES) traces.splice(0, traces.length - MAX_TRACES);
+    this.setData({
+      pulseTraces: traces,
+      traceAnchor: `trace-${id}`
+    });
+    setTimeout(() => {
+      const current = this.data.pulseTraces.map(t =>
+        t.id === id ? { ...t, isNew: false } : t
+      );
+      this.setData({ pulseTraces: current });
+    }, 3000);
   },
 
   goLogin() {
@@ -810,23 +817,7 @@ Page({
         const fromMember = (this.data.currentRoom.members || []).find(m => String(m.userId) === String(data.fromUserId));
         const toMember = (this.data.currentRoom.members || []).find(m => String(m.userId) === String(data.toUserId));
         if (fromMember && toMember) {
-          const traces = this.data.pulseTraces.slice();
-          traces.push({
-            id: Date.now() + Math.random(),
-            title: `${this.formatCrewName(fromMember.nickname)} → ${this.formatCrewName(toMember.nickname)}`,
-            desc: `脉冲 ${data.amount > 0 ? '+' : ''}${data.amount} 已写入缓冲区`,
-            valueText: `${data.amount > 0 ? '+' : ''}${data.amount}`,
-            valueClass: data.amount < 0 ? 'is-negative' : '',
-            isNew: true
-          });
-          this.setData({ pulseTraces: traces, traceAnchor: `trace-${traces[traces.length - 1].id}` });
-          const traceId = traces[traces.length - 1].id;
-          setTimeout(() => {
-            const current = this.data.pulseTraces.map(t =>
-              t.id === traceId ? { ...t, isNew: false } : t
-            );
-            this.setData({ pulseTraces: current });
-          }, 3000);
+          this.addPulseTrace(this.formatCrewName(fromMember.nickname), this.formatCrewName(toMember.nickname), data.amount);
         }
 
         // 仅收分方语音播报（旁观者不播放）
