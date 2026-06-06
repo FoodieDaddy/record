@@ -464,7 +464,7 @@ Page({
     this.setData({ nickname });
     this.updateAvatar();
     this.debouncedSave();
-    wx.showToast({ title: '代号已更新', icon: 'none', duration: 1200 });
+    wx.showToast({ title: '舰员代号已更新', icon: 'none', duration: 1200 });
   },
 
   // ========== 导航 ==========
@@ -478,7 +478,7 @@ Page({
   },
 
   goAbout() {
-    wx.showToast({ title: '脉冲终端 v1.0', icon: 'none' });
+    wx.showToast({ title: '脉冲方舟 v1.0', icon: 'none' });
   },
 
   // ========== 自动保存 ==========
@@ -577,7 +577,7 @@ Page({
 
   async onLogout() {
     const { confirm } = await wx.showModal({
-      title: '系统警告',
+      title: '终端警告',
       content: '确认结束当前会话？退出后需要重新授权接入。',
       confirmText: '结束会话',
       confirmColor: '#FF4D4F',

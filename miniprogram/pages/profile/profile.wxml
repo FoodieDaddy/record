@@ -4,10 +4,10 @@
     <view class="empty-state__icon">
       <view class="svg-icon svg-icon--lock"></view>
     </view>
-    <text class="empty-state__title">尚未登录</text>
-    <text class="empty-state__desc">登录后即可管理个人信息</text>
+    <text class="empty-state__title">终端未接入</text>
+    <text class="empty-state__desc">接入终端后可管理舰员档案</text>
     <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
-      <text>去登录</text>
+      <text>接入终端</text>
     </view>
   </view>
 
@@ -38,7 +38,7 @@
           />
         </button>
         <view class="identity__info">
-          <text class="identity__code-label">成员代号</text>
+          <text class="identity__code-label">舰员代号</text>
           <text class="identity__player-code">{{playerCode}}</text>
           <view class="identity__name-row">
             <input
@@ -62,11 +62,11 @@
       </view>
       <view class="identity__meta">
         <view class="identity__meta-col">
-          <text class="identity__meta-label">加入时间</text>
+          <text class="identity__meta-label">接入时间</text>
           <text class="identity__meta-value">{{daysSinceJoined}} Days</text>
         </view>
         <view class="identity__meta-col">
-          <text class="identity__meta-label">累计任务</text>
+          <text class="identity__meta-label">航程样本</text>
           <text class="identity__meta-value">{{matchCount}} Missions</text>
         </view>
         <view class="identity__meta-col">
@@ -83,28 +83,28 @@
       <text class="term-kicker-sub">MATRIX</text>
       <view class="stats-grid">
         <view class="stats-cell">
-          <text class="stats-cell__label">净数值</text>
+          <text class="stats-cell__label">累计脉冲</text>
           <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--negative' : 'stats-cell__value--zero'}}">{{totalScore}}</text>
           <view class="stats-cell__bar">
             <view class="stats-cell__bar-fill {{totalScore > 0 ? 'bar-positive' : totalScore < 0 ? 'bar-negative' : 'bar-zero'}}" style="width:{{totalScore > 0 ? Math.min(totalScore / 10, 100) : totalScore < 0 ? Math.min(-totalScore / 10, 100) : 2}}%;"></view>
           </view>
-          <text class="stats-cell__sub">累计数值</text>
+          <text class="stats-cell__sub">黑匣子样本</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">正反馈率</text>
+          <text class="stats-cell__label">稳定指数</text>
           <text class="stats-cell__value {{winRate >= 60 ? 'stats-cell__value--high' : winRate >= 40 ? 'stats-cell__value--mid' : 'stats-cell__value--low'}}">{{winRate}}%</text>
           <view class="stats-cell__bar">
             <view class="stats-cell__bar-fill {{winRate >= 60 ? 'bar-high' : winRate >= 40 ? 'bar-mid' : 'bar-low'}}" style="width:{{winRate}}%;"></view>
           </view>
-          <text class="stats-cell__sub">正反馈率</text>
+          <text class="stats-cell__sub">稳定指数</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">任务数</text>
+          <text class="stats-cell__label">样本数</text>
           <text class="stats-cell__value stats-cell__value--cyan">{{matchCount}}</text>
           <view class="stats-cell__bar">
             <view class="stats-cell__bar-fill bar-cyan" style="width:{{matchCount > 0 ? Math.min(matchCount * 2, 100) : 2}}%;"></view>
           </view>
-          <text class="stats-cell__sub">样本数</text>
+          <text class="stats-cell__sub">黑匣子样本</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">稳定性</text>
