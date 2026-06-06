@@ -30,15 +30,15 @@
   <!-- 头部 -->
   <view class="picker-header">
     <view class="picker-header-left">
-      <text class="picker-kicker">EDITOR</text>
-      <text class="picker-title">人格协议编辑器</text>
+      <text class="picker-kicker">QUICK SYNC</text>
+      <text class="picker-title">协议快速接入</text>
     </view>
     <view class="picker-close">
       <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
     </view>
   </view>
 
-  <view class="picker-hint">选择 4 个维度，生成你的 MBTI 协议。</view>
+  <view class="picker-hint">选择 4 个维度，立即写入当前人格协议。</view>
 
   <view class="picker-divider"></view>
 
@@ -96,11 +96,11 @@
 
       <!-- 同步按钮 -->
       <view class="apply-btn {{syncing ? 'apply-syncing' : ''}} {{syncSuccess ? 'apply-success' : ''}} {{syncError ? 'apply-error' : ''}}" bindtap="onConfirm">
-        <text class="apply-kicker">APPLY</text>
-        <text class="apply-text" wx:if="{{syncing}}">人格协议同步中...</text>
-        <text class="apply-text" wx:elif="{{syncSuccess}}">人格协议已更新</text>
+        <text class="apply-kicker">WRITE</text>
+        <text class="apply-text" wx:if="{{syncing}}">协议写入中...</text>
+        <text class="apply-text" wx:elif="{{syncSuccess}}">协议已同步</text>
         <text class="apply-text apply-error-text" wx:elif="{{syncError}}">{{syncError}}</text>
-        <text class="apply-text" wx:else>同步人格协议</text>
+        <text class="apply-text" wx:else>写入人格协议</text>
       </view>
 
     </view>

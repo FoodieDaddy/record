@@ -4,10 +4,10 @@ var MBTI_TRAITS = require('../../utils/mbti-const').MBTI_TRAITS;
 var vibrateShort = require('../../utils/haptic').vibrateShort;
 
 var PAIRS = [
-  { key: 'EI', options: [{ code: 'E', label: '外向' }, { code: 'I', label: '内向' }], dimLabel: '外向 / 内向' },
-  { key: 'SN', options: [{ code: 'S', label: '感知' }, { code: 'N', label: '直觉' }], dimLabel: '感知 / 直觉' },
-  { key: 'TF', options: [{ code: 'T', label: '思维' }, { code: 'F', label: '情感' }], dimLabel: '思维 / 情感' },
-  { key: 'JP', options: [{ code: 'J', label: '判断' }, { code: 'P', label: '感知' }], dimLabel: '判断 / 感知' }
+  { key: 'EI', options: [{ code: 'E', label: '外向' }, { code: 'I', label: '内向' }], dimLabel: '外向 / 内向 · 能量接入方式' },
+  { key: 'SN', options: [{ code: 'S', label: '感知' }, { code: 'N', label: '直觉' }], dimLabel: '感知 / 直觉 · 信息读取方式' },
+  { key: 'TF', options: [{ code: 'T', label: '思维' }, { code: 'F', label: '情感' }], dimLabel: '思维 / 情感 · 判断决策方式' },
+  { key: 'JP', options: [{ code: 'J', label: '判断' }, { code: 'P', label: '感知' }], dimLabel: '判断 / 感知 · 节奏控制方式' }
 ];
 
 var DEFAULTS = ['I', 'N', 'T', 'J'];
