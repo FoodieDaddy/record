@@ -56,7 +56,8 @@ public class FortuneServiceImpl implements FortuneService {
             "\u7ffb\u672c", "\u8ffd\u635f", "\u7b97\u547d", "\u5360\u535c", "\u5854\u7f57", "\u62bd\u724c",
             "\u795e\u8c15", "\u5366\u8c61", "\u9ec4\u5386", "\u98ce\u6c34", "\u9884\u6d4b\u8f93\u8d62",
             "\u80dc\u7387\u63d0\u5347", "ALL-IN", "\u8fd0\u52bf", "\u8f6c\u8fd0", "\u5f00\u8fd0",
-            "\u6539\u547d", "\u6a2a\u8d22", "\u724c\u8fd0", "\u8d22\u8fd0"
+            "\u6539\u547d", "\u6a2a\u8d22", "\u724c\u8fd0", "\u8d22\u8fd0",
+            "\u7ffb\u76d8", "\u6b62\u635f\u7ebf", "\u5b64\u6ce8\u4e00\u63b7", "\u80dc\u7387"
     );
 
     /** LLM 系统提示词（常量，供日志记录复用） */
@@ -67,7 +68,7 @@ public class FortuneServiceImpl implements FortuneService {
 
             规则：
             - 用赛博科幻词汇和时间窗口/节奏窗口/环境变量等意象，映射到任务痛点（情绪波动、节奏管理、风险控制）
-            - 避免传统玄学词汇、结果断言和利益承诺
+            - 避免非策略化词汇、结果断言和利益承诺
             - 输出复盘建议和状态管理，语气冷静克制、赛博飞船终端感
             - 不使用emoji，不使用空泛套话，不制造焦虑
             - 使用时间窗口、节奏窗口、环境变量等表达方式
@@ -100,67 +101,67 @@ public class FortuneServiceImpl implements FortuneService {
 
     static {
         FALLBACK_POOL.put(UserTag.WINNING_STREAK, List.of(
-                buildFallback("气场如虹，连胜势能持续扩散",
-                        List.of("连胜势能加持", "心态稳定输出", "决策果断精准"),
-                        List.of("注意骄傲轻敌", "避免贪心冒进"),
+                buildFallback("当前节奏较顺，建议保持低噪执行",
+                        List.of("节奏连续", "注意力稳定", "执行链路清晰"),
+                        List.of("降低加速冲动", "保留复盘窗口"),
                         "#32D74B", "理智"),
-                buildFallback("今日状态极佳，判断与节奏共振",
-                        List.of("手感火热沸腾", "节奏感强烈", "专注力全程在线"),
-                        List.of("避免贪心冒进", "留意对手反扑"),
-                        "#32D74B", "狂热"),
-                buildFallback("高维能量涌动，主动节奏环绕",
-                        List.of("势不可挡碾压", "信心爆棚满溢", "直觉敏锐如刀"),
-                        List.of("留意对手反扑", "保持谦逊心态"),
-                        "#32D74B", "碾压")
+                buildFallback("状态读数偏高，优先维持纪律边界",
+                        List.of("判断同步", "反应稳定", "目标清楚"),
+                        List.of("避免过度扩张", "控制操作频率"),
+                        "#32D74B", "巡航"),
+                buildFallback("主动节奏可用，但不要拉高风险阈值",
+                        List.of("节奏主动", "信号明确", "执行果断"),
+                        List.of("保持冷却间隔", "确认每次变动原因"),
+                        "#32D74B", "稳态")
         ));
 
         FALLBACK_POOL.put(UserTag.LOSING_STREAK, List.of(
-                buildFallback("低谷是蓄力的过程，静待反弹",
-                        List.of("触底反弹势能", "心态沉淀内敛", "经验持续积累"),
-                        List.of("避免情绪化决策", "注意休息调整"),
-                        "#FF9F0A", "蓄力"),
-                buildFallback("今日适合观察与复盘，不宜激进",
-                        List.of("洞察力大幅增强", "冷静分析局势", "复盘经验沉淀"),
-                        List.of("连败惯性未消散", "控制投入节奏"),
-                        "#FF6B35", "潜伏"),
-                buildFallback("阴霾终将散去，保持节奏即可",
-                        List.of("韧性被动加成", "逆境快速成长", "隐忍蓄势待发"),
+                buildFallback("波动读数偏低，先压缩操作半径",
+                        List.of("复盘价值提升", "错误样本清晰", "节奏可重建"),
+                        List.of("避免情绪化修正", "增加暂停检查"),
+                        "#FF9F0A", "校准"),
+                buildFallback("今日适合观察与复盘，不宜加速",
+                        List.of("观察窗口打开", "复盘材料充足", "判断可回稳"),
+                        List.of("惯性影响未消散", "控制投入节奏"),
+                        "#FF6B35", "观察"),
+                buildFallback("先修复节奏，再恢复强度",
+                        List.of("回稳空间存在", "经验持续沉淀", "边界更清楚"),
                         List.of("切勿急于修正", "避免高风险操作"),
-                        "#FF453A", "蛰伏")
+                        "#FF453A", "回稳")
         ));
 
         FALLBACK_POOL.put(UserTag.HIGH_RISK, List.of(
-                buildFallback("波动即机遇，关键在于时机把控",
-                        List.of("高波动校准力", "爆发力惊人强劲", "时机嗅觉敏锐"),
+                buildFallback("波动读数较高，先把风险阈值下调",
+                        List.of("校准意识增强", "场景识别较快", "调整空间充足"),
                         List.of("风险敞口较大", "情绪波动影响判断"),
-                        "#FF2D55", "狂野"),
-                buildFallback("今日能量起伏剧烈，建议稳健为主",
-                        List.of("关键时刻爆发", "直觉灵敏如电", "极限操作潜力"),
+                        "#FF2D55", "警戒"),
+                buildFallback("当前状态起伏明显，建议降频处理",
+                        List.of("关键节点敏感", "反馈速度较快", "复盘材料充足"),
                         List.of("结果波动较高", "需严格控制节奏"),
                         "#AF52DE", "过载"),
-                buildFallback("极端行情下，纪律是最好的护身符",
-                        List.of("极端情境适应力", "抗压能力超群", "逆境回稳能力"),
+                buildFallback("纪律优先于强度，暂停线必须前置",
+                        List.of("极端情境适应力", "抗压能力可用", "回稳意识增强"),
                         List.of("避免冒进心态", "务必设置暂停线"),
-                        "#FF375F", "失控")
+                        "#FF375F", "警戒")
         ));
 
         FALLBACK_POOL.put(UserTag.STABLE, List.of(
-                buildFallback("平稳是最好的基底，细水长流",
-                        List.of("心态平稳如水", "节奏稳定输出", "持续高效作战"),
-                        List.of("缺乏爆发力", "注意抓住转瞬机会"),
+                buildFallback("当前基线平稳，按既定节奏推进",
+                        List.of("心态平稳", "节奏稳定", "执行效率良好"),
+                        List.of("主动性略低", "注意识别关键节点"),
                         "#0A84FF", "稳健"),
-                buildFallback("今日无明显波动，正常发挥即可",
-                        List.of("稳定发挥水准", "不易犯低级错"),
-                        List.of("可能错过风口", "需要主动出击"),
+                buildFallback("今日无明显异常，保持常规检查",
+                        List.of("稳定发挥", "低级错误较少", "边界意识清晰"),
+                        List.of("可能错过窗口", "需要定时复盘"),
                         "#0A84FF", "均衡"),
-                buildFallback("静水深流，稳健型选手的舒适区",
-                        List.of("风险控制出色", "长期节奏稳定", "心态韧性十足"),
-                        List.of("短期爆发不足", "需要适当冒险"),
+                buildFallback("稳态区间可用，适合做长期记录",
+                        List.of("风险控制出色", "长期节奏稳定", "心态韧性充足"),
+                        List.of("短期强度不足", "需要适当提速"),
                         "#0A84FF", "巡航")
         ));
 
         ARCHETYPE_POOL.put(UserTag.WINNING_STREAK, List.of(
-                new Archetype("压制者", "THE DOMINATOR", List.of("强势", "连续", "压制")),
+                new Archetype("控场者", "THE CONTROLLER", List.of("顺行", "连续", "控场")),
                 new Archetype("开拓者", "THE PIONEER", List.of("主动", "突破", "先手")),
                 new Archetype("决策者", "THE DECIDER", List.of("果断", "清晰", "执行"))
         ));
@@ -170,7 +171,7 @@ public class FortuneServiceImpl implements FortuneService {
                 new Archetype("引路者", "THE GUIDE", List.of("引导", "顺势", "直觉"))
         ));
         ARCHETYPE_POOL.put(UserTag.HIGH_RISK, List.of(
-                new Archetype("破局者", "THE BREAKER", List.of("冒险", "反转", "大胆")),
+                new Archetype("校准者", "THE CALIBRATOR", List.of("边界", "修正", "果断")),
                 new Archetype("变阵者", "THE ADAPTER", List.of("变通", "灵活", "调整")),
                 new Archetype("操盘手", "THE OPERATOR", List.of("控制", "节奏", "布局"))
         ));
@@ -487,7 +488,7 @@ public class FortuneServiceImpl implements FortuneService {
                 【时间窗口】%s
 
                 请根据以上数据，用赛博朋克+策略复盘的口吻生成今日策略。
-                判词要像高维生物的冷酷忠告，可用时间窗口/节奏窗口/环境变量等意象映射到对局策略。
+                判词要像航电终端的冷静提示，可用时间窗口、节奏窗口、环境变量等意象映射到记录策略。
                 """, tagDesc, netScore, trend, recentScores.toString(), timeContext);
 
         return prompt;

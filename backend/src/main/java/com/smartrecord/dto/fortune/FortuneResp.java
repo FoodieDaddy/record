@@ -18,7 +18,7 @@ public class FortuneResp {
     @Schema(description = "策略提示", example = "今日状态平稳，先稳住节奏")
     private String verdict;
 
-    @Schema(description = "系统增益 (Buff) 列表", example = "[\"连胜势能加持\", \"心态稳定\"]")
+    @Schema(description = "系统增益 (Buff) 列表", example = "[\"节奏连续\", \"心态稳定\"]")
     private List<String> buffs;
 
     @Schema(description = "风险警告 (Debuff) 列表", example = "[\"注意冲动计分\"]")
@@ -42,13 +42,13 @@ public class FortuneResp {
     @Schema(description = "环境窗口标签", example = "MIDDAY")
     private String solarTerm;
 
-    @Schema(description = "策略原型中文名", example = "压制者")
+    @Schema(description = "策略原型中文名", example = "控场者")
     private String title;
 
-    @Schema(description = "策略原型英文名", example = "THE DOMINATOR")
+    @Schema(description = "策略原型英文名", example = "THE CONTROLLER")
     private String subtitle;
 
-    @Schema(description = "策略标签列表", example = "[\"强势\", \"连续\", \"压制\"]")
+    @Schema(description = "策略标签列表", example = "[\"顺行\", \"连续\", \"控场\"]")
     private List<String> tags;
 
     @Schema(description = "下次可刷新时间 (HH:mm:ss)，null 表示今日已生成", example = "20:30:43")

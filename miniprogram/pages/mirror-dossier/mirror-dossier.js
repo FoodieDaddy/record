@@ -4,11 +4,11 @@ const app = getApp();
 
 var PERSONA_SIGNAL_MAP = {
   STABLE_CONTROL: ['节奏控制', '低失误', '稳健决策', '长期主义'],
-  AGGRESSIVE_PUSH: ['主动进攻', '窗口捕捉', '高频决策', '数值最大化'],
-  VOLATILE_BURST: ['爆发型', '高波动', '极限操作', '情绪驱动'],
-  DEFENSIVE_COUNTER: ['防守反击', '耐心等待', '低频高效', '信息积累'],
-  SLOW_OBSERVER: ['后发制人', '信息导向', '节奏观察', '稳定输出'],
-  EMOTIONAL_SWING: ['情绪敏感', '状态波动', '连败影响', '需调节奏']
+  AGGRESSIVE_PUSH: ['主动推进', '窗口捕捉', '高频决策', '数值聚焦'],
+  VOLATILE_BURST: ['波动响应', '高波动', '边界校准', '情绪感知'],
+  DEFENSIVE_COUNTER: ['边界回稳', '耐心等待', '低频高效', '信息积累'],
+  SLOW_OBSERVER: ['延迟响应', '信息导向', '节奏观察', '稳定输出'],
+  EMOTIONAL_SWING: ['情绪敏感', '状态波动', '惯性影响', '需调节奏']
 };
 
 function resolveMbti(mbti) {

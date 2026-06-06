@@ -39,27 +39,27 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     private static final Map<String, List<String>> MBTI_TRAITS = Map.ofEntries(
             Map.entry("INTJ", List.of("战略思维", "长期主义", "独立决策", "风险克制")),
             Map.entry("INTP", List.of("模式识别", "逻辑推演", "灵活变通", "深度分析")),
-            Map.entry("ENTJ", List.of("节奏主导", "高压决策", "目标驱动", "结构化执行")),
+            Map.entry("ENTJ", List.of("节奏主导", "稳压决策", "目标驱动", "结构化执行")),
             Map.entry("ENTP", List.of("机会捕捉", "多线程思维", "扰动试探", "快速切换")),
             Map.entry("INFJ", List.of("远距阅读", "模式感知", "隐性节奏", "直觉判断")),
             Map.entry("INFP", List.of("价值驱动", "低频高质", "模式识别", "原则坚守")),
             Map.entry("ENFJ", List.of("节奏组织", "协同驱动", "情绪感知", "团队节奏")),
             Map.entry("ENFP", List.of("机会游走", "高频切换", "情绪带动", "灵活应变")),
             Map.entry("ISTJ", List.of("纪律执行", "稳定节奏", "规则遵循", "低失误率")),
-            Map.entry("ISFJ", List.of("防守稳固", "稳定输出", "风险规避", "持久耐力")),
-            Map.entry("ESTJ", List.of("规则压制", "节奏控制", "高压执行", "结构化打法")),
+            Map.entry("ISFJ", List.of("边界稳固", "稳定输出", "风险规避", "持久耐力")),
+            Map.entry("ESTJ", List.of("规则控场", "节奏控制", "稳压执行", "结构化打法")),
             Map.entry("ESFJ", List.of("协同支援", "团队配合", "节奏感知", "稳定贡献")),
             Map.entry("ISTP", List.of("冷启动分析", "精准出手", "独立决策", "效率优先")),
             Map.entry("ISFP", List.of("低频感知", "直觉捕捉", "柔韧应变", "安静观察")),
-            Map.entry("ESTP", List.of("高压突击", "即时反应", "冒险决策", "高频进攻")),
-            Map.entry("ESFP", List.of("现场爆发", "即时反应", "高频决策", "情绪驱动"))
+            Map.entry("ESTP", List.of("高频响应", "即时反应", "快速决策", "窗口执行")),
+            Map.entry("ESFP", List.of("现场响应", "即时反应", "高频决策", "情绪感知"))
     );
 
     /** MBTI → 中文称号 */
     private static final Map<String, String> MBTI_TITLES = Map.ofEntries(
             Map.entry("INTJ", "冷静型控场者"),
             Map.entry("INTP", "模型型分析者"),
-            Map.entry("ENTJ", "压迫型指挥者"),
+            Map.entry("ENTJ", "主导型指挥者"),
             Map.entry("ENTP", "扰动型试探者"),
             Map.entry("INFJ", "远读型观察者"),
             Map.entry("INFP", "直觉型守序者"),
@@ -67,12 +67,12 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             Map.entry("ENFP", "机会型游走者"),
             Map.entry("ISTJ", "纪律型执行者"),
             Map.entry("ISFJ", "防守型稳定者"),
-            Map.entry("ESTJ", "规则型压制者"),
+            Map.entry("ESTJ", "规则型控场者"),
             Map.entry("ESFJ", "协同型支援者"),
-            Map.entry("ISTP", "冷启动猎手"),
+            Map.entry("ISTP", "冷启动分析者"),
             Map.entry("ISFP", "低频型感知者"),
-            Map.entry("ESTP", "高压型突击者"),
-            Map.entry("ESFP", "现场型爆发者")
+            Map.entry("ESTP", "高频型响应者"),
+            Map.entry("ESFP", "现场型响应者")
     );
 
     /** MBTI → 人格预测倾向描述 */
@@ -272,7 +272,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
                 // 高压进攻型
                 Map.entry("ENTJ", new int[]{60, 80, 55, 45}),
                 Map.entry("ESTP", new int[]{45, 85, 40, 55}),
-                // 波动爆发型
+                // 波动响应型
                 Map.entry("ENTP", new int[]{40, 75, 35, 70}),
                 Map.entry("ENFP", new int[]{35, 70, 35, 70}),
                 Map.entry("ESFP", new int[]{30, 75, 30, 75}),

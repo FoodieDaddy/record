@@ -26,8 +26,8 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
     private static final Map<String, PersonaMeta> PERSONA_MAP = Map.ofEntries(
             Map.entry("INSUFFICIENT_DATA", new PersonaMeta("样本不足", "当前封存样本不足，暂不生成稳定画像。")),
             Map.entry("STABLE_CONTROL", new PersonaMeta("稳健控场型", "打法偏向结构化执行，波动较低，擅长维持稳定节奏。")),
-            Map.entry("AGGRESSIVE_PUSH", new PersonaMeta("高压进攻型", "进攻意愿强，数值窗口捕捉快，但需要控制连续试探风险。")),
-            Map.entry("VOLATILE_BURST", new PersonaMeta("波动爆发型", "单轮爆发力强，数值上限高，但整体波动和回撤风险偏大。")),
+            Map.entry("AGGRESSIVE_PUSH", new PersonaMeta("主动推进型", "主动意愿强，数值窗口捕捉快，但需要控制连续试探风险。")),
+            Map.entry("VOLATILE_BURST", new PersonaMeta("波动响应型", "单轮响应强，数值上限高，但整体波动和回撤风险偏大。")),
             Map.entry("DEFENSIVE_COUNTER", new PersonaMeta("防守反击型", "更擅长等待对手失误，适合低频决策和后手反击。")),
             Map.entry("SLOW_OBSERVER", new PersonaMeta("慢热观察型", "前期试探少，依赖信息积累，后段决策质量更稳定。")),
             Map.entry("EMOTIONAL_SWING", new PersonaMeta("情绪扰动型", "状态受连续正负反馈影响较明显，需要降低情绪化决策频率。"))
@@ -246,7 +246,7 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         String growthAdvice = switch (personaTag) {
             case "STABLE_CONTROL" -> "保持低失误策略，但在连续优势局中提高主动性，避免错过进攻窗口。";
             case "AGGRESSIVE_PUSH" -> "设定单场暂停线，避免情绪化修正，在连续试探后主动降频。";
-            case "VOLATILE_BURST" -> "在连败后主动降频，避免冲动决策，稳定节奏比爆发更重要。";
+            case "VOLATILE_BURST" -> "在连续负反馈后主动降频，避免冲动决策，稳定节奏比瞬时强度更重要。";
             case "DEFENSIVE_COUNTER" -> "在信息充足时果断出手，避免因过度等待而错过短暂的进攻窗口。";
             case "SLOW_OBSERVER" -> "在开局阶段增加主动试探，避免前期被动导致后期追赶困难。";
             case "EMOTIONAL_SWING" -> "降低情绪化决策频率，在连败后暂停调整，避免连续修正心态。";

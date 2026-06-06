@@ -99,7 +99,7 @@ const TERMINOLOGY = {
   missionPrefix: 'MS',
   dossierPrefix: 'DS',
 
-  // 结构推演（替代玄学表达）
+  // 结构推演（替代非策略化表达）
   structureDeduction: '结构推演',
   fieldAnalysis: '场域分析',
 

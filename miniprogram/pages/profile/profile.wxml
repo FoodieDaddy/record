@@ -187,14 +187,17 @@
       <text class="term-kicker">系统控制</text>
       <text class="term-kicker-sub">CONTROL</text>
 
-      <!-- 语音播报 -->
+      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">声音协议</text>
           <text class="sys-row__label-en">VOICE</text>
         </view>
-        <view class="cyber-switch {{voiceEnabled ? 'cyber-switch--on' : ''}}" bindtap="onVoiceToggle">
-          <text class="cyber-switch__text">{{voiceEnabled ? 'ON' : 'OFF'}}</text>
+        <view class="avionics-switch {{voiceEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVoiceToggle">
+          <view class="avionics-switch__track {{voiceEnabled ? 'is-on' : ''}}">
+            <view class="avionics-switch__thumb"></view>
+          </view>
+          <text class="avionics-switch__status">{{voiceEnabled ? 'ACTIVE' : 'OFF'}}</text>
         </view>
       </view>
 
@@ -210,25 +213,31 @@
         </view>
       </view>
 
-      <!-- 计分动效 -->
+      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">动效协议</text>
           <text class="sys-row__label-en">FX</text>
         </view>
-        <view class="cyber-switch {{animEnabled ? 'cyber-switch--on' : ''}}" bindtap="onAnimToggle">
-          <text class="cyber-switch__text">{{animEnabled ? 'ON' : 'OFF'}}</text>
+        <view class="avionics-switch {{animEnabled ? 'avionics-switch--on' : ''}}" bindtap="onAnimToggle">
+          <view class="avionics-switch__track {{animEnabled ? 'is-on' : ''}}">
+            <view class="avionics-switch__thumb"></view>
+          </view>
+          <text class="avionics-switch__status">{{animEnabled ? 'ACTIVE' : 'OFF'}}</text>
         </view>
       </view>
 
-      <!-- 触感反馈 -->
+      <!-- 航电滑轨开关，保持身份页与设置页控制风格一致 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
           <text class="sys-row__label-zh">触感协议</text>
           <text class="sys-row__label-en">HAPTIC</text>
         </view>
-        <view class="cyber-switch {{vibrateEnabled ? 'cyber-switch--on' : ''}}" bindtap="onVibrateToggle">
-          <text class="cyber-switch__text">{{vibrateEnabled ? 'ON' : 'OFF'}}</text>
+        <view class="avionics-switch {{vibrateEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVibrateToggle">
+          <view class="avionics-switch__track {{vibrateEnabled ? 'is-on' : ''}}">
+            <view class="avionics-switch__thumb"></view>
+          </view>
+          <text class="avionics-switch__status">{{vibrateEnabled ? 'ACTIVE' : 'OFF'}}</text>
         </view>
       </view>
 

@@ -803,41 +803,49 @@
   color: var(--text-secondary);
 }
 
-/* 赛博开关 */
-.cyber-switch {
-  flex-shrink: 0;
-  width: 80rpx;
-  height: 44rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.14);
-  border-radius: 8rpx;
-  background: rgba(255, 255, 255, 0.04);
+/* 航电开关：与 settings 页统一 track + thumb + status 结构 */
+.avionics-switch {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  gap: 12rpx;
+  flex-shrink: 0;
 }
-
-.cyber-switch__text {
+.avionics-switch__track {
+  position: relative;
+  width: 96rpx;
+  height: 48rpx;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  transition: border-color 0.25s, background-color 0.25s;
+}
+.avionics-switch__track.is-on {
+  border-color: rgba(10,132,255,0.45);
+  background: rgba(10,132,255,0.12);
+}
+.avionics-switch__thumb {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transition: transform 0.25s, background-color 0.25s;
+}
+.avionics-switch__track.is-on .avionics-switch__thumb {
+  transform: translateX(48rpx);
+  background: #0A84FF;
+  box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
+}
+.avionics-switch__status {
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  color: rgba(255, 255, 255, 0.38);
-  font-family: monospace;
-  transition: color 0.2s;
+  letter-spacing: 3rpx;
+  color: rgba(255,255,255,0.34);
 }
-
-.cyber-switch--on {
-  border-color: rgba(0, 170, 255, 0.5);
-  background: rgba(0, 170, 255, 0.08);
-  box-shadow: 0 0 12rpx rgba(0, 170, 255, 0.15);
-}
-
-.cyber-switch--on .cyber-switch__text {
-  color: var(--primary);
-}
-
-.cyber-switch:active {
-  transform: scale(0.95);
+.avionics-switch--on .avionics-switch__status {
+  color: #0A84FF;
 }
 
 
@@ -1121,7 +1129,9 @@
 .reduce-motion .terminal__glow,
 .reduce-motion .level__bar-fill,
 .reduce-motion .term-card,
-.reduce-motion .cyber-switch,
+.reduce-motion .avionics-switch,
+.reduce-motion .avionics-switch__track,
+.reduce-motion .avionics-switch__thumb,
 .reduce-motion .voice-sheet,
 .reduce-motion .voice-mask,
 .reduce-motion .sys-row--sub {

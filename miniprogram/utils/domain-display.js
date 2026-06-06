@@ -31,8 +31,8 @@ function formatZeroSum(val) {
 
 function formatUserTag(tag) {
   const map = {
-    WINNING_STREAK: '连胜状态',
-    LOSING_STREAK: '连败状态',
+    WINNING_STREAK: '顺行状态',
+    LOSING_STREAK: '回稳状态',
     HIGH_RISK: '高风险',
     STABLE: '稳健'
   }

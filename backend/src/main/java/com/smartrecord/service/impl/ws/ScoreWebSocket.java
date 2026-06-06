@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * WebSocket 推送记分实时同步
- * 前端连接: ws://host/api/ws/score?roomId=xxx&token=xxx
+ * 前端连接：房间维度 WebSocket，旧客户端可通过 query token 兼容接入
  * 房间内任意玩家记分后，推送更新给同房间所有玩家
  */
 @Slf4j

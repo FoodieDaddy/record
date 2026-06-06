@@ -73,7 +73,7 @@ public class MirrorProfileResp {
         private String summary;
         @Schema(description = "推算MBTI类型", example = "ENTJ")
         private String inferredMbtiType;
-        @Schema(description = "推算MBTI称号", example = "压迫型指挥者")
+        @Schema(description = "推算MBTI称号", example = "控场型指挥者")
         private String inferredMbtiTitle;
         @Schema(description = "偏差程度百分比 0-100", example = "18")
         private int deviationPercent;
