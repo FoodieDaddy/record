@@ -75,7 +75,7 @@ public class UserServiceImpl implements UserService {
         String openid = resp.getStr("openid");
         if (openid == null) {
             log.error("微信登录失败: {}", respStr);
-            throw new BizException("微信登录失败");
+            throw new BizException("微信接入失败");
         }
 
         // 2. 查找或创建用户
@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
         // 缓存未命中，查库并回写
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BizException(4001, "用户不存在");
+            throw new BizException(4001, "身份未识别");
         }
         String fullAvatarUrl = storageService.buildFullUrl(user.getAvatarUrl());
 
@@ -195,7 +195,7 @@ public class UserServiceImpl implements UserService {
         // 静默截断：防止绕过前端直接调接口传超长昵称
         String newNickname = nickname != null ? truncateNickname(nickname) : oldNickname;
         if (newNickname == null) {
-            throw new BizException(4001, "用户不存在");
+            throw new BizException(4001, "身份未识别");
         }
 
         // 使用 LambdaUpdateWrapper 直接更新，省掉 SELECT

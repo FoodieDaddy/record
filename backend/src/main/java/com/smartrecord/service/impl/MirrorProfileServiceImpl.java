@@ -193,7 +193,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public ProfileInfo submitMbtiTest(Long userId, MbtiTestReq req) {
         if (req.getAnswers() == null || req.getAnswers().size() != 20) {
-            throw new BizException("必须提交20题答案");
+            throw new BizException("协议校准需要完成20题");
         }
 
         MbtiCalculator.Result result = MbtiCalculator.calculate(req.getAnswers());
@@ -216,7 +216,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public ProfileInfo submitMbtiDirect(Long userId, int mbtiCode) {
         if (!MbtiType.isValidCode(mbtiCode)) {
-            throw new BizException("非法MBTI类型编号: " + mbtiCode);
+            throw new BizException("协议类型无效: " + mbtiCode);
         }
 
         UserMirrorProfile profile = new UserMirrorProfile();

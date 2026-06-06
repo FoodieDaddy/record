@@ -75,11 +75,11 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     @Override
     public RoundRecordResp startRound(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("房间不存在或已结算");
+        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
         if (ScoreMode.ROUND_RECORD.getCode() != (room.getScoreMode() != null ? room.getScoreMode() : 1)) {
-            throw new BizException("自由流转房间不支持本局录");
+            throw new BizException("自由流转空间不支持本局录");
         }
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可发起本局录");
+        if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可发起本局录");
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
@@ -160,7 +160,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     public RoundRecordResp submitRound(Long userId, SubmitRoundReq req) {
         Long roomId = req.getRoomId();
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("房间不存在或已结算");
+        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
@@ -171,7 +171,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
             // 检查 round 存在
             Map<Object, Object> roundData = redisTemplate.opsForHash().entries(roundKey(roomId));
-            if (roundData.isEmpty()) throw new BizException(4105, "该录已失效，请刷新房间");
+            if (roundData.isEmpty()) throw new BizException(4105, "该录已失效，请刷新空间");
 
             int status = Integer.parseInt((String) roundData.get("status"));
             int inputMethod = Integer.parseInt((String) roundData.get("inputMethod"));
@@ -181,7 +181,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
             if (inputMethod == RoundInputMethod.HOST_FILL.getCode()) {
                 // 房主填写
-                if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可填写");
+                if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可填写");
                 if (status != RoundRecordStatus.PENDING_CONFIRM.getCode()) {
                     throw new BizException("当前状态不允许填写");
                 }
@@ -227,7 +227,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                         new LambdaQueryWrapper<RoomMember>()
                                 .eq(RoomMember::getRoomId, roomId)
                                 .eq(RoomMember::getUserId, userId)) > 0;
-                if (!isMember) throw new BizException("您不是该房间成员");
+                if (!isMember) throw new BizException("您不是该空间舰员");
 
                 // 成员只填自己的分数
                 Integer myScore = null;
@@ -305,7 +305,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     public RoundRecordResp confirmRound(Long userId, ConfirmRoundReq req) {
         Long roomId = req.getRoomId();
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("房间不存在或已结算");
+        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
@@ -327,7 +327,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                     new LambdaQueryWrapper<RoomMember>()
                             .eq(RoomMember::getRoomId, roomId)
                             .eq(RoomMember::getUserId, userId)) > 0;
-            if (!isMember) throw new BizException("您不是该房间成员");
+            if (!isMember) throw new BizException("您不是该空间舰员");
 
             if (Boolean.FALSE.equals(req.getAgree())) {
                 // 驳回
@@ -381,8 +381,8 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     @Override
     public void cancelRound(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可取消");
+        if (room == null) throw new BizException("空间不存在");
+        if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可取消");
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);

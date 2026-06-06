@@ -63,7 +63,7 @@ public class OverviewServiceImpl implements OverviewService {
     @Override
     public ChartDataResp getChartData(Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
+        if (room == null) throw new BizException("空间不存在");
 
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 

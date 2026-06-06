@@ -75,7 +75,7 @@ public class RoomServiceImpl implements RoomService {
                         .eq(Room::getStatus, 0)
                         .last("LIMIT 1"));
         if (existing != null) {
-            throw new BizException("你已有活跃房间，请先退出后再创建");
+            throw new BizException("你已有活跃空间，请先退出后再启动");
         }
 
         // 1. 生成唯一房间号
@@ -116,7 +116,7 @@ public class RoomServiceImpl implements RoomService {
     public RoomResp joinRoom(Long userId, JoinRoomReq req) {
         String roomNo = req.getRoomNo() != null ? req.getRoomNo() : req.getScanRoomNo();
         if (roomNo == null || roomNo.isBlank()) {
-            throw new BizException("请输入房间号");
+            throw new BizException("请输入识别码");
         }
 
         // 1. 从 Redis 查找房间 ID
@@ -128,7 +128,7 @@ public class RoomServiceImpl implements RoomService {
             // 降级查数据库
             Room room = roomMapper.selectOne(
                     new LambdaQueryWrapper<Room>().eq(Room::getRoomNo, roomNo.toUpperCase()));
-            if (room == null) throw new BizException("房间不存在");
+            if (room == null) throw new BizException("空间不存在");
             roomId = room.getId();
         }
 
@@ -152,13 +152,13 @@ public class RoomServiceImpl implements RoomService {
         // 3. 检查房间状态
         Room room = roomMapper.selectById(rid);
         if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间已关闭");
+            throw new BizException("空间已关闭");
         }
 
         // 4. 检查房间人数上限
         Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
         long memberCount = allFields.keySet().stream().filter(k -> ((String) k).startsWith("m:")).count();
-        if (memberCount >= 16) throw new BizException(4003, "房间人数已达上限，无法加入（最多16人）");
+        if (memberCount >= 16) throw new BizException(4003, "空间舰员已满（上限16人）");
 
         // 5. 加载用户信息并检查重名
         String userKey = "sr:user:" + userId;
@@ -171,7 +171,7 @@ public class RoomServiceImpl implements RoomService {
             avatarUrl = userObj.getStr("avatarUrl");
         } else {
             User user = userMapper.selectById(userId);
-            if (user == null) throw new BizException("用户不存在，请重新登录");
+            if (user == null) throw new BizException("身份未识别，请重新接入终端");
             nickname = user.getNickname();
             avatarUrl = user.getAvatarUrl();
         }
@@ -217,7 +217,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public RoomResp getRoomDetail(Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
+        if (room == null) throw new BizException("空间不存在");
 
         // 从 Redis 缓存查询房间成员
         String metaKey = "sr:room:" + roomId + ":meta";
@@ -278,7 +278,7 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public void quitRoom(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
+        if (room == null) throw new BizException("空间不存在");
 
         // 已结束的房间：跳过解散/广播，仅清理关联数据
         if (room.getStatus() != 0) {
@@ -314,9 +314,9 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public void dissolveRoom(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
+        if (room == null) throw new BizException("空间不存在");
         if (!room.getOwnerId().equals(userId)) {
-            throw new BizException("仅房主可解散房间");
+            throw new BizException("仅主控可解散空间");
         }
 
         // 标记归档（使用显式 Wrapper 确保 status 字段写入）
@@ -443,14 +443,14 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public void updateSettings(Long userId, Long roomId, UpdateSettingsReq req) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
-        if (room.getStatus() != 0) throw new BizException("房间已结算，不能修改记分设置");
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅房主可修改记分设置");
+        if (room == null) throw new BizException("空间不存在");
+        if (room.getStatus() != 0) throw new BizException("空间已封存，不能修改记录设置");
+        if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可修改记录设置");
 
         // 检查是否有待处理录
         String roundKey = "sr:room:" + roomId + ":round";
         if (Boolean.TRUE.equals(redisTemplate.hasKey(roundKey))) {
-            throw new BizException("当前有待处理录入，不能修改记分设置");
+            throw new BizException("当前有待处理录入，不能修改记录设置");
         }
 
         // 更新 MySQL
@@ -548,12 +548,12 @@ public class RoomServiceImpl implements RoomService {
                 return roomNo;
             }
         }
-        throw new BizException("房间号生成失败，请重试");
+        throw new BizException("识别码生成失败，请重试");
     }
 
     private void initRoomRedis(Room room, Long ownerId, CreateRoomReq req) {
         User owner = userMapper.selectById(ownerId);
-        if (owner == null) throw new BizException("用户不存在，请重新登录");
+        if (owner == null) throw new BizException("身份未识别，请重新接入终端");
         String roomId = String.valueOf(room.getId());
         String metaKey = "sr:room:" + roomId + ":meta";
 

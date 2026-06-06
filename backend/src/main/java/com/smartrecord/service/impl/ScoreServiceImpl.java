@@ -84,12 +84,12 @@ public class ScoreServiceImpl implements ScoreService {
     @Override
     public ScoreSubmitResp submitScore(Long userId, SubmitScoreReq req) {
         Long roomId = req.getRoomId();
-        if (roomId == null) throw new BizException("房间 ID 不能为空");
+        if (roomId == null) throw new BizException("空间 ID 不能为空");
 
         // 验证房间存在且活跃
         Room room = roomMapper.selectById(roomId);
         if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间不存在或已结束");
+            throw new BizException("空间不存在或已封存");
         }
 
         // 验证提交者是房间成员
@@ -97,7 +97,7 @@ public class ScoreServiceImpl implements ScoreService {
                 new LambdaQueryWrapper<RoomMember>()
                         .eq(RoomMember::getRoomId, roomId)
                         .eq(RoomMember::getUserId, userId));
-        if (submitter == null) throw new BizException("您不是该房间成员");
+        if (submitter == null) throw new BizException("您不是该空间舰员");
 
         // 提交者本人的分数变动（用于情绪音频）
         int submitterScoreChange = 0;
@@ -193,7 +193,7 @@ public class ScoreServiceImpl implements ScoreService {
     @Override
     public List<ScoreBatchResp.PlayerScoreVO> getRoomRanking(Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
+        if (room == null) throw new BizException("空间不存在");
 
         Map<Long, Integer> totals;
         if (room.getStatus() == 0) {
@@ -249,9 +249,9 @@ public class ScoreServiceImpl implements ScoreService {
     @org.springframework.transaction.annotation.Transactional
     public SettleResp settleRoom(Long userId, Long roomId, boolean autoSettled) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("房间不存在");
-        if (!autoSettled && !room.getOwnerId().equals(userId)) throw new BizException("仅房主可结束对局");
-        if (room.getStatus() != 0) throw new BizException("房间已结束");
+        if (room == null) throw new BizException("空间不存在");
+        if (!autoSettled && !room.getOwnerId().equals(userId)) throw new BizException("仅主控可封存航程");
+        if (room.getStatus() != 0) throw new BizException("空间已封存");
 
         // 分布式锁：防止结算期间并发记分丢数据
         String lockKey = ROOM_PREFIX + roomId + ":lock";
@@ -263,7 +263,7 @@ public class ScoreServiceImpl implements ScoreService {
             // 加锁后二次检查，防止并发重复结算
             Room freshRoom = roomMapper.selectById(roomId);
             if (freshRoom != null && freshRoom.getStatus() != 0) {
-                throw new BizException("已封存空间不可重复结算");
+                throw new BizException("空间已封存，不可重复操作");
             }
             return doSettleRoom(userId, roomId, room, autoSettled);
         } catch (InterruptedException e) {
@@ -1221,7 +1221,7 @@ public class ScoreServiceImpl implements ScoreService {
         // 验证房间存在且活跃
         Room room = roomMapper.selectById(roomId);
         if (room == null || room.getStatus() != 0) {
-            throw new BizException("房间不存在或已结束");
+            throw new BizException("空间不存在或已封存");
         }
 
         // 从 Redis 缓存验证双方都是房间成员
@@ -1230,7 +1230,7 @@ public class ScoreServiceImpl implements ScoreService {
         Boolean isToMember = redisTemplate.opsForHash().hasKey(metaKey, "m:" + req.getToUserId());
 
         if (!Boolean.TRUE.equals(isFromMember) || !Boolean.TRUE.equals(isToMember)) {
-            throw new BizException("双方必须都是房间成员");
+            throw new BizException("双方必须都是空间舰员");
         }
 
         // 执行 Lua 脚本：原子完成 扣分 + 加分

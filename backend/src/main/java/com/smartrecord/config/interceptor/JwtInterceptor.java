@@ -32,7 +32,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
-            throw new BizException(4001, "未登录");
+            throw new BizException(4001, "终端未接入");
         }
         try {
             Long userId = jwtUtil.parseUserId(token.substring(7));
@@ -41,7 +41,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            throw new BizException(4001, "登录已过期");
+            throw new BizException(4001, "接入已过期");
         }
     }
 }

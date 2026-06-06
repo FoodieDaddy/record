@@ -64,7 +64,7 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
     private UserIdentityLevel recalculateInternal(Long userId) {
         // 0. 校验用户存在性（防止 JWT 中的 userId 在 user 表中不存在导致外键约束失败）
         if (userMapper.selectById(userId) == null) {
-            throw new BizException("用户不存在");
+            throw new BizException("身份未识别");
         }
 
         // 1. 查询已结算场次（quitTime 不为空的去重房间数）

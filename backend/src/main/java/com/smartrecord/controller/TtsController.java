@@ -52,7 +52,7 @@ public class TtsController {
 
         byte[] audio = ttsService.synthesize(text, activeVoice, rate, pitch);
         if (audio == null || audio.length == 0) {
-            throw new BizException("TTS 合成失败");
+            throw new BizException("语音合成失败");
         }
 
         try {
@@ -63,7 +63,7 @@ public class TtsController {
             response.getOutputStream().flush();
         } catch (Exception e) {
             log.error("写入 TTS 响应失败", e);
-            throw new BizException("TTS 响应写入失败");
+            throw new BizException("语音响应写入失败");
         }
     }
 
