@@ -463,7 +463,7 @@ Page({
           this.loadPendingRound(room.roomId);
         }
       } else {
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], selectedCrew: null, pulseTraces: [], matrixData: [] });
         this.updateCockpitState();
       }
     } catch (e) {
@@ -518,7 +518,7 @@ Page({
         isHost: String(m.userId) === String(room.ownerId)
       };
     });
-    this.setData({ memberGrid: grid });
+    this.setData({ memberGrid: grid, seatList: this.buildSeatList(grid) });
   },
 
   async loadRoomData(roomId) {
@@ -1585,7 +1585,7 @@ Page({
         if (hasData) {
           this.showSettleFromResp(settleResp);
         } else {
-          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
+          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
           wx.showToast({ title: '暂无可封存的航程数据', icon: 'none', duration: 2000 });
         }
         // 4. 解散空间（独立执行，不影响结算弹层展示）
@@ -1593,7 +1593,7 @@ Page({
       } else {
         await del(`/room/${roomId}/quit`);
         app.disconnectWS();
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
+        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
         wx.showToast({ title: '已断开', icon: 'success' });
       }
     } catch (e) {
@@ -1758,6 +1758,7 @@ Page({
       ranking: [],
       scoreRecords: [],
       memberGrid: [],
+      seatList: [],
       matrixData: [],
       roundRecord: null,
       showHostFill: false,
