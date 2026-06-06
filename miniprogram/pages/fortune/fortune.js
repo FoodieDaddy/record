@@ -341,7 +341,7 @@ Page({
 
     if (result.error) {
       this.setData({ pageMode: 'launch', error: null })
-      wx.showToast({ title: '策略生成失败', icon: 'none' })
+      wx.showToast({ title: '策略核心启动失败', icon: 'none' })
       return
     }
 
@@ -411,7 +411,7 @@ Page({
     query.select('#posterCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
         this.setData({ phase: 'result', posterError: '画布初始化失败' })
-        wx.showToast({ title: '生成失败', icon: 'none' })
+        wx.showToast({ title: '启动失败', icon: 'none' })
         return
       }
 
@@ -617,7 +617,7 @@ Page({
         },
         fail: () => {
           this.setData({ phase: 'result', posterError: '海报导出失败' })
-          wx.showToast({ title: '生成失败', icon: 'none' })
+          wx.showToast({ title: '启动失败', icon: 'none' })
         },
       })
     })

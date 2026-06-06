@@ -5,7 +5,7 @@
 
     <!-- 顶部标题 -->
     <view class="strategy-launch-header">
-      <text class="strategy-launch-title">今日策略</text>
+      <text class="strategy-launch-title">今日航行指令</text>
       <text class="strategy-launch-kicker">CORE STATUS</text>
       <text class="strategy-launch-date">{{currentDate}}</text>
     </view>
@@ -13,7 +13,7 @@
     <!-- 复位状态条（仅 relaunchReady） -->
     <view class="strategy-reset-bar" wx:if="{{pageMode === 'relaunchReady'}}">
       <view class="strategy-reset-dot"></view>
-      <text class="strategy-reset-text">核心已复位 · 点击卡牌启动新一轮策略推演</text>
+      <text class="strategy-reset-text">策略核心待机 · 点击启动</text>
     </view>
 
     <!-- 核心卡牌 -->
@@ -35,11 +35,11 @@
 
     <!-- 底部说明 -->
     <view class="strategy-launch-info">
-      <text class="strategy-launch-info-text">同步身份协议与历史样本，生成今日策略参考</text>
+      <text class="strategy-launch-info-text">同步身份协议与黑匣子样本，生成今日航行指令</text>
     </view>
 
     <view class="countdown-bar" wx:if="{{countdownText}}">
-      <text class="countdown-label">下一次策略更新：</text>
+      <text class="countdown-label">下次策略刷新：</text>
       <text class="countdown-value">{{countdownText}}</text>
     </view>
   </view>
@@ -91,7 +91,7 @@
 
     <!-- 顶部标题区 -->
     <view class="strategy-result-header">
-      <text class="strategy-result-title">今日策略</text>
+      <text class="strategy-result-title">今日航行指令</text>
       <text class="strategy-result-kicker">CORE STATUS</text>
       <text class="strategy-result-date">{{currentDate}}</text>
     </view>
@@ -120,7 +120,7 @@
     <!-- 核心洞察 -->
     <view class="strategy-insight" wx:if="{{strategy.verdict}}">
       <view class="strategy-section-head">
-        <text class="strategy-section-title">核心洞察</text>
+        <text class="strategy-section-title">当前状态</text>
         <text class="strategy-section-kicker">INSIGHT</text>
       </view>
       <text class="strategy-insight-text">{{strategy.verdict}}</text>
@@ -141,7 +141,7 @@
     <view class="strategy-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
       <view class="strategy-section-head">
         <text class="strategy-section-icon strategy-section-icon--pos">+</text>
-        <text class="strategy-section-title strategy-section-title--pos">行动优势</text>
+        <text class="strategy-section-title strategy-section-title--pos">执行节奏</text>
         <text class="strategy-section-kicker">ADVANTAGE</text>
       </view>
       <view class="strategy-list-card">
