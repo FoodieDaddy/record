@@ -2754,3 +2754,943 @@
   font-size: 28rpx;
   letter-spacing: 2rpx;
 }
+
+/* ============================================================
+   驾驶舱 Phase 1 — HUD 样式
+   ============================================================ */
+
+/* === 页面根节点 === */
+.cockpit-page {
+  padding: 32rpx 28rpx calc(220rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
+    #0A0A0A;
+}
+
+/* === 驾驶舱 Header === */
+.cockpit-header {
+  margin-bottom: 32rpx;
+}
+
+.header-kicker {
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.46);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  margin-bottom: 8rpx;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: rgba(226,242,255,0.96);
+  letter-spacing: 2rpx;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.46);
+  margin-top: 4rpx;
+}
+
+.sync-chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 16rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 20rpx;
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.56);
+}
+
+.status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(226,242,255,0.22);
+}
+
+.status-dot--on {
+  background: rgba(48,209,88,0.88);
+  box-shadow: 0 0 8rpx rgba(48,209,88,0.4);
+}
+
+/* === HUD 面板 === */
+.sr-hud-panel {
+  position: relative;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background: rgba(3,10,18,0.64);
+  clip-path: polygon(
+    24rpx 0,
+    calc(100% - 24rpx) 0,
+    100% 24rpx,
+    100% calc(100% - 24rpx),
+    calc(100% - 24rpx) 100%,
+    24rpx 100%,
+    0 calc(100% - 24rpx),
+    0 24rpx
+  );
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+/* === 通用卡片 === */
+.sr-card {
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(10,132,255,0.18);
+  background: rgba(255,255,255,0.035);
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+/* === 通用按钮 === */
+.sr-btn {
+  position: relative;
+  height: 82rpx;
+  border-radius: 0;
+  padding: 0 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  background: rgba(255,255,255,0.025);
+  color: var(--text-primary);
+  border: 1rpx solid rgba(10,132,255,0.26);
+  clip-path: polygon(
+    18rpx 0,
+    100% 0,
+    100% calc(100% - 18rpx),
+    calc(100% - 18rpx) 100%,
+    0 100%,
+    0 18rpx
+  );
+  transition: opacity .18s, transform .18s, border-color .18s, background-color .18s;
+}
+
+.sr-btn::after {
+  display: none;
+}
+
+.sr-btn-primary {
+  border-color: rgba(0,200,255,0.48);
+  background: linear-gradient(90deg, rgba(10,132,255,0.20), rgba(0,200,255,0.10));
+  color: rgba(226,242,255,0.96);
+}
+
+.sr-btn-secondary {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.035);
+}
+
+.sr-btn-danger-outline {
+  border-color: rgba(255,69,58,0.42);
+  color: rgba(255,126,118,0.96);
+  background: rgba(255,69,58,0.035);
+}
+
+.sr-btn--disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.sr-btn--loading {
+  opacity: 0.64;
+}
+
+.btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+/* === 启动核心 === */
+.launch-deck {
+  text-align: center;
+  padding: 48rpx 32rpx;
+  overflow: hidden;
+}
+
+.deck-grid {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(0,200,255,0.03) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.03) 1rpx, transparent 1rpx);
+  background-size: 48rpx 48rpx;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.launch-core {
+  position: relative;
+  width: 280rpx;
+  height: 280rpx;
+  margin: 40rpx auto;
+}
+
+.core-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1rpx solid rgba(0,200,255,0.22);
+}
+
+.core-ring-outer {
+  inset: 0;
+  animation: coreRotate 12s linear infinite;
+}
+
+.core-ring-inner {
+  inset: 30rpx;
+  border-color: rgba(0,200,255,0.14);
+  animation: coreRotate 8s linear infinite reverse;
+}
+
+@keyframes coreRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.launch-core.is-igniting .core-ring {
+  border-color: rgba(0,200,255,0.56);
+  box-shadow: 0 0 24rpx rgba(0,200,255,0.2);
+}
+
+.core-center {
+  position: absolute;
+  inset: 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.core-label {
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.46);
+  font-family: 'DIN Alternate', Menlo, monospace;
+}
+
+.core-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.92);
+  margin-top: 8rpx;
+}
+
+.core-desc {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.46);
+  margin-top: 8rpx;
+}
+
+/* === 启动配置 === */
+.launch-config {
+  margin: 32rpx 0;
+  text-align: left;
+}
+
+.config-kicker {
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0,200,255,0.38);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  margin-bottom: 12rpx;
+}
+
+.config-chips {
+  display: flex;
+  gap: 16rpx;
+}
+
+.config-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.56);
+  transition: border-color .18s, background-color .18s;
+}
+
+.config-chip--on {
+  border-color: rgba(0,200,255,0.34);
+  background: rgba(0,200,255,0.06);
+  color: rgba(226,242,255,0.92);
+}
+
+.chip-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(226,242,255,0.22);
+}
+
+.chip-dot--on {
+  background: rgba(0,200,255,0.88);
+  border-color: rgba(0,200,255,0.88);
+}
+
+/* === 启动按钮区 === */
+.launch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 32rpx;
+}
+
+/* === 接入弹窗 === */
+.cockpit-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+}
+
+.join-panel {
+  width: 100%;
+  max-width: 600rpx;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.panel-kicker {
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0,200,255,0.46);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  margin-bottom: 6rpx;
+}
+
+.panel-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.96);
+}
+
+.panel-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(226,242,255,0.46);
+}
+
+.icon-close {
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+}
+
+.icon-close::before,
+.icon-close::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24rpx;
+  height: 2rpx;
+  background: currentColor;
+}
+
+.icon-close::before { transform: translate(-50%, -50%) rotate(45deg); }
+.icon-close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+
+.code-input-wrap {
+  margin-bottom: 24rpx;
+}
+
+.code-input {
+  width: 100%;
+  height: 96rpx;
+  text-align: center;
+  font-size: 48rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  letter-spacing: 12rpx;
+  color: rgba(0,200,255,0.92);
+  background: rgba(255,255,255,0.035);
+  border: 1rpx solid rgba(0,200,255,0.22);
+  border-radius: 12rpx;
+  caret-color: rgba(0,200,255,0.88);
+}
+
+.input-placeholder {
+  color: rgba(226,242,255,0.24);
+  letter-spacing: 4rpx;
+  font-size: 28rpx;
+}
+
+/* === 重入卡片 === */
+.reentry-card {
+  margin-top: 16rpx;
+}
+
+.reentry-head {
+  margin-bottom: 16rpx;
+}
+
+.reentry-kicker {
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0,200,255,0.46);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  margin-bottom: 4rpx;
+}
+
+.reentry-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.92);
+}
+
+.reentry-code {
+  font-size: 36rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  color: rgba(0,200,255,0.92);
+  letter-spacing: 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.reentry-meta {
+  display: flex;
+  gap: 24rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.46);
+  margin-bottom: 20rpx;
+}
+
+.reentry-actions {
+  margin-top: 8rpx;
+}
+
+/* === 空间识别卡 === */
+.space-status-card {
+  position: relative;
+}
+
+.space-id-block {
+  margin-bottom: 16rpx;
+}
+
+.space-id-block .label {
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.38);
+  letter-spacing: 2rpx;
+  margin-bottom: 4rpx;
+}
+
+.space-code {
+  font-size: 40rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  color: rgba(0,200,255,0.92);
+  letter-spacing: 6rpx;
+  font-weight: 600;
+}
+
+.space-meta {
+  display: flex;
+  gap: 32rpx;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.meta-label {
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.38);
+}
+
+.meta-value {
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.82);
+  font-family: 'DIN Alternate', Menlo, monospace;
+}
+
+.space-actions {
+  position: absolute;
+  top: 28rpx;
+  right: 28rpx;
+  display: flex;
+  gap: 12rpx;
+}
+
+.icon-btn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  border-radius: 12rpx;
+  color: rgba(226,242,255,0.46);
+  transition: border-color .18s;
+}
+
+/* === Section 通用 === */
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.section-kicker {
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0,200,255,0.38);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  margin-bottom: 4rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.92);
+}
+
+.section-count {
+  font-size: 24rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  color: rgba(0,200,255,0.64);
+}
+
+/* === 舰员席位矩阵 === */
+.crew-section {
+  margin-bottom: 24rpx;
+}
+
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14rpx;
+}
+
+.crew-seat {
+  min-height: 168rpx;
+  padding: 16rpx 10rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  clip-path: polygon(
+    14rpx 0,
+    100% 0,
+    100% calc(100% - 14rpx),
+    calc(100% - 14rpx) 100%,
+    0 100%,
+    0 14rpx
+  );
+  transition: border-color .18s, background-color .18s;
+}
+
+.crew-seat.is-active {
+  border-color: rgba(0,200,255,0.24);
+  background: rgba(0,200,255,0.04);
+}
+
+.crew-seat.is-self {
+  border-color: rgba(48,209,88,0.34);
+}
+
+.crew-seat.is-selected {
+  border-color: rgba(0,200,255,0.56);
+  background: rgba(0,200,255,0.08);
+}
+
+.seat-corner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14rpx;
+  height: 14rpx;
+  border-top: 1rpx solid rgba(0,200,255,0.34);
+  border-left: 1rpx solid rgba(0,200,255,0.34);
+}
+
+.crew-seat.is-empty .seat-corner {
+  border-color: rgba(255,255,255,0.06);
+}
+
+.seat-avatar-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-seat-mark {
+  width: 40rpx;
+  height: 40rpx;
+  border: 1rpx dashed rgba(226,242,255,0.14);
+  border-radius: 50%;
+}
+
+.seat-name {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.82);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.crew-seat.is-empty .seat-name {
+  color: rgba(226,242,255,0.24);
+}
+
+.seat-score {
+  margin-top: 4rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 26rpx;
+  color: rgba(0,200,255,0.92);
+  text-align: center;
+}
+
+.seat-state {
+  margin-top: 8rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.46);
+}
+
+.crew-seat.is-empty .seat-dot {
+  background: rgba(226,242,255,0.22);
+  box-shadow: none;
+}
+
+/* === 脉冲控制 === */
+.pulse-control {
+  margin-bottom: 24rpx;
+}
+
+.target-chip {
+  font-size: 22rpx;
+  color: rgba(0,200,255,0.72);
+  padding: 6rpx 14rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  border-radius: 16rpx;
+}
+
+.pulse-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 20rpx 0;
+}
+
+.pulse-step {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  border-radius: 12rpx;
+  background: rgba(255,255,255,0.025);
+  color: rgba(0,200,255,0.82);
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 0;
+  line-height: 1;
+}
+
+.pulse-step::after {
+  display: none;
+}
+
+.pulse-input {
+  flex: 1;
+  height: 72rpx;
+  text-align: center;
+  font-size: 40rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  color: rgba(0,200,255,0.92);
+  background: rgba(255,255,255,0.035);
+  border: 1rpx solid rgba(0,200,255,0.18);
+  border-radius: 12rpx;
+  caret-color: rgba(0,200,255,0.88);
+}
+
+.pulse-submit {
+  margin-top: 16rpx;
+}
+
+.pulse-hint {
+  text-align: center;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.38);
+  margin-top: 12rpx;
+}
+
+/* === 脉冲轨迹 === */
+.trace-section {
+  margin-bottom: 24rpx;
+}
+
+.trace-status {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.46);
+}
+
+.trace-list {
+  margin-top: 20rpx;
+}
+
+.trace-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 18rpx 0 18rpx 22rpx;
+  border-bottom: 1rpx solid rgba(255,255,255,0.06);
+}
+
+.trace-item.is-new {
+  background: rgba(0,200,255,0.04);
+}
+
+.trace-line {
+  width: 2rpx;
+  align-self: stretch;
+  background: linear-gradient(to bottom, rgba(0,200,255,0.0), rgba(0,200,255,0.6), rgba(0,200,255,0.0));
+}
+
+.trace-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.trace-title {
+  font-size: 25rpx;
+  color: rgba(226,242,255,0.88);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trace-desc {
+  margin-top: 6rpx;
+  font-size: 21rpx;
+  color: rgba(226,242,255,0.46);
+}
+
+.trace-value {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 26rpx;
+  color: rgba(0,200,255,0.92);
+  flex-shrink: 0;
+}
+
+.trace-value.is-negative {
+  color: rgba(255,159,10,0.92);
+}
+
+.trace-empty {
+  text-align: center;
+  padding: 48rpx 0;
+}
+
+.trace-empty .empty-title {
+  font-size: 26rpx;
+  color: rgba(226,242,255,0.46);
+  margin-bottom: 8rpx;
+}
+
+.trace-empty .empty-desc {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.24);
+}
+
+/* === 底部操作栏 === */
+.bottom-command-bar {
+  display: flex;
+  gap: 16rpx;
+  padding: 24rpx 0;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.bottom-command-bar .sr-btn {
+  flex: 1;
+}
+
+/* === 封存确认弹窗 === */
+.seal-panel {
+  width: 100%;
+  max-width: 600rpx;
+  text-align: center;
+}
+
+.seal-core {
+  margin-bottom: 24rpx;
+}
+
+.seal-ring {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(255,69,58,0.34);
+  margin: 0 auto 20rpx;
+  position: relative;
+}
+
+.seal-ring::before {
+  content: '';
+  position: absolute;
+  inset: 16rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(255,69,58,0.18);
+}
+
+.seal-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: rgba(255,126,118,0.96);
+  margin-bottom: 12rpx;
+}
+
+.seal-desc {
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.56);
+  line-height: 1.6;
+}
+
+.seal-meta {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  margin-bottom: 24rpx;
+}
+
+.seal-meta .meta-label {
+  text-align: center;
+}
+
+.seal-meta .meta-value {
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.seal-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.seal-actions .sr-btn {
+  flex: 1;
+}
+
+/* === 黑匣子写入中 === */
+.sealing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.blackbox-write {
+  text-align: center;
+  width: 400rpx;
+}
+
+.write-beam {
+  width: 4rpx;
+  height: 80rpx;
+  background: linear-gradient(to bottom, rgba(0,200,255,0.0), rgba(0,200,255,0.8), rgba(0,200,255,0.0));
+  margin: 0 auto 24rpx;
+  animation: beamPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes beamPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.write-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.92);
+  margin-bottom: 12rpx;
+}
+
+.write-desc {
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.56);
+  animation: textFade 3s ease-in-out infinite;
+}
+
+@keyframes textFade {
+  0%, 100% { opacity: 0.56; }
+  50% { opacity: 0.92; }
+}
+
+/* === 本局录入（保留） === */
+.round-start-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16rpx 0;
+}
+
+.round-start-btn {
+  padding: 14rpx 32rpx;
+  border: 1rpx solid rgba(0,200,255,0.34);
+  border-radius: 12rpx;
+  background: rgba(0,200,255,0.06);
+  transition: opacity .18s;
+}
+
+.round-start-text {
+  font-size: 26rpx;
+  color: rgba(0,200,255,0.92);
+}
+
+/* === reduce-motion === */
+.reduce-motion .core-ring-outer,
+.reduce-motion .core-ring-inner,
+.reduce-motion .write-beam,
+.reduce-motion .write-desc,
+.reduce-motion .deck-grid {
+  animation: none !important;
+}
