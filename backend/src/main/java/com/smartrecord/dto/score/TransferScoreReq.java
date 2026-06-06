@@ -22,6 +22,6 @@ public class TransferScoreReq {
     @Schema(description = "金额（分）", example = "1000")
     private Integer amount;
 
-    @Schema(description = "备注", example = "上局赢的")
+    @Schema(description = "备注", example = "本轮数值变化")
     private String remark;
 }

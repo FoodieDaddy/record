@@ -9,7 +9,7 @@ public enum UserTag {
     WINNING_STREAK,
     /** 近期连败/低迷 */
     LOSING_STREAK,
-    /** 大输大赢型（波动剧烈） */
+    /** 高波动型（数值起伏剧烈） */
     HIGH_RISK,
     /** 稳健型 */
     STABLE

@@ -1,55 +1,63 @@
 <view class="settings-page {{!animationEnabled ? 'reduce-motion' : ''}}">
-  <!-- 设置卡 -->
-  <view class="glass-card settings-card">
-    <text class="settings-card__title">系统协议</text>
+  <!-- 系统协议面板 -->
+  <view class="sp-panel">
+    <view class="sp-panel__head">
+      <text class="sp-panel__kicker">SYSTEM PROTOCOL</text>
+      <text class="sp-panel__title">系统协议</text>
+    </view>
+    <view class="sp-panel__divider"></view>
 
     <!-- 声音协议 -->
-    <view class="settings-card__row">
-      <view class="settings-card__row-info">
-        <text class="settings-card__row-label">声音协议</text>
-        <text class="settings-card__row-desc">记录后自动语音通知</text>
+    <view class="sys-row">
+      <view class="sys-row__label-group">
+        <text class="sys-row__label-zh">声音协议</text>
+        <text class="sys-row__label-en">VOICE</text>
       </view>
-      <view class="custom-switch {{voiceEnabled ? 'custom-switch--on' : ''}}" bindtap="onVoiceToggle">
-        <view class="custom-switch__track">
-          <view class="custom-switch__thumb"></view>
+      <view class="avionics-switch {{voiceEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVoiceToggle">
+        <view class="avionics-switch__track {{voiceEnabled ? 'is-on' : ''}}">
+          <view class="avionics-switch__thumb"></view>
         </view>
+        <text class="avionics-switch__status">{{voiceEnabled ? 'ACTIVE' : 'OFF'}}</text>
       </view>
     </view>
 
     <!-- 音色选择入口 -->
-    <view class="settings-card__row settings-card__row--collapse {{voiceEnabled ? '' : 'settings-card__row--hidden'}}" bindtap="openVoiceSheet">
-      <view class="settings-card__row-info">
-        <text class="settings-card__row-label">音色选择</text>
+    <view class="sys-row sys-row--sub {{voiceEnabled ? '' : 'sys-row--hidden'}}" bindtap="openVoiceSheet">
+      <view class="sys-row__label-group">
+        <text class="sys-row__label-zh">音色选择</text>
+        <text class="sys-row__label-en">TIMBRE</text>
       </view>
-      <view class="settings-card__row-value">
-        <text class="settings-card__value-text">{{voiceName}}</text>
+      <view class="sys-row__value">
+        <text class="sys-row__value-text">{{voiceName}}</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
     <!-- 动效协议 -->
-    <view class="settings-card__row">
-      <view class="settings-card__row-info">
-        <text class="settings-card__row-label">动效协议</text>
-        <text class="settings-card__row-desc">记录时显示数值飞行动画</text>
+    <view class="sys-row">
+      <view class="sys-row__label-group">
+        <text class="sys-row__label-zh">动效协议</text>
+        <text class="sys-row__label-en">FX</text>
       </view>
-      <view class="custom-switch {{animationEnabled ? 'custom-switch--on' : ''}}" bindtap="onAnimationToggle">
-        <view class="custom-switch__track">
-          <view class="custom-switch__thumb"></view>
+      <view class="avionics-switch {{animationEnabled ? 'avionics-switch--on' : ''}}" bindtap="onAnimationToggle">
+        <view class="avionics-switch__track {{animationEnabled ? 'is-on' : ''}}">
+          <view class="avionics-switch__thumb"></view>
         </view>
+        <text class="avionics-switch__status">{{animationEnabled ? 'ACTIVE' : 'OFF'}}</text>
       </view>
     </view>
 
     <!-- 触感协议 -->
-    <view class="settings-card__row settings-card__row--last">
-      <view class="settings-card__row-info">
-        <text class="settings-card__row-label">触感协议</text>
-        <text class="settings-card__row-desc">操作时触发轻微震动</text>
+    <view class="sys-row sys-row--last">
+      <view class="sys-row__label-group">
+        <text class="sys-row__label-zh">触感协议</text>
+        <text class="sys-row__label-en">HAPTIC</text>
       </view>
-      <view class="custom-switch {{vibrateEnabled ? 'custom-switch--on' : ''}}" bindtap="onVibrateToggle">
-        <view class="custom-switch__track">
-          <view class="custom-switch__thumb"></view>
+      <view class="avionics-switch {{vibrateEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVibrateToggle">
+        <view class="avionics-switch__track {{vibrateEnabled ? 'is-on' : ''}}">
+          <view class="avionics-switch__thumb"></view>
         </view>
+        <text class="avionics-switch__status">{{vibrateEnabled ? 'ACTIVE' : 'OFF'}}</text>
       </view>
     </view>
   </view>

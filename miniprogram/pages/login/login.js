@@ -42,6 +42,11 @@ Page({
   },
 
   playConnectingAnimation() {
+    // 动效静默时直接跳过动画
+    if (!this.data.animationEnabled) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve) => {
       const stepTexts = [
         '同步身份档案',

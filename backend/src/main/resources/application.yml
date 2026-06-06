@@ -79,3 +79,4 @@ emotion:
       - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_01.mp3
       - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_02.mp3
       - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_03.mp3
+    neutral-urls: []

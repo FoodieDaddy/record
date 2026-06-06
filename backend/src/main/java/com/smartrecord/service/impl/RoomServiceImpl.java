@@ -4,6 +4,7 @@ import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.config.OssConfig;
 import com.smartrecord.dto.room.*;
@@ -191,6 +192,10 @@ public class RoomServiceImpl implements RoomService {
         redisTemplate.opsForHash().put(metaKey, "m:" + userId, memberJson);
         redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
 
+        // 初始化新成员排行榜 0 分（确保 0 分成员也能出现在排行榜）
+        String scoresKey = "sr:room:" + rid + ":scores";
+        redisTemplate.opsForZSet().add(scoresKey, String.valueOf(userId), 0);
+
         // 8. 异步 WebSocket 广播 MEMBER_JOIN（通知房间内已有成员）
         asyncPushMemberJoin(rid, userId, nickname, avatarUrl);
 
@@ -305,9 +310,11 @@ public class RoomServiceImpl implements RoomService {
             throw new BizException("仅房主可解散房间");
         }
 
-        // 标记归档
+        // 标记归档（使用显式 Wrapper 确保 status 字段写入）
         room.setStatus(1);
-        roomMapper.updateById(room);
+        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                .eq(Room::getId, roomId)
+                .set(Room::getStatus, 1));
 
         // 获取所有成员并清理 Redis
         List<RoomMember> members = roomMemberMapper.selectList(
@@ -551,6 +558,11 @@ public class RoomServiceImpl implements RoomService {
                 "avatarUrl", owner.getAvatarUrl())));
         redisTemplate.opsForHash().putAll(metaKey, meta);
         redisTemplate.expire(metaKey, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        // 初始化排行榜 ZSet，房主初始 0 分（确保 0 分成员也能出现在排行榜）
+        String scoresKey = "sr:room:" + roomId + ":scores";
+        redisTemplate.opsForZSet().add(scoresKey, String.valueOf(ownerId), 0);
+        redisTemplate.expire(scoresKey, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
         // 用户房间映射
         redisTemplate.opsForSet().add("sr:user:rooms:" + ownerId, roomId);

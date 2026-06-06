@@ -22,75 +22,99 @@
   min-height: 100vh;
 }
 
-/* ===== 设置卡 ===== */
-.settings-card {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 24rpx;
+/* ===== 系统协议面板 ===== */
+.sp-panel {
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(10,132,255,0.18);
+  background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+  box-shadow:
+    0 0 0 1rpx rgba(255,255,255,0.025) inset,
+    0 0 36rpx rgba(10,132,255,0.045);
   padding: 32rpx;
+  overflow: hidden;
+  position: relative;
 }
-
-.settings-card__title {
-  font-size: 26rpx;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 24rpx;
+.sp-panel::before {
+  content: '';
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 0;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.52), transparent);
+  opacity: 0.72;
+}
+.sp-panel__head {
+  margin-bottom: 8rpx;
+}
+.sp-panel__kicker {
   display: block;
-  letter-spacing: 0.5rpx;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 18rpx;
+  letter-spacing: 5rpx;
+  color: rgba(10,132,255,0.48);
+  margin-bottom: 8rpx;
+}
+.sp-panel__title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 2rpx;
+}
+.sp-panel__divider {
+  height: 1rpx;
+  margin: 16rpx 0 8rpx;
+  background: linear-gradient(90deg, rgba(10,132,255,0.18), rgba(255,255,255,0.05), transparent);
 }
 
-.settings-card__row {
+/* ===== 系统行（复用 profile sys-row 模式） ===== */
+.sys-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid rgba(255, 255, 255, 0.05);
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid rgba(255,255,255,0.04);
 }
-
-.settings-card__row--last {
+.sys-row--last {
   border-bottom: none;
 }
-
-.settings-card__row-info {
+.sys-row__label-group {
   display: flex;
   flex-direction: column;
   gap: 4rpx;
 }
-
-.settings-card__row-label {
+.sys-row__label-zh {
   font-size: 28rpx;
   font-weight: 500;
-  color: var(--text-primary);
+  color: rgba(255,255,255,0.88);
 }
-
-.settings-card__row-desc {
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.45);
+.sys-row__label-en {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(10,132,255,0.40);
 }
-
-.settings-card__row-value {
+.sys-row__value {
   display: flex;
   align-items: center;
   gap: 8rpx;
 }
-
-.settings-card__value-text {
+.sys-row__value-text {
   font-size: 26rpx;
-  color: var(--text-tertiary);
+  color: rgba(255,255,255,0.38);
 }
 
-/* ===== 音色行折叠 ===== */
-.settings-card__row--collapse {
+/* 音色行折叠 */
+.sys-row--sub {
   max-height: 120rpx;
   opacity: 1;
   overflow: hidden;
+  padding-left: 24rpx;
   transition: max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1),
               opacity 0.25s ease;
 }
-
-.settings-card__row--hidden {
+.sys-row--hidden {
   max-height: 0;
   opacity: 0.3;
   padding-top: 0;
@@ -98,48 +122,48 @@
   pointer-events: none;
 }
 
-/* ===== 自定义开关 ===== */
-.custom-switch {
-  flex-shrink: 0;
-  padding: 8rpx;
-  margin: -8rpx;
+/* ===== 航电开关（复用全局 avionics-switch） ===== */
+.avionics-switch {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
-
-.custom-switch__track {
-  width: 88rpx;
+.avionics-switch__track {
+  position: relative;
+  width: 96rpx;
   height: 48rpx;
   border-radius: 24rpx;
-  background: rgba(255, 255, 255, 0.1);
-  position: relative;
-  transition: background 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  border: 1rpx solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  transition: border-color 0.25s, background-color 0.25s;
 }
-
-.custom-switch__thumb {
+.avionics-switch__track.is-on {
+  border-color: rgba(10,132,255,0.45);
+  background: rgba(10,132,255,0.12);
+}
+.avionics-switch__thumb {
   position: absolute;
   top: 4rpx;
   left: 4rpx;
-  width: 40rpx;
-  height: 40rpx;
+  width: 38rpx;
+  height: 38rpx;
   border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.25);
-  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-  will-change: transform;
+  background: rgba(255,255,255,0.35);
+  transition: transform 0.25s, background-color 0.25s;
 }
-
-.custom-switch--on .custom-switch__track {
+.avionics-switch__track.is-on .avionics-switch__thumb {
+  transform: translateX(48rpx);
   background: #0A84FF;
+  box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
 }
-
-.custom-switch--on .custom-switch__thumb {
-  transform: translateX(40rpx);
+.avionics-switch__status {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20rpx;
+  letter-spacing: 3rpx;
+  color: rgba(255,255,255,0.34);
 }
-
-.custom-switch:active .custom-switch__thumb {
-  transform: scale(0.9);
-}
-.custom-switch--on:active .custom-switch__thumb {
-  transform: translateX(40rpx) scale(0.9);
+.avionics-switch--on .avionics-switch__status {
+  color: #0A84FF;
 }
 
 /* ===== 音色抽屉 ===== */
@@ -362,8 +386,8 @@
 .reduce-motion .voice-sheet-mask,
 .reduce-motion .voice-sheet__cat-item,
 .reduce-motion .voice-sheet__voice-item,
-.reduce-motion .settings-card__row--collapse,
-.reduce-motion .custom-switch__track,
-.reduce-motion .custom-switch__thumb {
+.reduce-motion .sys-row--sub,
+.reduce-motion .avionics-switch__track,
+.reduce-motion .avionics-switch__thumb {
   transition: none !important;
 }

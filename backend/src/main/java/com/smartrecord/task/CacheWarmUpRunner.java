@@ -122,7 +122,13 @@ public class CacheWarmUpRunner implements ApplicationRunner {
 
     private void warmupRoomScores(Long roomId) {
         String scoresKey = "sr:room:" + roomId + ":scores";
-        redisTemplate.delete(scoresKey);
+        // Redis 仍有数据时跳过重建，避免覆盖运行期分数
+        Long existingSize = redisTemplate.opsForZSet().zCard(scoresKey);
+        if (existingSize != null && existingSize > 0) {
+            log.debug("房间 {} scores ZSet 已存在（{} 条），跳过重建", roomId, existingSize);
+            redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
+            return;
+        }
 
         // 从 room.all_record JSON 读取已归档的得分数据
         String allRecordJson = roomMapper.selectAllRecordById(roomId);

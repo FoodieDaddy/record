@@ -23,6 +23,9 @@ page {
   --gold: #fbbf24;
   --silver: #94a3b8;
   --bronze: #d97706;
+  --color-neon-cyan: #00FFFF;
+  --color-electric-purple: #8B00FF;
+  --color-amber: #FFB000;
   --border-radius: 24rpx;
   --border-radius-sm: 16rpx;
   --border-radius-xs: 12rpx;

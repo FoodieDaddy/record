@@ -6,7 +6,9 @@
     </view>
     <text class="empty-state__title">尚未登录</text>
     <text class="empty-state__desc">登录后即可管理个人信息</text>
-    <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
+    <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
+      <text>去登录</text>
+    </view>
   </view>
 
   <!-- 已登录 -->
@@ -88,9 +90,9 @@
           <text class="stats-cell__sub">累计数值</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">胜率</text>
+          <text class="stats-cell__label">正反馈率</text>
           <text class="stats-cell__value">{{winRate}}%</text>
-          <text class="stats-cell__sub">胜率</text>
+          <text class="stats-cell__sub">正反馈率</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">任务数</text>

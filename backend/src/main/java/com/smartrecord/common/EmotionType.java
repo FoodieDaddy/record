@@ -2,10 +2,12 @@ package com.smartrecord.common;
 
 /**
  * 记分情绪类型
- * WIN — 赢分时播放装逼/炫耀类音频
- * LOSE — 输分时播放悲伤/卖惨类音频
+ * WIN — 正向情绪音频（正分变动）
+ * LOSE — 负向情绪音频（负分变动）
+ * NEUTRAL — 中性情绪音频（零分变动，预留）
  */
 public enum EmotionType {
     WIN,
-    LOSE
+    LOSE,
+    NEUTRAL
 }

@@ -10,9 +10,7 @@
     <!-- Header -->
     <view class="header">
       <text class="header-title">声音协议</text>
-      <view class="close-btn" bindtap="closeSheet">
-        <text class="close-icon">×</text>
-      </view>
+      <view class="fi fi--close" bindtap="closeSheet"></view>
     </view>
 
     <!-- 内容区：左右分栏 -->
@@ -26,7 +24,7 @@
           bindtap="switchTab"
           data-index="{{index}}"
         >
-          <view class="sidebar-icon sidebar-icon--{{item.id}}">{{item.icon}}</view>
+          <view class="sidebar-icon sidebar-icon--{{item.id}}"></view>
           <text class="sr-t-fast sidebar-name">{{item.name}}</text>
         </view>
       </scroll-view>

@@ -66,12 +66,13 @@ public class FortuneServiceImpl implements FortuneService {
             你不是算命师，不是预测系统，不输出运势，不判断输赢，不承诺结果。
 
             规则：
-            - 用农历/节气意象+赛博科幻词汇，映射到任务痛点（情绪波动、节奏管理、风险控制）
+            - 用赛博科幻词汇和时间窗口/节奏窗口/环境变量等意象，映射到任务痛点（情绪波动、节奏管理、风险控制）
             - 禁止传统玄学词汇、禁止预测结果、禁止利益承诺
             - 输出复盘建议和状态管理，语气冷静克制、赛博飞船终端感
             - 不使用emoji，不使用玄学套话，不制造焦虑
+            - 不强制引用农历或节气，可使用时间窗口、节奏窗口、环境变量等替代
 
-            字段：tag(4字)、verdict(10-18字冷酷忠告，融合节气意象)、buffs(3个5-7字策略优势)、debuffs(2个5-7字隐患)
+            字段：tag(4字)、verdict(10-18字冷酷忠告，融合节奏/环境意象)、buffs(3个5-7字策略优势)、debuffs(2个5-7字隐患)
 
             只输出JSON，不要其他文字：
             {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["优势1","优势2","优势3"],"debuffs":["预警1","预警2"]}
@@ -483,17 +484,17 @@ public class FortuneServiceImpl implements FortuneService {
                 【累计净积分】%d分
                 【近3场走势】%s
                 【完整战绩】%s
-                【时空坐标】%s
+                【时间窗口】%s
 
-                请根据以上数据，结合当天农历/节气的自然意象，用赛博朋克+策略复盘的口吻生成今日策略。
-                判词要像高维生物的冷酷忠告，必须引用节气/农历意象并映射到对局策略。
+                请根据以上数据，用赛博朋克+策略复盘的口吻生成今日策略。
+                判词要像高维生物的冷酷忠告，可用时间窗口/节奏窗口/环境变量等意象映射到对局策略。
                 """, tagDesc, netScore, trend, recentScores.toString(), lunarContext);
 
         return prompt;
     }
 
     /**
-     * 计算农历/天干地支/节气时空上下文
+     * 计算时间窗口上下文（天干地支/农历/节气作为环境变量参考）
      */
     private String getLunarContext() {
         LocalDate today = LocalDate.now();
@@ -600,7 +601,7 @@ public class FortuneServiceImpl implements FortuneService {
     }
 
     /**
-     * 填充农历日期和节气字段
+     * 填充时间窗口字段（农历日期/节气作为环境变量）
      */
     private void fillLunarFields(FortuneResp resp) {
         try {

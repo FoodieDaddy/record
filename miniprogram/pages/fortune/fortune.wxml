@@ -5,7 +5,6 @@
     <view class="idle-header">
       <view class="page-kicker">STRATEGY</view>
       <view class="page-date">[ {{currentDate}} ]</view>
-      <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
     </view>
 
     <view class="sr-section-head" style="margin: 0 48rpx 48rpx;">
@@ -92,7 +91,6 @@
     <view class="success-header">
       <view class="page-kicker">STRATEGY</view>
       <view class="page-date">[ {{currentDate}} ]</view>
-      <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
     </view>
 
     <view class="sr-section-head" style="margin: 0 16rpx 32rpx;">

@@ -13,7 +13,9 @@
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
     <text class="text-lg text-bold" style="margin-bottom:12rpx;">尚未登录</text>
     <text class="text-secondary" style="margin-bottom:40rpx;">登录后即可启动或接入空间</text>
-    <button class="btn-primary" style="width:320rpx;" bindtap="goLogin">去登录</button>
+    <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
+      <text>去登录</text>
+    </view>
   </view>
 
   <!-- 已登录：无房间 -->
@@ -323,7 +325,9 @@
           <text class="rq-action-text">分享</text>
         </button>
       </view>
-      <button class="btn-primary" style="margin-top:20rpx;" bindtap="enterRoom">进入空间</button>
+      <view class="flight-primary" style="margin-top:20rpx;" bindtap="enterRoom">
+        <text>进入空间</text>
+      </view>
     </view>
   </view>
 
@@ -546,9 +550,13 @@
           <view class="transfer-key" bindtap="onNumpadKey" data-key="7">7</view>
           <view class="transfer-key" bindtap="onNumpadKey" data-key="8">8</view>
           <view class="transfer-key" bindtap="onNumpadKey" data-key="9">9</view>
-          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="clear">C</view>
+          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="clear">
+            <text class="numpad-func-icon">C</text>
+          </view>
           <view class="transfer-key" bindtap="onNumpadKey" data-key="0">0</view>
-          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">⌫</view>
+          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">
+            <text class="numpad-func-icon numpad-func-icon--del"></text>
+          </view>
         </view>
         <view class="transfer-actions">
           <view class="transfer-confirm {{numpadValue > 0 ? '' : 'transfer-confirm-disabled'}}" bindtap="confirmNumpad">

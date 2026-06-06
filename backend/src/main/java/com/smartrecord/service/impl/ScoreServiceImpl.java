@@ -70,6 +70,10 @@ public class ScoreServiceImpl implements ScoreService {
             local fromUser = ARGV[1]
             local toUser = ARGV[2]
             local amount = tonumber(ARGV[3])
+            -- 已结算空间 key 已删除，拒绝操作防止重建脏数据
+            if redis.call('EXISTS', scoresKey) == 0 then
+                return 0
+            end
             redis.call('ZINCRBY', scoresKey, -amount, fromUser)
             redis.call('ZINCRBY', scoresKey, amount, toUser)
             return 1
@@ -110,6 +114,11 @@ public class ScoreServiceImpl implements ScoreService {
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
                 throw new BizException("系统繁忙，请稍后重试");
+            }
+            // 加锁后二次检查房间状态，防止结算期间提交脏数据
+            Room freshRoom = roomMapper.selectById(roomId);
+            if (freshRoom != null && freshRoom.getStatus() != 0) {
+                throw new BizException("空间已封存，无法提交");
             }
 
             long batchTs = System.currentTimeMillis();
@@ -191,6 +200,18 @@ public class ScoreServiceImpl implements ScoreService {
         if (room.getStatus() == 0) {
             // 进行中 → Redis
             totals = getPlayerTotalsFromRedis(roomId);
+            // 合并 meta 中的成员列表，补 0 分成员（确保排行榜始终返回全体成员）
+            String metaKey = ROOM_PREFIX + roomId + ":meta";
+            Map<Object, Object> metaFields = redisTemplate.opsForHash().entries(metaKey);
+            for (Object key : metaFields.keySet()) {
+                String k = (String) key;
+                if (k.startsWith("m:")) {
+                    try {
+                        Long uid = Long.parseLong(k.substring(2));
+                        totals.putIfAbsent(uid, 0);
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
         } else {
             // 已结算 → MySQL
             totals = getPlayerTotalsFromMySQL(roomId);
@@ -239,6 +260,11 @@ public class ScoreServiceImpl implements ScoreService {
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
                 throw new BizException("系统繁忙，请稍后重试");
+            }
+            // 加锁后二次检查，防止并发重复结算
+            Room freshRoom = roomMapper.selectById(roomId);
+            if (freshRoom != null && freshRoom.getStatus() != 0) {
+                throw new BizException("已封存空间不可重复结算");
             }
             return doSettleRoom(userId, roomId, room, autoSettled);
         } catch (InterruptedException e) {
@@ -292,13 +318,9 @@ public class ScoreServiceImpl implements ScoreService {
                 }
             }
             // 确保所有房间成员都在 playerTotalMap 中（包括 0 分成员）
-            Map<Object, Object> metaEntries = redisTemplate.opsForHash().entries(roomPrefix + "meta");
-            for (Object key : metaEntries.keySet()) {
-                String k = (String) key;
-                if (k.startsWith("m:")) {
-                    Long uid = Long.parseLong(k.substring(2));
-                    playerTotalMap.putIfAbsent(uid, 0);
-                }
+            // 复用上方已读取的 memberMetaMap，避免二次读取 meta
+            for (Long memberId : memberMetaMap.keySet()) {
+                playerTotalMap.putIfAbsent(memberId, 0);
             }
 
             // 从 events ZSet 构建图表数据（每个 event 作为一个数据点）
@@ -381,6 +403,10 @@ public class ScoreServiceImpl implements ScoreService {
                 batchRecord.put("scores", playerScores);
                 allRecord.add(batchRecord);
             }
+            // 确保所有房间成员都在 playerTotalMap 中（包括未被记分的 0 分成员）
+            for (Long memberId : memberMetaMap.keySet()) {
+                playerTotalMap.putIfAbsent(memberId, 0);
+            }
         }
 
         // 2. 持久化 transfer events 到 all_record
@@ -400,9 +426,13 @@ public class ScoreServiceImpl implements ScoreService {
             allRecord.add(recordMeta);
         }
 
-        // 5. 更新 room.all_record
+        // 5. 更新 room.all_record 并标记已归档（使用显式 Wrapper 确保 status 字段写入）
         room.setAllRecord(allRecord);
-        roomMapper.updateById(room);
+        room.setStatus(1);
+        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                .eq(Room::getId, roomId)
+                .set(Room::getStatus, 1)
+                .set(Room::getAllRecord, allRecord));
 
         // 5. 更新 room_member.final_score 和 quit_time
         LocalDateTime now = LocalDateTime.now();
@@ -432,6 +462,8 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 清理成员缓存 + 每个成员的 user:rooms 映射
         redisTemplate.delete(roomPrefix + "meta");
+        // 结算后清理房间号映射，防止再次接入
+        redisTemplate.delete("sr:room_no:" + room.getRoomNo());
         for (Long memberId : playerTotalMap.keySet()) {
             redisTemplate.opsForSet().remove("sr:user:rooms:" + memberId, String.valueOf(roomId));
         }
@@ -600,9 +632,13 @@ public class ScoreServiceImpl implements ScoreService {
             playerTotalMap.putIfAbsent(m.getUserId(), 0);
         }
 
-        // 3. 更新 room.all_record
+        // 3. 更新 room.all_record 并标记已归档（使用显式 Wrapper 确保 status 字段写入）
         room.setAllRecord(allRecord);
-        roomMapper.updateById(room);
+        room.setStatus(1);
+        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                .eq(Room::getId, roomId)
+                .set(Room::getStatus, 1)
+                .set(Room::getAllRecord, allRecord));
 
         // 4. 更新 room_member.final_score 和 quit_time
         LocalDateTime now = LocalDateTime.now();
@@ -615,13 +651,23 @@ public class ScoreServiceImpl implements ScoreService {
                             .set(RoomMember::getQuitTime, now));
         }
 
-        // 5. 清理 Redis（round 相关 key + 房间基础 key）
+        // 5. 清理 Redis（round 相关 key + 房间基础 key + 防御性清理自由流转 key）
         List<String> keysToDelete = new ArrayList<>(List.of(
                 roomPrefix + "round", roomPrefix + "round:details",
                 roomPrefix + "round:members", roomPrefix + "round:confirms",
                 roomPrefix + "roundConfig", roomPrefix + "scores",
-                roomPrefix + "meta", roomPrefix + "overview"));
+                roomPrefix + "meta", roomPrefix + "overview",
+                roomPrefix + "events", roomPrefix + "batches"));
+        // 防御性清理 batch:* 子 key（可能从自由流转模式残留）
+        List<String> staleBatchTs = redisTemplate.opsForList().range(roomPrefix + "batches", 0, -1);
+        if (staleBatchTs != null) {
+            for (String ts : staleBatchTs) {
+                keysToDelete.add(roomPrefix + "batch:" + ts);
+            }
+        }
         redisTemplate.delete(keysToDelete);
+        // 结算后清理房间号映射，防止再次接入
+        redisTemplate.delete("sr:room_no:" + room.getRoomNo());
         for (Long memberId : playerTotalMap.keySet()) {
             redisTemplate.opsForSet().remove("sr:user:rooms:" + memberId, String.valueOf(roomId));
         }
@@ -855,10 +901,8 @@ public class ScoreServiceImpl implements ScoreService {
                     .build();
         }
 
-        // 互动密度
-        String scoresKey = ROOM_PREFIX + roomId + ":scores";
-        Long memberCount = redisTemplate.opsForZSet().size(scoresKey);
-        int n = memberCount != null ? memberCount.intValue() : 0;
+        // 互动密度：用事件中实际参与的用户数，排除 ZSet 中的 init 哨兵
+        int n = userCount.size();
         double density = (n > 1) ? (double) events.size() / (n * (n - 1)) : 0;
         String densityLevel = density > 0.3 ? "HIGH" : density > 0.1 ? "MEDIUM" : "LOW";
 
@@ -1203,7 +1247,7 @@ public class ScoreServiceImpl implements ScoreService {
                     String.valueOf(req.getToUserId()),
                     String.valueOf(req.getAmount()));
             if (result == null || result == 0) {
-                throw new BizException("计分失败，请重试");
+                throw new BizException("空间已封存或计分失败");
             }
         } catch (BizException e) {
             throw e;

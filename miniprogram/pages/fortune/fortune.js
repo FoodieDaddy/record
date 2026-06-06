@@ -136,11 +136,6 @@ Page({
       const cached = wx.getStorageSync('strategy_result')
       if (cached && cached.date === today && cached.data) {
         const strategy = sanitizeStrategy(cached.data)
-        let lunarInfo = ''
-        if (strategy.lunarDate) {
-          lunarInfo = strategy.lunarDate
-          if (strategy.solarTerm) lunarInfo += ' · ' + strategy.solarTerm
-        }
         wx.setStorageSync('strategy_result', { date: today, data: strategy })
         const meta = deriveStrategyMeta(strategy)
         this.setData({
@@ -148,7 +143,6 @@ Page({
           strategy,
           strategyTheme: meta.strategyTheme,
           strategySummary: meta.strategySummary,
-          lunarInfo,
           nextRefreshAt: strategy.nextRefreshAt || '',
         })
         return
@@ -222,6 +216,15 @@ Page({
 
   /** 日志动画：setTimeout 链，每条间隔 1200ms */
   _runLogAnimation() {
+    // 动效静默时直接跳过动画，立即标记完成
+    if (!this.data.animationEnabled) {
+      const stages = this.data.stages.map(s => ({ ...s, done: true }))
+      this.setData({ stages, stagesDoneCount: 4 })
+      this._calcAnimDone = true
+      this._tryFinishCalc()
+      return
+    }
+
     const lines = CALC_LOG_LINES
     let currentStage = -1
 
@@ -335,13 +338,6 @@ Page({
       wx.setStorageSync('strategy_result', { date: today, data: strategy })
     } catch (e) {}
 
-    // 拼接农历信息
-    let lunarInfo = ''
-    if (strategy.lunarDate) {
-      lunarInfo = strategy.lunarDate
-      if (strategy.solarTerm) lunarInfo += ' · ' + strategy.solarTerm
-    }
-
     const meta = deriveStrategyMeta(strategy)
 
     this.setData({
@@ -349,7 +345,6 @@ Page({
       strategy,
       strategyTheme: meta.strategyTheme,
       strategySummary: meta.strategySummary,
-      lunarInfo,
       nextRefreshAt: strategy.nextRefreshAt || '',
     })
   },
@@ -456,14 +451,12 @@ Page({
       ctx.lineTo(W - 60, 128)
       ctx.stroke()
 
-      // === 日期 + 农历 ===
+      // === 日期 + 时间窗口 ===
       ctx.font = '16px Courier New'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
       ctx.fillText(`[ ${this.data.currentDate} ]`, W / 2, 168)
-      if (this.data.lunarInfo) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
-        ctx.fillText(this.data.lunarInfo, W / 2, 196)
-      }
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'
+      ctx.fillText('STRATEGY WINDOW', W / 2, 196)
 
       // === 中央：title 大字（加光晕） ===
       ctx.textAlign = 'center'
