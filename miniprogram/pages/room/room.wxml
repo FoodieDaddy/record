@@ -123,7 +123,7 @@
   </view>
 
   <!-- active 状态：驾驶舱主界面 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'active'}}" class="cockpit-active">
+  <view wx:if="{{isLoggedIn && cockpitState === 'active' && currentRoom}}" class="cockpit-active">
     <!-- 顶部提示 -->
     <view class="top-toast {{toastMsg ? 'top-toast-show' : ''}} {{toastType === 'error' ? 'top-toast-error' : ''}}" wx:if="{{toastMsg}}">
       <text>{{toastMsg}}</text>
@@ -310,8 +310,8 @@
     </scroll-view>
 
     <!-- 封存确认弹窗 -->
-    <view wx:if="{{sealConfirmVisible}}" class="cockpit-mask">
-      <view class="seal-panel sr-hud-panel">
+    <view wx:if="{{sealConfirmVisible}}" class="cockpit-mask" bindtap="closeSealConfirm">
+      <view class="seal-panel sr-hud-panel" catchtap="preventClose">
         <view class="seal-core">
           <view class="seal-ring"></view>
           <view class="seal-title">确认封存航程</view>
