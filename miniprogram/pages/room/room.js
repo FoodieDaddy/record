@@ -110,7 +110,22 @@ Page({
     showRejectConfirm: false,
     // 顶部提示
     toastMsg: '',
-    toastType: 'success'
+    toastType: 'success',
+    // ===== 驾驶舱 Phase 1 =====
+    cockpitState: 'idle',       // 'idle' | 'active' | 'sealing' | 'sealed'
+    wsConnected: false,
+    seatList: [],
+    selectedCrew: null,
+    pulseValue: '',
+    pulseTraces: [],
+    traceAnchor: '',
+    joinPanelVisible: false,
+    joinCode: '',
+    launching: false,
+    submittingPulse: false,
+    sealConfirmVisible: false,
+    sealing: false,
+    sealHeartbeatText: '脉冲轨迹封装中'
   },
 
   onShow() {
@@ -120,7 +135,8 @@ Page({
       isLoggedIn: !!app.globalData.token,
       audioEnabled,
       animationEnabled: app.globalData.animationEnabled !== false,
-      myUserId: String(app.globalData.userId || '')
+      myUserId: String(app.globalData.userId || ''),
+      wsConnected: scoreWS.isConnected
     });
     this.calcScoreRecordHeight();
     // 订阅 WebSocket 消息（绑定稳定引用）
@@ -130,8 +146,8 @@ Page({
     scoreWS.on('message', this._onWsMessage);
     // WS 断线/重连状态
     if (!this._onWsClose) {
-      this._onWsClose = () => this.setData({ wsReconnecting: true });
-      this._onWsOpen = () => this.setData({ wsReconnecting: false });
+      this._onWsClose = () => this.setData({ wsReconnecting: true, wsConnected: false });
+      this._onWsOpen = () => this.setData({ wsReconnecting: false, wsConnected: true });
     }
     scoreWS.on('close', this._onWsClose);
     scoreWS.on('open', this._onWsOpen);
@@ -143,6 +159,7 @@ Page({
       this.loadMyRooms();
       this.loadRecentRooms();
     }
+    this.updateCockpitState();
   },
 
   onLoad(options) {
@@ -171,6 +188,209 @@ Page({
     if (this._toastTimer) {
       clearTimeout(this._toastTimer);
       this._toastTimer = null;
+    }
+  },
+
+  updateCockpitState() {
+    if (!this.data.currentRoom) {
+      this.setData({ cockpitState: 'idle' });
+    } else if (this.data.sealing) {
+      this.setData({ cockpitState: 'sealing' });
+    } else {
+      this.setData({ cockpitState: 'active' });
+    }
+  },
+
+  buildSeatList(members = []) {
+    const safeMembers = (members || []).slice(0, 16).map(m => ({
+      userId: m.userId || m.id,
+      nickname: m.nickname,
+      avatarUrl: m.avatarUrl || '',
+      score: m.score || 0,
+      displayName: this.formatCrewName(m.nickname),
+      scoreText: this.formatPulseValue(m.score),
+      active: true,
+      seatKey: String(m.userId || m.id),
+      isSelf: String(m.userId || m.id) === String(this.data.myUserId),
+      isHost: m.isHost || false
+    }));
+    const emptySeats = Array.from({ length: Math.max(0, 16 - safeMembers.length) }, (_, i) => ({
+      seatKey: `empty-${i}`,
+      active: false,
+      displayName: '空席',
+      scoreText: '',
+      isSelf: false,
+      isHost: false
+    }));
+    return [...safeMembers, ...emptySeats];
+  },
+
+  formatCrewName(name = '') {
+    const text = String(name || '舰员').trim();
+    return text.length > 6 ? text.slice(0, 6) : text;
+  },
+
+  formatPulseValue(value = 0) {
+    const num = Number(value || 0);
+    if (Math.abs(num) >= 100000) return `${(num / 10000).toFixed(1)}w`;
+    return `${num}`;
+  },
+
+  // ===== 驾驶舱交互 =====
+
+  handleStartSpace() {
+    if (this.data.launching) return;
+    this.setData({ launching: true });
+    this.createRoom().finally(() => {
+      this.setData({ launching: false });
+      this.updateCockpitState();
+    });
+  },
+
+  openJoinPanel() {
+    this.setData({ joinPanelVisible: true, joinCode: '' });
+  },
+
+  closeJoinPanel() {
+    this.setData({ joinPanelVisible: false, joinCode: '' });
+  },
+
+  onJoinCodeInput(e) {
+    const value = String(e.detail.value || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 6);
+    this.setData({ joinCode: value });
+  },
+
+  async handleJoinSpace() {
+    const code = this.data.joinCode.trim();
+    if (!code || code.length < 6 || this.data.joining) return;
+    this.setData({ joining: true });
+    try {
+      await this.joinByRoomNo(code);
+      this.closeJoinPanel();
+      this.updateCockpitState();
+    } catch (err) {
+      // joinByRoomNo 内部已有 showToast 错误处理
+    } finally {
+      this.setData({ joining: false });
+    }
+  },
+
+  handleSelectCrew(e) {
+    const userId = e.currentTarget.dataset.userId;
+    if (!userId) return;
+    const seat = this.data.seatList.find(s => String(s.userId) === String(userId));
+    if (!seat || !seat.active) return;
+    const isSelected = this.data.selectedCrew && String(this.data.selectedCrew.userId) === String(userId);
+    this.setData({
+      selectedCrew: isSelected ? null : seat
+    });
+    vibrateShort('light');
+  },
+
+  onPulseValueInput(e) {
+    const value = String(e.detail.value || '').replace(/[^0-9\-]/g, '').slice(0, 7);
+    this.setData({ pulseValue: value });
+  },
+
+  decreasePulse() {
+    const cur = parseInt(this.data.pulseValue, 10) || 0;
+    this.setData({ pulseValue: String(Math.max(cur - 1, -99999)) });
+  },
+
+  increasePulse() {
+    const cur = parseInt(this.data.pulseValue, 10) || 0;
+    this.setData({ pulseValue: String(Math.min(cur + 1, 99999)) });
+  },
+
+  async handleSubmitPulse() {
+    if (!this.data.selectedCrew) {
+      this.showToast('请选择舰员席位', 'error');
+      return;
+    }
+    const amount = parseInt(this.data.pulseValue, 10);
+    if (!amount || amount === 0) {
+      this.showToast('请输入脉冲值', 'error');
+      return;
+    }
+    if (this.data.submittingPulse) return;
+    this.setData({ submittingPulse: true });
+    try {
+      this.setData({ transferTo: this.data.selectedCrew.userId });
+      await this.submitTransfer(amount);
+      const traces = this.data.pulseTraces.slice();
+      const fromName = '我';
+      const toName = this.data.selectedCrew.displayName;
+      traces.push({
+        id: Date.now(),
+        title: `${fromName} → ${toName}`,
+        desc: `脉冲 ${amount > 0 ? '+' : ''}${amount} 已写入缓冲区`,
+        valueText: `${amount > 0 ? '+' : ''}${amount}`,
+        valueClass: amount < 0 ? 'is-negative' : '',
+        isNew: true
+      });
+      this.setData({
+        pulseTraces: traces,
+        pulseValue: '',
+        traceAnchor: `trace-${traces[traces.length - 1].id}`
+      });
+      const traceId = traces[traces.length - 1].id;
+      setTimeout(() => {
+        const current = this.data.pulseTraces.map(t =>
+          t.id === traceId ? { ...t, isNew: false } : t
+        );
+        this.setData({ pulseTraces: current });
+      }, 3000);
+    } catch (err) {
+      // submitTransfer 内部已有错误处理
+    } finally {
+      this.setData({ submittingPulse: false });
+    }
+  },
+
+  openSealConfirm() {
+    this.setData({ sealConfirmVisible: true });
+  },
+
+  closeSealConfirm() {
+    this.setData({ sealConfirmVisible: false });
+  },
+
+  async handleSealRoom() {
+    this.closeSealConfirm();
+    this.setData({ sealing: true, cockpitState: 'sealing' });
+    this.startSealHeartbeat();
+    try {
+      await this.quitRoom();
+    } catch (err) {
+      this.showToast('封存失败，请重试', 'error');
+    } finally {
+      this.stopSealHeartbeat();
+      this.setData({ sealing: false });
+      this.updateCockpitState();
+    }
+  },
+
+  startSealHeartbeat() {
+    const texts = [
+      '脉冲轨迹封装中',
+      '舰员终值校准中',
+      '航程样本写入中',
+      '黑匣子索引生成中'
+    ];
+    let idx = 0;
+    this._sealHeartbeatTimer = setInterval(() => {
+      idx = (idx + 1) % texts.length;
+      this.setData({ sealHeartbeatText: texts[idx] });
+    }, 3000);
+  },
+
+  stopSealHeartbeat() {
+    if (this._sealHeartbeatTimer) {
+      clearInterval(this._sealHeartbeatTimer);
+      this._sealHeartbeatTimer = null;
     }
   },
 
@@ -215,11 +435,13 @@ Page({
         this.enrichMembers(room);
         this.loadRoomData(room.roomId);
         this.connectWS(room.roomId);
+        this.updateCockpitState();
         if (room.scoreMode === 2) {
           this.loadPendingRound(room.roomId);
         }
       } else {
         this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [] });
+        this.updateCockpitState();
       }
     } catch (e) {
       console.error('加载空间失败', e);
@@ -584,14 +806,37 @@ Page({
         // 出分方已在 submitTransfer 中本地处理动画和数据刷新，跳过
         if (isSender) return;
 
+        // 驾驶舱轨迹：非出分方（收分方/旁观者）写入脉冲轨迹
+        const fromMember = (this.data.currentRoom.members || []).find(m => String(m.userId) === String(data.fromUserId));
+        const toMember = (this.data.currentRoom.members || []).find(m => String(m.userId) === String(data.toUserId));
+        if (fromMember && toMember) {
+          const traces = this.data.pulseTraces.slice();
+          traces.push({
+            id: Date.now() + Math.random(),
+            title: `${this.formatCrewName(fromMember.nickname)} → ${this.formatCrewName(toMember.nickname)}`,
+            desc: `脉冲 ${data.amount > 0 ? '+' : ''}${data.amount} 已写入缓冲区`,
+            valueText: `${data.amount > 0 ? '+' : ''}${data.amount}`,
+            valueClass: data.amount < 0 ? 'is-negative' : '',
+            isNew: true
+          });
+          this.setData({ pulseTraces: traces, traceAnchor: `trace-${traces[traces.length - 1].id}` });
+          const traceId = traces[traces.length - 1].id;
+          setTimeout(() => {
+            const current = this.data.pulseTraces.map(t =>
+              t.id === traceId ? { ...t, isNew: false } : t
+            );
+            this.setData({ pulseTraces: current });
+          }, 3000);
+        }
+
         // 仅收分方语音播报（旁观者不播放）
         const isReceiver = String(data.toUserId) === myId;
         if (isReceiver && app.globalData.audioEnabled) {
           const members = this.data.currentRoom.members || [];
-          const fromMember = members.find(m => String(m.userId) === String(data.fromUserId));
-          const toMember = members.find(m => String(m.userId) === myId);
-          const fromName = fromMember ? fromMember.nickname : '未知';
-          const toName = toMember ? toMember.nickname : '未知';
+          const audioFrom = members.find(m => String(m.userId) === String(data.fromUserId));
+          const audioTo = members.find(m => String(m.userId) === myId);
+          const fromName = audioFrom ? audioFrom.nickname : '未知';
+          const toName = audioTo ? audioTo.nickname : '未知';
           speakTransfer(fromName, toName, String(data.amount));
         }
 
@@ -791,6 +1036,7 @@ Page({
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
+      this.updateCockpitState();
       wx.showToast({ title: '空间已启动', icon: 'success' });
     } catch (e) {
       wx.showToast({ title: (e && e.message) || '启动失败', icon: 'none', duration: 2000 });
@@ -825,6 +1071,7 @@ Page({
       // 刷新完整空间信息（成员列表可能比 join 响应更完整）
       this.reloadRoomInfo(room.roomId);
       this.connectWS(room.roomId);
+      this.updateCockpitState();
       if (room.scoreMode === 2) {
         this.loadPendingRound(room.roomId);
       }
@@ -1319,13 +1566,11 @@ Page({
         wx.showLoading({ title: '正在封存航程...' });
         // 1. 先归档数据
         const settleResp = await post(`/score/room/${roomId}/settle`);
-        // 2. 解散空间（必须 await，确保后端清理完成）
-        await del(`/room/${roomId}/quit`);
         wx.hideLoading();
-        // 3. 断开 WS
+        // 2. 断开 WS
         app.disconnectWS();
         this._settling = false;
-        // 4. 有记分数据则展示结算弹层，否则提示空数据并回到空间列表
+        // 3. 有记分数据则展示结算弹层，否则提示空数据并回到空间列表
         const hasData = settleResp && (
           (settleResp.timestamps && settleResp.timestamps.length > 0) ||
           (settleResp.series && settleResp.series.some(s => s.scores && s.scores.length > 0))
@@ -1336,6 +1581,8 @@ Page({
           this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
           wx.showToast({ title: '暂无可封存的航程数据', icon: 'none', duration: 2000 });
         }
+        // 4. 解散空间（独立执行，不影响结算弹层展示）
+        del(`/room/${roomId}/quit`).catch(() => {});
       } else {
         await del(`/room/${roomId}/quit`);
         app.disconnectWS();
