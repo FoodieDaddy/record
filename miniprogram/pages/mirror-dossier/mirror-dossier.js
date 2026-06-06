@@ -1,5 +1,6 @@
 const api = require('../../utils/mirror-api');
 const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
+const { sanitizeMirrorText, sanitizeMirrorObject } = require('../../utils/mirror-sanitize');
 const app = getApp();
 
 var PERSONA_SIGNAL_MAP = {
@@ -14,7 +15,7 @@ var PERSONA_SIGNAL_MAP = {
 function resolveMbti(mbti) {
   if (!mbti || !mbti.mbtiCode || !MBTI_MAP[mbti.mbtiCode]) return mbti;
   var info = MBTI_MAP[mbti.mbtiCode];
-  return Object.assign({}, mbti, { mbtiType: info.type, mbtiTitle: info.title });
+  return sanitizeMirrorObject(Object.assign({}, mbti, { mbtiType: info.type, mbtiTitle: info.title }));
 }
 
 Page({
@@ -48,22 +49,28 @@ Page({
       var res = await api.getMirrorProfile();
 
       var mbti = resolveMbti(res.mbti) || {};
-      var battle = res.battlePersona || {};
-      var match = res.personaMatch || {};
-      var reading = res.reading || {};
-      var traits = (res.traits && res.traits.length > 0)
+      var battle = sanitizeMirrorObject(res.battlePersona || {});
+      var match = sanitizeMirrorObject(res.personaMatch || {});
+      var reading = sanitizeMirrorObject(res.reading || {});
+      var rawTraits = (res.traits && res.traits.length > 0)
         ? res.traits
         : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
+      var traits = rawTraits.map(sanitizeMirrorText);
 
       var tag = battle.tag || 'STABLE_CONTROL';
       var signals = battle.generated
         ? (PERSONA_SIGNAL_MAP[tag] || []).concat(traits).slice(0, 5)
         : traits.slice(0, 4);
+      signals = signals.map(sanitizeMirrorText);
 
       var now = new Date();
       var generatedAt = now.getFullYear() + '.'
         + String(now.getMonth() + 1).padStart(2, '0') + '.'
         + String(now.getDate()).padStart(2, '0');
+
+      if (mbti.mbtiTitle) {
+        mbti = Object.assign({}, mbti, { mbtiTitle: sanitizeMirrorText(mbti.mbtiTitle) });
+      }
 
       this.setData({
         mbti: mbti,
@@ -91,7 +98,7 @@ Page({
 
     if (d.mbti.mbtiType) {
       lines.push('--- 人格协议 ---');
-      lines.push('类型: ' + d.mbti.mbtiType + ' ' + (d.mbti.mbtiTitle || ''));
+      lines.push('类型: ' + d.mbti.mbtiType + ' ' + sanitizeMirrorText(d.mbti.mbtiTitle || ''));
       lines.push('置信度: ' + (d.mbti.confidence || 0) + '%');
       lines.push('');
     }
@@ -101,7 +108,7 @@ Page({
 
     if (d.battlePersona.generated) {
       lines.push('--- 任务画像 ---');
-      lines.push('类型: ' + d.battlePersona.title);
+      lines.push('类型: ' + sanitizeMirrorText(d.battlePersona.title));
       lines.push('样本: ' + d.battlePersona.sampleSize + ' 场');
       lines.push('');
     }
@@ -109,17 +116,17 @@ Page({
     if (d.personaMatch.available) {
       lines.push('--- 人格偏差 ---');
       lines.push('校准人格: ' + d.mbti.mbtiType);
-      lines.push('行为人格: ' + d.personaMatch.inferredMbtiType);
+      lines.push('行为人格: ' + sanitizeMirrorText(d.personaMatch.inferredMbtiType || ''));
       lines.push('偏差率: ' + d.personaMatch.deviationPercent + '%');
       lines.push('');
     }
 
     if (d.reading.available) {
       lines.push('--- 系统判读 ---');
-      if (d.reading.observation) lines.push('观测: ' + d.reading.observation);
-      if (d.reading.deviation) lines.push('偏差: ' + d.reading.deviation);
-      if (d.reading.risk) lines.push('风险: ' + d.reading.risk);
-      if (d.reading.growthAdvice) lines.push('建议: ' + d.reading.growthAdvice);
+      if (d.reading.observation) lines.push('观测: ' + sanitizeMirrorText(d.reading.observation));
+      if (d.reading.deviation) lines.push('偏差: ' + sanitizeMirrorText(d.reading.deviation));
+      if (d.reading.risk) lines.push('风险: ' + sanitizeMirrorText(d.reading.risk));
+      if (d.reading.growthAdvice) lines.push('建议: ' + sanitizeMirrorText(d.reading.growthAdvice));
       lines.push('');
     }
 
@@ -271,7 +278,7 @@ Page({
     if (mbti.mbtiTitle) {
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
       ctx.font = 'bold 32px sans-serif';
-      ctx.fillText(mbti.mbtiTitle, padL + 200, 238);
+      ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle), padL + 200, 238);
     }
 
     // 置信度
@@ -301,7 +308,7 @@ Page({
       var chipX = padL;
       var chipY = 732;
       for (var i = 0; i < signals.length; i++) {
-        var label = signals[i];
+        var label = sanitizeMirrorText(signals[i]);
         var chipW = Math.min(200, 48 + label.length * 26);
         if (chipX + chipW > W - padL) {
           chipX = padL;
@@ -324,13 +331,13 @@ Page({
 
   _buildReadingText(reading) {
     if (!reading || !reading.available) {
-      return '暂无系统判读。完成更多对局后将生成更稳定的档案。';  // 暂无系统判读。完成更多对局后将生成更稳定的档案。
+      return '暂无系统判读。完成更多对局后将生成更稳定的档案。';
     }
     var parts = [];
-    if (reading.observation) parts.push(reading.observation);
-    if (reading.deviation) parts.push(reading.deviation);
-    if (reading.risk) parts.push(reading.risk);
-    if (reading.growthAdvice) parts.push(reading.growthAdvice);
+    if (reading.observation) parts.push(sanitizeMirrorText(reading.observation));
+    if (reading.deviation) parts.push(sanitizeMirrorText(reading.deviation));
+    if (reading.risk) parts.push(sanitizeMirrorText(reading.risk));
+    if (reading.growthAdvice) parts.push(sanitizeMirrorText(reading.growthAdvice));
     if (parts.length === 0 && reading.text) parts.push(reading.text);
     return parts.length > 0
       ? parts.join('。')  // 。
@@ -449,7 +456,7 @@ Page({
   onShareAppMessage() {
     var mbti = this.data.mbti || {};
     return {
-      title: '我的人格档案：' + (mbti.mbtiType || '--') + ' ' + (mbti.mbtiTitle || ''),  // 我的人格档案：
+      title: '我的人格档案：' + (mbti.mbtiType || '--') + ' ' + sanitizeMirrorText(mbti.mbtiTitle || ''),
       path: '/pages/mirror/index',
       imageUrl: this.data.cardTempPath || ''
     };

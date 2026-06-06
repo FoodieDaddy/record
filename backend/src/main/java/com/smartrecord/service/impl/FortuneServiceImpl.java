@@ -77,7 +77,7 @@ public class FortuneServiceImpl implements FortuneService {
 
             只输出JSON，不要其他文字：
             {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["优势1","优势2","优势3"],"debuffs":["预警1","预警2"]}
-            颜色：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
+            颜色：稳健=#0A84FF 顺行=#32D74B 回稳=#FF9F0A 高波动=#FF453A
             """;
 
     // ===== 兜底静态策略池 =====
@@ -355,7 +355,7 @@ public class FortuneServiceImpl implements FortuneService {
             return UserTag.STABLE;
         }
 
-        // 连胜判定：最近 3+ 场连续正分
+        // [Round4] 连续正反馈判定：最近 3+ 场连续正分
         if (recentScores.size() >= 3) {
             int tail = Math.min(3, recentScores.size());
             boolean allPositive = true;

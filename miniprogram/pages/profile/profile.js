@@ -183,7 +183,7 @@ Page({
       const matchCount = points.length;
       const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
 
-      // 计算最大连胜
+      // [Round4] 计算最大连续正反馈
       let winStreak = 0;
       let maxWinStreak = 0;
       for (const p of points) {

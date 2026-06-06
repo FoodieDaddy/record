@@ -1,5 +1,6 @@
 const api = require('../../utils/mirror-api');
 const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
+const { sanitizeMirrorText, sanitizeMirrorObject } = require('../../utils/mirror-sanitize');
 const app = getApp();
 
 var ZERO_DIMS = [
@@ -37,7 +38,7 @@ var PERSONA_SIGNAL_MAP = {
 function resolveMbti(mbti) {
   if (!mbti || !mbti.mbtiCode || !MBTI_MAP[mbti.mbtiCode]) return mbti;
   var info = MBTI_MAP[mbti.mbtiCode];
-  return Object.assign({}, mbti, { mbtiType: info.type, mbtiTitle: info.title });
+  return sanitizeMirrorObject(Object.assign({}, mbti, { mbtiType: info.type, mbtiTitle: info.title }));
 }
 
 Page({
@@ -138,9 +139,10 @@ Page({
       var traits = (res.traits && res.traits.length > 0)
         ? res.traits
         : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
+      traits = traits.map(sanitizeMirrorText);
 
-      // 战绩数据
-      var battle = res.battlePersona || this.data.battlePersona;
+      // 历史缓存可能残留旧画像词，进入页面状态前统一净化。
+      var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
 
       // 人格可信度
       var personaConfidence = res.personaConfidence || 0;
@@ -152,7 +154,7 @@ Page({
       ];
 
       // 结构化判读（兼容旧格式）
-      var reading = res.reading || this.data.reading;
+      var reading = sanitizeMirrorObject(res.reading || this.data.reading);
       if (reading.available && !reading.observation && reading.text) {
         reading = Object.assign({}, reading, { observation: reading.text });
       }
@@ -168,7 +170,7 @@ Page({
         traits: traits,
         syncActive: mbti.calibrated,
         battlePersona: battle,
-        personaMatch: res.personaMatch || this.data.personaMatch,
+        personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
         reading: reading,
         personaConfidence: personaConfidence,
         confidenceChecklist: confidenceChecklist,
@@ -211,9 +213,10 @@ Page({
     var unique = [];
     var seen = {};
     for (var i = 0; i < all.length; i++) {
-      if (!seen[all[i]]) {
-        seen[all[i]] = true;
-        unique.push(all[i]);
+      var item = sanitizeMirrorText(all[i]);
+      if (!seen[item]) {
+        seen[item] = true;
+        unique.push(item);
       }
     }
     return unique.slice(0, 5);
@@ -235,8 +238,9 @@ Page({
       var traits = (res.traits && res.traits.length > 0)
         ? res.traits
         : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
+      traits = traits.map(sanitizeMirrorText);
 
-      var battle = res.battlePersona || this.data.battlePersona;
+      var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
       var signals = this._calcSignalTags(battle, traits);
 
       this.setData({
@@ -244,8 +248,8 @@ Page({
         traits: traits,
         syncActive: mbti.calibrated,
         battlePersona: battle,
-        personaMatch: res.personaMatch || this.data.personaMatch,
-        reading: res.reading || this.data.reading,
+        personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
+        reading: sanitizeMirrorObject(res.reading || this.data.reading),
         personaConfidence: res.personaConfidence || 0,
         personaSignals: signals
       });

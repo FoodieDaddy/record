@@ -209,7 +209,7 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         // 最大负向积分越大风险越高 (0-30分)
         int lossScore = (int) Math.round(Math.min(Math.abs(maxLoss) / 100.0, 1.0) * 30);
 
-        // 连败次数越多风险越高 (0-30分)
+        // 连续负反馈次数越多风险越高 (0-30分)
         int streakScore = (int) Math.round(Math.min(maxConsecutiveLoss / 5.0, 1.0) * 30);
 
         return clamp(stddevScore + lossScore + streakScore);
@@ -249,7 +249,8 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
             case "VOLATILE_BURST" -> "在连续负反馈后主动降频，避免冲动决策，稳定节奏比瞬时强度更重要。";
             case "DEFENSIVE_COUNTER" -> "在信息充足时果断出手，避免因过度等待而错过短暂的进攻窗口。";
             case "SLOW_OBSERVER" -> "在开局阶段增加主动试探，避免前期被动导致后期追赶困难。";
-            case "EMOTIONAL_SWING" -> "降低情绪化决策频率，在连败后暂停调整，避免连续修正心态。";
+            // 用户可见文案统一采用正负反馈语义，避免旧风格词直出。
+            case "EMOTIONAL_SWING" -> "降低情绪化决策频率，在连续负反馈后暂停调整，避免连续修正心态。";
             default -> "保持稳定节奏，关注长期数值趋势。";
         };
 
@@ -269,7 +270,8 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
         return switch (personaTag) {
             case "STABLE_CONTROL" -> "进攻窗口出现时反应偏慢，可能错失良机。";
             case "AGGRESSIVE_PUSH" -> "连续试探可能放大回撤，需控制进攻频率。";
-            case "VOLATILE_BURST" -> "波动偏大，状态不稳定，连败风险较高。";
+            // 用户可见文案统一采用回稳压力语义，避免旧风格词直出。
+            case "VOLATILE_BURST" -> "波动偏大，状态不稳定，回稳压力较高。";
             case "DEFENSIVE_COUNTER" -> "过于被动可能导致错过短暂的进攻窗口。";
             case "SLOW_OBSERVER" -> "前期试探不足可能导致被动开局。";
             case "EMOTIONAL_SWING" -> "状态受连续正负反馈影响明显，情绪化决策风险高。";

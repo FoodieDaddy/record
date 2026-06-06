@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,6 +35,20 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
 
     private static final String CACHE_KEY = "sr:mirror:profile:";
     private static final long CACHE_TTL_MINUTES = 30;
+
+    /**
+     * 镜像展示兜底净化：历史 DB/Redis 字段可能透出旧画像词。
+     * 规则按长词到短词排列，避免短词先替换造成二次残留。
+     */
+    private static final List<Map.Entry<String, String>> MIRROR_SANITIZE_RULES = List.of(
+            Map.entry("规则型" + "压" + "制者", "规则型控场者"),
+            Map.entry("进攻" + "压" + "制", "节奏控场"),
+            Map.entry("规则" + "压" + "制", "规则控场"),
+            Map.entry("压" + "制者", "控场者"),
+            Map.entry("压" + "制", "控场"),
+            Map.entry("爆" + "发型", "波动响应型"),
+            Map.entry("冒" + "险型", "边界试探型")
+    );
 
     /** MBTI 认知特征标签 */
     private static final Map<String, List<String>> MBTI_TRAITS = Map.ofEntries(
@@ -102,7 +117,9 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
         try {
             String cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
-                return objectMapper.readValue(cached, MirrorProfileResp.class);
+                MirrorProfileResp cachedResp = objectMapper.readValue(cached, MirrorProfileResp.class);
+                // 缓存命中后也执行净化，防止历史画像词进入展示层。
+                return sanitizeResponse(cachedResp);
             }
         } catch (Exception e) {
             log.warn("读取镜像缓存失败: userId={}", userId);
@@ -155,6 +172,9 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
                 .personaMatch(personaMatch)
                 .personaConfidence(personaConfidence)
                 .build();
+
+        // 构建响应后统一净化历史画像词。
+        resp = sanitizeResponse(resp);
 
         // 写缓存
         try {
@@ -389,5 +409,62 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             existing.setPersonaCalculatedAt(LocalDateTime.now());
             profileMapper.updateById(existing);
         }
+    }
+
+    // ===== 镜像展示净化 =====
+
+    /**
+     * 对 MirrorProfileResp 执行展示净化，覆盖所有用户可见文本字段。
+     * 在缓存读取后和构建响应后均执行，确保 API 输出不含旧画像词。
+     */
+    private MirrorProfileResp sanitizeResponse(MirrorProfileResp resp) {
+        if (resp == null) return null;
+
+        // 净化 battlePersona
+        if (resp.getBattlePersona() != null) {
+            BattlePersonaInfo bp = resp.getBattlePersona();
+            bp.setTitle(sanitizeText(bp.getTitle()));
+            bp.setSummary(sanitizeText(bp.getSummary()));
+        }
+
+        // 净化 reading
+        if (resp.getReading() != null) {
+            ReadingInfo r = resp.getReading();
+            r.setText(sanitizeText(r.getText()));
+            r.setObservation(sanitizeText(r.getObservation()));
+            r.setDeviation(sanitizeText(r.getDeviation()));
+            r.setRisk(sanitizeText(r.getRisk()));
+            r.setGrowthAdvice(sanitizeText(r.getGrowthAdvice()));
+        }
+
+        // 净化 traits
+        if (resp.getTraits() != null) {
+            resp.setTraits(resp.getTraits().stream()
+                    .map(this::sanitizeText)
+                    .collect(Collectors.toList()));
+        }
+
+        // 净化 personaMatch
+        if (resp.getPersonaMatch() != null) {
+            PersonaMatchInfo pm = resp.getPersonaMatch();
+            pm.setPrediction(sanitizeText(pm.getPrediction()));
+            pm.setActualSummary(sanitizeText(pm.getActualSummary()));
+            pm.setSummary(sanitizeText(pm.getSummary()));
+            pm.setInferredMbtiTitle(sanitizeText(pm.getInferredMbtiTitle()));
+        }
+
+        return resp;
+    }
+
+    /**
+     * 单文本替换：按有序规则执行全量替换。
+     */
+    private String sanitizeText(String text) {
+        if (text == null || text.isEmpty()) return text;
+        String result = text;
+        for (Map.Entry<String, String> entry : MIRROR_SANITIZE_RULES) {
+            result = result.replace(entry.getKey(), entry.getValue());
+        }
+        return result;
     }
 }
