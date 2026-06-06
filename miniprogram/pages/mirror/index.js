@@ -463,107 +463,111 @@ Page({
     var padL = 72;
     var contentW = W - padL * 2;
 
-    // Header
-    ctx.fillStyle = 'rgba(10,132,255,0.50)';
-    ctx.font = '18px sans-serif';
-    this._fillLetterSpaced(ctx, 'PERSONA ARCHIVE', padL, 80);
+    // ---- 顶部：弱装饰区 ----
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.font = '16px sans-serif';
+    this._fillLetterSpaced(ctx, 'SMART RECORD', padL, 72);
+    this._fillLetterSpacedRight(ctx, 'MIRROR PROJECTION', W - padL, 72);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('人格档案卡', padL, 130);
+    // ---- 中央核心：MBTI 类型 ----
+    var coreY = 280;
+    ctx.fillStyle = '#00C8FF';
+    ctx.font = 'bold 72px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(mbti.mbtiType || '----', W / 2, coreY);
 
-    this._drawDivider(ctx, padL, 158, contentW);
+    // 类型名
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '32px sans-serif';
+    ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle || ''), W / 2, coreY + 52);
+    ctx.textAlign = 'left';
 
-    // MBTI 类型
-    ctx.fillStyle = '#0A84FF';
-    ctx.font = 'bold 56px sans-serif';
-    ctx.fillText(mbti.mbtiType || '--', padL, 232);
-
-    if (mbti.mbtiTitle) {
-      ctx.fillStyle = 'rgba(255,255,255,0.78)';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle), padL + 190, 230);
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.42)';
-    ctx.font = '22px sans-serif';
-    ctx.fillText('置信度 ' + (mbti.confidence || 0) + '%', padL, 278);
-
-    var source = mbti.mbtiSource === 'test' ? '20题校准' : '直接输入';
-    ctx.fillText('来源 ' + source, padL + 220, 278);
-
-    this._drawDivider(ctx, padL, 306, contentW);
-
-    // 五维数据
-    ctx.fillStyle = 'rgba(10,132,255,0.50)';
-    ctx.font = '20px sans-serif';
-    this._fillLetterSpaced(ctx, 'RADAR DATA', padL, 346);
-
+    // 简化五维扫描线
+    var scanCenterX = W / 2;
+    var scanCenterY = coreY + 140;
+    var scanRadius = 100;
     var dims = d.radarDimensions || [];
     if (dims.length > 0 && battle.generated) {
-      var dimY = 382;
-      for (var di = 0; di < dims.length; di++) {
-        var dim = dims[di];
-        ctx.fillStyle = 'rgba(255,255,255,0.48)';
-        ctx.font = '20px sans-serif';
-        ctx.fillText(dim.label, padL, dimY);
-        ctx.fillStyle = '#00AFFF';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(String(dim.value), padL + 140, dimY);
-        ctx.fillStyle = 'rgba(255,255,255,0.06)';
-        this._roundRect(ctx, padL + 200, dimY - 12, contentW - 200, 10, 5);
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.20)';
+      ctx.lineWidth = 1;
+      // 外圈
+      ctx.beginPath();
+      ctx.arc(scanCenterX, scanCenterY, scanRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      // 五条放射线
+      for (var i = 0; i < 5; i++) {
+        var angle = -Math.PI / 2 + (Math.PI * 2 / 5) * i;
+        var val = (dims[i] ? dims[i].value : 0) / 100;
+        var lineLen = scanRadius * val;
+        var x2 = scanCenterX + Math.cos(angle) * lineLen;
+        var y2 = scanCenterY + Math.sin(angle) * lineLen;
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.50)';
+        ctx.beginPath();
+        ctx.moveTo(scanCenterX, scanCenterY);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // 端点
+        ctx.fillStyle = '#00C8FF';
+        ctx.beginPath();
+        ctx.arc(x2, y2, 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = 'rgba(0,175,255,0.45)';
-        var barW = Math.max(4, (dim.value / 100) * (contentW - 200));
-        this._roundRect(ctx, padL + 200, dimY - 12, barW, 10, 5);
-        ctx.fill();
-        dimY += 40;
       }
     }
 
-    var dividerY = battle.generated && dims.length > 0 ? 590 : 370;
-    this._drawDivider(ctx, padL, dividerY, contentW);
+    // ---- 信息区 ----
+    var infoY = scanCenterY + scanRadius + 48;
+    var infoBoxW = (contentW - 20) / 2;
+    var infoBoxH = 72;
 
-    // 系统判读
-    var readingY = dividerY + 36;
-    ctx.fillStyle = 'rgba(10,132,255,0.50)';
-    ctx.font = '20px sans-serif';
-    this._fillLetterSpaced(ctx, 'SYSTEM READING', padL, readingY);
+    // 左：协议一致率
+    this._roundRect(ctx, padL, infoY, infoBoxW, infoBoxH, 12);
+    ctx.strokeStyle = 'rgba(10,132,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('协议一致率', padL + 16, infoY + 28);
+    ctx.fillStyle = '#00C8FF';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText((mbti.confidence || 0) + '%', padL + 16, infoY + 58);
 
+    // 右：黑匣子样本
+    var infoRX = padL + infoBoxW + 20;
+    this._roundRect(ctx, infoRX, infoY, infoBoxW, infoBoxH, 12);
+    ctx.strokeStyle = 'rgba(10,132,255,0.18)';
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('黑匣子样本', infoRX + 16, infoY + 28);
+    ctx.fillStyle = '#00C8FF';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(battle.sampleSize + ' / 3', infoRX + 16, infoY + 58);
+
+    // ---- 判读区 ----
+    var readY = infoY + infoBoxH + 40;
     var readingText = this._buildReadingText(reading);
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = '22px sans-serif';
-    this._drawWrappedText(ctx, readingText, padL, readingY + 36, contentW, 34, 5);
+    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.font = '26px sans-serif';
+    this._drawWrappedText(ctx, readingText, padL, readY, contentW, 38, 3);
 
-    // 人格信号
-    var signalY = readingY + 220;
-    ctx.fillStyle = 'rgba(10,132,255,0.50)';
-    ctx.font = '20px sans-serif';
-    this._fillLetterSpaced(ctx, 'PERSONA SIGNAL', padL, signalY);
+    // ---- 底部标识区 ----
+    // 细线
+    ctx.strokeStyle = 'rgba(10,132,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, H - 120);
+    ctx.lineTo(W - padL, H - 120);
+    ctx.stroke();
 
-    if (signals.length > 0) {
-      var chipX = padL;
-      var chipY = signalY + 36;
-      for (var si = 0; si < signals.length; si++) {
-        var label = sanitizeMirrorText(signals[si]);
-        var chipW = Math.min(200, 48 + label.length * 24);
-        if (chipX + chipW > W - padL) {
-          chipX = padL;
-          chipY += 52;
-        }
-        this._drawChip(ctx, chipX, chipY, chipW, 38, label);
-        chipX += chipW + 14;
-      }
-    }
-
-    // Footer
+    // 时间戳
     ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.font = '18px sans-serif';
-    ctx.fillText('生成时间 ' + d.generatedAt, padL, H - 100);
+    ctx.fillText(d.generatedAt || '', padL, H - 80);
 
+    // 底部品牌
     ctx.fillStyle = 'rgba(10,132,255,0.35)';
     ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'PULSE TERMINAL · SMART RECORD', padL, H - 70);
+    this._fillLetterSpaced(ctx, 'SMART RECORD · MIRROR PROJECTION', padL, H - 50);
   },
 
   _buildReadingText(reading) {
@@ -587,6 +591,19 @@ Page({
     for (var i = 0; i < chars.length; i++) {
       ctx.fillText(chars[i], cx, y);
       cx += ctx.measureText(chars[i]).width + 4;
+    }
+  },
+
+  _fillLetterSpacedRight(ctx, text, x, y) {
+    var chars = text.split('');
+    var totalW = 0;
+    for (var i = 0; i < chars.length; i++) {
+      totalW += ctx.measureText(chars[i]).width + 4;
+    }
+    var cx = x - totalW;
+    for (var j = 0; j < chars.length; j++) {
+      ctx.fillText(chars[j], cx, y);
+      cx += ctx.measureText(chars[j]).width + 4;
     }
   },
 
@@ -642,19 +659,6 @@ Page({
     if (line) {
       ctx.fillText(line, x, y);
     }
-  },
-
-  _drawChip(ctx, x, y, w, h, text) {
-    ctx.fillStyle = 'rgba(10,132,255,0.08)';
-    ctx.strokeStyle = 'rgba(10,132,255,0.30)';
-    ctx.lineWidth = 1;
-    this._roundRect(ctx, x, y, w, h, 8);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#0A84FF';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(text, x + 16, y + 27);
   },
 
   // ---- 保存到相册 ----
