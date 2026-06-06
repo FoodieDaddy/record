@@ -1,6 +1,6 @@
 {
-  "navigationBarTitleText": "人格终端",
-  "navigationBarBackgroundColor": "#05070A",
+  "navigationBarTitleText": "全息观测舱",
+  "navigationBarBackgroundColor": "#0A0A0A",
   "navigationBarTextStyle": "white",
   "usingComponents": {
     "radar-chart": "/components/radar-chart/radar-chart",
