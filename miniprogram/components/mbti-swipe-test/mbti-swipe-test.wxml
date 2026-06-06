@@ -47,16 +47,16 @@
   <!-- 底部操作 -->
   <view class="swipe-actions">
     <view class="action-btn action-reject" bindtap="onSwipeLeft">
-      <text class="action-kicker">拒绝</text>
-      <text class="action-text">否定</text>
+      <text class="action-kicker">REJECT</text>
+      <text class="action-text">不符合</text>
     </view>
     <view class="action-btn action-skip" bindtap="onNotSure">
-      <text class="action-kicker">跳过</text>
+      <text class="action-kicker">SKIP</text>
       <text class="action-text">跳过</text>
     </view>
     <view class="action-btn action-confirm" bindtap="onSwipeRight">
-      <text class="action-kicker">确认</text>
-      <text class="action-text">认同</text>
+      <text class="action-kicker">CONFIRM</text>
+      <text class="action-text">符合</text>
     </view>
   </view>
 
