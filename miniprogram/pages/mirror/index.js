@@ -4,26 +4,12 @@ const { sanitizeMirrorText, sanitizeMirrorObject } = require('../../utils/mirror
 const app = getApp();
 
 var ZERO_DIMS = [
-  { key: 'aggression', label: '进攻性', value: 0, desc: '' },
-  { key: 'stability', label: '稳定性', value: 0, desc: '' },
-  { key: 'participation', label: '参局率', value: 0, desc: '' },
-  { key: 'comeback', label: '回稳力', value: 0, desc: '' },
-  { key: 'dominance', label: '控场力', value: 0, desc: '' }
+  { key: 'aggression', label: '推进倾向', value: 0, desc: '' },
+  { key: 'stability', label: '舰体稳定', value: 0, desc: '' },
+  { key: 'participation', label: '接入频率', value: 0, desc: '' },
+  { key: 'comeback', label: '回稳能力', value: 0, desc: '' },
+  { key: 'dominance', label: '场域控制', value: 0, desc: '' }
 ];
-
-const RADAR_DIMENSION_TEXT = {
-  comeback: {
-    label: '回稳力',
-    desc: '基于低位波动后的修正能力。'
-  }
-};
-
-function normalizeRadarDimensions(dimensions) {
-  return (dimensions || ZERO_DIMS).map(item => {
-    var override = RADAR_DIMENSION_TEXT[item.key];
-    return override ? Object.assign({}, item, override) : item;
-  });
-}
 
 // 人格标签 → 信号关键词
 var PERSONA_SIGNAL_MAP = {
@@ -46,6 +32,15 @@ Page({
     loading: true,
     loadedOnce: false,
     reduceMotion: false,
+    viewMode: 'main', // 'main' | 'calibration'
+
+    // 入场动画
+    headerOpacity: 0,
+    heroOpacity: 0,
+    sectionsOpacity: 0,
+
+    // 舱位状态
+    baySubtitle: '接入人格协议以启动镜像',
 
     // 人格协议
     mbti: {
@@ -59,7 +54,7 @@ Page({
     traits: [],
     syncActive: false,
 
-    // 战绩镜像
+    // 镜像投影
     battlePersona: {
       generated: false,
       sampleSize: 0,
@@ -67,14 +62,19 @@ Page({
       title: '黑匣子样本不足',
       summary: ''
     },
-    radarDimensions: ZERO_DIMS,
+    radarDimensions: [
+      { key: 'aggression', label: '推进倾向', value: 0, desc: '' },
+      { key: 'stability', label: '舰体稳定', value: 0, desc: '' },
+      { key: 'participation', label: '接入频率', value: 0, desc: '' },
+      { key: 'comeback', label: '回稳能力', value: 0, desc: '' },
+      { key: 'dominance', label: '场域控制', value: 0, desc: '' }
+    ],
     radarLocked: true,
 
-    // 人格可信度
+    // 协议一致率（原人格可信度）
     personaConfidence: 0,
-    confidenceChecklist: [],
 
-    // 人格偏差
+    // 协议偏移（原人格偏差）
     personaMatch: {
       available: false,
       matchPercentage: 0,
@@ -86,7 +86,7 @@ Page({
       deviationPercent: 0
     },
 
-    // 系统判读（结构化）
+    // 系统判读
     reading: {
       available: false,
       text: '',
@@ -96,18 +96,20 @@ Page({
       growthAdvice: ''
     },
 
-    // 人格信号（关键词标签）
+    // 信号标签
     personaSignals: [],
 
-    // 人格演化
+    // 协议演化
     evolution: [],
 
     // 弹窗控制
-    showSwipeTest: false,
     showMbtiPicker: false,
     showExitConfirm: false,
 
-    // 人格复制
+    // 校准进度
+    calibrationProgress: '01 / 20',
+
+    // 生成镜像卡
     showCardPreview: false,
     generatingCard: false,
     scanStep: 0,
@@ -123,12 +125,14 @@ Page({
     this.setData({ reduceMotion: reduceMotion });
     this._toastRef = null;
     this._scanTimers = [];
+    this._entryTimers = [];
     this._generatedAt = this._formatDate();
     this.loadProfile();
   },
 
   onUnload() {
     this._clearScanTimers();
+    this._clearEntryTimers();
   },
 
   onReady() {
@@ -146,6 +150,26 @@ Page({
       clearTimeout(this._scanTimers[i]);
     }
     this._scanTimers = [];
+  },
+
+  _clearEntryTimers() {
+    for (var i = 0; i < this._entryTimers.length; i++) {
+      clearTimeout(this._entryTimers[i]);
+    }
+    this._entryTimers = [];
+  },
+
+  _playEntryAnimation() {
+    if (this.data.reduceMotion) {
+      this.setData({ headerOpacity: 1, heroOpacity: 1, sectionsOpacity: 1 });
+      return;
+    }
+    var self = this;
+    this._clearEntryTimers();
+    var t1 = setTimeout(function () { self.setData({ headerOpacity: 1 }); }, 120);
+    var t2 = setTimeout(function () { self.setData({ heroOpacity: 1 }); }, 240);
+    var t3 = setTimeout(function () { self.setData({ sectionsOpacity: 1 }); }, 600);
+    this._entryTimers = [t1, t2, t3];
   },
 
   _formatDate() {
@@ -185,15 +209,6 @@ Page({
       // 历史缓存可能残留旧画像词，进入页面状态前统一净化。
       var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
 
-      // 人格可信度
-      var personaConfidence = res.personaConfidence || 0;
-      var confidenceChecklist = [
-        { label: 'MBTI校准', done: mbti.calibrated },
-        { label: '3场封存', done: battle.sampleSize >= 3 },
-        { label: '任务画像', done: battle.generated },
-        { label: '基础数据', done: mbti.calibrated || battle.sampleSize > 0 }
-      ];
-
       // 结构化判读（兼容旧格式）
       var reading = sanitizeMirrorObject(res.reading || this.data.reading);
       if (reading.available && !reading.observation && reading.text) {
@@ -206,6 +221,13 @@ Page({
       // 演化轨迹
       var evolution = res.evolution || [];
 
+      var baySubtitle = '镜像舱在线';
+      if (!mbti.calibrated) {
+        baySubtitle = '接入人格协议以启动镜像';
+      } else if (battle.sampleSize < 3) {
+        baySubtitle = '黑匣子样本读取中';
+      }
+
       this.setData({
         mbti: mbti,
         traits: traits,
@@ -214,15 +236,16 @@ Page({
         personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
         reading: reading,
         personaConfidence: personaConfidence,
-        confidenceChecklist: confidenceChecklist,
         personaSignals: signals,
         evolution: evolution,
         generatedAt: this._generatedAt,
+        baySubtitle: baySubtitle,
         loading: false,
         loadedOnce: true,
         needRefresh: false
       });
 
+      this._playEntryAnimation();
       this.loadStats();
     } catch (e) {
       this.setData({ loading: false, loadedOnce: true });
@@ -234,8 +257,21 @@ Page({
     try {
       var res = await api.getMirrorStats();
       var sampleSize = this.data.battlePersona.sampleSize || 0;
+      var dims = sampleSize >= 3 ? (res.dimensions || []) : [];
+      var labelMap = {
+        aggression: '推进倾向',
+        stability: '舰体稳定',
+        participation: '接入频率',
+        comeback: '回稳能力',
+        dominance: '场域控制'
+      };
+      var normalized = dims.map(function (item) {
+        return Object.assign({}, item, {
+          label: labelMap[item.key] || item.label
+        });
+      });
       this.setData({
-        radarDimensions: sampleSize >= 3 ? normalizeRadarDimensions(res.dimensions) : ZERO_DIMS,
+        radarDimensions: normalized.length > 0 ? normalized : this.data.radarDimensions,
         radarLocked: sampleSize < 3
       });
     } catch (e) {
@@ -662,8 +698,8 @@ Page({
   },
 
   // MBTI 测试
-  startMbtiTest() {
-    this.setData({ showSwipeTest: true });
+  startFullCalibration() {
+    this.setData({ viewMode: 'calibration' });
   },
 
   closeMbtiTest() {
@@ -671,7 +707,7 @@ Page({
   },
 
   onExitConfirm() {
-    this.setData({ showSwipeTest: false, showExitConfirm: false });
+    this.setData({ showExitConfirm: false, viewMode: 'main' });
   },
 
   onExitCancel() {
@@ -690,8 +726,8 @@ Page({
     var detail = e.detail;
     try {
       await api.submitMbtiTest({ testVersion: detail.testVersion, answers: detail.answers });
-      this.setData({ showSwipeTest: false });
-      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
+      this.setData({ viewMode: 'main' });
+      this._showToast('协议已同步', 'dot-sync');
       this.loadProfile(true);
     } catch (err) {
       this._showToast('提交失败，请重试', 'dot-error');
@@ -701,8 +737,8 @@ Page({
   async handleMbtiDirectInput(e) {
     try {
       await api.submitMbtiDirect({ mbtiCode: e.detail.mbtiCode });
-      this.setData({ showMbtiPicker: false });
-      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
+      this.setData({ showMbtiPicker: false, viewMode: 'main' });
+      this._showToast('协议已同步', 'dot-sync');
       this.loadProfile(true);
     } catch (err) {
       var picker = this.selectComponent('#mbtiPicker');
