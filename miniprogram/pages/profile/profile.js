@@ -25,18 +25,18 @@ const CATEGORY_LABELS = {
 
 // 成就配置
 const BADGE_CONFIG = [
-  { id: 'first_match',   name: '首局完成',   code: 'START',    icon: 'circle',  desc: '完成第一场结算',      field: 'matchCount',  target: 1 },
+  { id: 'first_match',   name: '首局完成',   code: '首局',     icon: 'circle',  desc: '完成第一场结算',      field: 'matchCount',  target: 1 },
   { id: 'match_10',      name: '累计十局',   code: 'x10',      icon: 'layers',  desc: '累计完成10场结算',    field: 'matchCount',  target: 10 },
   { id: 'match_50',      name: '半百场次',   code: 'x50',      icon: 'layers',  desc: '累计完成50场结算',    field: 'matchCount',  target: 50 },
   { id: 'score_100',     name: '百分玩家',   code: '100+',     icon: 'star',    desc: '累计净积分达到100',   field: 'totalScore',  target: 100 },
   { id: 'score_1000',    name: '积分破千',   code: '1000+',    icon: 'diamond', desc: '累计净积分达到1000',  field: 'totalScore',  target: 1000 },
-  { id: 'win_3_streak',  name: '连续三胜',   code: 'WIN x3',   icon: 'bolt',    desc: '连续3场获得正向反馈',   field: 'winStreak',   target: 3 },
-  { id: 'win_10',        name: '连续十局',   code: 'WIN x10',  icon: 'bolt',    desc: '连续10场获得正向反馈',  field: 'winStreak',   target: 10 },
+  { id: 'win_3_streak',  name: '连续三胜',   code: '3 连胜',   icon: 'bolt',    desc: '连续3场获得正向反馈',   field: 'winStreak',   target: 3 },
+  { id: 'win_10',        name: '连续十局',   code: '10 连胜',  icon: 'bolt',    desc: '连续10场获得正向反馈',  field: 'winStreak',   target: 10 },
   { id: 'win_rate_50',   name: '胜率过半',   code: '50%+',     icon: 'target',  desc: '胜率达到50%',         field: 'winRate',     target: 50 },
-  { id: 'mirror_sync',   name: '镜像同步',   code: 'SYNCED',   icon: 'scan',    desc: '完成MBTI校准',        field: 'mbtiSync',    target: 1 },
+  { id: 'mirror_sync',   name: '镜像同步',   code: '已同步',   icon: 'scan',    desc: '完成MBTI校准',        field: 'mbtiSync',    target: 1 },
   { id: 'level_2',       name: '等级提升',   code: 'Lv.2',     icon: 'arrow-up',desc: '身份等级达到2级',     field: 'level',       target: 2 },
   { id: 'level_3',       name: '策略执行者', code: 'Lv.3',     icon: 'arrow-up',desc: '身份等级达到3级',     field: 'level',       target: 3 },
-  { id: 'stability_80',  name: '稳定执行者', code: 'STABLE',   icon: 'shield',  desc: '稳定度达到80',        field: 'stability',   target: 80 }
+  { id: 'stability_80',  name: '稳定执行者', code: '稳定',     icon: 'shield',  desc: '稳定度达到80',        field: 'stability',   target: 80 }
 ];
 
 Page({
@@ -464,7 +464,7 @@ Page({
     this.setData({ nickname });
     this.updateAvatar();
     this.debouncedSave();
-    wx.showToast({ title: 'ALIAS UPDATED', icon: 'none', duration: 1200 });
+    wx.showToast({ title: '代号已更新', icon: 'none', duration: 1200 });
   },
 
   // ========== 导航 ==========
@@ -478,7 +478,7 @@ Page({
   },
 
   goAbout() {
-    wx.showToast({ title: 'Smart Record v1.0', icon: 'none' });
+    wx.showToast({ title: 'smart 记分器 v1.0', icon: 'none' });
   },
 
   // ========== 自动保存 ==========
@@ -577,7 +577,7 @@ Page({
 
   async onLogout() {
     const { confirm } = await wx.showModal({
-      title: 'SYSTEM WARNING',
+      title: '系统警告',
       content: '确认结束当前会话？退出后需要重新授权接入。',
       confirmText: '结束会话',
       confirmColor: '#FF4D4F',

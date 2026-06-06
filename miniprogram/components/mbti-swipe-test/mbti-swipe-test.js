@@ -24,11 +24,6 @@ const QUESTIONS = [
   { id: 'q20', dimension: 'J_P', text: '我的工作区域通常保持整洁有序。' }
 ];
 
-// 维度顺序
-var DIM_ORDER = ['E_I', 'S_N', 'T_F', 'J_P'];
-var DIM_LEFT = ['I', 'N', 'F', 'P'];  // score < 0 → 左侧
-var DIM_RIGHT = ['E', 'S', 'T', 'J']; // score > 0 → 右侧
-
 // 维度中文标签
 var DIM_LABELS = {
   E_I: '外向性（E）',
@@ -36,34 +31,6 @@ var DIM_LABELS = {
   T_F: '思维力（T）',
   J_P: '判断力（J）'
 };
-
-function calcPartialMbti(answers) {
-  var scores = { E_I: 0, S_N: 0, T_F: 0, J_P: 0 };
-  var counts = { E_I: 0, S_N: 0, T_F: 0, J_P: 0 };
-
-  for (var i = 0; i < answers.length; i++) {
-    var a = answers[i];
-    if (a.score !== 0) {
-      scores[a.dimension] += a.score;
-      counts[a.dimension]++;
-    }
-  }
-
-  var result = '';
-  for (var j = 0; j < DIM_ORDER.length; j++) {
-    var dim = DIM_ORDER[j];
-    if (counts[dim] === 0) {
-      result += '_';
-    } else if (scores[dim] > 0) {
-      result += DIM_RIGHT[j];
-    } else if (scores[dim] < 0) {
-      result += DIM_LEFT[j];
-    } else {
-      result += '_';
-    }
-  }
-  return result;
-}
 
 Component({
   properties: {
@@ -79,10 +46,8 @@ Component({
     answers: [],
     animating: false,
     slideDirection: '',
-    partialMbti: '',
     signalIndex: '01',
     dimensionLabel: '',
-    signalAccepted: false,
     dataLoading: false
   },
 
@@ -131,7 +96,6 @@ Component({
       var answers = this.data.answers.concat([answer]);
       var nextIndex = this.data.currentIndex + 1;
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
-      var partialMbti = calcPartialMbti(answers);
 
       if (this.data.reduceMotion) {
         if (nextIndex >= QUESTIONS.length) {
@@ -143,36 +107,30 @@ Component({
             progressPercent: percent,
             currentQuestion: QUESTIONS[nextIndex],
             answers: answers,
-            partialMbti: partialMbti,
             signalIndex: String(nextIndex + 1).padStart(2, '0'),
             dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
           });
         }
       } else {
         var self = this;
-        this.setData({ signalAccepted: true });
+        this.setData({ animating: true, slideDirection: direction });
 
         setTimeout(function () {
-          self.setData({ animating: true, slideDirection: direction, signalAccepted: false });
-
-          setTimeout(function () {
-            if (nextIndex >= QUESTIONS.length) {
-              self.complete(answers);
-            } else {
-              self.setData({
-                currentIndex: nextIndex,
-                progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
-                progressPercent: percent,
-                currentQuestion: QUESTIONS[nextIndex],
-                answers: answers,
-                animating: false,
-                slideDirection: '',
-                partialMbti: partialMbti,
-                signalIndex: String(nextIndex + 1).padStart(2, '0'),
-                dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
-              });
-            }
-          }, 300);
+          if (nextIndex >= QUESTIONS.length) {
+            self.complete(answers);
+          } else {
+            self.setData({
+              currentIndex: nextIndex,
+              progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
+              progressPercent: percent,
+              currentQuestion: QUESTIONS[nextIndex],
+              answers: answers,
+              animating: false,
+              slideDirection: '',
+              signalIndex: String(nextIndex + 1).padStart(2, '0'),
+              dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
+            });
+          }
         }, 300);
       }
     },

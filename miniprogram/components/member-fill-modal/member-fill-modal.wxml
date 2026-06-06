@@ -2,7 +2,7 @@
   <view class="modal" catchtap>
     <view class="header">
       <view class="title-area">
-        <text class="kicker">MEMBER FILL</text>
+        <text class="kicker">MEMBER</text>
         <text class="title">提交本局</text>
       </view>
       <view class="close-btn" wx:if="{{!submitted}}" bindtap="onClose">

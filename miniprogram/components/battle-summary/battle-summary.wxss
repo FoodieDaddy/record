@@ -11,17 +11,18 @@
 
 .summary-kicker {
   font-family: 'SF Mono', 'Courier New', monospace;
+  margin-top: 6rpx;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(0, 175, 255, 0.50);
+  color: rgba(255, 255, 255, 0.34);
   text-transform: uppercase;
 }
 
 .summary-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 6rpx;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
 }
 
 .summary-line {

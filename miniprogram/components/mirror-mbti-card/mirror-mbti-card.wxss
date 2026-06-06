@@ -13,16 +13,17 @@
 }
 
 .card-kicker {
+  margin-top: 6rpx;
   font-size: 20rpx;
   letter-spacing: 3rpx;
-  color: rgba(10, 132, 255, 0.78);
+  color: rgba(255, 255, 255, 0.34);
 }
 
 .card-title {
-  margin-top: 6rpx;
   font-size: 30rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: #00C8FF;
+  letter-spacing: 2rpx;
 }
 
 .card-desc {

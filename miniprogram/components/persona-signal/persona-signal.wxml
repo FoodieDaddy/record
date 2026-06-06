@@ -1,44 +1,48 @@
-<view class="persona-signal">
+<view class="behavior-signal">
   <view class="signal-header">
-    <view class="signal-kicker">PERSONA SIGNAL</view>
-    <view class="signal-title">人格信号</view>
+    <view class="signal-title">本局行为信号</view>
+    <view class="signal-kicker">SIGNAL</view>
     <view class="signal-line"></view>
+  </view>
+
+  <view class="signal-hint" wx:if="{{lowSample}}">
+    <view class="hint-dot"></view>
+    <text class="hint-text">低样本参考 · 流转数据较少，信号仅供参考</text>
   </view>
 
   <view class="signal-grid">
     <view class="signal-row">
-      <text class="signal-label">社交活跃度</text>
+      <text class="signal-label">参与活跃度</text>
       <view class="signal-bar-wrap">
-        <view class="signal-bar-fill" style="width: {{socialActivity === '高' ? 80 : socialActivity === '中' ? 50 : 25}}%"></view>
+        <view class="signal-bar-fill" style="width: {{activity === '高' ? 80 : activity === '中' ? 50 : 25}}%"></view>
       </view>
-      <text class="signal-level">{{socialActivity}}</text>
+      <text class="signal-level">{{activity}}</text>
     </view>
     <view class="signal-row">
-      <text class="signal-label">风险偏好</text>
+      <text class="signal-label">波动强度</text>
       <view class="signal-bar-wrap">
-        <view class="signal-bar-fill" style="width: {{riskPreference === '高' ? 80 : riskPreference === '中' ? 50 : 25}}%"></view>
+        <view class="signal-bar-fill" style="width: {{volatility === '高' ? 80 : volatility === '中' ? 50 : 25}}%"></view>
       </view>
-      <text class="signal-level">{{riskPreference}}</text>
+      <text class="signal-level">{{volatility}}</text>
     </view>
     <view class="signal-row">
-      <text class="signal-label">资源控制欲</text>
+      <text class="signal-label">集中流向</text>
       <view class="signal-bar-wrap">
-        <view class="signal-bar-fill" style="width: {{resourceControl === '高' ? 80 : resourceControl === '中' ? 50 : 25}}%"></view>
+        <view class="signal-bar-fill" style="width: {{concentration === '集中' ? 80 : concentration === '中' ? 50 : 25}}%"></view>
       </view>
-      <text class="signal-level">{{resourceControl}}</text>
+      <text class="signal-level">{{concentration}}</text>
     </view>
     <view class="signal-row">
-      <text class="signal-label">联盟倾向</text>
+      <text class="signal-label">互动密度</text>
       <view class="signal-bar-wrap">
-        <view class="signal-bar-fill" style="width: {{allianceTendency === '高' ? 80 : allianceTendency === '中' ? 50 : 25}}%"></view>
+        <view class="signal-bar-fill" style="width: {{density === '高' ? 80 : density === '中' ? 50 : 25}}%"></view>
       </view>
-      <text class="signal-level">{{allianceTendency}}</text>
+      <text class="signal-level">{{density}}</text>
     </view>
   </view>
 
   <view class="signal-sync">
     <view class="sync-dot"></view>
-    <text class="sync-text">数据已同步镜像系统</text>
-    <text class="sync-badge">SYNCED</text>
+    <text class="sync-text">基于本局积分流转统计生成，仅供复盘参考</text>
   </view>
 </view>

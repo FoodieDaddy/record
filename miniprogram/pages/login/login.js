@@ -42,10 +42,10 @@ Page({
   playConnectingAnimation() {
     return new Promise((resolve) => {
       const stepTexts = [
-        'SYNC USER PROFILE',
-        'LOAD PERSONA',
-        'INIT ROOM ENGINE',
-        'LOAD ORACLE'
+        '同步用户档案',
+        '加载人格镜像',
+        '初始化房间模块',
+        '同步策略引擎'
       ];
 
       const steps = stepTexts.map(text => ({ text, done: false }));

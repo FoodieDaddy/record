@@ -215,6 +215,7 @@ Component({
 
       // 绘制曲线
       const hlUser = this.data.highlightUser;
+      let primaryPoints = null;
       visibleSeries.forEach((s) => {
         if (!s.scores || s.scores.length === 0) return;
 
@@ -227,6 +228,9 @@ Component({
         const scores = indices.map(i => s.scores[i] || 0);
         const points = scores.map((v, i) => ({ x: xScale(i), y: yScale(v) }));
         const pointCount = points.length;
+
+        if (!primaryPoints && isHL) primaryPoints = points;
+        if (!primaryPoints && !hlUser) primaryPoints = points;
 
         if (pointCount === 1) {
           this._drawSinglePoint(ctx, points[0], color);
@@ -273,8 +277,8 @@ Component({
       });
 
       // 绘制事件标记
-      if (this.data.eventMarkers && this.data.eventMarkers.length > 0) {
-        this._drawEventMarkers(ctx, points, pad, h);
+      if (this.data.eventMarkers && this.data.eventMarkers.length > 0 && primaryPoints) {
+        this._drawEventMarkers(ctx, primaryPoints, pad, h);
       }
 
       // 触控指示线 + Canvas Tooltip
@@ -317,7 +321,11 @@ Component({
     // ========== Canvas Tooltip ==========
 
     _drawTooltip(ctx, visibleSeries, indices, timestamps, canvasW, canvasH, pad, tx) {
-      const rawIdx = indices[this._touchIdx];
+      if (!visibleSeries || visibleSeries.length === 0 || !indices || indices.length === 0) return;
+      const touchIdx = this._touchIdx;
+      if (touchIdx < 0 || touchIdx >= indices.length) return;
+      const rawIdx = indices[touchIdx];
+      if (rawIdx === undefined || rawIdx === null) return;
       const ts = timestamps[rawIdx];
 
       // 取第一个可见 series 的数据（当前用户）
@@ -545,13 +553,18 @@ Component({
       if (!touch || !this._width) return;
       const { timestamps, series } = this.data;
       if (!timestamps || timestamps.length < 1) return;
+      if (!series || series.length === 0) return;
 
       const firstScores = (series[0] && series[0].scores) || [];
+      if (firstScores.length === 0) return;
+
       const indices = this._decimateIndices(firstScores, MAX_POINTS);
       const n = indices.length;
+      if (n === 0) return;
 
       const pad = { left: 44, right: 20 };
       const chartW = this._width - pad.left - pad.right;
+      if (chartW <= 0) return;
       const x = touch.x - pad.left;
       const idx = n > 1 ? Math.round((x / chartW) * (n - 1)) : 0;
       const clamped = Math.max(0, Math.min(n - 1, idx));

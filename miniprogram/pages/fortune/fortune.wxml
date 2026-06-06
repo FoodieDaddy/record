@@ -3,15 +3,16 @@
   <!-- ═══ idle 屏 ═══ -->
   <view class="idle-screen" wx:if="{{phase === 'idle'}}">
     <view class="idle-header">
-      <view class="page-kicker">SMART RECORD · STRATEGY</view>
+      <view class="page-kicker">STRATEGY</view>
       <view class="page-date">[ {{currentDate}} ]</view>
       <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
     </view>
 
-    <view class="section-title-row">
-      <view class="section-divider"></view>
-      <view class="section-title">今日策略</view>
-      <view class="section-divider"></view>
+    <view class="sr-section-head" style="margin: 0 48rpx 48rpx;">
+      <view>
+        <text class="sr-title">今日策略</text>
+        <text class="sr-kicker">STRATEGY · DAILY</text>
+      </view>
     </view>
 
     <view class="card-stage" bindtap="onTapDraw">
@@ -89,28 +90,40 @@
   <!-- ═══ success 屏 ═══ -->
   <view class="success-screen" wx:if="{{phase === 'success'}}">
     <view class="success-header">
-      <view class="page-kicker">SMART RECORD · STRATEGY</view>
+      <view class="page-kicker">STRATEGY</view>
       <view class="page-date">[ {{currentDate}} ]</view>
       <view class="page-lunar" wx:if="{{lunarInfo}}">{{lunarInfo}}</view>
     </view>
 
-    <view class="section-title-row">
-      <view class="section-divider"></view>
-      <view class="section-title">今日策略</view>
-      <view class="section-divider"></view>
+    <view class="sr-section-head" style="margin: 0 16rpx 32rpx;">
+      <view>
+        <text class="sr-title">今日策略</text>
+        <text class="sr-kicker">STRATEGY · DAILY</text>
+      </view>
+      <text class="sr-status-code" wx:if="{{strategy.tag}}">{{strategy.tag}}</text>
     </view>
 
-    <view class="result-card" style="--accent: {{strategy.glowColor || '#00AFFF'}};">
+    <!-- 策略主题卡 -->
+    <view class="strategy-hero-card sr-card">
+      <view class="strategy-theme-head">
+        <text class="strategy-theme-label">策略主题</text>
+        <text class="strategy-theme-code">THEME</text>
+      </view>
+      <text class="strategy-theme-text">{{strategyTheme || '节奏校准'}}</text>
+      <text class="strategy-summary-text">{{strategySummary || '当前策略已生成。建议先观察场上节奏，再根据反馈调整行动。'}}</text>
+    </view>
+
+    <view class="result-card" style="--accent: {{strategy.glowColor || '#00AFFF'}};" wx:if="{{strategy.verdict || strategy.title}}">
       <view class="result-card-glow"></view>
-      <view class="result-card-header">
+      <view class="result-card-header" wx:if="{{strategy.title}}">
         <view class="result-card-title">{{strategy.title}}</view>
         <view class="result-card-subtitle" wx:if="{{strategy.subtitle}}">{{strategy.subtitle}}</view>
       </view>
-      <view class="result-card-body">
-        <view class="result-card-verdict-label">CORE INSIGHT</view>
+      <view class="result-card-body" wx:if="{{strategy.verdict}}">
+        <view class="result-card-verdict-label">核心洞察 <text class="verdict-kicker">INSIGHT</text></view>
         <view class="result-card-verdict">{{strategy.verdict}}</view>
       </view>
-      <view class="result-card-divider"></view>
+      <view class="result-card-divider" wx:if="{{strategy.title && strategy.verdict}}"></view>
       <view class="result-tags-inline" wx:if="{{strategy.tags && strategy.tags.length}}">
         <view class="result-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</view>
       </view>
@@ -119,11 +132,12 @@
     <view class="result-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
       <view class="result-section-title">
         <text class="result-section-icon">+</text>
-        <text>行动优势</text>
+        <text class="result-section-zh">行动优势</text>
+        <text class="result-section-kicker">ADVANTAGE</text>
       </view>
       <view class="result-list-card">
         <view class="result-list-item result-list-item--buff" wx:for="{{strategy.buffs}}" wx:key="index">
-          <text class="result-list-dot result-list-dot--buff"></text>
+          <text class="vector-index vector-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
           <text class="result-list-text">{{item}}</text>
         </view>
       </view>
@@ -132,11 +146,12 @@
     <view class="result-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
       <view class="result-section-title">
         <text class="result-section-icon result-section-icon--risk">!</text>
-        <text>风险提示</text>
+        <text class="result-section-zh">风险提示</text>
+        <text class="result-section-kicker result-section-kicker--risk">RISK</text>
       </view>
       <view class="result-list-card">
         <view class="result-list-item result-list-item--risk" wx:for="{{strategy.debuffs}}" wx:key="index">
-          <text class="result-list-dot result-list-dot--risk"></text>
+          <text class="vector-index vector-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
           <text class="result-list-text">{{item}}</text>
         </view>
       </view>
@@ -145,14 +160,16 @@
     <view class="result-actions">
       <view class="result-btn result-btn--secondary" bindtap="onTapRefresh">
         <text class="result-btn-label">重新生成</text>
+        <text class="result-btn-code">REGEN</text>
       </view>
       <view class="result-btn result-btn--primary" bindtap="onTapShare">
         <text class="result-btn-label">分享策略卡</text>
+        <text class="result-btn-code result-btn-code--primary">SHARE</text>
       </view>
     </view>
 
     <view class="countdown-bar" wx:if="{{countdownText}}">
-      <text class="countdown-label">REFRESH IN </text>
+      <text class="countdown-label">刷新倒计时 </text>
       <text class="countdown-value">{{countdownText}}</text>
     </view>
   </view>
@@ -172,7 +189,7 @@
     <view class="poster-container">
 
       <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
-        <text class="poster-gen-text">GENERATING DOSSIER...</text>
+        <text class="poster-gen-text">正在生成档案...</text>
         <view class="poster-gen-bar">
           <view class="poster-gen-bar-fill"></view>
         </view>
@@ -200,5 +217,20 @@
   </view>
 
   <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
+
+  <!-- 重新生成确认弹窗 -->
+  <terminal-popup
+    wx:if="{{showRefreshConfirm}}"
+    visible="{{showRefreshConfirm}}"
+    title="重新生成"
+    subtitle="REGENERATE"
+    content="确定要重新生成今日策略？"
+    cancelText="取消"
+    confirmText="确认"
+    confirmType="primary"
+    reduceMotion="{{reduceMotion}}"
+    bind:cancel="onRefreshCancel"
+    bind:confirm="onRefreshConfirm"
+  />
 
 </scroll-view>

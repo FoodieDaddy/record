@@ -5,8 +5,10 @@ import com.smartrecord.dto.user.IdentityLevelResp;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.UserIdentityLevel;
 import com.smartrecord.entity.UserMirrorProfile;
+import com.smartrecord.common.BizException;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.UserIdentityLevelMapper;
+import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.mapper.UserMirrorProfileMapper;
 import com.smartrecord.service.IdentityLevelService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class IdentityLevelServiceImpl implements IdentityLevelService {
 
+    private final UserMapper userMapper;
     private final UserIdentityLevelMapper identityLevelMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final UserMirrorProfileMapper mirrorProfileMapper;
@@ -59,6 +62,11 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
     // ---- 核心计算 ----
 
     private UserIdentityLevel recalculateInternal(Long userId) {
+        // 0. 校验用户存在性（防止 JWT 中的 userId 在 user 表中不存在导致外键约束失败）
+        if (userMapper.selectById(userId) == null) {
+            throw new BizException("用户不存在");
+        }
+
         // 1. 查询已结算场次（quitTime 不为空的去重房间数）
         int matchCount = roomMemberMapper.countSettledRooms(userId);
 

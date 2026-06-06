@@ -9,21 +9,15 @@
 
   <block wx:else>
 
-    <!-- 页面标题 -->
-    <view class="page-header">
-      <text class="page-kicker">PERSONA TERMINAL</text>
-      <text class="page-title">人格终端</text>
-    </view>
-
     <!-- 1. PERSONA PROTOCOL 人格协议 -->
     <view class="terminal-card protocol-card">
       <view class="card-header">
-        <view class="card-kicker">PERSONA PROTOCOL</view>
         <view class="card-title">人格协议</view>
+        <view class="card-kicker">PROTOCOL · MBTI</view>
         <view class="card-line"></view>
         <view class="sync-indicator" wx:if="{{mbti.calibrated}}">
           <view class="sync-dot {{syncActive ? 'sync-dot-active' : ''}}"></view>
-          <text class="sync-label">SYNCED</text>
+          <text class="sync-label">已同步</text>
         </view>
       </view>
 
@@ -44,7 +38,7 @@
         <view class="protocol-grid">
           <view class="protocol-row">
             <text class="protocol-label">协议编号</text>
-            <text class="protocol-value protocol-code">{{mbti.mbtiType}}</text>
+            <text class="protocol-value protocol-code">SR-MBTI-{{mbti.mbtiType}}</text>
           </view>
           <view class="protocol-row">
             <text class="protocol-label">身份标签</text>
@@ -60,7 +54,7 @@
           </view>
           <view class="protocol-row">
             <text class="protocol-label">状态</text>
-            <text class="protocol-value status-active">SYNCED</text>
+            <text class="protocol-value status-active">已同步</text>
           </view>
         </view>
 
@@ -74,8 +68,8 @@
     <!-- 2. BATTLE MIRROR 战绩镜像 -->
     <view class="terminal-card battle-card">
       <view class="card-header">
-        <view class="card-kicker">BATTLE MIRROR</view>
         <view class="card-title">战绩镜像</view>
+        <view class="card-kicker">MIRROR · BATTLE</view>
         <view class="card-line"></view>
       </view>
 
@@ -83,7 +77,7 @@
       <block wx:if="{{radarLocked}}">
         <view class="battle-locked">
           <view class="locked-label">
-            <text class="locked-text">LOCKED</text>
+            <text class="locked-text">数据锁定</text>
             <text class="locked-hint">采样进度 {{battlePersona.sampleSize}} / 3</text>
           </view>
           <view class="locked-bar-track">
@@ -121,8 +115,8 @@
     <!-- 3. PERSONA CONFIDENCE 人格可信度 -->
     <view class="terminal-card confidence-card">
       <view class="card-header">
-        <view class="card-kicker">PERSONA CONFIDENCE</view>
         <view class="card-title">人格可信度</view>
+        <view class="card-kicker">CONFIDENCE · LEVEL</view>
         <view class="card-line"></view>
       </view>
 
@@ -148,7 +142,7 @@
       <!-- 低可信度 -->
       <block wx:else>
         <view class="confidence-init">
-          <text class="init-text">INITIALIZING</text>
+          <text class="init-text">初始化中</text>
           <view class="init-dots">
             <view class="init-dot"></view>
             <view class="init-dot"></view>
@@ -162,8 +156,8 @@
     <!-- 4. PERSONA DEVIATION 人格偏差 -->
     <view class="terminal-card deviation-card">
       <view class="card-header">
-        <view class="card-kicker">PERSONA DEVIATION</view>
         <view class="card-title">人格偏差</view>
+        <view class="card-kicker">DEVIATION · MATCH</view>
         <view class="card-line"></view>
       </view>
 
@@ -201,7 +195,7 @@
             </view>
             <view class="dev-col">
               <text class="dev-label">行为人格</text>
-              <text class="dev-type dev-type-dim">COLLECTING</text>
+              <text class="dev-type dev-type-dim">采集中</text>
             </view>
           </view>
           <view class="dev-empty-status">
@@ -217,39 +211,39 @@
     <!-- 5. SYSTEM READING 系统判读 -->
     <view class="terminal-card reading-card">
       <view class="card-header">
-        <view class="card-kicker">SYSTEM READING</view>
         <view class="card-title">系统判读</view>
+        <view class="card-kicker">READING · ANALYSIS</view>
         <view class="card-line"></view>
       </view>
 
       <block wx:if="{{reading.available}}">
         <!-- 系统观测 -->
         <view class="reading-sub-card" wx:if="{{reading.observation}}">
-          <text class="reading-sub-label">OBSERVATION / 观测</text>
+          <text class="reading-sub-label">观测 · OBSERVATION</text>
           <text class="reading-sub-text">{{reading.observation}}</text>
         </view>
 
         <!-- 偏差 -->
         <view class="reading-sub-card" wx:if="{{reading.deviation}}">
-          <text class="reading-sub-label">DEVIATION / 偏差</text>
+          <text class="reading-sub-label">偏差 · DEVIATION</text>
           <text class="reading-sub-text">{{reading.deviation}}</text>
         </view>
 
         <!-- 风险 -->
         <view class="reading-sub-card" wx:if="{{reading.risk}}">
-          <text class="reading-sub-label">RISK / 风险</text>
+          <text class="reading-sub-label">风险 · RISK</text>
           <text class="reading-sub-text">{{reading.risk}}</text>
         </view>
 
         <!-- 成长建议 -->
         <view class="reading-sub-card" wx:if="{{reading.growthAdvice}}">
-          <text class="reading-sub-label">GROWTH / 成长建议</text>
+          <text class="reading-sub-label">成长建议 · GROWTH</text>
           <text class="reading-sub-text">{{reading.growthAdvice}}</text>
         </view>
 
         <!-- 兜底：旧格式 -->
         <view class="reading-sub-card" wx:if="{{!reading.observation && reading.text}}">
-          <text class="reading-sub-label">SYSTEM / 系统判断</text>
+          <text class="reading-sub-label">系统判断 · SYSTEM</text>
           <text class="reading-sub-text">{{reading.text}}</text>
         </view>
       </block>
@@ -266,8 +260,8 @@
     <!-- 6. PERSONA SIGNAL 人格信号 -->
     <view class="terminal-card signal-card">
       <view class="card-header">
-        <view class="card-kicker">PERSONA SIGNAL</view>
         <view class="card-title">人格信号</view>
+        <view class="card-kicker">SIGNAL · SCAN</view>
         <view class="card-line"></view>
       </view>
 
@@ -281,7 +275,7 @@
 
       <block wx:else>
         <view class="signal-scanning">
-          <text class="scanning-text">SIGNAL SCANNING</text>
+          <text class="scanning-text">信号扫描中</text>
           <view class="scanning-dots">
             <view class="scanning-dot"></view>
             <view class="scanning-dot"></view>
@@ -295,8 +289,8 @@
     <!-- 7. PERSONA EVOLUTION 人格演化 -->
     <view class="terminal-card evolution-card">
       <view class="card-header">
-        <view class="card-kicker">PERSONA EVOLUTION</view>
         <view class="card-title">人格演化</view>
+        <view class="card-kicker">EVOLUTION · TRACK</view>
         <view class="card-line"></view>
       </view>
 
@@ -329,8 +323,8 @@
 
   <!-- 固定底部：生成档案按钮 -->
   <view class="dossier-btn-fixed {{reduceMotion ? '' : 'scan-glow'}}" wx:if="{{!loading}}" bindtap="generateDossier">
-    <text class="dossier-text">GENERATE DOSSIER</text>
-    <text class="dossier-sub">生成人格档案</text>
+    <text class="dossier-text">生成档案</text>
+    <text class="dossier-sub">DOSSIER</text>
   </view>
 
   <!-- MBTI 滑动测试 -->
@@ -354,8 +348,8 @@
   <terminal-popup
     wx:if="{{showExitConfirm}}"
     visible="{{showExitConfirm}}"
-    title="SYSTEM WARNING"
-    subtitle="系统警告"
+    title="系统警告"
+    subtitle="WARNING"
     content="退出后本次校准不会保存。"
     cancelText="继续校准"
     confirmText="退出"

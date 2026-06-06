@@ -6,21 +6,28 @@
   margin-bottom: 20rpx;
 }
 
-.network-header { margin-bottom: 16rpx; }
+.network-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.network-header-left { flex: 1; }
 
 .network-kicker {
   font-family: 'SF Mono', 'Courier New', monospace;
+  margin-top: 6rpx;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(0, 175, 255, 0.50);
+  color: rgba(255, 255, 255, 0.34);
   text-transform: uppercase;
 }
 
 .network-title {
   font-size: 26rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 6rpx;
+  font-weight: 700;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
 }
 
 .network-line {
@@ -29,10 +36,103 @@
   background: linear-gradient(90deg, rgba(0, 175, 255, 0.20), rgba(0, 175, 255, 0.06), transparent);
 }
 
-.network-graph-wrap {
+/* 折叠按钮 */
+.network-toggle {
   display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 8rpx 16rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.10);
+  border-radius: 8rpx;
+  margin-top: 8rpx;
+  flex-shrink: 0;
+}
+
+.toggle-text {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.50);
+}
+
+.toggle-arrow {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.40);
+  display: inline-block;
+  transform: rotate(-90deg);
+  transition: transform 0.2s;
+}
+
+.toggle-arrow--up {
+  transform: rotate(90deg);
+}
+
+.reduce-motion .toggle-arrow { transition: none; }
+
+/* 图形容器 */
+.network-graph-wrap {
+  position: relative;
+  margin: 16rpx auto 0;
+}
+
+.network-canvas {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* 节点 */
+.network-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  z-index: 2;
+}
+
+.node-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 8rpx 0;
+  overflow: hidden;
+  border: 2rpx solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.node-avatar--me {
+  border-color: rgba(0, 175, 255, 0.50);
+  box-shadow: 0 0 12rpx rgba(0, 175, 255, 0.20);
+}
+
+.node-avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.node-avatar-char {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.node-name {
+  font-size: 18rpx;
+  margin-top: 4rpx;
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.node-score {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 18rpx;
+  font-weight: 600;
+  margin-top: 2rpx;
 }
 
 /* 节点详情浮层 */
@@ -104,10 +204,20 @@
 .detail-cell-value {
   font-size: 22rpx;
   color: rgba(255, 255, 255, 0.80);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-cell-value.mono {
   font-family: 'SF Mono', 'Courier New', monospace;
 }
 
+.detail-cell-amount {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
 .reduce-motion .node-detail { transition: none; }
+.reduce-motion .node-avatar--me { box-shadow: none; }

@@ -22,7 +22,7 @@
     <view class="cyber-card create-card">
       <!-- 系统状态 -->
       <view class="cyber-system-bar">
-        <text class="cyber-system-name">SMART RECORD</text>
+        <text class="cyber-system-name">Smart 记分器</text>
         <view class="cyber-system-status">
           <view class="cyber-status-dot"></view>
           <text class="cyber-status-text">在线</text>
@@ -200,7 +200,7 @@
       <view class="cyber-create-btn" bindtap="createRoom">
         <view class="cyber-create-inner {{creating ? 'btn-loading' : ''}}">
           <text class="cyber-create-text">启动房间</text>
-          <text class="cyber-create-sub">ROOM INITIALIZATION</text>
+          <text class="cyber-create-sub">INIT</text>
         </view>
       </view>
     </view>
@@ -339,23 +339,23 @@
       <!-- ROOM TERMINAL 顶部终端栏 -->
       <view class="room-terminal">
         <view class="rt-top-row">
-          <text class="rt-kicker">ROOM TERMINAL</text>
+          <text class="rt-kicker">房间终端 · ROOM</text>
           <view class="rt-status">
             <view class="rt-status-dot"></view>
-            <text class="rt-status-text">ONLINE</text>
+            <text class="rt-status-text">在线</text>
           </view>
         </view>
         <view class="rt-info-grid">
           <view class="rt-info-seg">
-            <text class="rt-info-label">ROOM ID</text>
+            <text class="rt-info-label">房间</text>
             <text class="rt-info-value">{{currentRoom.roomNo}}</text>
           </view>
           <view class="rt-info-seg">
-            <text class="rt-info-label">MODE</text>
+            <text class="rt-info-label">模式</text>
             <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
           </view>
           <view class="rt-info-seg">
-            <text class="rt-info-label">PLAYERS</text>
+            <text class="rt-info-label">成员</text>
             <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
           </view>
         </view>
@@ -390,7 +390,7 @@
         <view class="pn-header">
           <view class="pn-title-group">
             <text class="pn-cn">成员网络</text>
-            <text class="pn-en">PLAYER NETWORK</text>
+            <text class="pn-en">NETWORK</text>
           </view>
           <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
         </view>
@@ -408,14 +408,14 @@
                 </view>
                 <image class="mg-avatar" src="{{item.avatarUrl}}" mode="aspectFill" wx:else binderror="onAvatarError" data-user-id="{{item.userId}}"></image>
                 <!-- HOST 标签 -->
-                <view class="mg-host-badge" wx:if="{{item.isHost}}">HOST</view>
+                <view class="mg-host-badge" wx:if="{{item.isHost}}">房主</view>
               </view>
               <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
               <text class="mg-score score-number" style="color:{{item.scoreColor}};">
                 {{item.score > 0 ? '+' : ''}}{{fmt.formatScore(item.displayScore)}}
               </text>
               <!-- TARGET LOCKED -->
-              <text class="mg-target-lock" wx:if="{{item.userId === transferTo}}">TARGET LOCKED</text>
+              <text class="mg-target-lock" wx:if="{{item.userId === transferTo}}">目标锁定</text>
             </view>
           </view>
         </scroll-view>
@@ -426,7 +426,7 @@
         <view class="fl-header">
           <view class="fl-title-group">
             <text class="fl-cn">积分流</text>
-            <text class="fl-en">FLOW LOG</text>
+            <text class="fl-en">LOG</text>
           </view>
           <view style="display:flex;gap:12rpx;">
             <view class="fl-filter {{filterMine ? 'fl-filter-on' : ''}}" bindtap="toggleFilterMine">
@@ -444,9 +444,9 @@
         <!-- 空状态 -->
         <view wx:if="{{groupedRecords.length === 0}}" class="fl-empty">
           <view class="fl-empty-pulse"></view>
-          <text class="fl-empty-title">NO FLOW DATA</text>
-          <text class="fl-empty-text">暂无积分流</text>
-          <text class="fl-empty-hint">完成一次积分流转后，系统将在此记录数据</text>
+          <text class="fl-empty-title">暂无流水数据</text>
+          <text class="fl-empty-text">完成一次积分流转后，数据将在此呈现</text>
+          <text class="fl-empty-hint"></text>
         </view>
 
         <!-- 记录列表 -->
@@ -511,7 +511,7 @@
                   style="width:{{roomInsight.networkDensity === 'HIGH' ? '100' : roomInsight.networkDensity === 'MEDIUM' ? '60' : '25'}}%;">
                 </view>
               </view>
-              <text class="ri-density-text">{{roomInsight.networkDensity}}</text>
+              <text class="ri-density-text">{{roomInsight.networkDensity === 'HIGH' ? '高' : roomInsight.networkDensity === 'MEDIUM' ? '中' : '低'}}</text>
             </view>
           </view>
         </view>
@@ -521,7 +521,7 @@
       <view class="room-bottom-bar">
         <view class="rb-settle-btn" bindtap="onSettleTap" wx:if="{{isOwner}}">
           <text class="rb-settle-text">结算并退出</text>
-          <text class="rb-settle-sub">SETTLE &amp; EXIT</text>
+          <text class="rb-settle-sub">SETTLE</text>
         </view>
         <view class="rb-quit-btn" bindtap="quitRoom" wx:else>
           <text class="rb-quit-text">退出房间</text>
@@ -531,7 +531,7 @@
       <!-- 结算确认弹窗 -->
       <view class="settle-confirm-mask {{showSettleConfirm ? 'sc-show' : ''}}" catchtap="closeSettleConfirm">
         <view class="settle-confirm-card" catchtap="preventClose">
-          <text class="sc-kicker">SYSTEM WARNING</text>
+          <text class="sc-kicker">WARNING</text>
           <text class="sc-title">确认结算并退出房间？</text>
           <text class="sc-desc">结算后本局积分将写入档案</text>
           <view class="sc-actions">
@@ -551,14 +551,14 @@
     <view class="transfer-overlay {{showNumpad ? 'transfer-show' : ''}}" catchtap="closeNumpad">
       <view class="transfer-sheet" catchtap="preventClose">
         <view class="transfer-header">
-          <text class="transfer-kicker">TRANSFER TERMINAL</text>
+          <text class="transfer-kicker">TRANSFER</text>
           <text class="transfer-subtitle">积分流转</text>
         </view>
 
         <!-- FROM → TO -->
         <view class="transfer-direction">
           <view class="transfer-player">
-            <text class="transfer-role-label">FROM</text>
+            <text class="transfer-role-label">发起方</text>
             <view class="auto-avatar-sm" style="background:{{transferFromInfo.avatarColor}};" wx:if="{{!transferFromInfo.avatarUrl && transferFromInfo}}">
               <text class="auto-avatar-char-sm">{{transferFromInfo.avatarChar}}</text>
             </view>
@@ -570,7 +570,7 @@
             <text class="transfer-arrow-head">→</text>
           </view>
           <view class="transfer-player">
-            <text class="transfer-role-label">TO</text>
+            <text class="transfer-role-label">接收方</text>
             <view class="auto-avatar-sm" style="background:{{transferToInfo.avatarColor}};" wx:if="{{!transferToInfo.avatarUrl && transferToInfo}}">
               <text class="auto-avatar-char-sm">{{transferToInfo.avatarChar}}</text>
             </view>
@@ -581,7 +581,7 @@
 
         <!-- AMOUNT -->
         <view class="transfer-amount-section">
-          <text class="transfer-amount-label">AMOUNT</text>
+          <text class="transfer-amount-label">分值</text>
           <text class="transfer-display-value">{{numpadValue > 0 ? '+' : ''}}{{numpadValue || '0'}}</text>
         </view>
 
@@ -624,7 +624,7 @@
         <view class="transfer-actions">
           <view class="transfer-confirm" bindtap="confirmNumpad">
             <text class="transfer-confirm-text">确认流转</text>
-            <text class="transfer-confirm-sub">CONFIRM FLOW</text>
+            <text class="transfer-confirm-sub">CONFIRM</text>
           </view>
         </view>
       </view>
@@ -755,8 +755,8 @@
       <!-- 2. 积分趋势图 -->
       <view class="settle-card" wx:if="{{settleSeries.length > 0}}">
         <view class="settle-card-header">
-          <view class="settle-kicker">FLOW TIMELINE</view>
           <view class="settle-card-title">积分演化轨迹</view>
+          <view class="settle-kicker">TIMELINE</view>
           <view class="settle-card-line"></view>
         </view>
         <view class="settle-chart-wrap">
@@ -788,8 +788,8 @@
       <!-- 5. 最终排名 -->
       <view class="settle-card" wx:if="{{settleRankedMembers.length > 0}}">
         <view class="settle-card-header">
-          <view class="settle-kicker">FINAL STANDING</view>
           <view class="settle-card-title">最终排名</view>
+          <view class="settle-kicker">FINAL</view>
           <view class="settle-card-line"></view>
         </view>
         <view class="settle-rank-list">
@@ -832,10 +832,10 @@
       <view class="nc-icon-wrap">
         <view class="nc-icon">!</view>
       </view>
-      <text class="nc-title">身份重叠 | IDENTITY OVERLAP</text>
+      <text class="nc-title">身份重叠</text>
       <text class="nc-desc">检测到场域内存在同名实体，请前往[我的]终端重新校准代号。</text>
       <view class="nc-btn" bindtap="goToProfile">
-        <text class="nc-btn-text">[ GO TO PROFILE ]</text>
+        <text class="nc-btn-text">前往档案</text>
       </view>
     </view>
   </view>

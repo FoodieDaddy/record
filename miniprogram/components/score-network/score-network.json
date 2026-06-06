@@ -1,6 +1,4 @@
 {
   "component": true,
-  "usingComponents": {
-    "force-graph": "/components/force-graph/force-graph"
-  }
+  "usingComponents": {}
 }

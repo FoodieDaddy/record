@@ -1,7 +1,7 @@
 Component({
   properties: {
     visible: { type: Boolean, value: false },
-    title: { type: String, value: 'SYSTEM WARNING' },
+    title: { type: String, value: '系统警告' },
     subtitle: { type: String, value: '系统警告' },
     content: { type: String, value: '' },
     cancelText: { type: String, value: '取消' },

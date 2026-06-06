@@ -1,4 +1,4 @@
-.persona-signal {
+.behavior-signal {
   border-radius: 20rpx;
   border: 1rpx solid rgba(94, 92, 230, 0.15);
   background: #0A0F18;
@@ -6,21 +6,22 @@
   margin-bottom: 20rpx;
 }
 
-.signal-header { margin-bottom: 20rpx; }
+.signal-header { margin-bottom: 16rpx; }
 
 .signal-kicker {
   font-family: 'SF Mono', 'Courier New', monospace;
+  margin-top: 6rpx;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(94, 92, 230, 0.55);
+  color: rgba(255, 255, 255, 0.34);
   text-transform: uppercase;
 }
 
 .signal-title {
   font-size: 26rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 6rpx;
+  font-weight: 700;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
 }
 
 .signal-line {
@@ -29,11 +30,36 @@
   background: linear-gradient(90deg, rgba(94, 92, 230, 0.25), rgba(94, 92, 230, 0.06), transparent);
 }
 
+/* 低样本提示 */
+.signal-hint {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 16rpx;
+  background: rgba(255, 159, 10, 0.06);
+  border: 1rpx solid rgba(255, 159, 10, 0.15);
+  border-radius: 10rpx;
+  margin-bottom: 18rpx;
+}
+
+.hint-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #FF9F0A;
+  flex-shrink: 0;
+}
+
+.hint-text {
+  font-size: 20rpx;
+  color: rgba(255, 159, 10, 0.75);
+}
+
 .signal-grid {
   display: flex;
   flex-direction: column;
   gap: 18rpx;
-  margin-bottom: 20rpx;
+  margin-bottom: 18rpx;
 }
 
 .signal-row {
@@ -67,7 +93,7 @@
 .signal-level {
   font-size: 22rpx;
   color: #5E5CE6;
-  width: 48rpx;
+  width: 60rpx;
   text-align: right;
   flex-shrink: 0;
 }
@@ -84,25 +110,13 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: #30D158;
-  box-shadow: 0 0 8rpx rgba(48, 209, 88, 0.50);
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .sync-text {
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.30);
   flex: 1;
 }
 
-.sync-badge {
-  font-family: 'SF Mono', 'Courier New', monospace;
-  font-size: 16rpx;
-  letter-spacing: 3rpx;
-  color: #30D158;
-  padding: 4rpx 12rpx;
-  border: 1rpx solid rgba(48, 209, 88, 0.25);
-  border-radius: 6rpx;
-}
-
 .reduce-motion .signal-bar-fill { transition: none; }
-.reduce-motion .sync-dot { box-shadow: none; }

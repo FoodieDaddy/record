@@ -18,8 +18,8 @@
   display: block;
   font-size: 20rpx;
   font-weight: 600;
-  color: #00AFFF;
-  letter-spacing: 4rpx;
+  color: rgba(10,132,255,0.56);
+  letter-spacing: 6rpx;
   margin-bottom: 4rpx;
 }
 
@@ -27,7 +27,7 @@
   display: block;
   font-size: 36rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.94);
   margin-bottom: 12rpx;
 }
 
@@ -111,17 +111,18 @@
 
 .card-kicker {
   font-family: 'SF Mono', 'Courier New', monospace;
+  margin-top: 6rpx;
   font-size: 17rpx;
   letter-spacing: 5rpx;
-  color: rgba(0, 175, 255, 0.50);
+  color: rgba(255, 255, 255, 0.34);
   text-transform: uppercase;
 }
 
 .card-title {
   font-size: 26rpx;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  margin-top: 6rpx;
+  font-weight: 700;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
 }
 
 .card-line {

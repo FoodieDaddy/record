@@ -1,5 +1,8 @@
 {
   "navigationBarTitleText": "策略灵感",
   "navigationBarBackgroundColor": "#0a0a0a",
-  "navigationBarTextStyle": "white"
+  "navigationBarTextStyle": "white",
+  "usingComponents": {
+    "terminal-popup": "/components/terminal-popup/terminal-popup"
+  }
 }

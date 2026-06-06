@@ -10,15 +10,15 @@
 
     <!-- 页面标题 -->
     <view class="dossier-header">
-      <text class="dossier-kicker">PERSONA DOSSIER</text>
+      <text class="dossier-kicker">DOSSIER</text>
       <text class="dossier-title">人格档案</text>
       <text class="dossier-date">GENERATED {{generatedAt}}</text>
     </view>
 
     <!-- 人格协议 -->
     <view class="dossier-section" wx:if="{{mbti.mbtiType}}">
-      <text class="section-kicker">PROTOCOL</text>
       <text class="section-title">人格协议</text>
+      <text class="section-kicker">PROTOCOL</text>
       <view class="section-body">
         <view class="kv-row">
           <text class="kv-key">类型</text>
@@ -37,8 +37,8 @@
 
     <!-- 可信度 -->
     <view class="dossier-section">
-      <text class="section-kicker">CONFIDENCE</text>
       <text class="section-title">人格可信度</text>
+      <text class="section-kicker">CONFIDENCE</text>
       <view class="section-body">
         <view class="confidence-display">
           <text class="conf-num">{{personaConfidence}}</text>
@@ -52,8 +52,8 @@
 
     <!-- 战绩画像 -->
     <view class="dossier-section" wx:if="{{battlePersona.generated}}">
-      <text class="section-kicker">BATTLE MIRROR</text>
       <text class="section-title">战绩画像</text>
+      <text class="section-kicker">MIRROR</text>
       <view class="section-body">
         <view class="kv-row">
           <text class="kv-key">画像类型</text>
@@ -69,8 +69,8 @@
 
     <!-- 人格偏差 -->
     <view class="dossier-section" wx:if="{{personaMatch.available}}">
-      <text class="section-kicker">DEVIATION</text>
       <text class="section-title">人格偏差</text>
+      <text class="section-kicker">DEVIATION</text>
       <view class="section-body">
         <view class="dev-row">
           <text class="dev-label-text">校准人格</text>
@@ -90,8 +90,8 @@
 
     <!-- 系统判读 -->
     <view class="dossier-section" wx:if="{{reading.available}}">
-      <text class="section-kicker">SYSTEM READING</text>
       <text class="section-title">系统判读</text>
+      <text class="section-kicker">READING</text>
       <view class="section-body">
         <view class="reading-item" wx:if="{{reading.observation}}">
           <text class="reading-label">观测</text>
@@ -118,8 +118,8 @@
 
     <!-- 人格信号 -->
     <view class="dossier-section" wx:if="{{personaSignals.length > 0}}">
-      <text class="section-kicker">SIGNAL</text>
       <text class="section-title">人格信号</text>
+      <text class="section-kicker">SIGNAL</text>
       <view class="section-body">
         <view class="signal-tags">
           <text class="signal-tag-item" wx:for="{{personaSignals}}" wx:key="*this">{{item}}</text>
@@ -127,10 +127,81 @@
       </view>
     </view>
 
-    <!-- 复制按钮 -->
-    <view class="copy-btn" bindtap="copyDossier">
-      <text class="copy-text">复制档案</text>
+    <!-- 操作按钮 -->
+    <view class="dossier-actions">
+      <view class="action-btn-primary" bindtap="openCardPanel">
+        <text class="action-btn-text">生成档案卡</text>
+      </view>
+      <view class="action-btn-secondary" bindtap="copyDossier">
+        <text class="action-btn-sec-text">复制文字</text>
+      </view>
     </view>
 
   </block>
+
+  <!-- 隐藏 Canvas -->
+  <canvas
+    type="2d"
+    id="personaCardCanvas"
+    class="persona-card-canvas"
+  ></canvas>
+
+  <!-- 底部操作面板 -->
+  <view
+    wx:if="{{showCardPanel}}"
+    class="card-panel-mask"
+    catchtouchmove="noop"
+    bindtap="closeCardPanel"
+  >
+    <view class="card-panel" catchtap="noop">
+      <view class="panel-handle"></view>
+      <view class="panel-head">
+        <text class="panel-title">档案卡生成</text>
+        <text class="panel-kicker">PERSONA CARD</text>
+      </view>
+      <text class="panel-desc">将当前人格档案生成图片卡片，便于保存或分享。</text>
+      <view class="panel-actions">
+        <view class="panel-action-btn panel-action-primary" bindtap="generateCard">
+          <text class="panel-action-text">生成预览</text>
+        </view>
+        <view class="panel-action-btn" bindtap="copyDossier">
+          <text class="panel-action-text">复制文字</text>
+        </view>
+        <view class="panel-action-btn panel-action-ghost" bindtap="closeCardPanel">
+          <text class="panel-action-text">取消</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 预览弹窗 -->
+  <view
+    wx:if="{{showCardPreview}}"
+    class="card-preview-mask"
+    catchtouchmove="noop"
+  >
+    <view class="card-preview-panel">
+      <view class="preview-head">
+        <text class="preview-title">档案卡预览</text>
+        <text class="preview-close" bindtap="closeCardPreview">x</text>
+      </view>
+      <image
+        class="preview-img"
+        src="{{cardTempPath}}"
+        mode="widthFix"
+      />
+      <view class="preview-actions">
+        <view class="preview-btn preview-btn-primary" bindtap="saveCard">
+          <text class="preview-btn-text">保存到相册</text>
+        </view>
+        <button class="preview-btn preview-btn-share" open-type="share">
+          <text class="preview-btn-text">分享给朋友</text>
+        </button>
+      </view>
+      <view class="preview-copy-btn" bindtap="copyDossier">
+        <text class="preview-copy-text">复制文字</text>
+      </view>
+    </view>
+  </view>
+
 </view>

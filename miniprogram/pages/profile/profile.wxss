@@ -87,7 +87,7 @@
 
 /* ===== 页面根节点 ===== */
 .terminal-page {
-  --primary: #00AFFF;
+  --primary: #00C8FF;
   --primary-dim: rgba(0, 170, 255, 0.15);
   --primary-glow: rgba(0, 170, 255, 0.25);
   --bg: #05070A;
@@ -231,7 +231,7 @@
   display: block;
   font-size: 18rpx;
   letter-spacing: 2rpx;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.34);
   margin-bottom: 20rpx;
   font-weight: 400;
 }
@@ -811,15 +811,16 @@
 }
 
 .sys-row__label-en {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: var(--text-main);
-  letter-spacing: 1rpx;
+  font-size: 18rpx;
+  color: rgba(10,132,255,0.52);
+  letter-spacing: 4rpx;
 }
 
 .sys-row__label-zh {
-  font-size: 18rpx;
-  color: var(--text-muted);
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: 1rpx;
 }
 
 .sys-row__value {

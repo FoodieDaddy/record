@@ -10,7 +10,7 @@
 
   <!-- 终端标题 -->
   <view class="terminal-header">
-    <text class="terminal-kicker">NET SCORE LOG</text>
+    <text class="terminal-kicker">LOG</text>
     <text class="terminal-title">积分流水</text>
     <view class="terminal-line"></view>
   </view>
@@ -18,12 +18,12 @@
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">SYNCING SCORE LOG...</text>
+    <text class="loading-text">正在同步积分数据...</text>
   </view>
 
   <!-- 空状态 -->
   <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
-    <text class="empty-kicker">NO MATCH DATA</text>
+    <text class="empty-kicker">暂无对局数据</text>
     <text class="empty-text">暂无对局数据</text>
     <text class="empty-hint">完成一次结算后，积分流水将写入身份终端</text>
   </view>
@@ -33,8 +33,8 @@
 
     <!-- 净积分摘要卡 -->
     <view class="yield-summary-card">
-      <text class="card-kicker">NET SCORE</text>
       <text class="card-label">近期净积分</text>
+      <text class="card-kicker">SCORE</text>
       <view class="yield-value {{netYield > 0 ? 'text-positive' : netYield < 0 ? 'text-negative' : 'text-zero'}}">
         {{netYield > 0 ? '+' : ''}}{{netYield}}
       </view>
@@ -42,8 +42,8 @@
 
     <!-- 采样状态 -->
     <view class="sample-card">
-      <text class="card-kicker">SAMPLE STATUS</text>
       <text class="card-label">采样状态</text>
+      <text class="card-kicker">SAMPLE</text>
       <view class="sample-progress">
         <text class="sample-current">{{sampleCount}}</text>
         <text class="sample-sep">/</text>
@@ -54,22 +54,22 @@
     <!-- 曲线区域 -->
     <view class="curve-section">
       <view class="curve-locked-card" wx:if="{{sampleCount < curveUnlockCount}}">
-        <text class="locked-kicker">CURVE LOCKED</text>
+        <text class="locked-kicker">LOCKED</text>
         <text class="locked-text">积分曲线未解锁</text>
         <text class="locked-sub">当前样本：{{sampleCount}} / {{curveUnlockCount}}</text>
         <text class="locked-hint">完成至少 {{curveUnlockCount}} 场结算后，系统将生成积分曲线。</text>
       </view>
       <view class="curve-chart-card" wx:else>
-        <text class="card-kicker">SCORE CURVE</text>
         <text class="card-label">积分曲线</text>
+        <text class="card-kicker">CURVE</text>
         <yield-chart points="{{curveData}}" />
       </view>
     </view>
 
     <!-- 对局记录 -->
     <view class="match-log-header">
-      <text class="card-kicker">MATCH LOG</text>
       <text class="card-label">对局记录</text>
+      <text class="card-kicker">LOG</text>
     </view>
 
     <view class="room-list">
@@ -85,7 +85,7 @@
           <text class="match-card__time">{{item.settledAt}}</text>
         </view>
         <view class="match-card__result">
-          <text class="match-card__label">MATCH RESULT</text>
+          <text class="match-card__label">RESULT</text>
           <text class="match-card__label-cn">对局结果</text>
         </view>
         <view class="match-card__players">
@@ -115,7 +115,7 @@
           </view>
         </view>
         <view class="match-card__footer">
-          <text class="match-card__footer-label">VIEW MATCH DOSSIER</text>
+          <text class="match-card__footer-label">DOSSIER</text>
           <text class="match-card__footer-cn">查看对局档案</text>
           <view class="svg-icon svg-icon--arrow-sm"></view>
         </view>

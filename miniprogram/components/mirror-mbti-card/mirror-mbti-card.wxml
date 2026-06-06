@@ -1,6 +1,6 @@
 <view class="mbti-card primary-card">
-  <view class="card-kicker">MBTI CALIBRATION</view>
   <view class="card-title">人格镜像</view>
+  <view class="card-kicker">CALIBRATION</view>
 
   <!-- 未校准状态 -->
   <block wx:if="{{!mbti.calibrated}}">

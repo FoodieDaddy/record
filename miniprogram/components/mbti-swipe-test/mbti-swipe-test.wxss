@@ -122,44 +122,6 @@
   position: relative;
 }
 
-/* SIGNAL ACCEPTED 反馈 */
-.signal-feedback {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  opacity: 0;
-  transform: scale(0.9);
-  transition: opacity 0.25s, transform 0.25s;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.signal-feedback.signal-show {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.signal-feedback-icon {
-  font-size: 56rpx;
-  color: #00AFFF;
-  text-shadow: 0 0 20rpx rgba(0, 175, 255, 0.50);
-}
-
-.signal-feedback-title {
-  font-size: 28rpx;
-  font-weight: 700;
-  letter-spacing: 6rpx;
-  color: #00AFFF;
-}
-
-.signal-feedback-sub {
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 2rpx;
-}
-
 /* 题目卡片 */
 .swipe-card {
   width: 85%;
@@ -175,11 +137,6 @@
   transition: transform 0.3s ease, opacity 0.3s ease;
   position: relative;
   overflow: hidden;
-}
-
-.swipe-card.card-fade-out {
-  opacity: 0;
-  transform: scale(0.95);
 }
 
 .swipe-card.slide-right {
@@ -351,28 +308,6 @@
   box-shadow: 0 0 24rpx rgba(0, 175, 255, 0.20);
 }
 
-/* 当前推算 MBTI */
-.current-mbti-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 12rpx 0 64rpx;
-}
-
-.hint-label {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.25);
-}
-
-.hint-type {
-  font-size: 24rpx;
-  font-weight: 700;
-  color: rgba(0, 175, 255, 0.60);
-  font-family: 'SF Mono', 'Courier New', monospace;
-  letter-spacing: 4rpx;
-}
-
 /* 数据加载提示 */
 .data-loading-hint {
   display: flex;
@@ -394,10 +329,6 @@
 
 .reduce-motion .card-scan-line {
   animation: none;
-}
-
-.reduce-motion .signal-feedback {
-  transition: none;
 }
 
 .reduce-motion .seg {

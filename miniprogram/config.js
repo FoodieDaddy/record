@@ -3,13 +3,16 @@
  */
 const ENV = {
   local: {
-    baseUrl: 'http://192.168.31.166:18080/api'
+    baseUrl: 'http://192.168.31.166:18080/api',
+    wsUrl: 'ws://192.168.31.166:18080/api'
   },
   dev: {
-    baseUrl: 'http://8.148.245.54:18080/api'
+    baseUrl: 'http://8.148.245.54:18080/api',
+    wsUrl: 'ws://8.148.245.54:18080/api'
   },
   prod: {
-    baseUrl: 'https://your-domain.com/api'
+    baseUrl: 'https://your-domain.com/api',
+    wsUrl: 'wss://your-domain.com/api'
   }
 };
 

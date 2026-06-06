@@ -1,8 +1,8 @@
 <view class="battle-summary">
   <!-- 顶部标题区 -->
   <view class="summary-header">
-    <view class="summary-kicker">BATTLE REPORT</view>
     <view class="summary-title">战局复盘</view>
+    <view class="summary-kicker">REPORT</view>
     <view class="summary-line"></view>
   </view>
 
@@ -32,9 +32,9 @@
       <text class="cell-name">{{winner.nickname}}</text>
       <text class="cell-number positive">+{{winner.finalScore}}</text>
     </view>
-    <!-- 输家 -->
+    <!-- 输出 -->
     <view class="summary-cell" wx:if="{{loser}}">
-      <text class="cell-kicker">最大输家</text>
+      <text class="cell-kicker">最大输出</text>
       <text class="cell-name">{{loser.nickname}}</text>
       <text class="cell-number negative">{{loser.finalScore}}</text>
     </view>

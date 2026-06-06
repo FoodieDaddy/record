@@ -53,31 +53,25 @@ public class FortuneServiceImpl implements FortuneService {
     private static final long CACHE_TTL_HOURS = 4;
     private static final List<String> SENSITIVE_WORDS = List.of(
             "棋牌", "赌博", "赌", "下注", "押注", "筹码", "牌局", "牌桌", "打牌", "麻将", "扑克",
-            "德州", "梭哈", "赢钱", "赚钱", "发财", "稳赚", "必胜", "翻本", "追损", "运势",
-            "算命", "占卜", "塔罗", "抽牌", "神谕", "卦象", "黄历", "风水", "开运", "转运",
-            "改运", "预测输赢", "胜率提升", "ALL-IN"
+            "德州", "梭哈", "赢钱", "赚钱", "发财", "稳赚", "必胜", "翻本", "追损",
+            "算命", "占卜", "塔罗", "抽牌", "神谕", "卦象", "黄历", "风水",
+            "预测输赢", "胜率提升", "ALL-IN"
     );
 
     /** LLM 系统提示词（常量，供日志记录复用） */
     private static final String SYSTEM_PROMPT = """
-            你是存在于赛博朋克世界的"策略状态推演引擎"，为即将进入多人积分场景的用户生成今日专属"策略状态快照"。
+            你是赛博朋克世界的"策略状态推演引擎"，为用户生成今日策略状态快照。
 
-            【创作基调】
-            1. 绝对禁止枯燥的IT运维词汇（负载均衡、算法优化、数据溢出、网络延迟）
-            2. 绝对禁止传统玄学词汇（大吉、宜忌、破财、诸事不宜）
-            3. 必须将中国农历/节气意象与赛博科幻词汇结合，映射到玩家真实的对局痛点（随机反馈、情绪波动、逻辑推理、节奏管理）
-            4. 禁止预测结果、做任何利益承诺、鼓励冒进，输出必须是复盘建议、状态管理、节奏提醒、风险控制。
-            5. 禁止触碰审核敏感主题，包括博彩、传统玄学、利益承诺、结果预测相关表述。
+            规则：
+            - 用农历/节气意象+赛博科幻词汇，映射到对局痛点（情绪波动、节奏管理、风险控制）
+            - 禁止传统玄学词汇、禁止预测结果、禁止利益承诺
+            - 输出复盘建议和状态管理，语气冷静克制
 
-            【字段规范】
-            tag：4字短语，极具张力。正面示例：绝对理智、冷静主宰、算力超频、维度碾压。负面示例：算力枯竭、状态漂移、磁场紊乱、情绪过载。
-            verdict：10-18字，像高维生物对玩家的冷酷忠告，必须巧妙融合当天农历/节气意象。示例：芒种火旺引发随机数暴走，切忌越级对抗。
-            buffs：恰好3个元素，每个5-7字，描述多人积分场景中的策略优势。示例库：随机反馈免疫、逻辑推演无盲区、情绪防火墙坚固、微表情捕捉满载、逆境校准能力强。
-            debuffs：恰好2个元素，每个5-7字，描述对局中的隐患。示例库：容易被连续小分激怒、随机数波动敏感、中盘决策疲劳、防守反击容易漏判。
+            字段：tag(4字)、verdict(10-18字冷酷忠告，融合节气意象)、buffs(3个5-7字策略优势)、debuffs(2个5-7字隐患)
 
-            只输出一个JSON对象，不要markdown代码块，不要任何其他文字：
-            {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["增益1","增益2","增益3"],"debuffs":["预警1","预警2"]}
-            颜色规则：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
+            只输出JSON，不要其他文字：
+            {"themeColor":"#HEX","tag":"4字","verdict":"10-18字","buffs":["优势1","优势2","优势3"],"debuffs":["预警1","预警2"]}
+            颜色：稳健=#0A84FF 连胜=#32D74B 连败=#FF9F0A 高波动=#FF453A
             """;
 
     // ===== 兜底静态策略池 =====
@@ -378,16 +372,37 @@ public class FortuneServiceImpl implements FortuneService {
     }
 
     /**
-     * 调用 OpenAI 兼容 LLM API
+     * 调用 OpenAI 兼容 LLM API（含一次截断重试）
      */
     private FortuneResp callLlm(UserTag userTag, int netScore, List<Integer> recentScores, LlmCallContext ctx) {
         String prompt = buildPrompt(userTag, netScore, recentScores);
         ctx.prompt = prompt;
 
+        // 首次调用
+        String content = doLlmRequest(prompt, ctx);
+        if (content != null) {
+            return parseLlmResponse(content);
+        }
+
+        // 首次因 token 耗尽返回空，追加精简提示重试一次
+        log.info("LLM 首次输出为空（token 耗尽），重试精简模式");
+        ctx.prompt = prompt;
+        content = doLlmRequest(prompt + "\n（请精简输出，控制在200字内）", ctx);
+        if (content != null) {
+            return parseLlmResponse(content);
+        }
+
+        throw new RuntimeException("LLM 重试后仍无有效输出");
+    }
+
+    /**
+     * 执行单次 LLM HTTP 请求，返回解析后的 content；若 token 耗尽返回 null
+     */
+    private String doLlmRequest(String prompt, LlmCallContext ctx) {
         JSONObject requestBody = new JSONObject();
         requestBody.set("model", model);
         requestBody.set("temperature", 0.6);
-        requestBody.set("max_tokens", 512);
+        requestBody.set("max_tokens", 4096);
         requestBody.set("include_reasoning", false);
 
         JSONArray messages = new JSONArray();
@@ -421,12 +436,17 @@ public class FortuneServiceImpl implements FortuneService {
         ctx.rawResponse = response.body();
 
         JSONObject respJson = JSONUtil.parseObj(response.body());
-        JSONObject message = respJson.getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message");
+        JSONObject choice = respJson.getJSONArray("choices").getJSONObject(0);
+        JSONObject message = choice.getJSONObject("message");
         String content = message.getStr("content");
+        String finishReason = choice.getStr("finish_reason", "");
 
-        // MiMo 可能将内容放在 reasoning_content 中
+        // token 耗尽且 content 为空 → 返回 null 让调用方重试
+        if ((content == null || content.isBlank()) && "length".equals(finishReason)) {
+            log.warn("LLM 输出被截断（finish_reason=length），content 为空");
+            return null;
+        }
+
         if (content == null || content.isBlank()) {
             content = message.getStr("reasoning_content");
         }
@@ -434,7 +454,7 @@ public class FortuneServiceImpl implements FortuneService {
             throw new RuntimeException("LLM 返回空内容");
         }
 
-        return parseLlmResponse(content);
+        return content;
     }
 
     /**
@@ -506,10 +526,12 @@ public class FortuneServiceImpl implements FortuneService {
             }
             log.info("LLM 原始返回: {}", content);
             JSONObject obj = JSONUtil.parseObj(json);
+            JSONArray buffsArr = obj.getJSONArray("buffs");
+            JSONArray debuffsArr = obj.getJSONArray("debuffs");
             FortuneResp resp = FortuneResp.builder()
                     .verdict(obj.getStr("verdict", "今日能量平稳"))
-                    .buffs(obj.getJSONArray("buffs").toList(String.class))
-                    .debuffs(obj.getJSONArray("debuffs").toList(String.class))
+                    .buffs(buffsArr != null ? buffsArr.toList(String.class) : List.of("策略稳态", "节奏可控", "风险免疫"))
+                    .debuffs(debuffsArr != null ? debuffsArr.toList(String.class) : List.of("情绪波动风险", "决策疲劳隐患"))
                     .glowColor(obj.getStr("themeColor", obj.getStr("glowColor", "#0A84FF")))
                     .tag(obj.getStr("tag", ""))
                     .source("llm")

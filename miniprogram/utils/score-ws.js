@@ -6,7 +6,7 @@
  * - 页面只订阅/取消事件，不控制连接生命周期
  * - 自动重连（3 秒延迟），手动断开后不重连
  */
-const DEBUG_WS = false;
+const DEBUG_WS = true; // 开发阶段打开，上线关掉
 
 function debugLog(...args) {
   if (DEBUG_WS) console.log(...args);
@@ -45,11 +45,14 @@ class ScoreWS {
     this.roomId = roomId;
     this.isConnecting = true;
     this.manualClose = false;
+    this._reconnectCount = 0;
 
     const app = getApp();
-    const wsUrl = app.globalData.baseUrl.replace(/^http/, 'ws') +
-      `/ws/score?roomId=${roomId}&token=${app.globalData.token}`;
+    // 使用独立的 wsUrl 配置，避免从 baseUrl 拼接出错
+    const config = require('../config');
+    const wsUrl = `${config.wsUrl}/ws/score?roomId=${roomId}&token=${app.globalData.token}`;
 
+    console.log('[score-ws] connect url:', wsUrl);
     this.socketTask = wx.connectSocket({
       url: wsUrl,
       success: () => debugLog('[WS] 连接中...'),
@@ -150,17 +153,30 @@ class ScoreWS {
   }
 
   /**
-   * 延迟重连
+   * 延迟重连（指数退避 + 最大次数）
    */
   _scheduleReconnect() {
+    if (!this._reconnectCount) this._reconnectCount = 0;
+    this._reconnectCount++;
+
+    // 最多重连 5 次
+    if (this._reconnectCount > 5) {
+      debugWarn('[WS] 达到最大重连次数，停止重连');
+      this._emit('reconnectFailed');
+      return;
+    }
+
+    // 指数退避：3s, 6s, 12s, 24s, 48s
+    const delay = Math.min(3000 * Math.pow(2, this._reconnectCount - 1), 48000);
+    debugLog(`[WS] ${delay / 1000}s 后重连 (第 ${this._reconnectCount} 次)`);
+
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       if (this.roomId && !this.isConnected && !this.isConnecting) {
-        debugLog('[WS] 自动重连...');
         this.connect(this.roomId);
       }
-    }, 3000);
+    }, delay);
   }
 
   /**

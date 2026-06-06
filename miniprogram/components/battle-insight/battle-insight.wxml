@@ -1,7 +1,7 @@
 <view class="bi-card">
   <view class="bi-header">
     <text class="bi-cn">战局洞察</text>
-    <text class="bi-en">BATTLE INSIGHT</text>
+    <text class="bi-en">INSIGHT</text>
   </view>
   <view class="bi-divider"></view>
   <view class="bi-blocks">
@@ -26,7 +26,7 @@
             style="width:{{networkDensity === 'HIGH' ? 100 : networkDensity === 'MEDIUM' ? 60 : 25}}%;">
           </view>
         </view>
-        <text class="bi-density-text">{{networkDensity}}</text>
+        <text class="bi-density-text">{{networkDensity === 'HIGH' ? '高' : networkDensity === 'MEDIUM' ? '中' : '低'}}</text>
       </view>
     </view>
   </view>

@@ -1,8 +1,9 @@
 Component({
   properties: {
-    socialActivity: { type: String, value: '中' },
-    riskPreference: { type: String, value: '中' },
-    resourceControl: { type: String, value: '中' },
-    allianceTendency: { type: String, value: '低' }
+    activity: { type: String, value: '中' },
+    volatility: { type: String, value: '中' },
+    concentration: { type: String, value: '中' },
+    density: { type: String, value: '中' },
+    lowSample: { type: Boolean, value: false }
   }
 })

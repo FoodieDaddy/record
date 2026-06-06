@@ -27,10 +27,9 @@ Page({
     // 关系网络
     networkNodes: [],
     networkLinks: [],
-    // 战局洞察
-    insight: null,
-    // 人格信号
-    personaSignals: null
+    // 行为信号
+    behaviorSignals: null,
+    lowSample: false
   },
 
   onLoad(options) {
@@ -109,13 +108,23 @@ Page({
         if (eventMarkers.length > 0) break;
       }
 
-      const personaSignals = this._calcPersonaSignals(rankedMembers, insightData, networkData);
+      // 构建网络数据（带头像）
+      const networkNodes = ((networkData && networkData.nodes) || []).map(n => {
+        const member = memberMap[String(n.userId)] || {};
+        const nickname = n.nickname || member.nickname || '?';
+        return {
+          userId: n.userId,
+          nickname,
+          score: n.score || 0,
+          avatarUrl: n.avatarUrl || member.avatarUrl || ''
+        };
+      });
+      const networkLinks = (networkData && networkData.links) || [];
 
-      const networkNodes = (networkData.nodes || []).map(n => ({
-        ...n,
-        ...getAvatarView(n.nickname, n.avatarUrl)
-      }));
-      const networkLinks = networkData.links || [];
+      const transferCount = insightData ? insightData.transferCount : 0;
+      const behaviorSignals = this._calcBehaviorSignals(
+        rankedMembers, transferCount, networkLinks, series
+      );
 
       const now = new Date();
       const settleTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -125,11 +134,11 @@ Page({
         rankedMembers, roomNo: roomData.roomNo || '', settleTime,
         winner, loser, maxSingle,
         totalTransfer: insightData ? insightData.totalTransfer : 0,
-        transferCount: insightData ? insightData.transferCount : 0,
+        transferCount,
         memberCount: rankedMembers.length,
         networkNodes, networkLinks,
-        insight: insightData || null,
-        personaSignals,
+        behaviorSignals,
+        lowSample: transferCount < 5,
         loading: false
       });
     } catch (e) {
@@ -139,45 +148,72 @@ Page({
     }
   },
 
-  _calcPersonaSignals(rankedMembers, insight, network) {
-    if (!rankedMembers || rankedMembers.length === 0) {
-      return { socialActivity: '中', riskPreference: '中', resourceControl: '中', allianceTendency: '低' };
-    }
+  _calcBehaviorSignals(rankedMembers, transferCount, networkLinks, series) {
     const n = rankedMembers.length;
-    const myData = rankedMembers.find(m => String(m.userId) === String(this.data.myUserId));
+    if (n === 0) return null;
 
-    let socialActivity = '中';
-    if (insight && insight.transferCount) {
-      const avg = insight.transferCount / Math.max(n, 1);
-      if (avg > 3) socialActivity = '高';
-      else if (avg < 1.5) socialActivity = '低';
+    const myUserId = this.data.myUserId;
+    const myData = rankedMembers.find(m => String(m.userId) === String(myUserId));
+    const mySeries = series.find(s => String(s.userId) === String(myUserId));
+
+    // 参与活跃度：用户参与的流转次数 / 总流转次数
+    let activity = '中';
+    if (transferCount > 0 && myUserId) {
+      const myLinks = networkLinks.filter(
+        l => String(l.from) === String(myUserId) || String(l.to) === String(myUserId)
+      );
+      const myCount = myLinks.reduce((s, l) => s + (l.count || 1), 0);
+      const ratio = myCount / transferCount;
+      if (ratio > 0.4) activity = '高';
+      else if (ratio < 0.2) activity = '低';
     }
 
-    let riskPreference = '中';
-    if (myData) {
-      const absScore = Math.abs(myData.finalScore);
-      const avgScore = rankedMembers.reduce((s, m) => s + Math.abs(m.finalScore), 0) / n;
-      if (absScore > avgScore * 1.5) riskPreference = '高';
-      else if (absScore < avgScore * 0.5) riskPreference = '低';
+    // 波动强度：用户积分变化的标准差
+    let volatility = '中';
+    if (mySeries && mySeries.scores && mySeries.scores.length > 2) {
+      const deltas = [];
+      for (let i = 1; i < mySeries.scores.length; i++) {
+        deltas.push(Math.abs(mySeries.scores[i] - mySeries.scores[i - 1]));
+      }
+      const avg = deltas.reduce((s, v) => s + v, 0) / deltas.length;
+      const variance = deltas.reduce((s, v) => s + (v - avg) * (v - avg), 0) / deltas.length;
+      const std = Math.sqrt(variance);
+      const avgScore = Math.abs(myData ? myData.finalScore : 0) / Math.max(n, 1);
+      const ratio = avgScore > 0 ? std / avgScore : 0;
+      if (ratio > 1.2) volatility = '高';
+      else if (ratio < 0.4) volatility = '低';
     }
 
-    let resourceControl = '中';
-    if (myData) {
-      const rank = rankedMembers.indexOf(myData);
-      if (rank === 0) resourceControl = '高';
-      else if (rank >= n - 1) resourceControl = '低';
+    // 集中流向：最大单向流转额 / 总流转额
+    let concentration = '中';
+    if (myUserId && networkLinks.length > 0) {
+      const myLinks = networkLinks.filter(
+        l => String(l.from) === String(myUserId) || String(l.to) === String(myUserId)
+      );
+      if (myLinks.length > 0) {
+        const amounts = myLinks.map(l => Math.abs(l.netAmount || 0));
+        const maxAmount = Math.max(...amounts);
+        const totalAmount = amounts.reduce((s, v) => s + v, 0);
+        const ratio = totalAmount > 0 ? maxAmount / totalAmount : 0;
+        if (ratio > 0.6) concentration = '集中';
+        else if (ratio < 0.3) concentration = '分散';
+      }
     }
 
-    let allianceTendency = '低';
-    if (network && network.links && n > 2) {
-      const pairs = new Set(network.links.map(l => [l.from, l.to].sort().join(':')));
-      const max = (n * (n - 1)) / 2;
-      const ratio = pairs.size / max;
-      if (ratio > 0.5) allianceTendency = '高';
-      else if (ratio > 0.2) allianceTendency = '中';
+    // 互动密度：互动过的人数 / (总人数 - 1)
+    let density = '中';
+    if (myUserId && n > 1) {
+      const interacted = new Set();
+      networkLinks.forEach(l => {
+        if (String(l.from) === String(myUserId)) interacted.add(String(l.to));
+        if (String(l.to) === String(myUserId)) interacted.add(String(l.from));
+      });
+      const ratio = interacted.size / (n - 1);
+      if (ratio > 0.7) density = '高';
+      else if (ratio < 0.3) density = '低';
     }
 
-    return { socialActivity, riskPreference, resourceControl, allianceTendency };
+    return { activity, volatility, concentration, density };
   },
 
 });

@@ -7,14 +7,14 @@
       <view class="loading-dot dot-2"></view>
       <view class="loading-dot dot-3"></view>
     </view>
-    <text class="loading-label">GENERATING REPORT</text>
+    <text class="loading-label">正在生成报告...</text>
     <text class="loading-hint">正在解析战局数据</text>
   </view>
 
   <block wx:else>
     <!-- MATCH DOSSIER 标题 -->
     <view class="dossier-header">
-      <text class="dossier-kicker">MATCH DOSSIER</text>
+      <text class="dossier-kicker">DOSSIER</text>
       <text class="dossier-title">对局档案</text>
       <view class="dossier-meta" wx:if="{{roomNo}}">
         <text class="dossier-room">ROOM {{roomNo}}</text>
@@ -22,55 +22,11 @@
       </view>
     </view>
 
-    <!-- 1. 战局总结 -->
-    <battle-summary
-      winner="{{winner}}"
-      loser="{{loser}}"
-      maxSingle="{{maxSingle}}"
-      totalTransfer="{{totalTransfer}}"
-      transferCount="{{transferCount}}"
-      memberCount="{{memberCount}}"
-      roomNo="{{roomNo}}"
-      settleTime="{{settleTime}}" />
-
-    <!-- 2. 积分趋势图 -->
-    <view class="section-card" wx:if="{{series.length > 0}}">
-      <view class="card-header">
-        <view class="card-kicker">FLOW TIMELINE</view>
-        <view class="card-title">积分演化轨迹</view>
-        <view class="card-line"></view>
-      </view>
-      <view class="chart-wrap">
-        <score-chart
-          timestamps="{{timestamps}}"
-          series="{{series}}"
-          visibleUsers="{{visibleUsers}}"
-          eventMarkers="{{eventMarkers}}"
-          highlightUser="{{myUserId}}" />
-      </view>
-    </view>
-
-    <!-- 3. 积分关系网络 -->
-    <score-network
-      wx:if="{{networkNodes.length > 0}}"
-      nodes="{{networkNodes}}"
-      links="{{networkLinks}}"
-      my-user-id="{{myUserId}}" />
-
-    <!-- 4. 战局洞察 -->
-    <battle-insight
-      wx:if="{{insight}}"
-      mostActiveUser="{{insight.mostActiveUser}}"
-      mostFocusedUser="{{loser}}"
-      networkDensity="{{insight.networkDensity}}"
-      transferCount="{{insight.transferCount}}"
-      memberCount="{{memberCount}}" />
-
-    <!-- 5. 最终排名 -->
+    <!-- 1. 最终排名 -->
     <view class="section-card" wx:if="{{rankedMembers.length > 0}}">
       <view class="card-header">
-        <view class="card-kicker">FINAL STANDING</view>
         <view class="card-title">最终排名</view>
+        <view class="card-kicker">FINAL</view>
         <view class="card-line"></view>
       </view>
       <view class="rank-list">
@@ -95,13 +51,49 @@
       </view>
     </view>
 
-    <!-- 6. 人格信号 -->
+    <!-- 2. 战局复盘 -->
+    <battle-summary
+      winner="{{winner}}"
+      loser="{{loser}}"
+      maxSingle="{{maxSingle}}"
+      totalTransfer="{{totalTransfer}}"
+      transferCount="{{transferCount}}"
+      memberCount="{{memberCount}}"
+      roomNo="{{roomNo}}"
+      settleTime="{{settleTime}}" />
+
+    <!-- 3. 积分演化轨迹 -->
+    <view class="section-card" wx:if="{{series.length > 0}}">
+      <view class="card-header">
+        <view class="card-title">积分演化轨迹</view>
+        <view class="card-kicker">TIMELINE</view>
+        <view class="card-line"></view>
+      </view>
+      <view class="chart-wrap">
+        <score-chart
+          timestamps="{{timestamps}}"
+          series="{{series}}"
+          visibleUsers="{{visibleUsers}}"
+          eventMarkers="{{eventMarkers}}"
+          highlightUser="{{myUserId}}" />
+      </view>
+    </view>
+
+    <!-- 4. 积分关系网络 -->
+    <score-network
+      wx:if="{{networkNodes.length > 0}}"
+      nodes="{{networkNodes}}"
+      links="{{networkLinks}}"
+      my-user-id="{{myUserId}}" />
+
+    <!-- 5. 本局行为信号 -->
     <persona-signal
-      wx:if="{{personaSignals}}"
-      socialActivity="{{personaSignals.socialActivity}}"
-      riskPreference="{{personaSignals.riskPreference}}"
-      resourceControl="{{personaSignals.resourceControl}}"
-      allianceTendency="{{personaSignals.allianceTendency}}" />
+      wx:if="{{behaviorSignals}}"
+      activity="{{behaviorSignals.activity}}"
+      volatility="{{behaviorSignals.volatility}}"
+      concentration="{{behaviorSignals.concentration}}"
+      density="{{behaviorSignals.density}}"
+      low-sample="{{lowSample}}" />
 
     <view style="height: 60rpx;"></view>
   </block>

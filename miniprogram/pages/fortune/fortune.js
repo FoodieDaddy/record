@@ -38,6 +38,13 @@ function sanitizeStrategy(strategy) {
   }
 }
 
+function deriveStrategyMeta(strategy) {
+  if (!strategy) return { strategyTheme: '节奏校准', strategySummary: '当前策略已生成。建议先观察场上节奏，再根据反馈调整行动。' }
+  const theme = strategy.tag || (strategy.tags && strategy.tags[0]) || '节奏校准'
+  const summary = strategy.verdict || '建议保持节奏，观察场上变化后再行动。'
+  return { strategyTheme: theme, strategySummary: summary }
+}
+
 /* ===== 推演日志流 ===== */
 const CALC_LOG_LINES = [
   { stage: 0, prefix: '[SCAN]',      text: '读取人格协议...' },
@@ -52,6 +59,8 @@ Page({
   data: {
     phase: 'idle',         // idle | generating | success | poster_generating | poster_preview | error
     animationEnabled: true,
+    reduceMotion: false,
+    showRefreshConfirm: false,
     currentDate: '',
     lunarInfo: '',
     countdownText: '',
@@ -71,6 +80,8 @@ Page({
 
     // success
     strategy: null,
+    strategyTheme: '',
+    strategySummary: '',
 
     // error
     error: null,
@@ -97,6 +108,7 @@ Page({
     const d = String(now.getDate()).padStart(2, '0')
     this.setData({
       animationEnabled: app.globalData.animationEnabled !== false,
+      reduceMotion: app.globalData.animationEnabled === false || app.globalData.reduceMotion === true,
       currentDate: `${y}.${m}.${d}`,
     })
     this._checkCache()
@@ -130,9 +142,12 @@ Page({
           if (strategy.solarTerm) lunarInfo += ' · ' + strategy.solarTerm
         }
         wx.setStorageSync('strategy_result', { date: today, data: strategy })
+        const meta = deriveStrategyMeta(strategy)
         this.setData({
           phase: 'success',
           strategy,
+          strategyTheme: meta.strategyTheme,
+          strategySummary: meta.strategySummary,
           lunarInfo,
           nextRefreshAt: strategy.nextRefreshAt || '',
         })
@@ -327,9 +342,13 @@ Page({
       if (strategy.solarTerm) lunarInfo += ' · ' + strategy.solarTerm
     }
 
+    const meta = deriveStrategyMeta(strategy)
+
     this.setData({
       phase: 'success',
       strategy,
+      strategyTheme: meta.strategyTheme,
+      strategySummary: meta.strategySummary,
       lunarInfo,
       nextRefreshAt: strategy.nextRefreshAt || '',
     })
@@ -338,18 +357,18 @@ Page({
   /* ==================== success 状态 ==================== */
 
   onTapRefresh() {
-    wx.showModal({
-      title: '重新推演',
-      content: '确定要重新生成今日策略？',
-      confirmText: '确认',
-      cancelText: '取消',
-      success: (res) => {
-        if (!res.confirm) return
-        try { wx.removeStorageSync('strategy_result') } catch (e) {}
-        this._forceRefresh = true
-        this._startGeneration()
-      },
-    })
+    this.setData({ showRefreshConfirm: true })
+  },
+
+  onRefreshCancel() {
+    this.setData({ showRefreshConfirm: false })
+  },
+
+  onRefreshConfirm() {
+    this.setData({ showRefreshConfirm: false })
+    try { wx.removeStorageSync('strategy_result') } catch (e) {}
+    this._forceRefresh = true
+    this._startGeneration()
   },
 
   onTapShare() {
@@ -424,10 +443,10 @@ Page({
       ctx.textAlign = 'center'
       ctx.font = '26px Courier New'
       ctx.fillStyle = 'rgba(0, 175, 255, 0.45)'
-      ctx.fillText('SMART RECORD', W / 2, 80)
+      ctx.fillText('今日策略', W / 2, 80)
       ctx.font = '14px Courier New'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
-      ctx.fillText('STRATEGY DOSSIER', W / 2, 106)
+      ctx.fillText('STRATEGY · HAPPY 记分器', W / 2, 106)
 
       // 顶部分隔线
       ctx.strokeStyle = 'rgba(0, 175, 255, 0.1)'
@@ -606,7 +625,7 @@ Page({
       ctx.font = '13px Courier New'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
       ctx.textAlign = 'center'
-      ctx.fillText('Smart Record · Strategy Dossier', W / 2, H - 38)
+      ctx.fillText('smart 记分器 · 策略档案', W / 2, H - 38)
 
       // === 导出图片（2x 分辨率） ===
       wx.canvasToTempFilePath({

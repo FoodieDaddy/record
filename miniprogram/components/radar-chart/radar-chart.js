@@ -289,7 +289,7 @@ Component({
       ctx.font = 'bold 11px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(0, 175, 255, 0.50)';
       ctx.letterSpacing = '2px';
-      ctx.fillText('DATA COLLECTING', cx, cy - 8);
+      ctx.fillText('数据采集中', cx, cy - 8);
       ctx.font = '10px -apple-system, sans-serif';
       ctx.fillStyle = 'rgba(0, 175, 255, 0.30)';
       ctx.fillText('采样中', cx, cy + 10);

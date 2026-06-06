@@ -4,7 +4,6 @@
     "battle-summary": "/components/battle-summary/battle-summary",
     "score-chart": "/components/score-chart/score-chart",
     "score-network": "/components/score-network/score-network",
-    "battle-insight": "/components/battle-insight/battle-insight",
     "persona-signal": "/components/persona-signal/persona-signal"
   }
 }

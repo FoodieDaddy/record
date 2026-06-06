@@ -13,7 +13,7 @@
   <!-- 退出确认遮罩 -->
   <view class="exit-overlay {{showExitConfirm ? 'exit-active' : ''}}" wx:if="{{showExitConfirm}}">
     <view class="exit-dialog">
-      <text class="exit-kicker">SYSTEM WARNING</text>
+      <text class="exit-kicker">WARNING</text>
       <text class="exit-title">系统警告</text>
       <text class="exit-msg">当前人格协议尚未同步，退出后修改不会保存。</text>
       <view class="exit-actions">
@@ -30,7 +30,7 @@
   <!-- 头部 -->
   <view class="picker-header">
     <view class="picker-header-left">
-      <text class="picker-kicker">PERSONA EDITOR</text>
+      <text class="picker-kicker">EDITOR</text>
       <text class="picker-title">人格协议编辑器</text>
     </view>
     <view class="picker-close" bindtap="onClose">
@@ -47,7 +47,7 @@
 
       <!-- 人格矩阵 -->
       <view class="matrix-section">
-        <text class="matrix-kicker">PERSONA MATRIX</text>
+        <text class="matrix-kicker">MATRIX</text>
         <text class="matrix-title">人格矩阵</text>
 
         <view class="dim-list">
@@ -81,7 +81,7 @@
 
       <!-- 当前选择 -->
       <view class="selection-section">
-        <text class="selection-kicker">CURRENT SELECTION</text>
+        <text class="selection-kicker">SELECTION</text>
         <text class="selection-title">当前选择</text>
 
         <view class="selection-main">
@@ -96,7 +96,7 @@
 
       <!-- 同步按钮 -->
       <view class="apply-btn {{syncing ? 'apply-syncing' : ''}} {{syncSuccess ? 'apply-success' : ''}} {{syncError ? 'apply-error' : ''}}" bindtap="onConfirm">
-        <text class="apply-kicker">APPLY PROTOCOL</text>
+        <text class="apply-kicker">APPLY</text>
         <text class="apply-text" wx:if="{{syncing}}">人格协议同步中...</text>
         <text class="apply-text" wx:elif="{{syncSuccess}}">✓ 人格协议已更新</text>
         <text class="apply-text apply-error-text" wx:elif="{{syncError}}">{{syncError}}</text>

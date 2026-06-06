@@ -48,18 +48,19 @@
 
 .section-kicker {
   display: block;
+  margin-top: 4rpx;
   font-size: 17rpx;
   letter-spacing: 3rpx;
-  color: rgba(0, 175, 255, 0.45);
+  color: rgba(255, 255, 255, 0.34);
   text-transform: uppercase;
 }
 
 .section-title {
   display: block;
-  margin-top: 4rpx;
   font-size: 26rpx;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.88);
+  color: #00C8FF;
+  letter-spacing: 2rpx;
   margin-bottom: 14rpx;
 }
 
@@ -233,28 +234,298 @@
   color: rgba(0, 175, 255, 0.75);
 }
 
-/* ---- 复制按钮 ---- */
-.copy-btn {
+/* ---- 操作按钮区 ---- */
+.dossier-actions {
+  display: flex;
+  gap: 20rpx;
   margin-top: 8rpx;
-  width: 100%;
+}
+
+.action-btn-primary {
+  flex: 1;
   height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.25);
-  background: rgba(0, 175, 255, 0.04);
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.36);
+  background: rgba(10, 132, 255, 0.08);
+  box-shadow: 0 0 28rpx rgba(10, 132, 255, 0.12);
 }
 
-.copy-btn:active {
-  background: rgba(0, 175, 255, 0.10);
+.action-btn-primary:active {
+  background: rgba(10, 132, 255, 0.16);
 }
 
-.copy-text {
-  font-size: 24rpx;
-  font-weight: 700;
+.action-btn-text {
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 4rpx;
+  color: #0A84FF;
+}
+
+.action-btn-secondary {
+  width: 220rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.action-btn-secondary:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.action-btn-sec-text {
+  font-size: 26rpx;
   letter-spacing: 2rpx;
-  color: rgba(0, 175, 255, 0.90);
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* ---- 隐藏 Canvas ---- */
+.persona-card-canvas {
+  position: fixed;
+  left: -9999rpx;
+  top: -9999rpx;
+  width: 750rpx;
+  height: 1000rpx;
+}
+
+/* ---- 底部面板 ---- */
+.card-panel-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.card-panel {
+  width: 100%;
+  padding: 24rpx 32rpx calc(env(safe-area-inset-bottom) + 48rpx);
+  border-radius: 36rpx 36rpx 0 0;
+  border-top: 1rpx solid rgba(10, 132, 255, 0.24);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10, 132, 255, 0.12), transparent 38%),
+    rgba(6, 10, 16, 0.96);
+  box-shadow: 0 -24rpx 80rpx rgba(0, 0, 0, 0.58);
+  box-sizing: border-box;
+}
+
+.panel-handle {
+  width: 72rpx;
+  height: 6rpx;
+  margin: 0 auto 30rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.panel-head {
+  margin-bottom: 18rpx;
+}
+
+.panel-title {
+  display: block;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+  letter-spacing: 3rpx;
+}
+
+.panel-kicker {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(10, 132, 255, 0.58);
+}
+
+.panel-desc {
+  display: block;
+  font-size: 25rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.52);
+  margin-bottom: 30rpx;
+}
+
+.panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.panel-action-btn {
+  height: 86rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.panel-action-btn:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.panel-action-primary {
+  border-color: rgba(10, 132, 255, 0.36);
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.panel-action-primary:active {
+  background: rgba(10, 132, 255, 0.16);
+}
+
+.panel-action-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.panel-action-text {
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.panel-action-primary .panel-action-text {
+  color: #0A84FF;
+}
+
+.panel-action-ghost .panel-action-text {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+/* ---- 预览弹窗 ---- */
+.card-preview-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  background: rgba(0, 0, 0, 0.82);
+  box-sizing: border-box;
+}
+
+.card-preview-panel {
+  width: 100%;
+  max-height: 92vh;
+  padding: 28rpx;
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.24);
+  background: rgba(6, 10, 16, 0.96);
+  box-sizing: border-box;
+}
+
+.preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.preview-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.preview-close {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  font-size: 36rpx;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.preview-img {
+  width: 100%;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: #0A0A0A;
+}
+
+.preview-actions {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 24rpx;
+}
+
+.preview-btn {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 0;
+  margin: 0;
+  line-height: 80rpx;
+  box-sizing: border-box;
+}
+
+.preview-btn::after {
+  border: none;
+}
+
+.preview-btn:active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.preview-btn-primary {
+  border-color: rgba(10, 132, 255, 0.36);
+  background: rgba(10, 132, 255, 0.08);
+}
+
+.preview-btn-primary:active {
+  background: rgba(10, 132, 255, 0.16);
+}
+
+.preview-btn-share {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.preview-btn-text {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.preview-btn-primary .preview-btn-text {
+  color: #0A84FF;
+}
+
+.preview-copy-btn {
+  margin-top: 18rpx;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.preview-copy-btn:active {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.preview-copy-text {
+  font-size: 25rpx;
+  color: rgba(255, 255, 255, 0.46);
 }
 
 /* ---- Skeleton ---- */
