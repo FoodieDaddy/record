@@ -42,9 +42,9 @@ Page({
   playConnectingAnimation() {
     return new Promise((resolve) => {
       const stepTexts = [
-        '同步用户档案',
-        '加载人格镜像',
-        '初始化房间模块',
+        '同步身份档案',
+        '加载人格协议',
+        '初始化空间核心',
         '同步策略引擎'
       ];
 

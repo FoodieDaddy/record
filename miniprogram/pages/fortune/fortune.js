@@ -625,7 +625,7 @@ Page({
       ctx.font = '13px Courier New'
       ctx.fillStyle = 'rgba(255, 255, 255, 0.12)'
       ctx.textAlign = 'center'
-      ctx.fillText('smart 记分器 · 策略档案', W / 2, H - 38)
+      ctx.fillText('PULSE TERMINAL · STRATEGY ARCHIVE', W / 2, H - 38)
 
       // === 导出图片（2x 分辨率） ===
       wx.canvasToTempFilePath({

@@ -4,7 +4,7 @@ const app = getApp();
 
 var PERSONA_SIGNAL_MAP = {
   STABLE_CONTROL: ['节奏控制', '低失误', '稳健决策', '长期主义'],
-  AGGRESSIVE_PUSH: ['主动进攻', '窗口捕捉', '高频决策', '积分最大化'],
+  AGGRESSIVE_PUSH: ['主动进攻', '窗口捕捉', '高频决策', '数值最大化'],
   VOLATILE_BURST: ['爆发型', '高波动', '极限操作', '情绪驱动'],
   DEFENSIVE_COUNTER: ['防守反击', '耐心等待', '低频高效', '信息积累'],
   SLOW_OBSERVER: ['后发制人', '信息导向', '节奏观察', '稳定输出'],
@@ -100,7 +100,7 @@ Page({
     lines.push('');
 
     if (d.battlePersona.generated) {
-      lines.push('--- 战绩画像 ---');
+      lines.push('--- 任务画像 ---');
       lines.push('类型: ' + d.battlePersona.title);
       lines.push('样本: ' + d.battlePersona.sampleSize + ' 场');
       lines.push('');
@@ -319,7 +319,7 @@ Page({
 
     ctx.fillStyle = 'rgba(10,132,255,0.40)';
     ctx.font = '18px sans-serif';
-    this._fillLetterSpaced(ctx, 'Smart Record · Record Terminal', padL, H - 76);
+    this._fillLetterSpaced(ctx, 'PULSE TERMINAL', padL, H - 76);
   },
 
   _buildReadingText(reading) {
@@ -334,7 +334,7 @@ Page({
     if (parts.length === 0 && reading.text) parts.push(reading.text);
     return parts.length > 0
       ? parts.join('。')  // 。
-      : '暂无系统判读。完成更多对局后将生成更稳定的档案。';
+      : '暂无系统判读。完成更多任务后将生成更稳定的档案。';
   },
 
   _fillLetterSpaced(ctx, text, x, y) {

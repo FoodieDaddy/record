@@ -26,11 +26,11 @@
     </view>
 
     <view class="terminal-tags">
-      <text class="tag-item">多人房间</text>
+      <text class="tag-item">多人空间</text>
       <text class="tag-sep">|</text>
       <text class="tag-item">人格镜像</text>
       <text class="tag-sep">|</text>
-      <text class="tag-item">策略灵感</text>
+      <text class="tag-item">策略终端</text>
     </view>
   </view>
 
@@ -46,7 +46,7 @@
     <view class="status-grid">
       <view class="status-row">
         <view class="status-dot"></view>
-        <text class="status-module">房间模块</text>
+        <text class="status-module">空间模块</text>
         <text class="status-value">在线</text>
       </view>
       <view class="status-row">
@@ -77,7 +77,7 @@
       hover-stay-time="100"
       bindtap="onLogin"
     >
-      <text class="btn-text">微信登录接入</text>
+      <text class="btn-text">身份认证</text>
       <view wx:if="{{loading}}" class="btn-loading">
         <view class="spinner"></view>
       </view>
@@ -110,6 +110,6 @@
   <view class="bottom-info">
     <text class="build-info">BUILD 1.0.0</text>
     <view class="bottom-divider"></view>
-    <text class="brand-terminal">Record Terminal</text>
+    <text class="brand-terminal">PULSE TERMINAL</text>
   </view>
 </view>

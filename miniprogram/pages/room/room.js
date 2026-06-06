@@ -506,7 +506,7 @@ Page({
     }
     if (data.type === 'ROUND_REJECTED') {
       this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false });
-      this.showToast('本局录入已被驳回', 'error');
+      this.showToast('本轮录入已被驳回', 'error');
       return;
     }
     if (data.type === 'ROUND_CANCELLED') {
@@ -756,7 +756,7 @@ Page({
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
-      wx.showToast({ title: '房间已创建', icon: 'success' });
+      wx.showToast({ title: '空间已开启', icon: 'success' });
     } catch (e) {
       wx.showToast({ title: (e && e.message) || '创建失败', icon: 'none', duration: 2000 });
     } finally {
@@ -797,7 +797,7 @@ Page({
     } catch (e) {
       if (e && e.code === 4003) {
         // 房间已满
-        wx.showToast({ title: '当前房间已满员（最多16人）', icon: 'none', duration: 2500 });
+        wx.showToast({ title: '当前空间已满员（最多16人）', icon: 'none', duration: 2500 });
         this.setData({ roomCodeRaw: roomNo.slice(0, 5), joinRoomNo: roomNo.slice(0, 5), terminalFocused: true });
       } else if (e && e.code === 4009) {
         // 身份重叠：弹窗引导修改昵称
@@ -881,7 +881,7 @@ Page({
   confirmNumpad() {
     const amount = this.data.numpadValue;
     if (!amount || amount <= 0) {
-      wx.showToast({ title: '请输入积分', icon: 'none' });
+      wx.showToast({ title: '请输入数值', icon: 'none' });
       return;
     }
     if (amount > 99999999) {
@@ -889,7 +889,7 @@ Page({
       return;
     }
     if (!this.data.transferTo) {
-      wx.showToast({ title: '请选择得分方', icon: 'none' });
+      wx.showToast({ title: '请选择接收方', icon: 'none' });
       return;
     }
     this.setData({ showNumpad: false });
@@ -920,7 +920,7 @@ Page({
 
     const transferTo = this.data.transferTo;
     if (!transferTo) {
-      wx.showToast({ title: '请选择得分方', icon: 'none' });
+      wx.showToast({ title: '请选择接收方', icon: 'none' });
       return;
     }
 
@@ -947,12 +947,12 @@ Page({
         toUserId: transferTo,
         amount
       });
-      this.showToast('计分成功');
+      this.showToast('记录成功');
     } catch (e) {
-      console.error('计分失败', e);
+      console.error('记录失败', e);
       // 回滚：重新拉取权威数据
       this.updateAllData(room.roomId);
-      wx.showToast({ title: '计分失败，请重试', icon: 'none' });
+      wx.showToast({ title: '记录失败，请重试', icon: 'none' });
     } finally {
       this.setData({ submitting: false });
     }

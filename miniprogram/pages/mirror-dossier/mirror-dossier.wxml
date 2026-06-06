@@ -50,9 +50,9 @@
       </view>
     </view>
 
-    <!-- 战绩画像 -->
+    <!-- 任务画像 -->
     <view class="dossier-section" wx:if="{{battlePersona.generated}}">
-      <text class="section-title">战绩画像</text>
+      <text class="section-title">任务画像</text>
       <text class="section-kicker">MIRROR</text>
       <view class="section-body">
         <view class="kv-row">

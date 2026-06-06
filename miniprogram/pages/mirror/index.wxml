@@ -65,11 +65,11 @@
       </block>
     </view>
 
-    <!-- 2. BATTLE MIRROR 战绩镜像 -->
+    <!-- 2. BATTLE MIRROR 任务镜像 -->
     <view class="terminal-card battle-card">
       <view class="card-header">
-        <view class="card-title">战绩镜像</view>
-        <view class="card-kicker">MIRROR · BATTLE</view>
+        <view class="card-title">任务镜像</view>
+        <view class="card-kicker">MIRROR · MISSION</view>
         <view class="card-line"></view>
       </view>
 
@@ -83,7 +83,7 @@
           <view class="locked-bar-track">
             <view class="locked-bar-fill" style="width: {{battlePersona.sampleSize / 3 * 100}}%;"></view>
           </view>
-          <text class="locked-desc">完成 3 场结算后解锁战绩镜像</text>
+          <text class="locked-desc">完成 3 场封存后解锁任务镜像</text>
         </view>
       </block>
 
@@ -200,9 +200,9 @@
           </view>
           <view class="dev-empty-status">
             <text class="dev-status-text" wx:if="{{!mbti.calibrated}}">完成人格校准后解锁</text>
-            <text class="dev-status-text" wx:elif="{{battlePersona.sampleSize < 3}}">等待战绩样本</text>
+            <text class="dev-status-text" wx:elif="{{battlePersona.sampleSize < 3}}">等待任务样本</text>
             <text class="dev-status-text" wx:else>数据计算中</text>
-            <text class="dev-status-hint" wx:if="{{!mbti.calibrated || battlePersona.sampleSize < 3}}">完成 3 场结算后自动生成</text>
+            <text class="dev-status-hint" wx:if="{{!mbti.calibrated || battlePersona.sampleSize < 3}}">完成 3 场封存后自动生成</text>
           </view>
         </view>
       </block>
@@ -251,7 +251,7 @@
       <block wx:else>
         <view class="reading-locked">
           <text class="reading-locked-text" wx:if="{{!mbti.calibrated}}">请先完成人格协议校准</text>
-          <text class="reading-locked-text" wx:elif="{{battlePersona.sampleSize < 3}}">完成 3 场结算后解锁系统判读</text>
+          <text class="reading-locked-text" wx:elif="{{battlePersona.sampleSize < 3}}">完成 3 场封存后解锁系统判读</text>
           <text class="reading-locked-text" wx:else>数据计算中</text>
         </view>
       </block>

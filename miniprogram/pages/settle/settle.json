@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "对局档案",
+  "navigationBarTitleText": "任务档案",
   "usingComponents": {
     "battle-summary": "/components/battle-summary/battle-summary",
     "score-chart": "/components/score-chart/score-chart",

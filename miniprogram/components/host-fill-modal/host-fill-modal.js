@@ -34,11 +34,11 @@ Component({
       }));
       const hasEmpty = members.some(m => scoreInputs[m.userId] === '' || scoreInputs[m.userId] === undefined);
       if (hasEmpty) {
-        wx.showToast({ title: '请填写所有成员积分', icon: 'none' });
+        wx.showToast({ title: '请填写所有成员数值', icon: 'none' });
         return;
       }
       if (zeroSum === 1 && totalScore !== 0) {
-        wx.showToast({ title: '积分变化总和必须为 0', icon: 'none' });
+        wx.showToast({ title: '数值变化总和必须为 0', icon: 'none' });
         return;
       }
       this.triggerEvent('submit', { scores });

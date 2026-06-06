@@ -30,7 +30,7 @@
 
     <view class="idle-info">
       <view class="idle-info-label">系统将结合：</view>
-      <view class="idle-info-tags">人格协议 · 战绩镜像 · 历史行为</view>
+      <view class="idle-info-tags">人格协议 · 任务镜像 · 历史行为</view>
     </view>
 
     <view class="countdown-bar" wx:if="{{countdownText}}">

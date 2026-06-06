@@ -2,11 +2,11 @@
 <wxs src="../../utils/truncate.wxs" module="t" />
 
 <view wx:if="{{active}}" catchtouchmove="preventClose" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:90;">
-  <!-- 积分总览弹窗 -->
+  <!-- 数值总览弹窗 -->
   <view class="matrix-panel-overlay {{visible ? 'mp-show' : ''}}" catchtap="closePanel">
     <view class="matrix-panel-sheet" catchtap="preventClose" catchtouchmove="preventClose">
       <view class="detail-header">
-        <text class="section-title" style="margin-bottom:0;">积分总览</text>
+        <text class="section-title" style="margin-bottom:0;">数值总览</text>
         <view class="detail-close" bindtap="closePanel">×</view>
       </view>
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
@@ -26,11 +26,11 @@
           bindscrolltolower="onRelationScrollLower" lower-threshold="100">
           <view class="relation-section">
             <view class="relation-header">
-              <text class="relation-title">我与他人的积分往来</text>
+              <text class="relation-title">我与他人的数值往来</text>
               <text class="relation-count text-tertiary">{{relationList.length}}人</text>
             </view>
             <view wx:if="{{relationListDisplay.length === 0}}" class="empty-batches">
-              <text class="text-tertiary">暂无积分往来</text>
+              <text class="text-tertiary">暂无数值往来</text>
             </view>
             <view class="relation-list" wx:else>
               <view class="relation-item" wx:for="{{relationListDisplay}}" wx:key="userId"
@@ -53,11 +53,11 @@
     </view>
   </view>
 
-  <!-- 积分明细弹窗 -->
+  <!-- 数值明细弹窗 -->
   <view class="matrix-detail-overlay {{showMatrixDetail ? 'detail-show' : ''}}" catchtap="closeMatrixDetail" catchtouchmove="preventClose">
     <view class="matrix-detail-sheet" catchtap="preventClose" catchtouchmove="preventClose">
       <view class="detail-header">
-        <text class="section-title" style="margin-bottom:0;">积分明细</text>
+        <text class="section-title" style="margin-bottom:0;">数值明细</text>
         <view class="detail-close" bindtap="closeMatrixDetail">×</view>
       </view>
       <view class="detail-parties">
@@ -81,7 +81,7 @@
         </view>
       </view>
       <view class="detail-total">
-        <text class="text-tertiary text-xs">净积分</text>
+        <text class="text-tertiary text-xs">净数值</text>
         <text class="detail-total-val {{detailNet > 0 ? 'mg-pos' : detailNet < 0 ? 'mg-neg' : ''}}">{{fmt.formatScore(detailNet)}}</text>
       </view>
       <scroll-view scroll-y="{{true}}" class="detail-scroll-list" catchtouchmove="preventClose">

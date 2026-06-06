@@ -53,7 +53,7 @@ Page({
     wx.navigateTo({
       url: '/pages/settle/settle?roomId=' + roomId,
       fail: () => {
-        wx.showToast({ title: '对局档案加载失败', icon: 'none' });
+        wx.showToast({ title: '任务档案加载失败', icon: 'none' });
       }
     });
   },

@@ -1,6 +1,6 @@
 <view class="bi-card">
   <view class="bi-header">
-    <text class="bi-cn">战局洞察</text>
+    <text class="bi-cn">空间洞察</text>
     <text class="bi-en">INSIGHT</text>
   </view>
   <view class="bi-divider"></view>

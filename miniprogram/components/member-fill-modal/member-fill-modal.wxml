@@ -11,7 +11,7 @@
     </view>
 
     <block wx:if="{{!submitted}}">
-      <text class="label">请输入你本局的积分变动</text>
+      <text class="label">请输入你本轮的数值变动</text>
       <input
         class="score-input"
         type="number"

@@ -7,15 +7,15 @@
       <view class="loading-dot dot-2"></view>
       <view class="loading-dot dot-3"></view>
     </view>
-    <text class="loading-label">正在生成报告...</text>
-    <text class="loading-hint">正在解析战局数据</text>
+    <text class="loading-label">正在生成档案...</text>
+    <text class="loading-hint">正在解析任务数据</text>
   </view>
 
   <block wx:else>
     <!-- MATCH DOSSIER 标题 -->
     <view class="dossier-header">
       <text class="dossier-kicker">DOSSIER</text>
-      <text class="dossier-title">对局档案</text>
+      <text class="dossier-title">任务档案</text>
       <view class="dossier-meta" wx:if="{{roomNo}}">
         <text class="dossier-room">ROOM {{roomNo}}</text>
         <text class="dossier-time" wx:if="{{settleTime}}">{{settleTime}}</text>
@@ -25,8 +25,8 @@
     <!-- 1. 最终排名 -->
     <view class="section-card" wx:if="{{rankedMembers.length > 0}}">
       <view class="card-header">
-        <view class="card-title">最终排名</view>
-        <view class="card-kicker">FINAL</view>
+        <view class="card-title">实时序列</view>
+        <view class="card-kicker">SEQUENCE</view>
         <view class="card-line"></view>
       </view>
       <view class="rank-list">
@@ -51,7 +51,7 @@
       </view>
     </view>
 
-    <!-- 2. 战局复盘 -->
+    <!-- 2. 任务复盘 -->
     <battle-summary
       winner="{{winner}}"
       loser="{{loser}}"
@@ -62,10 +62,10 @@
       roomNo="{{roomNo}}"
       settleTime="{{settleTime}}" />
 
-    <!-- 3. 积分演化轨迹 -->
+    <!-- 3. 数值演化轨迹 -->
     <view class="section-card" wx:if="{{series.length > 0}}">
       <view class="card-header">
-        <view class="card-title">积分演化轨迹</view>
+        <view class="card-title">数值演化轨迹</view>
         <view class="card-kicker">TIMELINE</view>
         <view class="card-line"></view>
       </view>
@@ -79,14 +79,14 @@
       </view>
     </view>
 
-    <!-- 4. 积分关系网络 -->
+    <!-- 4. 数值关系网络 -->
     <score-network
       wx:if="{{networkNodes.length > 0}}"
       nodes="{{networkNodes}}"
       links="{{networkLinks}}"
       my-user-id="{{myUserId}}" />
 
-    <!-- 5. 本局行为信号 -->
+    <!-- 5. 本轮行为信号 -->
     <persona-signal
       wx:if="{{behaviorSignals}}"
       activity="{{behaviorSignals.activity}}"

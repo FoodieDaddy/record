@@ -13,7 +13,7 @@ Component({
     onSubmit() {
       const score = parseInt(this.data.inputValue);
       if (isNaN(score)) {
-        wx.showToast({ title: '请输入积分', icon: 'none' });
+        wx.showToast({ title: '请输入数值', icon: 'none' });
         return;
       }
       this.triggerEvent('submit', { score });

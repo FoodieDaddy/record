@@ -1,7 +1,7 @@
 <view class="score-network">
   <view class="network-header" bindtap="toggleExpand">
     <view class="network-header-left">
-      <view class="network-title">积分关系网络</view>
+      <view class="network-title">数值关系网络</view>
       <view class="network-kicker">NETWORK</view>
       <view class="network-line"></view>
     </view>
@@ -61,7 +61,7 @@
           <text class="detail-cell-value mono">{{nodeDetails.interactionCount}}</text>
         </view>
         <view class="detail-cell">
-          <text class="detail-cell-label">净积分</text>
+          <text class="detail-cell-label">净数值</text>
           <text class="detail-cell-value mono" style="color: {{nodeDetails.netGain >= 0 ? '#32D74B' : '#FF453A'}}">
             {{nodeDetails.netGain > 0 ? '+' : ''}}{{nodeDetails.netGain}}
           </text>

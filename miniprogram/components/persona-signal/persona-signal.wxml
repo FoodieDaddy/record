@@ -1,6 +1,6 @@
 <view class="behavior-signal">
   <view class="signal-header">
-    <view class="signal-title">本局行为信号</view>
+    <view class="signal-title">本轮行为信号</view>
     <view class="signal-kicker">SIGNAL</view>
     <view class="signal-line"></view>
   </view>
@@ -43,6 +43,6 @@
 
   <view class="signal-sync">
     <view class="sync-dot"></view>
-    <text class="sync-text">基于本局积分流转统计生成，仅供复盘参考</text>
+    <text class="sync-text">基于本轮数值流转统计生成，仅供复盘参考</text>
   </view>
 </view>

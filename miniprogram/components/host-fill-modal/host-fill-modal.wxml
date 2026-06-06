@@ -3,7 +3,7 @@
     <view class="header">
       <view class="title-area">
         <text class="kicker">HOST</text>
-        <text class="title">房主填写</text>
+        <text class="title">主控填写</text>
       </view>
       <view class="close-btn" bindtap="onClose">
         <view class="close-icon"></view>

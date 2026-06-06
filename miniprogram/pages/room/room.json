@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "房间",
+  "navigationBarTitleText": "空间",
   "usingComponents": {
     "matrix-overview": "/components/matrix-overview/matrix-overview",
     "score-chart": "/components/score-chart/score-chart",

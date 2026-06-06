@@ -364,7 +364,7 @@ Component({
         text2 = `→ ${targetName || '未知'}  ${delta}`;
         text2Color = '#FF453A';
       } else {
-        text2 = '无积分变动';
+        text2 = '无数值变动';
         text2Color = 'rgba(255,255,255,0.5)';
       }
 

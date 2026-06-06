@@ -34,7 +34,7 @@
           </view>
         </button>
         <view class="identity__info">
-          <text class="identity__kicker">玩家代号</text>
+          <text class="identity__kicker">成员代号</text>
           <view class="identity__name-row">
             <input
               class="identity__name-input"
@@ -64,8 +64,8 @@
           <text class="identity__meta-value">{{daysSinceJoined}} Days</text>
         </view>
         <view class="identity__meta-col">
-          <text class="identity__meta-label">累计对局</text>
-          <text class="identity__meta-value">{{matchCount}} Matches</text>
+          <text class="identity__meta-label">累计任务</text>
+          <text class="identity__meta-value">{{matchCount}} Missions</text>
         </view>
         <view class="identity__meta-col">
           <text class="identity__meta-label">档案状态</text>
@@ -77,13 +77,13 @@
 
     <!-- 2. DATA MATRIX -->
     <view class="term-card term-card--stats">
-      <text class="term-kicker">数据中心</text>
-      <text class="term-kicker-sub">DATA</text>
+      <text class="term-kicker">数据矩阵</text>
+      <text class="term-kicker-sub">MATRIX</text>
       <view class="stats-grid">
         <view class="stats-cell">
-          <text class="stats-cell__label">净得分</text>
+          <text class="stats-cell__label">净数值</text>
           <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--negative' : ''}}">{{totalScore}}</text>
-          <text class="stats-cell__sub">累计积分</text>
+          <text class="stats-cell__sub">累计数值</text>
         </view>
         <view class="stats-cell">
           <text class="stats-cell__label">胜率</text>
@@ -91,7 +91,7 @@
           <text class="stats-cell__sub">胜率</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">对局数</text>
+          <text class="stats-cell__label">任务数</text>
           <text class="stats-cell__value">{{matchCount}}</text>
           <text class="stats-cell__sub">样本数</text>
         </view>
@@ -102,7 +102,7 @@
         </view>
       </view>
       <view class="stats__footer" bindtap="goScoreRecords">
-        <text class="stats__footer-hint">查看全部积分流水</text>
+        <text class="stats__footer-hint">查看全部脉冲日志</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
@@ -180,14 +180,14 @@
 
     <!-- 5. SYSTEM CONTROL -->
     <view class="term-card term-card--system">
-      <text class="term-kicker">设置中心</text>
-      <text class="term-kicker-sub">SETTING</text>
+      <text class="term-kicker">系统控制</text>
+      <text class="term-kicker-sub">CONTROL</text>
 
       <!-- 语音播报 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">语音播报</text>
-          <text class="sys-row__label-en">BROADCAST</text>
+          <text class="sys-row__label-zh">声音协议</text>
+          <text class="sys-row__label-en">VOICE</text>
         </view>
         <view class="cyber-switch {{voiceEnabled ? 'cyber-switch--on' : ''}}" bindtap="onVoiceToggle">
           <text class="cyber-switch__text">{{voiceEnabled ? 'ON' : 'OFF'}}</text>
@@ -197,8 +197,8 @@
       <!-- 音色模块 -->
       <view class="sys-row sys-row--sub {{voiceEnabled ? '' : 'sys-row--hidden'}}" bindtap="openVoiceSheet">
         <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">音色模块</text>
-          <text class="sys-row__label-en">VOICE</text>
+          <text class="sys-row__label-zh">音色选择</text>
+          <text class="sys-row__label-en">TIMBRE</text>
         </view>
         <view class="sys-row__value">
           <text class="sys-row__value-text">{{voiceName}}</text>
@@ -209,7 +209,7 @@
       <!-- 计分动效 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">计分动效</text>
+          <text class="sys-row__label-zh">动效协议</text>
           <text class="sys-row__label-en">FX</text>
         </view>
         <view class="cyber-switch {{animEnabled ? 'cyber-switch--on' : ''}}" bindtap="onAnimToggle">
@@ -220,7 +220,7 @@
       <!-- 触感反馈 -->
       <view class="sys-row">
         <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">触感反馈</text>
+          <text class="sys-row__label-zh">触感协议</text>
           <text class="sys-row__label-en">HAPTIC</text>
         </view>
         <view class="cyber-switch {{vibrateEnabled ? 'cyber-switch--on' : ''}}" bindtap="onVibrateToggle">
@@ -231,7 +231,7 @@
       <!-- 关于终端 -->
       <view class="sys-row sys-row--link" bindtap="goAbout">
         <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">关于终端</text>
+          <text class="sys-row__label-zh">终端信息</text>
           <text class="sys-row__label-en">ABOUT</text>
         </view>
         <view class="svg-icon svg-icon--arrow"></view>
@@ -241,7 +241,7 @@
     <!-- 6. TERMINATE SESSION -->
     <view class="terminate-btn" bindtap="onLogout">
       <text class="terminate-btn__en">TERMINATE</text>
-      <text class="terminate-btn__zh">退出登录</text>
+      <text class="terminate-btn__zh">断开终端</text>
     </view>
   </view>
 
@@ -250,7 +250,7 @@
   <view wx:if="{{voiceSheetVisible}}" class="voice-sheet voice-sheet--show">
     <view class="voice-sheet__header">
       <text class="voice-sheet__kicker">VOICE</text>
-      <text class="voice-sheet__title">音色模块</text>
+      <text class="voice-sheet__title">声音协议</text>
     </view>
     <view class="voice-sheet__body">
       <!-- 左侧分类 -->

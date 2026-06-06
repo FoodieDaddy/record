@@ -13,7 +13,7 @@
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",
-    "navigationBarTitleText": "Smart记分器",
+    "navigationBarTitleText": "脉冲终端",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#0a0a0a",
     "backgroundTextStyle": "light"
@@ -26,13 +26,13 @@
     "list": [
       {
         "pagePath": "pages/room/room",
-        "text": "房间",
+        "text": "空间",
         "iconPath": "images/tab-room.png",
         "selectedIconPath": "images/tab-room-active.png"
       },
       {
         "pagePath": "pages/fortune/fortune",
-        "text": "灵感",
+        "text": "策略",
         "iconPath": "images/tab-fortune.png",
         "selectedIconPath": "images/tab-fortune-active.png"
       },
@@ -44,7 +44,7 @@
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的",
+        "text": "身份",
         "iconPath": "images/tab-profile.png",
         "selectedIconPath": "images/tab-profile-active.png"
       }

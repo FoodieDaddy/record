@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "积分记录",
+  "navigationBarTitleText": "脉冲日志",
   "usingComponents": {
     "yield-chart": "/components/yield-chart/yield-chart"
   }
