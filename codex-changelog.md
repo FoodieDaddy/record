@@ -9,7 +9,7 @@
 - **项目名：** 脉冲终端 (Smart Record) — 多人实时协同记录与复盘微信小程序
 - **技术栈：** Java 21 + Spring Boot 3.2.5 + MyBatis-Plus + MySQL + Redis/Redisson + WebSocket（后端）/ 原生微信小程序（前端）
 - **仓库路径：** `/Users/happy/Documents/record`
-- **总提交数：** 115（截至 2026-06-06 13:12）
+- **总提交数：** 116（截至 2026-06-06 13:32）
 
 ---
 
@@ -17,14 +17,51 @@
 
 | 项 | 值 |
 |---|---|
-| 最新提交 | `39d2f5c` — docs: 第1轮深度测试与优化计划 2026-06-06 13:12 |
+| 最新提交 | `ea0d2b1` — test: 第1轮Claude执行后验证前快照 2026-06-06 13:32 |
 | 分支 | main |
-| 工作区状态 | clean |
+| 工作区状态 | **dirty** — 24 文件未提交改动 (+409/-200) |
 | Codex 进程 | 运行中 (PID 16604, Codex.app v149.0.7827.54) |
 
 ---
 
 ## 最近变动时间线 (2026-06-06)
+
+### 13:32 — 第1轮 Claude 执行后验证前快照
+- `ea0d2b1` test: 第1轮Claude执行后验证前快照 2026-06-06 13:32
+- 说明：Claude 命令已读取 plan.md 并生成一批后端结算、排行、前端风格与敏感词收敛改动，此为运行时复验前的快照
+- **本轮测试范围：** 房间创建/接入/积分流转/结算归档、1-12 账号接口矩阵、策略页与身份/设置/语音选择页面赛博风格检查
+- **已知待确认问题：** all_record 更新方式需复验；CacheWarmUpRunner 零分成员恢复需复核；仍有敏感词与 changelog.md 待收敛
+
+### 13:31 — 未提交改动 (Codex 正在工作中)
+- **24 文件，+409/-200 行**，尚未 commit
+
+#### 后端核心修复 (ScoreServiceImpl, +80/-27)
+- Lua 脚本防御：已结算空间 key 删除后拒绝操作 (EXISTS 检查)，防止重建脏数据
+- 加锁后二次检查：submitScore 和 settleRoom 获取锁后二次检查房间状态，防止并发脏数据和重复结算
+- 0 分成员排行榜修复：getPlayerTotals 合并 meta 成员列表补 0 分，确保排行榜返回全体成员
+- 结算归档改用 LambdaUpdateWrapper 显式 set status=1 + all_record，解决 updateById 可能漏写 status
+- 防御性清理 Redis：结算时额外清理 events、batches、batch:* 子 key + 房间号映射
+- 互动密度计算修复：用事件中实际参与用户数替代 ZSet size，排除 init 哨兵
+- 错误提示优化：Lua 返回 0 → 「空间已封存或计分失败」
+
+#### 后端其他改动
+- RoomServiceImpl (+16)：创建/加入房间时初始化 scores ZSet (0 分)；解散房间改用 LambdaUpdateWrapper
+- EmotionType：新增 NEUTRAL 枚举 (零分变动，预留)
+- EmotionAudioPoolImpl：支持 neutral 情绪音频池
+- CacheWarmUpRunner：scores ZSet 已有数据则跳过重建，避免覆盖运行期分数
+- FortuneServiceImpl：策略 prompt 去农历/节气强制引用，改用「时间窗口/节奏窗口/环境变量」意象
+- NicknameGenerator：去赌化改造 — 雀神/雀圣/牌王/牌仙/财神/截胡怪/散财仙/躺赢王 → 舵手/领航/舰桥/星港/通信/护盾/脉冲/航电/引擎/星轨/扫描员/监听者/星航员
+- application.yml：新增 emotion.neutral-urls 配置
+
+#### 前端改动
+- room.wxml：btn-primary → flight-primary 统一按钮组件；数字键盘 C/⌫ 改用 CSS class
+- room.wxss：新增 flight-primary 按钮样式 (+35)
+- profile.wxml：登录按钮统一为 flight-primary；「胜率」→「正反馈率」文案去赌化
+- fortune.js/wxml：移除农历信息拼接和显示，画布绘制改 STRATEGY WINDOW
+- settings 全面重构：glass-card → sp-panel 系统协议面板，开关改为 avionics-switch 航电开关风格，新增英文副标签 (VOICE/FX/TIMBRE)，+164 行样式
+- voice-select：音色选择页航电开关统一
+- login.js：动效静默时跳过连接动画
+- nickname.js：前端昵称生成器同步去赌化
 
 ### 13:12 — 第1轮深度测试与优化计划
 - `39d2f5c` docs: 第1轮深度测试与优化计划 2026-06-06 13:12
@@ -141,15 +178,18 @@
 ## Codex 行为模式观察
 
 ### 工作节奏
-- Codex 在 2026-06-06 凌晨 01:40 ~ 12:56 期间持续高频提交（约 30+ commits）
+- Codex 在 2026-06-06 凌晨 01:40 ~ 13:31+ 期间持续高频提交（约 35+ commits + 大量未提交改动）
 - 提交间隔通常 1~5 分钟，偶尔有 revert+recommit 的试错模式
 - 会先写 docs/specs 再写实现代码，有设计先行的习惯
+- 13:10 后进入「第1轮深度测试」阶段，开始修复边界问题和并发安全
 
 ### 改动特征
 - **大规模 UI 重构为主**：当前阶段主要在做「赛博终端」视觉风格统一
 - **前后端联动**：改 DTO/Service 的同时会更新前端页面
 - **组件化程度高**：新建了 battle-insight、battle-summary、persona-signal、score-network、yield-chart 等独立组件
 - **渐进式迁移**：先写文档/计划，再分 Phase 实施
+- **去赌化改造**：正在系统性清除所有赌博/麻将相关词汇（昵称、策略、文案）
+- **并发安全加固**：Lua 脚本防御、加锁后二次检查、防御性 Redis 清理
 
 ### 提交规范
 - 使用 Conventional Commits 格式（feat/fix/refactor/style/chore/docs/test）
@@ -165,16 +205,16 @@
 
 ## 待 Codex 解决的技术债
 
-来自 CLAUDE.md 第 10 节：
+来自 CLAUDE.md 第 10 节（部分已在本轮修复）：
 
-1. `room.wxml` 根节点缺少 `reduce-motion` 绑定
-2. `voice-select.wxml` 页面根节点缺少全局动效静默类
-3. `score-ws.js` 的 `DEBUG_WS = true` 需要关闭
-4. `voices.json` 分类 icon 仍使用原生彩色 Emoji
-5. `room.js` 二维码读取路径与 request 封装不一致
-6. `RoomTimeoutTask` 自动结算需兼容自由流转 events
-7. `getRoomInsight` 成员密度计算逻辑有误
+1. `room.wxml` 根节点缺少 `reduce-motion` 绑定 — **未修复**
+2. `voice-select.wxml` 页面根节点缺少全局动效静默类 — **部分修复**（航电开关已统一）
+3. `score-ws.js` 的 `DEBUG_WS = true` 需要关闭 — **未修复**
+4. `voices.json` 分类 icon 仍使用原生彩色 Emoji — **未修复**
+5. `room.js` 二维码读取路径与 request 封装不一致 — **未修复**
+6. `RoomTimeoutTask` 自动结算需兼容自由流转 events — **未修复**
+7. `getRoomInsight` 成员密度计算逻辑有误 — **已修复**（用实际参与用户数替代 ZSet size）
 
 ---
 
-_下次检查时间：待设定 cron_
+_最后检查：2026-06-06 13:42 · cron 每 10 分钟自动检查_

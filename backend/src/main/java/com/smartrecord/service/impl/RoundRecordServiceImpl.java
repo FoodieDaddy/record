@@ -3,6 +3,7 @@ package com.smartrecord.service.impl;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.common.EmotionType;
 import com.smartrecord.dto.round.ConfirmRoundReq;
@@ -466,8 +467,10 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         }
 
         // 更新房间 lastActiveAt
-        room.setLastActiveAt(LocalDateTime.now());
-        roomMapper.updateById(room);
+        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                .eq(Room::getId, roomId)
+                .eq(Room::getStatus, 0)
+                .set(Room::getLastActiveAt, LocalDateTime.now()));
 
         // 删除 round 相关 key
         deleteRoundKeys(roomId);

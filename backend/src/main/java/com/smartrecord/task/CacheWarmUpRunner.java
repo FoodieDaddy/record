@@ -98,8 +98,8 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                     redisTemplate.opsForValue().set("sr:room_no:" + room.getRoomNo(),
                             String.valueOf(roomId), EXPIRE_HOURS, TimeUnit.HOURS);
 
-                    // 恢复排行榜（从 room.all_record JSON 读取）
-                    warmupRoomScores(roomId);
+                    // 恢复排行榜，先保留运行期分数，再补齐未发生流转的 0 分成员。
+                    warmupRoomScores(roomId, members);
 
                     // 回填 lastActiveAt（旧房间可能为 null）
                     if (room.getLastActiveAt() == null) {
@@ -120,11 +120,12 @@ public class CacheWarmUpRunner implements ApplicationRunner {
         }
     }
 
-    private void warmupRoomScores(Long roomId) {
+    private void warmupRoomScores(Long roomId, List<RoomMember> members) {
         String scoresKey = "sr:room:" + roomId + ":scores";
         // Redis 仍有数据时跳过重建，避免覆盖运行期分数
         Long existingSize = redisTemplate.opsForZSet().zCard(scoresKey);
         if (existingSize != null && existingSize > 0) {
+            ensureZeroScoreMembers(scoresKey, members);
             log.debug("房间 {} scores ZSet 已存在（{} 条），跳过重建", roomId, existingSize);
             redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
             return;
@@ -133,7 +134,7 @@ public class CacheWarmUpRunner implements ApplicationRunner {
         // 从 room.all_record JSON 读取已归档的得分数据
         String allRecordJson = roomMapper.selectAllRecordById(roomId);
         if (allRecordJson == null || allRecordJson.isBlank() || "null".equals(allRecordJson)) {
-            redisTemplate.opsForZSet().add(scoresKey, "init", 0);
+            ensureZeroScoreMembers(scoresKey, members);
             redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
             return;
         }
@@ -160,8 +161,18 @@ public class CacheWarmUpRunner implements ApplicationRunner {
             log.warn("解析房间 {} all_record 失败", roomId, e);
         }
 
-        redisTemplate.opsForZSet().add(scoresKey, "init", 0);
+        ensureZeroScoreMembers(scoresKey, members);
         redisTemplate.expire(scoresKey, EXPIRE_HOURS, TimeUnit.HOURS);
+    }
+
+    private void ensureZeroScoreMembers(String scoresKey, List<RoomMember> members) {
+        if (members == null || members.isEmpty()) {
+            redisTemplate.opsForZSet().add(scoresKey, "init", 0);
+            return;
+        }
+        for (RoomMember member : members) {
+            redisTemplate.opsForZSet().addIfAbsent(scoresKey, String.valueOf(member.getUserId()), 0);
+        }
     }
 
     private Map<Long, String> batchLoadUserJson(List<Long> userIds) {

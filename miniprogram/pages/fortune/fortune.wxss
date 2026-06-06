@@ -74,7 +74,7 @@
   background: linear-gradient(90deg, transparent, rgba(0,175,255,0.15), transparent);
 }
 
-/* ===== 4. 卡牌通用元素 ===== */
+/* ===== 4. 策略核心通用元素 ===== */
 .card-inner {
   width: 100%;
   height: 100%;

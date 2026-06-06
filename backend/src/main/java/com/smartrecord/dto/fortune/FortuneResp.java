@@ -36,16 +36,16 @@ public class FortuneResp {
     @Schema(description = "数据来源：llm=大模型, fallback=本地兜底", example = "llm")
     private String source;
 
-    @Schema(description = "农历日期（干支年+农历月日）", example = "丙午年四月十九")
+    @Schema(description = "时间窗口标签（仅作节奏参考）", example = "2026.06.06")
     private String lunarDate;
 
-    @Schema(description = "当前节气", example = "芒种")
+    @Schema(description = "环境窗口标签", example = "MIDDAY")
     private String solarTerm;
 
-    @Schema(description = "卡牌中文名", example = "压制者")
+    @Schema(description = "策略原型中文名", example = "压制者")
     private String title;
 
-    @Schema(description = "卡牌英文名", example = "THE DOMINATOR")
+    @Schema(description = "策略原型英文名", example = "THE DOMINATOR")
     private String subtitle;
 
     @Schema(description = "策略标签列表", example = "[\"强势\", \"连续\", \"压制\"]")

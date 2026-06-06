@@ -26,7 +26,7 @@
 
   <!-- 四宫格数据块 -->
   <view class="summary-grid">
-    <!-- 赢家 -->
+    <!-- 领先成员 -->
     <view class="summary-cell" wx:if="{{winner}}">
       <text class="cell-kicker">本轮领先</text>
       <text class="cell-name">{{winner.nickname}}</text>

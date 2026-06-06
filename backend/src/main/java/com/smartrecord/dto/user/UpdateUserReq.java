@@ -9,7 +9,7 @@ import lombok.Data;
 public class UpdateUserReq {
 
     @Size(max = 6, message = "昵称不能超过6个字符")
-    @Schema(description = "昵称", example = "雀神")
+    @Schema(description = "昵称", example = "星港")
     private String nickname;
 
     @Schema(description = "头像 URL")

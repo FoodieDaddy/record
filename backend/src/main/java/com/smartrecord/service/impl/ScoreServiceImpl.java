@@ -163,8 +163,7 @@ public class ScoreServiceImpl implements ScoreService {
 
             // 7. 更新最后活跃时间 + 滑动刷新 TTL
             refreshRoomTtl(roomId);
-            room.setLastActiveAt(LocalDateTime.now());
-            roomMapper.updateById(room);
+            touchActiveRoom(roomId);
 
             // 8. 异步更新总览缓存
             overviewService.computeOverview(roomId);
@@ -426,13 +425,10 @@ public class ScoreServiceImpl implements ScoreService {
             allRecord.add(recordMeta);
         }
 
-        // 5. 更新 room.all_record 并标记已归档（使用显式 Wrapper 确保 status 字段写入）
+        // 5. 更新 room.all_record 并标记已归档（JSON 字段使用显式 SQL，避免 Wrapper 绕过 TypeHandler）
         room.setAllRecord(allRecord);
         room.setStatus(1);
-        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
-                .eq(Room::getId, roomId)
-                .set(Room::getStatus, 1)
-                .set(Room::getAllRecord, allRecord));
+        roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(allRecord));
 
         // 5. 更新 room_member.final_score 和 quit_time
         LocalDateTime now = LocalDateTime.now();
@@ -632,13 +628,10 @@ public class ScoreServiceImpl implements ScoreService {
             playerTotalMap.putIfAbsent(m.getUserId(), 0);
         }
 
-        // 3. 更新 room.all_record 并标记已归档（使用显式 Wrapper 确保 status 字段写入）
+        // 3. 更新 room.all_record 并标记已归档（JSON 字段使用显式 SQL，避免 Wrapper 绕过 TypeHandler）
         room.setAllRecord(allRecord);
         room.setStatus(1);
-        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
-                .eq(Room::getId, roomId)
-                .set(Room::getStatus, 1)
-                .set(Room::getAllRecord, allRecord));
+        roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(allRecord));
 
         // 4. 更新 room_member.final_score 和 quit_time
         LocalDateTime now = LocalDateTime.now();
@@ -936,7 +929,9 @@ public class ScoreServiceImpl implements ScoreService {
         List<RoomNetworkResp.Node> nodes = new ArrayList<>();
         if (scoreSet != null) {
             for (ZSetOperations.TypedTuple<String> tuple : scoreSet) {
-                Long userId = Long.valueOf(tuple.getValue());
+                String rawUserId = tuple.getValue();
+                if (rawUserId == null || "init".equals(rawUserId)) continue;
+                Long userId = Long.valueOf(rawUserId);
                 Double score = tuple.getScore();
                 User user = userMapper.selectById(userId);
                 nodes.add(RoomNetworkResp.Node.builder()
@@ -1268,8 +1263,7 @@ public class ScoreServiceImpl implements ScoreService {
         // 异步更新最后活跃时间（非关键路径，不阻塞响应）
         asyncExecutor.execute(() -> {
             try {
-                room.setLastActiveAt(LocalDateTime.now());
-                roomMapper.updateById(room);
+                touchActiveRoom(roomId);
             } catch (Exception e) {
                 log.warn("异步更新 lastActiveAt 失败: roomId={}", roomId, e);
             }
@@ -1320,6 +1314,13 @@ public class ScoreServiceImpl implements ScoreService {
                 .remark(req.getRemark())
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    private void touchActiveRoom(Long roomId) {
+        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                .eq(Room::getId, roomId)
+                .eq(Room::getStatus, 0)
+                .set(Room::getLastActiveAt, LocalDateTime.now()));
     }
 
     @Override

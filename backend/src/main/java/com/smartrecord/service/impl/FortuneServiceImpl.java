@@ -19,10 +19,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import com.nlf.calendar.Lunar;
-import com.nlf.calendar.Solar;
-
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -52,25 +50,27 @@ public class FortuneServiceImpl implements FortuneService {
     private static final String FORTUNE_CACHE_KEY = "sr:fortune:";
     private static final long CACHE_TTL_HOURS = 4;
     private static final List<String> SENSITIVE_WORDS = List.of(
-            "棋牌", "赌博", "赌", "下注", "押注", "筹码", "牌局", "牌桌", "打牌", "麻将", "扑克",
-            "德州", "梭哈", "赢钱", "赚钱", "发财", "稳赚", "必胜", "翻本", "追损",
-            "算命", "占卜", "塔罗", "抽牌", "神谕", "卦象", "黄历", "风水",
-            "预测输赢", "胜率提升", "ALL-IN",
-            "运势", "转运", "开运", "改命", "横财", "牌运", "财运"
+            "\u68cb\u724c", "\u8d4c\u535a", "\u8d4c", "\u4e0b\u6ce8", "\u62bc\u6ce8", "\u7b79\u7801",
+            "\u724c\u5c40", "\u724c\u684c", "\u6253\u724c", "\u9ebb\u5c06", "\u6251\u514b", "\u5fb7\u5dde",
+            "\u68ad\u54c8", "\u8d62\u94b1", "\u8d5a\u94b1", "\u53d1\u8d22", "\u7a33\u8d5a", "\u5fc5\u80dc",
+            "\u7ffb\u672c", "\u8ffd\u635f", "\u7b97\u547d", "\u5360\u535c", "\u5854\u7f57", "\u62bd\u724c",
+            "\u795e\u8c15", "\u5366\u8c61", "\u9ec4\u5386", "\u98ce\u6c34", "\u9884\u6d4b\u8f93\u8d62",
+            "\u80dc\u7387\u63d0\u5347", "ALL-IN", "\u8fd0\u52bf", "\u8f6c\u8fd0", "\u5f00\u8fd0",
+            "\u6539\u547d", "\u6a2a\u8d22", "\u724c\u8fd0", "\u8d22\u8fd0"
     );
 
     /** LLM 系统提示词（常量，供日志记录复用） */
     private static final String SYSTEM_PROMPT = """
             你是「脉冲终端」中的策略解释引擎，代号 ORACLE CORE。
 
-            你不是算命师，不是预测系统，不输出运势，不判断输赢，不承诺结果。
+            你是状态复盘与节奏校准系统，不判断结果，不承诺任何反馈。
 
             规则：
             - 用赛博科幻词汇和时间窗口/节奏窗口/环境变量等意象，映射到任务痛点（情绪波动、节奏管理、风险控制）
-            - 禁止传统玄学词汇、禁止预测结果、禁止利益承诺
+            - 避免传统玄学词汇、结果断言和利益承诺
             - 输出复盘建议和状态管理，语气冷静克制、赛博飞船终端感
-            - 不使用emoji，不使用玄学套话，不制造焦虑
-            - 不强制引用农历或节气，可使用时间窗口、节奏窗口、环境变量等替代
+            - 不使用emoji，不使用空泛套话，不制造焦虑
+            - 使用时间窗口、节奏窗口、环境变量等表达方式
 
             字段：tag(4字)、verdict(10-18字冷酷忠告，融合节奏/环境意象)、buffs(3个5-7字策略优势)、debuffs(2个5-7字隐患)
 
@@ -81,7 +81,7 @@ public class FortuneServiceImpl implements FortuneService {
 
     // ===== 兜底静态策略池 =====
 
-    /** 卡牌原型 */
+    /** 策略原型 */
     private static class Archetype {
         final String title;
         final String subtitle;
@@ -93,7 +93,7 @@ public class FortuneServiceImpl implements FortuneService {
         }
     }
 
-    /** 卡牌原型池：UserTag → 可选原型列表 */
+    /** 策略原型池：UserTag → 可选原型列表 */
     private static final Map<UserTag, List<Archetype>> ARCHETYPE_POOL = new EnumMap<>(UserTag.class);
 
     private static final Map<UserTag, List<FortuneResp>> FALLBACK_POOL = new EnumMap<>(UserTag.class);
@@ -197,8 +197,8 @@ public class FortuneServiceImpl implements FortuneService {
             if (cached != null) {
                 log.debug("命中每日策略缓存: userId={}", userId);
                 FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
-                if (resp.getLunarDate() == null) fillLunarFields(resp);
-                // 缓存命中时补充卡牌原型（缓存中可能没有）
+                if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
+                // 缓存命中时补充策略原型（缓存中可能没有）
                 if (resp.getTitle() == null) {
                     UserTag cachedTag = resp.getUserTag() != null ? UserTag.valueOf(resp.getUserTag()) : UserTag.STABLE;
                     Archetype cachedArchetype = pickArchetype(cachedTag);
@@ -258,14 +258,14 @@ public class FortuneServiceImpl implements FortuneService {
             result = fallbackFortune(userTag);
         }
 
-        // 2.5 填充卡牌原型
+        // 2.5 填充策略原型
         Archetype archetype = pickArchetype(userTag);
         result.setTitle(archetype.title);
         result.setSubtitle(archetype.subtitle);
         result.setTags(archetype.keywords);
 
-        // 3. 填充农历/节气字段
-        fillLunarFields(result);
+        // 3. 填充航段式时间窗口字段
+        fillTimeWindowFields(result);
 
         // 4. 写入缓存
         result.setUserTag(userTag.name());
@@ -467,13 +467,13 @@ public class FortuneServiceImpl implements FortuneService {
      */
     private String buildPrompt(UserTag userTag, int netScore, List<Integer> recentScores) {
         String tagDesc = switch (userTag) {
-            case WINNING_STREAK -> "近期连胜，状态高昂，手感火热";
-            case LOSING_STREAK -> "近期连败，状态低迷，心态受挫";
+            case WINNING_STREAK -> "近期正反馈连续，状态高昂，执行顺畅";
+            case LOSING_STREAK -> "近期负反馈连续，状态低迷，心态受挫";
             case HIGH_RISK -> "高波动型，节奏起伏明显";
             case STABLE -> "稳健型，表现平稳，不温不火";
         };
 
-        String lunarContext = getLunarContext();
+        String timeContext = getTimeWindowContext();
 
         String trend = recentScores.size() >= 3
                 ? recentScores.subList(recentScores.size() - 3, recentScores.size()).toString()
@@ -488,29 +488,19 @@ public class FortuneServiceImpl implements FortuneService {
 
                 请根据以上数据，用赛博朋克+策略复盘的口吻生成今日策略。
                 判词要像高维生物的冷酷忠告，可用时间窗口/节奏窗口/环境变量等意象映射到对局策略。
-                """, tagDesc, netScore, trend, recentScores.toString(), lunarContext);
+                """, tagDesc, netScore, trend, recentScores.toString(), timeContext);
 
         return prompt;
     }
 
     /**
-     * 计算时间窗口上下文（天干地支/农历/节气作为环境变量参考）
+     * 计算航段式时间窗口上下文。
      */
-    private String getLunarContext() {
+    private String getTimeWindowContext() {
         LocalDate today = LocalDate.now();
-        Solar solar = Solar.fromYmd(today.getYear(), today.getMonthValue(), today.getDayOfMonth());
-        Lunar lunar = solar.getLunar();
-
-        String yearGanZhi = lunar.getYearInGanZhi();       // 天干地支年，如"丙午"
-        String lunarMonth = lunar.getMonthInChinese();     // 农历月，如"五"
-        String lunarDay = lunar.getDayInChinese();         // 农历日，如"初九"
-        var jieQi = lunar.getCurrentJieQi();               // 当前节气，无则返回 null
-
-        String lunarDesc = yearGanZhi + "年 农历" + lunarMonth + "月" + lunarDay;
-        if (jieQi != null) {
-            lunarDesc += "，节气：" + jieQi.getName();
-        }
-        return lunarDesc;
+        int hour = LocalTime.now().getHour();
+        String segment = hour < 6 ? "深夜低噪航段" : hour < 12 ? "晨间校准航段" : hour < 18 ? "日间巡航航段" : "夜间复盘航段";
+        return today + "，" + segment;
     }
 
     /**
@@ -582,7 +572,7 @@ public class FortuneServiceImpl implements FortuneService {
     }
 
     /**
-     * 根据 UserTag 从原型池中选取卡牌（基于当日日期作为种子保证当日一致）
+     * 根据 UserTag 从原型池中选取策略原型（基于当日日期作为种子保证当日一致）
      */
     private Archetype pickArchetype(UserTag userTag) {
         List<Archetype> pool = ARCHETYPE_POOL.getOrDefault(userTag, ARCHETYPE_POOL.get(UserTag.STABLE));
@@ -601,23 +591,16 @@ public class FortuneServiceImpl implements FortuneService {
     }
 
     /**
-     * 填充时间窗口字段（农历日期/节气作为环境变量）
+     * 填充时间窗口字段。
      */
-    private void fillLunarFields(FortuneResp resp) {
+    private void fillTimeWindowFields(FortuneResp resp) {
         try {
             LocalDate today = LocalDate.now();
-            Solar solar = Solar.fromYmd(today.getYear(), today.getMonthValue(), today.getDayOfMonth());
-            Lunar lunar = solar.getLunar();
-
-            String yearGanZhi = lunar.getYearInGanZhi();
-            String month = lunar.getMonthInChinese();
-            String day = lunar.getDayInChinese();
-            resp.setLunarDate(yearGanZhi + "年" + month + "月" + day);
-
-            var jieQi = lunar.getCurrentJieQi();
-            resp.setSolarTerm(jieQi != null ? jieQi.getName() : "");
+            int hour = LocalTime.now().getHour();
+            resp.setLunarDate(today.toString());
+            resp.setSolarTerm(hour < 6 ? "LOW-NOISE" : hour < 12 ? "CALIBRATE" : hour < 18 ? "CRUISE" : "DEBRIEF");
         } catch (Exception e) {
-            log.warn("计算农历信息失败", e);
+            log.warn("计算时间窗口失败", e);
             resp.setLunarDate("");
             resp.setSolarTerm("");
         }
