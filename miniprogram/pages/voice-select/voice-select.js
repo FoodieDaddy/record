@@ -56,7 +56,7 @@ Page({
       const catalog = await get('/voice/catalog')
       this.setData({ categories: catalog.categories || [] })
     } catch (e) {
-      wx.showToast({ title: '加载音色失败', icon: 'none' })
+      wx.showToast({ title: '通讯音色加载失败', icon: 'none' })
     }
   },
 
@@ -122,7 +122,7 @@ Page({
       voiceFile: selectedFile
     })
 
-    wx.showToast({ title: '已选择 ' + selectedName, icon: 'success' })
+    wx.showToast({ title: '音色已切换：' + selectedName, icon: 'success' })
     // reduce-motion 下直接返回，否则等待 toast 消失
     if (this.data.animationEnabled) {
       this._confirmTimer = setTimeout(() => wx.navigateBack(), 800)

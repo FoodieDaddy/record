@@ -21,7 +21,7 @@
 
     <view class="terminal-divider">
       <view class="div-line"></view>
-      <text class="div-label">记录 · 分析 · 镜像 · 策略</text>
+      <text class="div-label">脉冲 · 镜像 · 策略 · 身份</text>
       <view class="div-line"></view>
     </view>
 

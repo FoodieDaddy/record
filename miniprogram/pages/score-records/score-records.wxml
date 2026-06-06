@@ -18,7 +18,7 @@
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">正在同步数值数据...</text>
+    <text class="loading-text">正在同步脉冲数据...</text>
   </view>
 
   <!-- 加载失败 -->
@@ -32,7 +32,7 @@
   <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
     <text class="empty-kicker">EMPTY</text>
     <text class="empty-text">暂无封存记录</text>
-    <text class="empty-hint">完成一次空间封存后写入日志</text>
+    <text class="empty-hint">完成一次航程封存后写入黑匣子</text>
   </view>
 
   <!-- 有数据时 -->
@@ -40,7 +40,7 @@
 
     <!-- 净积分摘要卡 -->
     <view class="yield-summary-card">
-      <text class="card-label">近期净数值</text>
+      <text class="card-label">近期脉冲</text>
       <text class="card-kicker">VALUE</text>
       <view class="yield-value {{netYield > 0 ? 'text-positive' : netYield < 0 ? 'text-negative' : 'text-zero'}}">
         {{netYield > 0 ? '+' : ''}}{{netYield}}
@@ -49,7 +49,7 @@
 
     <!-- 采样状态 -->
     <view class="sample-card">
-      <text class="card-label">采样状态</text>
+      <text class="card-label">样本状态</text>
       <text class="card-kicker">SAMPLE</text>
       <view class="sample-progress">
         <text class="sample-current">{{sampleCount}}</text>
@@ -62,9 +62,9 @@
     <view class="curve-section">
       <view class="curve-locked-card" wx:if="{{sampleCount < curveUnlockCount}}">
         <text class="locked-kicker">LOCKED</text>
-        <text class="locked-text">数值曲线未解锁</text>
+        <text class="locked-text">脉冲曲线未解锁</text>
         <text class="locked-sub">当前样本：{{sampleCount}} / {{curveUnlockCount}}</text>
-        <text class="locked-hint">完成至少 {{curveUnlockCount}} 场封存后，系统将生成数值曲线。</text>
+        <text class="locked-hint">完成至少 {{curveUnlockCount}} 次航程封存后，系统将展开脉冲曲线。</text>
       </view>
       <view class="curve-chart-card" wx:else>
         <text class="card-label">数值曲线</text>
