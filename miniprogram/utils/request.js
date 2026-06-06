@@ -22,7 +22,7 @@ function request(options) {
         const errCode = res.data && res.data.code;
         // 4001: token 无效/过期/用户不存在 | 4003: 账号已注销/已封禁
         if (res.statusCode === 401 || errCode === 4001 || errCode === 4003) {
-          const msg = errCode === 4003 ? (res.data.message || '账号异常') : '登录已过期';
+          const msg = errCode === 4003 ? (res.data.message || '账号异常') : '接入已过期';
           app.logout();
           wx.redirectTo({ url: '/pages/login/login' });
           if (errCode === 4003) {

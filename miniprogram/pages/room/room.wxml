@@ -80,7 +80,7 @@
               <view class="cyber-opt-check"></view>
               <text class="cyber-opt-status-text">已启用</text>
             </view>
-            <text class="cyber-opt-title">成员自填</text>
+            <text class="cyber-opt-title">舰员自填</text>
             <text class="cyber-opt-desc">每人提交自己结果</text>
             <text class="cyber-opt-hint">待选择</text>
           </view>
@@ -263,7 +263,7 @@
             <text class="cyber-preview-val">{{roomPreview.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
           </view>
           <view class="cyber-preview-row">
-            <text class="cyber-preview-key">在线成员</text>
+            <text class="cyber-preview-key">在线舰员</text>
             <text class="cyber-preview-val">{{roomPreview.memberCount || '?'}} / 16</text>
           </view>
         </view>
@@ -282,7 +282,7 @@
       <block wx:if="{{recentRooms.length > 0}}">
         <view class="cyber-divider"></view>
         <view class="cyber-section-title">
-          <text class="cyber-cn">最近加入</text>
+          <text class="cyber-cn">最近接入</text>
           <text class="cyber-en">RECENT ACCESS</text>
         </view>
         <view class="cyber-recent-list">
@@ -360,7 +360,7 @@
               <text class="rt-info-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
             </view>
             <view class="rt-info-seg">
-              <text class="rt-info-label">成员</text>
+              <text class="rt-info-label">舰员</text>
               <text class="rt-info-value">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
             </view>
           </view>
@@ -395,7 +395,7 @@
       <view class="player-network">
         <view class="pn-header">
           <view class="pn-title-group">
-            <text class="pn-cn">成员网络</text>
+            <text class="pn-cn">舰员网络</text>
             <text class="pn-en">NETWORK</text>
           </view>
           <text class="pn-count">{{memberGrid.length}} / {{currentRoom.maxMembers || 16}}</text>
@@ -486,7 +486,7 @@
         <!-- FROM → TO -->
         <view class="transfer-direction">
           <view class="transfer-player">
-            <text class="transfer-role-label">源成员</text>
+            <text class="transfer-role-label">源舰员</text>
             <helmet-avatar
               src="{{transferFromInfo.avatarUrl || ''}}"
               size="sm"
@@ -502,7 +502,7 @@
             <text class="transfer-arrow-head">→</text>
           </view>
           <view class="transfer-player">
-            <text class="transfer-role-label">目标成员</text>
+            <text class="transfer-role-label">目标舰员</text>
             <helmet-avatar
               src="{{transferToInfo.avatarUrl || ''}}"
               size="sm"
@@ -651,7 +651,7 @@
           <text class="share-qr-fail-text">识别图生成失败</text>
           <text class="share-qr-fail-hint">可使用识别码接入</text>
           <view class="share-qr-retry" bindtap="retryLoadQrCode">
-            <text class="share-qr-retry-text">重新生成</text>
+            <text class="share-qr-retry-text">重新点火</text>
           </view>
         </view>
       </view>

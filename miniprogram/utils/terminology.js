@@ -3,8 +3,8 @@
  * 所有页面展示文案统一引用此文件，减少硬编码
  */
 const TERMINOLOGY = {
-  appName: '脉冲终端',
-  appEnglishName: 'PULSE TERMINAL',
+  appName: '脉冲方舟',
+  appEnglishName: 'PULSE ARK',
 
   // 空间
   space: '空间',
@@ -21,19 +21,19 @@ const TERMINOLOGY = {
 
   // 角色
   controller: '主控',
-  member: '成员',
+  member: '舰员',
   crew: '乘员',
   slot: '舱位',
   adjustSlot: '调整舱位',
 
   // 任务
-  mission: '任务',
-  activeMission: '当前任务',
-  missionActive: '任务进行中',
-  missionSealed: '任务已封存',
-  sealMission: '封存任务',
-  missionDossier: '任务档案',
-  missionLog: '任务日志',
+  mission: '航程',
+  activeMission: '当前航程',
+  missionActive: '航程进行中',
+  missionSealed: '航程已封存',
+  sealMission: '封存航程',
+  missionDossier: '航程档案',
+  missionLog: '航程日志',
 
   // 数值
   pulse: '脉冲',
@@ -52,7 +52,7 @@ const TERMINOLOGY = {
   dossier: '档案',
   dossierArchive: '档案库',
   archive: '归档',
-  missionArchive: '任务归档',
+  missionArchive: '航程封存',
 
   // 镜像
   mirrorCore: '镜像核心',
@@ -60,16 +60,16 @@ const TERMINOLOGY = {
   personaCalibration: '人格校准',
   protocolRevision: '协议修订',
   recalibrate: '重新校准',
-  taskMirror: '任务镜像',
+  taskMirror: '航程镜像',
 
   // 策略
   oracleCore: '策略核心',
-  strategyCard: '策略卡',
+  strategyCard: '策略投影',
   fieldStatus: '场域状态',
   actionHint: '行动提醒',
   riskNotice: '风险提醒',
-  actionAdvantage: '行动优势',
-  regenerate: '重新生成',
+  actionAdvantage: '执行节奏',
+  regenerate: '重新点火',
 
   // 身份
   identityCore: '身份核心',
@@ -77,7 +77,7 @@ const TERMINOLOGY = {
   systemControl: '系统控制',
   voiceProfile: '声音协议',
   voiceModule: '音色模块',
-  terminalConfig: '终端设置',
+  terminalConfig: '装备协议',
   disconnectTerminal: '断开终端',
   fxProtocol: '动效协议',
   hapticProtocol: '触感协议',
@@ -86,9 +86,9 @@ const TERMINOLOGY = {
   // 状态语言
   statusStandby: '等待接入',
   statusOnline: '空间已开启',
-  statusMissionActive: '任务进行中',
-  statusSealPending: '任务待封存',
-  statusSealed: '任务已封存',
+  statusMissionActive: '航程进行中',
+  statusSealPending: '航程待封存',
+  statusSealed: '航程已封存',
   statusClosed: '空间已关闭',
 
   // 黑匣子

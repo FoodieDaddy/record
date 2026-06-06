@@ -192,7 +192,7 @@
     <view class="poster-container">
 
       <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
-        <text class="poster-gen-text">正在生成策略卡...</text>
+        <text class="poster-gen-text">正在生成策略投影...</text>
         <view class="poster-gen-bar">
           <view class="poster-gen-bar-fill"></view>
         </view>

@@ -34,7 +34,7 @@ Page({
       wx.switchTab({ url: '/pages/room/room' });
     } catch (err) {
       console.error('登录失败', err);
-      wx.showToast({ title: '登录失败', icon: 'none' });
+      wx.showToast({ title: '接入失败', icon: 'none' });
       this.setData({ connecting: false });
     } finally {
       this.setData({ loading: false });
