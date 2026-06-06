@@ -190,6 +190,22 @@ Page({
       this._toastTimer = null;
     }
     this.stopSealHeartbeat();
+    if (this._autoJoinTimer) {
+      clearTimeout(this._autoJoinTimer);
+      this._autoJoinTimer = null;
+    }
+    if (this._particleTimer) {
+      clearTimeout(this._particleTimer);
+      this._particleTimer = null;
+    }
+  },
+
+  onHide() {
+    if (this._autoJoinTimer) {
+      clearTimeout(this._autoJoinTimer);
+      this._autoJoinTimer = null;
+    }
+    this.stopSealHeartbeat();
   },
 
   updateCockpitState() {
@@ -1983,7 +1999,7 @@ Page({
       });
 
       if (t < 1) {
-        setTimeout(animate, 16);
+        this._particleTimer = setTimeout(animate, 16);
       } else {
         this.setData({ animActive: false });
         const afterUpdate = () => {
