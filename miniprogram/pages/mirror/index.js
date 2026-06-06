@@ -209,6 +209,9 @@ Page({
       // 历史缓存可能残留旧画像词，进入页面状态前统一净化。
       var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
 
+      // 协议一致率
+      var personaConfidence = res.personaConfidence || 0;
+
       // 结构化判读（兼容旧格式）
       var reading = sanitizeMirrorObject(res.reading || this.data.reading);
       if (reading.available && !reading.observation && reading.text) {
