@@ -5,6 +5,7 @@
  * - 全局唯一实例，不随页面销毁
  * - 页面只订阅/取消事件，不控制连接生命周期
  * - 自动重连（3 秒延迟），手动断开后不重连
+ * - token 通过 Sec-WebSocket-Protocol 头传输，不在 URL 中暴露
  */
 const DEBUG_WS = false;
 
@@ -50,11 +51,15 @@ class ScoreWS {
     const app = getApp();
     // 使用独立的 wsUrl 配置，避免从 baseUrl 拼接出错
     const config = require('../config');
-    const wsUrl = `${config.wsUrl}/ws/score?roomId=${roomId}&token=${app.globalData.token}`;
+    // token 通过 Sec-WebSocket-Protocol 头传输，不放入 URL，避免日志/工具泄露
+    const wsUrl = `${config.wsUrl}/ws/score?roomId=${roomId}`;
+    const token = app.globalData.token;
 
     debugLog('[score-ws] connecting roomId:', roomId);
     this.socketTask = wx.connectSocket({
       url: wsUrl,
+      // 后端已支持 Sec-WebSocket-Protocol: access_token.<jwt> 认证
+      protocols: ['access_token.' + token],
       success: () => debugLog('[WS] 连接中...'),
       fail: (err) => {
         debugWarn('[WS] 连接失败', err);

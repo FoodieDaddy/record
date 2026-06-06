@@ -418,7 +418,7 @@
               </view>
               <text class="mg-name">{{t.truncateName(item.nickname)}}</text>
               <text class="mg-score score-number" style="color:{{item.scoreColor}};">
-                {{item.score > 0 ? '+' : ''}}{{fmt.formatScore(item.displayScore)}}
+                {{fmt.formatScore(item.displayScore)}}
               </text>
               <!-- TARGET LOCKED -->
               <text class="mg-target-lock" wx:if="{{item.userId === transferTo}}">目标锁定</text>

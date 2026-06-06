@@ -14,13 +14,13 @@
       </view>
     </view>
 
-    <view class="mission-stage" bindtap="onTapDraw">
-      <view class="strategy-core">
-        <view class="card-inner">
-          <view class="card-ring card-ring--1"></view>
-          <view class="card-ring card-ring--2"></view>
-          <view class="card-ring card-ring--3"></view>
-          <view class="card-dot"></view>
+    <view class="core-stage" bindtap="onTapDraw">
+      <view class="avionics-core">
+        <view class="core-inner">
+          <view class="core-ring core-ring--1"></view>
+          <view class="core-ring core-ring--2"></view>
+          <view class="core-ring core-ring--3"></view>
+          <view class="core-dot"></view>
         </view>
       </view>
       <view class="scan-ring scan-ring--idle"></view>
@@ -40,13 +40,13 @@
 
   <!-- ═══ generating 屏 ═══ -->
   <view class="gen-screen {{genFadeOut ? 'gen-fade-out' : ''}}" wx:if="{{phase === 'generating'}}">
-    <view class="gen-card-area">
-      <view class="gen-card gen-card--breathing">
-        <view class="card-inner">
-          <view class="card-ring card-ring--1"></view>
-          <view class="card-ring card-ring--2"></view>
-          <view class="card-ring card-ring--3"></view>
-          <view class="card-dot"></view>
+    <view class="gen-core-area">
+      <view class="gen-core gen-core--breathing">
+        <view class="core-inner">
+          <view class="core-ring core-ring--1"></view>
+          <view class="core-ring core-ring--2"></view>
+          <view class="core-ring core-ring--3"></view>
+          <view class="core-dot"></view>
         </view>
       </view>
       <view class="scan-ring scan-ring--gen"></view>

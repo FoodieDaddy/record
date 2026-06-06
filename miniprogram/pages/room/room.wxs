@@ -1,8 +1,11 @@
 /**
  * 格式化积分显示
  * >= 1亿 → 亿单位 / >= 1万 → 万单位，保留一位小数
+ * 正数 → +7、负数 → -7、零/空值 → 0
  */
 function formatScore(score) {
+  // 防御 null / undefined / NaN / Infinity
+  if (score == null || score !== score || !isFinite(score)) return '0';
   if (score === 0) return '0';
   var abs = score < 0 ? -score : score;
   var sign = score > 0 ? '+' : '-';
@@ -16,13 +19,14 @@ function formatScore(score) {
     var rounded2 = Math.round(wan * 10) / 10;
     return sign + rounded2 + '万';
   }
-  return (score > 0 ? '+' : '') + score;
+  return sign + abs;
 }
 
 /**
  * 格式化金额（无正负号，用于积分记录）
  */
 function formatAmount(score) {
+  if (score == null || score !== score || !isFinite(score)) return '0';
   if (score === 0) return '0';
   var abs = score < 0 ? -score : score;
   if (abs >= 100000000) {

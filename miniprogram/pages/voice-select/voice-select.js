@@ -3,8 +3,8 @@ const config = require('../../config')
 const voiceUtil = require('../../utils/voice')
 const { get } = require('../../utils/request')
 
-// 全局唯一音频实例，防止内存泄漏和多音频重叠
-const audioCtx = wx.createInnerAudioContext()
+// 模块级音频实例，页面销毁后置 null，重入时重建
+let audioCtx = wx.createInnerAudioContext()
 audioCtx.obeyMuteSwitch = false
 
 Page({
@@ -23,14 +23,31 @@ Page({
 
   onLoad() {
     this.setData({ animationEnabled: app.globalData.animationEnabled !== false })
+    // 重建音频实例（onUnload 销毁后重入）
+    if (!audioCtx) {
+      audioCtx = wx.createInnerAudioContext()
+      audioCtx.obeyMuteSwitch = false
+    }
     this.loadCatalog()
-    // 延迟触发抽屉滑入动画
-    setTimeout(() => this.setData({ showSheet: true }), 50)
+    // reduce-motion 下直接展示抽屉，否则延迟滑入
+    if (this.data.animationEnabled) {
+      this._sheetTimer = setTimeout(() => this.setData({ showSheet: true }), 50)
+    } else {
+      this.setData({ showSheet: true })
+    }
   },
 
   onUnload() {
-    audioCtx.stop()
-    audioCtx.destroy()
+    // 清理音频
+    if (audioCtx) {
+      audioCtx.stop()
+      audioCtx.destroy()
+      audioCtx = null
+    }
+    // 清理所有延迟定时器
+    if (this._sheetTimer) { clearTimeout(this._sheetTimer); this._sheetTimer = null }
+    if (this._backTimer) { clearTimeout(this._backTimer); this._backTimer = null }
+    if (this._confirmTimer) { clearTimeout(this._confirmTimer); this._confirmTimer = null }
   },
 
   /** 从后端加载音色目录 */
@@ -46,7 +63,12 @@ Page({
   /** 关闭抽屉 */
   closeSheet() {
     this.setData({ showSheet: false })
-    setTimeout(() => wx.navigateBack(), 350)
+    // reduce-motion 下直接返回，否则等待滑出动画
+    if (this.data.animationEnabled) {
+      this._backTimer = setTimeout(() => wx.navigateBack(), 350)
+    } else {
+      wx.navigateBack()
+    }
   },
 
   /** 切换分类 */
@@ -101,6 +123,11 @@ Page({
     })
 
     wx.showToast({ title: '已选择 ' + selectedName, icon: 'success' })
-    setTimeout(() => wx.navigateBack(), 800)
+    // reduce-motion 下直接返回，否则等待 toast 消失
+    if (this.data.animationEnabled) {
+      this._confirmTimer = setTimeout(() => wx.navigateBack(), 800)
+    } else {
+      wx.navigateBack()
+    }
   }
 })
