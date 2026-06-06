@@ -64,7 +64,7 @@ Page({
       generated: false,
       sampleSize: 0,
       tag: 'INSUFFICIENT_DATA',
-      title: '样本不足',
+      title: '黑匣子样本不足',
       summary: ''
     },
     radarDimensions: ZERO_DIMS,
@@ -226,7 +226,7 @@ Page({
       this.loadStats();
     } catch (e) {
       this.setData({ loading: false, loadedOnce: true });
-      this._showToast('镜像加载失败', 'dot-error');
+      this._showToast('镜像投影加载失败', 'dot-error');
     }
   },
 
@@ -298,7 +298,7 @@ Page({
       this.loadStats();
       this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
     } catch (e) {
-      this._showToast('同步失败，请重试', 'dot-error');
+      this._showToast('协议同步失败，请重试', 'dot-error');
     } finally {
       wx.hideLoading();
     }
@@ -339,7 +339,7 @@ Page({
       });
     } catch (e) {
       this.setData({ generatingCard: false, scanStep: 0 });
-      this._showToast('生成失败，请稍后重试', 'dot-error');
+      this._showToast('投影生成失败，请稍后重试', 'dot-error');
     }
   },
 
@@ -622,7 +622,7 @@ Page({
   saveCard() {
     var path = this.data.cardTempPath;
     if (!path) {
-      this._showToast('请先生成档案卡', 'dot-warn');
+      this._showToast('请先生成镜像档案', 'dot-warn');
       return;
     }
 
@@ -630,7 +630,7 @@ Page({
     wx.saveImageToPhotosAlbum({
       filePath: path,
       success: function () {
-        self._showToast('档案图已保存', 'dot-sync');
+        self._showToast('镜像档案已保存', 'dot-sync');
       },
       fail: function (err) {
         if (err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {
@@ -655,7 +655,7 @@ Page({
   onShareAppMessage() {
     var mbti = this.data.mbti || {};
     return {
-      title: '我的人格档案：' + (mbti.mbtiType || '--') + ' ' + sanitizeMirrorText(mbti.mbtiTitle || ''),
+      title: '我的镜像档案：' + (mbti.mbtiType || '--') + ' ' + sanitizeMirrorText(mbti.mbtiTitle || ''),
       path: '/pages/mirror/index',
       imageUrl: this.data.cardTempPath || ''
     };
@@ -709,7 +709,7 @@ Page({
       if (picker && picker.showError) {
         picker.showError('同步失败，请重试');
       } else {
-        this._showToast('同步失败，请重试', 'dot-error');
+        this._showToast('协议同步失败，请重试', 'dot-error');
       }
     }
   }
