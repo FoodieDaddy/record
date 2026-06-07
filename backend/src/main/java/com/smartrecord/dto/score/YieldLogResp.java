@@ -58,28 +58,10 @@ public class YieldLogResp {
         @Schema(description = "我的得分", example = "12")
         private Integer myScore;
 
-        @Schema(description = "玩家列表")
-        private List<Player> players;
-    }
+        @Schema(description = "我的排名", example = "3")
+        private Integer myRank;
 
-    @Data
-    @Builder
-    @Schema(description = "对局玩家")
-    public static class Player {
-
-        @Schema(description = "用户 ID")
-        private Long userId;
-
-        @Schema(description = "昵称", example = "玩家A")
-        private String nickname;
-
-        @Schema(description = "头像 URL", example = "https://example.com/avatar.jpg")
-        private String avatarUrl;
-
-        @Schema(description = "得分", example = "12")
-        private Integer score;
-
-        @Schema(description = "是否是当前用户", example = "true")
-        private Boolean isMe;
+        @Schema(description = "成员数", example = "6")
+        private Integer memberCount;
     }
 }

@@ -238,10 +238,10 @@ public class FortuneServiceImpl implements FortuneService {
             try {
                 FortuneResp llmResult = CompletableFuture
                         .supplyAsync(() -> callLlm(userTag, netScore, recentScores, llmCtx), asyncExecutor)
-                        .orTimeout(60000, TimeUnit.MILLISECONDS)
+                        .orTimeout(8000, TimeUnit.MILLISECONDS)
                         .exceptionally(ex -> {
                             log.warn("LLM 调用超时/异常，降级到兜底: {}", ex.getMessage());
-                            llmCtx.durationMs = 60000;
+                            llmCtx.durationMs = 8000;
                             llmCtx.rawResponse = "异常: " + ex.getMessage();
                             return fallbackFortune(userTag);
                         })
@@ -428,7 +428,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .header(Header.AUTHORIZATION, "Bearer " + apiKey)
                 .header(Header.CONTENT_TYPE, "application/json")
                 .body(requestBody.toString())
-                .timeout(60000)
+                .timeout(7000)
                 .execute();
         ctx.durationMs = System.currentTimeMillis() - start;
 

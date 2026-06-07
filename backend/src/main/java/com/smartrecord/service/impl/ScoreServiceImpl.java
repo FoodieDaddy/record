@@ -558,14 +558,27 @@ public class ScoreServiceImpl implements ScoreService {
 
         lastTtlRefresh.remove(roomId);
 
-        // 异步重算身份等级（非关键路径）
+        // 异步重算身份等级 + 清理封存相关缓存（非关键路径）
         final var settledUserIds = new ArrayList<>(playerTotalMap.keySet());
         asyncExecutor.execute(() -> {
+            String today = java.time.LocalDate.now().toString();
             for (Long uid : settledUserIds) {
                 try {
                     identityLevelService.recalculate(uid);
                 } catch (Exception e) {
                     log.warn("异步重算身份等级失败: userId={}", uid, e);
+                }
+                // 清理镜像 stats 缓存，下次访问重新计算
+                try {
+                    redisTemplate.delete("sr:mirror:stats:" + uid);
+                } catch (Exception e) {
+                    log.warn("清理镜像stats缓存失败: userId={}", uid, e);
+                }
+                // 清理今日策略缓存，下次访问使用新样本
+                try {
+                    redisTemplate.delete("sr:fortune:" + uid + ":" + today);
+                } catch (Exception e) {
+                    log.warn("清理策略缓存失败: userId={}", uid, e);
                 }
             }
         });
@@ -729,14 +742,27 @@ public class ScoreServiceImpl implements ScoreService {
 
         lastTtlRefresh.remove(roomId);
 
-        // 异步重算身份等级（非关键路径）
+        // 异步重算身份等级 + 清理封存相关缓存（非关键路径）
         final var settledUserIds2 = new ArrayList<>(playerTotalMap.keySet());
         asyncExecutor.execute(() -> {
+            String today = java.time.LocalDate.now().toString();
             for (Long uid : settledUserIds2) {
                 try {
                     identityLevelService.recalculate(uid);
                 } catch (Exception e) {
                     log.warn("异步重算身份等级失败: userId={}", uid, e);
+                }
+                // 清理镜像 stats 缓存，下次访问重新计算
+                try {
+                    redisTemplate.delete("sr:mirror:stats:" + uid);
+                } catch (Exception e) {
+                    log.warn("清理镜像stats缓存失败: userId={}", uid, e);
+                }
+                // 清理今日策略缓存，下次访问使用新样本
+                try {
+                    redisTemplate.delete("sr:fortune:" + uid + ":" + today);
+                } catch (Exception e) {
+                    log.warn("清理策略缓存失败: userId={}", uid, e);
                 }
             }
         });
@@ -822,20 +848,21 @@ public class ScoreServiceImpl implements ScoreService {
         for (RoomResp room : historyRooms) {
             String settledAt = room.getCreatedAt() != null ? room.getCreatedAt().format(fmt) : "";
 
-            List<YieldLogResp.Player> players = new ArrayList<>();
-            Integer myScore = 0;
+            int myScore = 0;
+            int myRank = 1;
+            int memberCount = room.getMembers() != null ? room.getMembers().size() : 0;
+            // 收集全员分数用于排名计算
+            List<Integer> allScores = new ArrayList<>();
             for (RoomResp.MemberVO member : room.getMembers()) {
-                boolean isMe = member.getUserId().equals(userId);
-                if (isMe) {
-                    myScore = member.getFinalScore() != null ? member.getFinalScore() : 0;
+                int score = member.getFinalScore() != null ? member.getFinalScore() : 0;
+                allScores.add(score);
+                if (member.getUserId().equals(userId)) {
+                    myScore = score;
                 }
-                players.add(YieldLogResp.Player.builder()
-                        .userId(member.getUserId())
-                        .nickname(member.getNickname())
-                        .avatarUrl(member.getAvatarUrl())
-                        .score(member.getFinalScore() != null ? member.getFinalScore() : 0)
-                        .isMe(isMe)
-                        .build());
+            }
+            // 排名：分数高于当前用户的人数 + 1
+            for (int s : allScores) {
+                if (s > myScore) myRank++;
             }
 
             records.add(YieldLogResp.Record.builder()
@@ -843,7 +870,8 @@ public class ScoreServiceImpl implements ScoreService {
                     .roomNo(room.getRoomNo())
                     .settledAt(settledAt)
                     .myScore(myScore)
-                    .players(players)
+                    .myRank(myRank)
+                    .memberCount(memberCount)
                     .build());
         }
 

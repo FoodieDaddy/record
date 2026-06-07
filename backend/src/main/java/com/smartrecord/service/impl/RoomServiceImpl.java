@@ -280,12 +280,9 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("空间不存在");
 
-        // 已结束的房间：跳过解散/广播，仅清理关联数据
+        // 已结束的房间：保留 room_member 历史记录（final_score/quit_time），不删除
+        // doSettleRoom 已清理 Redis 映射，此处仅确保幂等
         if (room.getStatus() != 0) {
-            roomMemberMapper.delete(
-                    new LambdaQueryWrapper<RoomMember>()
-                            .eq(RoomMember::getRoomId, roomId)
-                            .eq(RoomMember::getUserId, userId));
             redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
             return;
         }
