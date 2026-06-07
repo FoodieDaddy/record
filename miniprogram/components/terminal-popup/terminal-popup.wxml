@@ -2,8 +2,8 @@
   <view class="tp-container {{reduceMotion ? 'reduce-motion' : ''}}" catchtap="noop">
     <!-- 标题区 -->
     <view class="tp-header">
-      <text class="tp-kicker">{{title}}</text>
-      <text class="tp-subtitle">{{subtitle}}</text>
+      <text class="tp-kicker">{{subtitle}}</text>
+      <text class="tp-subtitle">{{title}}</text>
     </view>
 
     <!-- 内容 -->

@@ -2,18 +2,103 @@
 
 /* ---- 根容器 ---- */
 .mirror-bay {
+  position: relative;
   min-height: 100vh;
   box-sizing: border-box;
   padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 140rpx);
   background:
-    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
-    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
+    radial-gradient(circle at 50% 18%, rgba(0,200,255,0.08), transparent 28%),
+    radial-gradient(circle at 18% 0%, rgba(10,132,255,0.10), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(94,92,230,0.06), transparent 30%),
     #0A0A0A;
   color: var(--text-main, rgba(255,255,255,0.92));
+  overflow: hidden;
+}
+
+/* ---- 深空背景层 ---- */
+.mirror-space-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mirror-nebula {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 20%, rgba(0,160,255,0.04), transparent),
+    radial-gradient(ellipse 50% 50% at 75% 60%, rgba(94,92,230,0.03), transparent),
+    radial-gradient(ellipse 40% 30% at 50% 80%, rgba(0,200,255,0.03), transparent);
+}
+
+.mirror-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.04;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,200,255,0.08) 0px,
+    rgba(0,200,255,0.08) 1px,
+    transparent 1px,
+    transparent 4rpx
+  );
+}
+
+.mirror-hud-corner {
+  position: absolute;
+  width: 48rpx;
+  height: 48rpx;
+  border-color: rgba(0,200,255,0.12);
+  border-style: solid;
+  border-width: 0;
+}
+
+.mirror-hud-tl {
+  top: 24rpx;
+  left: 24rpx;
+  border-top-width: 1rpx;
+  border-left-width: 1rpx;
+}
+
+.mirror-hud-tr {
+  top: 24rpx;
+  right: 24rpx;
+  border-top-width: 1rpx;
+  border-right-width: 1rpx;
+}
+
+.mirror-hud-bl {
+  bottom: 24rpx;
+  left: 24rpx;
+  border-bottom-width: 1rpx;
+  border-left-width: 1rpx;
+}
+
+.mirror-hud-br {
+  bottom: 24rpx;
+  right: 24rpx;
+  border-bottom-width: 1rpx;
+  border-right-width: 1rpx;
+}
+
+.reduce-motion .mirror-scanlines {
+  display: none;
 }
 
 /* ---- 顶部区：舱位状态 ---- */
 .bay-header {
+  position: relative;
+  z-index: 1;
   padding: 20rpx 0 8rpx;
   transition: opacity 0.3s;
 }
@@ -47,6 +132,8 @@
 
 /* ---- 中部区：镜像核心 ---- */
 .mirror-hero {
+  position: relative;
+  z-index: 1;
   padding: 24rpx 0;
   display: flex;
   flex-direction: column;
@@ -147,6 +234,8 @@
 
 /* ---- 底部区：信息卡片 ---- */
 .mirror-sections {
+  position: relative;
+  z-index: 1;
   transition: opacity 0.3s;
 }
 

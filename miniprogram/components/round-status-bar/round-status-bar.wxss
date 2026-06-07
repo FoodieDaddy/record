@@ -10,10 +10,10 @@
 }
 .status-text {
   font-size: 26rpx;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 .status-text.rejected {
-  color: var(--danger)
+  color: var(--danger);
 }
 .cancel-btn {
   font-size: 26rpx;

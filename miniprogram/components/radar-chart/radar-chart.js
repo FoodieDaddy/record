@@ -56,11 +56,13 @@ Component({
       if (!this._width) {
         this._initCanvas();
       } else {
+        this._stopAnimation();
         if (this.data.locked) {
-          this._startScanAnimation();
+          this._startAnimation('locked');
+        } else if (this.data.reduceMotion) {
+          this._drawFull(1, 0, 0);
         } else {
-          this._stopScanAnimation();
-          this._draw(1);
+          this._startAnimation('unlocked');
         }
       }
     }
@@ -71,11 +73,7 @@ Component({
       this._initCanvas();
     },
     detached() {
-      this._stopScanAnimation();
-      this._stopPulseAnimation();
-      if (this._animFrameId && this._canvas) {
-        this._canvas.cancelAnimationFrame(this._animFrameId);
-      }
+      this._stopAnimation();
       if (this._tooltipTimer) {
         clearTimeout(this._tooltipTimer);
         this._tooltipTimer = null;
@@ -119,12 +117,11 @@ Component({
             this._height = res[0].height;
 
             if (this.data.locked) {
-              this._scanAngle = 0;
-              this._startScanAnimation();
+              this._startAnimation('locked');
             } else if (this.data.reduceMotion) {
-              this._draw(1);
+              this._drawFull(1, 0, 0);
             } else {
-              this._animateIn();
+              this._startAnimation('unlocked');
             }
           } catch (err) {
             console.warn('radar-chart canvas init failed:', err);
@@ -132,76 +129,107 @@ Component({
         });
     },
 
-    _startScanAnimation() {
+    // ---- 统一动画控制 ----
+    _startAnimation(mode) {
+      this._animMode = mode;
+      this._animStartTime = Date.now();
+      this._starField = this._generateStarField();
+
+      if (mode === 'locked') {
+        this._scanAngle = 0;
+      }
+
       if (this.data.reduceMotion) {
-        this._drawLocked(0);
+        if (mode === 'locked') {
+          this._drawLockedStatic();
+        } else {
+          this._drawFull(1, 0, 0);
+        }
         return;
       }
-      this._stopScanAnimation();
-      this._scanAngle = 0;
-      const tick = () => {
-        this._scanAngle = (this._scanAngle + 0.015) % (Math.PI * 2);
-        this._drawLocked(this._scanAngle);
-        this._scanTimer = setTimeout(tick, 40);
-      };
-      tick();
-    },
 
-    _stopScanAnimation() {
-      if (this._scanTimer) {
-        clearTimeout(this._scanTimer);
-        this._scanTimer = null;
-      }
-    },
+      const self = this;
+      function tick() {
+        if (self._animMode !== mode) return;
 
-    _animateIn() {
-      const duration = 800;
-      const startTime = Date.now();
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-
-        this._draw(eased);
-
-        if (progress < 1) {
-          this._animFrameId = this._canvas.requestAnimationFrame(animate);
+        if (mode === 'locked') {
+          self._scanAngle = (self._scanAngle + 0.012) % (Math.PI * 2);
+          const t = (Date.now() - self._animStartTime) / 1000;
+          self._drawLockedAnimated(self._scanAngle, t);
         } else {
-          this._startPulseAnimation();
+          const elapsed = Date.now() - self._animStartTime;
+          const duration = 1200;
+          const progress = Math.min(elapsed / duration, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const sweep = Math.min(elapsed / 1500, 1);
+          const pulseT = elapsed / 1000;
+
+          self._drawFull(eased, sweep, pulseT);
+
+          if (progress >= 1 && !self._pulsing) {
+            self._pulsing = true;
+            self._startPulseLoop();
+            return;
+          }
         }
-      };
 
-      this._animFrameId = this._canvas.requestAnimationFrame(animate);
+        if (self._canvas) {
+          self._animFrameId = self._canvas.requestAnimationFrame(tick);
+        }
+      }
+
+      this._animFrameId = this._canvas.requestAnimationFrame(tick);
     },
 
-    _startPulseAnimation() {
-      if (this.data.reduceMotion || this.data.locked) return;
-      this._pulsePhase = 0;
-      const tick = () => {
-        this._pulsePhase = (this._pulsePhase + 0.04) % (Math.PI * 2);
-        this._draw(1, this._pulsePhase);
-        this._pulseTimer = setTimeout(tick, 50);
-      };
-      tick();
+    _startPulseLoop() {
+      const self = this;
+      function tick() {
+        if (self._animMode !== 'unlocked' || self.data.locked) return;
+        const t = (Date.now() - self._animStartTime) / 1000;
+        self._drawFull(1, 1, t);
+        if (self._canvas) {
+          self._animFrameId = self._canvas.requestAnimationFrame(tick);
+        }
+      }
+      this._animFrameId = this._canvas.requestAnimationFrame(tick);
     },
 
-    _stopPulseAnimation() {
-      if (this._pulseTimer) {
-        clearTimeout(this._pulseTimer);
-        this._pulseTimer = null;
+    _stopAnimation() {
+      this._animMode = null;
+      this._pulsing = false;
+      if (this._animFrameId && this._canvas) {
+        this._canvas.cancelAnimationFrame(this._animFrameId);
+        this._animFrameId = null;
       }
     },
 
-    _drawLocked(scanAngle) {
-      const ctx = this._ctx;
-      const w = this._width;
-      const h = this._height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const radius = Math.min(w, h) / 2 - 50;
+    _generateStarField() {
+      var stars = [];
+      var seed = (this._width || 300) * 7 + (this._height || 300) * 13;
+      for (var i = 0; i < 18; i++) {
+        seed = (seed * 16807 + 7) % 2147483647;
+        var rx = (seed % 1000) / 1000;
+        seed = (seed * 16807 + 7) % 2147483647;
+        var ry = (seed % 1000) / 1000;
+        seed = (seed * 16807 + 7) % 2147483647;
+        var rb = 0.3 + (seed % 1000) / 1000 * 0.7;
+        stars.push({ x: rx, y: ry, b: rb });
+      }
+      return stars;
+    },
+
+    // ---- 绘制：锁定态（静态，reduce-motion） ----
+    _drawLockedStatic() {
+      var ctx = this._ctx;
+      var w = this._width;
+      var h = this._height;
+      var cx = w / 2;
+      var cy = h / 2;
+      var radius = Math.min(w, h) / 2 - 50;
 
       ctx.clearRect(0, 0, w, h);
+
+      this._drawStarField(ctx, w, h);
 
       // 背景
       ctx.beginPath();
@@ -209,55 +237,97 @@ Component({
       ctx.fillStyle = BG_COLOR;
       ctx.fill();
 
-      // 网格
-      const gridLevels = [0.33, 0.66, 1.0];
-      for (const level of gridLevels) {
+      // 网格 + 轴线
+      this._drawGrid(ctx, cx, cy, radius, LOCKED_LINE, GRID_COLOR);
+
+      // 锁定五角星骨架
+      ctx.beginPath();
+      for (var i = 0; i < SIDES; i++) {
+        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+        var val = 0.55;
+        var x = cx + Math.cos(angle) * radius * val;
+        var y = cy + Math.sin(angle) * radius * val;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = LOCKED_FILL;
+      ctx.fill();
+      ctx.strokeStyle = LOCKED_LINE;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      for (var j = 0; j < SIDES; j++) {
+        var a = START_ANGLE + (Math.PI * 2 / SIDES) * j;
+        var vx = cx + Math.cos(a) * radius * 0.55;
+        var vy = cy + Math.sin(a) * radius * 0.55;
         ctx.beginPath();
-        for (let i = 0; i < SIDES; i++) {
-          const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-          const x = cx + Math.cos(angle) * radius * level;
-          const y = cy + Math.sin(angle) * radius * level;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = GRID_COLOR;
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.arc(vx, vy, 3, 0, Math.PI * 2);
+        ctx.fillStyle = LOCKED_LINE;
+        ctx.fill();
       }
 
-      // 轴线
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-        ctx.strokeStyle = GRID_COLOR;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE);
+
+      // 中心文字
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 11px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.50)';
+      ctx.fillText('数据采集中', cx, cy - 8);
+      ctx.font = '10px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.30)';
+      ctx.fillText('DATA COLLECTING', cx, cy + 10);
+    },
+
+    // ---- 绘制：锁定态（动画） ----
+    _drawLockedAnimated(scanAngle, time) {
+      var ctx = this._ctx;
+      var w = this._width;
+      var h = this._height;
+      var cx = w / 2;
+      var cy = h / 2;
+      var radius = Math.min(w, h) / 2 - 50;
+
+      ctx.clearRect(0, 0, w, h);
+
+      this._drawStarField(ctx, w, h);
+
+      // 背景
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 20, 0, Math.PI * 2);
+      ctx.fillStyle = BG_COLOR;
+      ctx.fill();
+
+      // 呼吸外环
+      var breathe = 1 + 0.02 * Math.sin(time * 0.8);
+      ctx.beginPath();
+      ctx.arc(cx, cy, (radius + 16) * breathe, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.10)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 网格 + 轴线
+      this._drawGrid(ctx, cx, cy, radius, LOCKED_LINE, GRID_COLOR);
 
       // 扫描扇形
-      const sweepAngle = Math.PI * 0.6;
+      var sweepAngle = Math.PI * 0.6;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.arc(cx, cy, radius, scanAngle, scanAngle + sweepAngle);
       ctx.closePath();
-      const scanGrad = ctx.createConicalGradient
-        ? null
-        : null;
       ctx.fillStyle = SCAN_COLOR;
       ctx.fill();
 
-      // 蓝色线框轮廓（半径 60%）
+      // 锁定五角星骨架
       ctx.beginPath();
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const val = 0.55;
-        const x = cx + Math.cos(angle) * radius * val;
-        const y = cy + Math.sin(angle) * radius * val;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      for (var i = 0; i < SIDES; i++) {
+        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+        var val = 0.55;
+        var x = cx + Math.cos(angle) * radius * val;
+        var y = cy + Math.sin(angle) * radius * val;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.closePath();
       ctx.fillStyle = LOCKED_FILL;
@@ -269,107 +339,95 @@ Component({
       ctx.setLineDash([]);
 
       // 锁定顶点
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const val = 0.55;
-        const x = cx + Math.cos(angle) * radius * val;
-        const y = cy + Math.sin(angle) * radius * val;
+      for (var j = 0; j < SIDES; j++) {
+        var a = START_ANGLE + (Math.PI * 2 / SIDES) * j;
+        var vx = cx + Math.cos(a) * radius * 0.55;
+        var vy = cy + Math.sin(a) * radius * 0.55;
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(vx, vy, 3, 0, Math.PI * 2);
         ctx.fillStyle = LOCKED_LINE;
         ctx.fill();
       }
 
-      // 标签
-      const dims = this.data.dimensions;
-      if (dims && dims.length > 0) {
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        for (let i = 0; i < SIDES; i++) {
-          const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-          const labelR = radius + 32;
-          const lx = cx + Math.cos(angle) * labelR;
-          const ly = cy + Math.sin(angle) * labelR;
-          ctx.font = '12px -apple-system, sans-serif';
-          ctx.fillStyle = LOCKED_LABEL;
-          ctx.fillText(dims[i].label, lx, ly);
-        }
-      }
+      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE);
 
       // 中心文字
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = 'bold 11px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 175, 255, 0.50)';
-      ctx.letterSpacing = '2px';
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.50)';
       ctx.fillText('数据采集中', cx, cy - 8);
       ctx.font = '10px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 175, 255, 0.30)';
-      ctx.fillText('采样中', cx, cy + 10);
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.30)';
+      ctx.fillText('DATA COLLECTING', cx, cy + 10);
     },
 
-    _draw(progress, pulsePhase) {
-      const ctx = this._ctx;
-      const dims = this.data.dimensions;
+    // ---- 绘制：完整态（轴线点亮 + 节点旅行 + 五角星展开 + 扫描环 + 脉冲） ----
+    _drawFull(progress, sweep, time) {
+      var ctx = this._ctx;
+      var dims = this.data.dimensions;
       if (!dims || dims.length === 0) return;
 
-      const w = this._width;
-      const h = this._height;
-      const cx = w / 2;
-      const cy = h / 2;
-      const radius = Math.min(w, h) / 2 - 50;
+      var w = this._width;
+      var h = this._height;
+      var cx = w / 2;
+      var cy = h / 2;
+      var radius = Math.min(w, h) / 2 - 50;
 
       ctx.clearRect(0, 0, w, h);
 
-      // 背景
+      // 星场背景
+      this._drawStarField(ctx, w, h);
+
+      // 背景圆
       ctx.beginPath();
       ctx.arc(cx, cy, radius + 20, 0, Math.PI * 2);
       ctx.fillStyle = BG_COLOR;
       ctx.fill();
 
-      // 网格
-      const gridLevels = [0.33, 0.66, 1.0];
-      for (const level of gridLevels) {
-        ctx.beginPath();
-        for (let i = 0; i < SIDES; i++) {
-          const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-          const x = cx + Math.cos(angle) * radius * level;
-          const y = cy + Math.sin(angle) * radius * level;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = level === 1.0 ? GRID_COLOR_STRONG : GRID_COLOR;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
+      // 呼吸外环
+      var breathe = 1 + 0.015 * Math.sin(time * 0.8);
+      ctx.beginPath();
+      ctx.arc(cx, cy, (radius + 16) * breathe, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.10)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-      // 轴线
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+      // 网格
+      this._drawGrid(ctx, cx, cy, radius, GRID_COLOR_STRONG, GRID_COLOR);
+
+      // 轴线点亮（逐条从中心向外）
+      var axisProgress = Math.min(progress * 2, 1);
+      for (var a = 0; a < SIDES; a++) {
+        var perAxis = Math.min(Math.max(axisProgress * SIDES - a, 0), 1);
+        if (perAxis <= 0) continue;
+        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * a;
+        var endX = cx + Math.cos(angle) * radius * perAxis;
+        var endY = cy + Math.sin(angle) * radius * perAxis;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-        ctx.strokeStyle = GRID_COLOR;
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = 'rgba(0, 200, 255, ' + (0.30 * perAxis) + ')';
         ctx.lineWidth = 1;
         ctx.stroke();
       }
 
-      // 数据区域 — 发光描边
+      // 数据区域
+      var faceProgress = Math.max(0, Math.min((progress - 0.2) / 0.8, 1));
+      var faceEased = 1 - Math.pow(1 - faceProgress, 2);
+
       ctx.beginPath();
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const val = (dims[i].value / 100) * progress;
-        const x = cx + Math.cos(angle) * radius * val;
-        const y = cy + Math.sin(angle) * radius * val;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      for (var i = 0; i < SIDES; i++) {
+        var fa = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+        var val = (dims[i].value / 100) * progress * faceEased;
+        var fx = cx + Math.cos(fa) * radius * val;
+        var fy = cy + Math.sin(fa) * radius * val;
+        if (i === 0) ctx.moveTo(fx, fy); else ctx.lineTo(fx, fy);
       }
       ctx.closePath();
 
-      // 发光层
       ctx.save();
-      ctx.shadowColor = 'rgba(0, 175, 255, 0.30)';
+      ctx.shadowColor = 'rgba(0, 200, 255, 0.30)';
       ctx.shadowBlur = 12;
       ctx.fillStyle = FILL_COLOR;
       ctx.fill();
@@ -378,63 +436,128 @@ Component({
       ctx.stroke();
       ctx.restore();
 
-      // 内层高亮
       ctx.strokeStyle = FILL_GLOW;
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // 数据顶点 — 脉冲
-      const pulseScale = pulsePhase !== undefined ? 1 + 0.3 * Math.sin(pulsePhase) : 1;
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const val = (dims[i].value / 100) * progress;
-        const x = cx + Math.cos(angle) * radius * val;
-        const y = cy + Math.sin(angle) * radius * val;
+      // 数据顶点（从中心旅行到目标位置）
+      var nodeProgress = Math.max(0, Math.min((progress - 0.3) / 0.7, 1));
+      var nodeEased = 1 - Math.pow(1 - nodeProgress, 3);
+      var pulseScale = 1 + 0.25 * Math.sin(time * 2.5);
 
-        // 外圈发光
+      for (var n = 0; n < SIDES; n++) {
+        var na = START_ANGLE + (Math.PI * 2 / SIDES) * n;
+        var targetVal = (dims[n].value / 100) * progress * faceEased;
+        var currentVal = targetVal * nodeEased;
+        var nx = cx + Math.cos(na) * radius * currentVal;
+        var ny = cy + Math.sin(na) * radius * currentVal;
+
         ctx.beginPath();
-        ctx.arc(x, y, 6 * pulseScale, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0, 175, 255, 0.15)';
+        ctx.arc(nx, ny, 6 * pulseScale, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 200, 255, 0.15)';
         ctx.fill();
 
-        // 内圈实心
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 3, 0, Math.PI * 2);
         ctx.fillStyle = LINE_COLOR;
         ctx.fill();
       }
 
-      // 维度标签
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      // HUD 标签
+      this._drawLabels(ctx, cx, cy, radius, progress, LABEL_COLOR, VALUE_COLOR);
 
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const labelR = radius + 32;
-        const lx = cx + Math.cos(angle) * labelR;
-        const ly = cy + Math.sin(angle) * labelR;
-
-        ctx.font = '12px -apple-system, sans-serif';
-        ctx.fillStyle = LABEL_COLOR;
-        ctx.fillText(dims[i].label, lx, ly - 8);
-
-        ctx.font = 'bold 14px -apple-system, sans-serif';
-        ctx.fillStyle = VALUE_COLOR;
-        ctx.fillText(String(Math.round(dims[i].value * progress)), lx, ly + 10);
+      // 扫描完成流光
+      if (sweep > 0 && sweep < 1) {
+        var sweepAngle2 = sweep * Math.PI * 2;
+        var sx = cx + Math.cos(sweepAngle2) * radius;
+        var sy = cy + Math.sin(sweepAngle2) * radius;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(sx, sy);
+        ctx.strokeStyle = 'rgba(0, 200, 255, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 200, 255, 0.50)';
+        ctx.fill();
       }
 
-      // 记录顶点坐标用于点击检测
+      // 中心脉冲点
+      var cpScale = 1 + 0.15 * Math.sin(time * 2);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5 * cpScale, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.60)';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, cy, 10 * cpScale, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.20)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 记录顶点坐标
       this._vertices = [];
-      for (let i = 0; i < SIDES; i++) {
-        const angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        const labelR = radius + 32;
+      for (var v = 0; v < SIDES; v++) {
+        var va = START_ANGLE + (Math.PI * 2 / SIDES) * v;
+        var vlr = radius + 32;
         this._vertices.push({
-          x: cx + Math.cos(angle) * labelR,
-          y: cy + Math.sin(angle) * labelR,
-          index: i
+          x: cx + Math.cos(va) * vlr,
+          y: cy + Math.sin(va) * vlr,
+          index: v
         });
       }
     },
+
+    // ---- 共享绘制子方法 ----
+    _drawStarField(ctx, w, h) {
+      var stars = this._starField;
+      if (!stars) return;
+      for (var i = 0; i < stars.length; i++) {
+        var s = stars[i];
+        ctx.beginPath();
+        ctx.arc(s.x * w, s.y * h, 0.5 + s.b * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(200, 220, 255, ' + (0.04 + s.b * 0.08) + ')';
+        ctx.fill();
+      }
+    },
+
+    _drawGrid(ctx, cx, cy, radius, axisColor, gridColor) {
+      var gridLevels = [0.33, 0.66, 1.0];
+      for (var g = 0; g < gridLevels.length; g++) {
+        var level = gridLevels[g];
+        ctx.beginPath();
+        for (var i = 0; i < SIDES; i++) {
+          var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+          var gx = cx + Math.cos(angle) * radius * level;
+          var gy = cy + Math.sin(angle) * radius * level;
+          if (i === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = level === 1.0 ? axisColor : gridColor;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+
+    _drawLabels(ctx, cx, cy, radius, progress, labelColor, valueColor) {
+      var dims = this.data.dimensions;
+      if (!dims || dims.length === 0) return;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (var i = 0; i < SIDES; i++) {
+        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
+        var labelR = radius + 32;
+        var lx = cx + Math.cos(angle) * labelR;
+        var ly = cy + Math.sin(angle) * labelR;
+        ctx.font = '12px -apple-system, sans-serif';
+        ctx.fillStyle = labelColor;
+        ctx.fillText(dims[i].label, lx, ly - 8);
+        ctx.font = 'bold 14px -apple-system, sans-serif';
+        ctx.fillStyle = valueColor;
+        ctx.fillText(String(Math.round(dims[i].value * progress)), lx, ly + 10);
+      }
+    },
+
 
     onCanvasTap(e) {
       if (!this._vertices || !this.data.dimensions.length) return;

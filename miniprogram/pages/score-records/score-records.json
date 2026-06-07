@@ -1,6 +1,3 @@
 {
-  "navigationBarTitleText": "脉冲日志",
-  "usingComponents": {
-    "yield-chart": "/components/yield-chart/yield-chart"
-  }
+  "navigationBarTitleText": "黑匣子回放"
 }

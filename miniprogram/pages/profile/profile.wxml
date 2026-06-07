@@ -6,7 +6,7 @@
     </view>
     <text class="empty-state__title">终端未接入</text>
     <text class="empty-state__desc">接入终端后可管理舰员档案</text>
-    <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
+    <view class="btn-clip" style="width:320rpx;" bindtap="goLogin">
       <text>接入终端</text>
     </view>
   </view>
@@ -15,238 +15,220 @@
   <view wx:else>
     <view class="terminal__glow" aria-hidden="true"></view>
 
+    <!-- HUD 状态条 -->
+    <view class="sync-hud {{hudVisible ? 'sync-hud--show' : ''}} {{hudType === 'error' ? 'sync-hud--error' : hudType === 'warning' ? 'sync-hud--warning' : ''}}" bindtap="onHudTap">
+      <view class="sync-hud__dot"></view>
+      <text class="sync-hud__text">{{hudText}}</text>
+    </view>
+
     <!-- 0. SYSTEM STATUS -->
     <view class="status-bar">
       <view class="status-bar__dot {{isLoggedIn ? 'status-bar__dot--online' : ''}}"></view>
-      <text class="status-bar__label">系统状态</text>
-      <text class="status-bar__value">{{isLoggedIn ? '在线' : '离线'}}</text>
+      <text class="status-bar__label">身份终端已接入</text>
+      <text class="status-bar__value">{{isLoggedIn ? 'ONLINE' : 'OFFLINE'}}</text>
     </view>
 
-    <!-- 1. PLAYER PROFILE -->
-    <view class="term-card term-card--identity">
-      <text class="term-kicker">身份档案</text>
-      <text class="term-kicker-sub">PROFILE</text>
-      <view class="identity__row">
-        <button class="identity__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-          <helmet-avatar
-            src="{{avatarUrl || ''}}"
-            size="lg"
-            active="{{true}}"
-            controller="{{true}}"
-            showStatus="{{false}}"
-            reduceMotion="{{!animationEnabled}}"
-          />
-        </button>
-        <view class="identity__info">
-          <text class="identity__code-label">舰员代号</text>
-          <text class="identity__player-code">{{playerCode}}</text>
-          <view class="identity__name-row">
-            <input
-              class="identity__name-input"
-              type="nickname"
-              value="{{nickname}}"
-              placeholder="点击授权代号"
-              bindinput="onNicknameInput"
-              bindblur="onNicknameBlur"
+    <!-- 1. 舰员铭牌 -->
+    <view class="profile-hud">
+      <view class="profile-hud__kicker">
+        <text class="profile-hud__kicker-zh">舰员档案</text>
+        <text class="profile-hud__kicker-en">CREW PROFILE</text>
+      </view>
+
+      <!-- 铭牌主体：头像 + 名字 + 等级 + 最强成就 -->
+      <view class="profile-hud__body">
+        <view class="profile-hud__left">
+          <button class="profile-hud__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+            <helmet-avatar
+              src="{{avatarUrl || ''}}"
+              size="lg"
+              active="{{true}}"
+              controller="{{true}}"
+              showStatus="{{true}}"
+              reduceMotion="{{!animationEnabled}}"
             />
-            <view class="identity__edit-btn" bindtap="shuffleNickname">
-              <view class="svg-icon svg-icon--dice"></view>
-            </view>
+          </button>
+        </view>
+        <view class="profile-hud__right">
+          <text class="profile-hud__code">{{playerCode}}</text>
+          <view class="profile-hud__name-wrap">
+            <text class="profile-hud__name {{isLongCrewName ? 'profile-hud__name--long' : ''}}">{{nickname || '未命名舰员'}}</text>
           </view>
-          <view class="identity__tag-row">
-            <text class="identity__level-tag">Lv.{{level}}</text>
-            <text class="identity__tag-sep">·</text>
-            <text class="identity__status-tag">{{levelTitle}}</text>
+          <view class="profile-hud__level-row">
+            <text class="profile-hud__level">Lv.{{level}}</text>
+            <text class="profile-hud__level-title">{{levelTitle}}</text>
           </view>
         </view>
       </view>
-      <view class="identity__meta">
-        <view class="identity__meta-col">
-          <text class="identity__meta-label">接入时间</text>
-          <text class="identity__meta-value">{{daysSinceJoined}} Days</text>
+
+      <!-- 操作按钮 -->
+      <view class="profile-hud__actions">
+        <view class="btn-clip btn-clip--sm" bindtap="openNicknameDrawer">
+          <text>校准代号</text>
         </view>
-        <view class="identity__meta-col">
-          <text class="identity__meta-label">航程样本</text>
-          <text class="identity__meta-value">{{matchCount}} Missions</text>
-        </view>
-        <view class="identity__meta-col">
-          <text class="identity__meta-label">档案状态</text>
-          <text class="identity__meta-value identity__meta-value--active">已同步</text>
+        <view class="profile-hud__link" bindtap="goLevelArchive">
+          <text class="profile-hud__link-text">身份档案</text>
+          <view class="svg-icon svg-icon--arrow"></view>
         </view>
       </view>
-      <text class="identity__saving" wx:if="{{saving}}">保存中...</text>
     </view>
 
-    <!-- 2. DATA MATRIX -->
+    <!-- 3. 数据矩阵 -->
     <view class="term-card term-card--stats">
       <text class="term-kicker">数据矩阵</text>
-      <text class="term-kicker-sub">MATRIX</text>
-      <view class="stats-grid">
+      <text class="term-kicker-sub">DATA MATRIX</text>
+      <view class="stats-grid-quad">
         <view class="stats-cell">
-          <text class="stats-cell__label">累计脉冲</text>
-          <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--negative' : 'stats-cell__value--zero'}}">{{totalScore}}</text>
+          <text class="stats-cell__label">净脉冲</text>
+          <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--offset' : 'stats-cell__value--zero'}}">{{totalScore}}</text>
           <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill {{totalScore > 0 ? 'bar-positive' : totalScore < 0 ? 'bar-negative' : 'bar-zero'}}" style="width:{{totalScore > 0 ? Math.min(totalScore / 10, 100) : totalScore < 0 ? Math.min(-totalScore / 10, 100) : 2}}%;"></view>
+            <view class="stats-cell__bar-fill {{totalScore > 0 ? 'bar-positive' : totalScore < 0 ? 'bar-offset' : 'bar-zero'}}" style="width:{{totalScore > 0 ? Math.min(totalScore / 10, 100) : totalScore < 0 ? Math.min(-totalScore / 10, 100) : 2}}%;"></view>
           </view>
-          <text class="stats-cell__sub">黑匣子样本</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">稳定指数</text>
-          <text class="stats-cell__value {{winRate >= 60 ? 'stats-cell__value--high' : winRate >= 40 ? 'stats-cell__value--mid' : 'stats-cell__value--low'}}">{{winRate}}%</text>
-          <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill {{winRate >= 60 ? 'bar-high' : winRate >= 40 ? 'bar-mid' : 'bar-low'}}" style="width:{{winRate}}%;"></view>
-          </view>
-          <text class="stats-cell__sub">稳定指数</text>
-        </view>
-        <view class="stats-cell">
-          <text class="stats-cell__label">样本数</text>
+          <text class="stats-cell__label">样本舱数</text>
           <text class="stats-cell__value stats-cell__value--cyan">{{matchCount}}</text>
           <view class="stats-cell__bar">
             <view class="stats-cell__bar-fill bar-cyan" style="width:{{matchCount > 0 ? Math.min(matchCount * 2, 100) : 2}}%;"></view>
           </view>
-          <text class="stats-cell__sub">黑匣子样本</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-cell__label">稳定性</text>
+          <text class="stats-cell__label">稳定读数</text>
           <text class="stats-cell__value stats-cell__value--purple">{{stability !== null ? stability : '--'}}</text>
           <view class="stats-cell__bar">
             <view class="stats-cell__bar-fill bar-purple" style="width:{{stability !== null ? stability : 2}}%;"></view>
           </view>
-          <text class="stats-cell__sub">人格稳定度</text>
         </view>
-      </view>
-      <view class="stats__footer" bindtap="goScoreRecords">
-        <text class="stats__footer-hint">查看全部脉冲日志</text>
-        <view class="svg-icon svg-icon--arrow"></view>
-      </view>
-    </view>
-
-    <!-- 3. IDENTITY LEVEL -->
-    <view class="term-card term-card--level">
-      <text class="term-kicker">身份等级</text>
-      <text class="term-kicker-sub">LEVEL</text>
-      <view class="level__header">
-        <text class="level__lv">Lv.{{level}}</text>
-        <text class="level__title">{{levelTitle}}</text>
-      </view>
-      <view class="level__bar-track">
-        <view class="level__bar-fill" style="width:{{levelProgress}}%;"></view>
-      </view>
-      <view class="level__exp-row">
-        <text class="level__exp-text">EXP {{levelExpDisplay}} / {{levelExpRange}}</text>
-        <text class="level__exp-pct">{{levelProgress}}%</text>
-      </view>
-      <text class="level__next-hint" wx:if="{{level < 5 && levelRemainingExp > 0}}">距离 Lv.{{level + 1}} 还差 {{levelRemainingExp}} EXP</text>
-      <text class="level__next-hint level__next-hint--ready" wx:elif="{{level < 5}}">等级进度已就绪，继续完成样本</text>
-      <view class="level__route">
-        <view class="level__node {{level >= 1 ? 'level__node--done' : ''}} {{level == 1 ? 'level__node--current' : ''}}">
-          <view class="level__node-dot"></view>
-          <text class="level__node-label">观察员</text>
-        </view>
-        <view class="level__node-line {{level >= 2 ? 'level__node-line--done' : ''}}"></view>
-        <view class="level__node {{level >= 2 ? 'level__node--done' : ''}} {{level == 2 ? 'level__node--current' : ''}}">
-          <view class="level__node-dot"></view>
-          <text class="level__node-label">参与者</text>
-        </view>
-        <view class="level__node-line {{level >= 3 ? 'level__node-line--done' : ''}}"></view>
-        <view class="level__node {{level >= 3 ? 'level__node--done' : ''}} {{level == 3 ? 'level__node--current' : ''}}">
-          <view class="level__node-dot"></view>
-          <text class="level__node-label">执行者</text>
-        </view>
-        <view class="level__node-line {{level >= 4 ? 'level__node-line--done' : ''}}"></view>
-        <view class="level__node {{level >= 4 ? 'level__node--done' : ''}} {{level == 4 ? 'level__node--current' : ''}}">
-          <view class="level__node-dot"></view>
-          <text class="level__node-label">掌控者</text>
-        </view>
-        <view class="level__node-line {{level >= 5 ? 'level__node-line--done' : ''}}"></view>
-        <view class="level__node {{level >= 5 ? 'level__node--done' : ''}} {{level == 5 ? 'level__node--current' : ''}}">
-          <view class="level__node-dot"></view>
-          <text class="level__node-label">候选者</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 4. BADGE COLLECTION -->
-    <view class="term-card term-card--achievements">
-      <text class="term-kicker">成就记录</text>
-      <text class="term-kicker-sub">BADGE</text>
-      <scroll-view class="achievements-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
-        <view class="achievements-track">
-          <view class="achievement-badge {{item.unlocked ? 'achievement-badge--on' : ''}}" wx:for="{{achievements}}" wx:key="id">
-            <view class="achievement-badge__icon">
-              <view class="achievement-badge__ring">
-                <view class="svg-icon svg-icon--badge-{{item.icon}}"></view>
-              </view>
-            </view>
-            <text class="achievement-badge__label">{{item.name}}</text>
-            <text class="achievement-badge__code">{{item.code}}</text>
-            <view class="achievement-badge__progress" wx:if="{{!item.unlocked}}">
-              <view class="achievement-badge__progress-track">
-                <view class="achievement-badge__progress-fill" style="width:{{item.progressPct}}%;"></view>
-              </view>
-              <text class="achievement-badge__progress-text">{{item.progressText}}</text>
-            </view>
-            <text class="achievement-badge__unlocked-text" wx:else>已解锁</text>
+        <view class="stats-cell">
+          <text class="stats-cell__label">身份经验</text>
+          <text class="stats-cell__value stats-cell__value--blue">{{levelExp}}</text>
+          <view class="stats-cell__bar">
+            <view class="stats-cell__bar-fill bar-blue" style="width:{{levelProgress}}%;"></view>
           </view>
         </view>
-      </scroll-view>
+      </view>
     </view>
 
-    <!-- 5. SYSTEM CONTROL -->
-    <view class="term-card term-card--system">
-      <text class="term-kicker">系统控制</text>
-      <text class="term-kicker-sub">CONTROL</text>
-
-      <view class="sys-row">
-        <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">声音协议</text>
-          <text class="sys-row__label-en">VOICE</text>
-        </view>
-        <segment-switch options="{{['OFF', 'ON']}}" active="{{voiceEnabled ? 1 : 0}}" bind:change="onVoiceSwitch" />
+    <!-- 3.5 黑匣子摘要 -->
+    <view class="term-card term-card--blackbox" bindtap="goScoreRecords">
+      <view class="blackbox__header">
+        <text class="term-kicker">黑匣子摘要</text>
+        <text class="term-kicker-sub">BLACKBOX</text>
       </view>
-
-      <!-- 音色模块 -->
-      <view class="sys-row sys-row--sub {{voiceEnabled ? '' : 'sys-row--hidden'}}" bindtap="openVoiceSheet">
-        <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">音色选择</text>
-          <text class="sys-row__label-en">TIMBRE</text>
+      <view class="blackbox__body">
+        <view class="blackbox__stat">
+          <text class="blackbox__stat-val">{{bbSampleCount}}</text>
+          <text class="blackbox__stat-label">已写入样本</text>
         </view>
-        <view class="sys-row__value">
-          <text class="sys-row__value-text">{{voiceName}}</text>
-          <view class="svg-icon svg-icon--arrow"></view>
+        <view class="blackbox__sep"></view>
+        <view class="blackbox__stat">
+          <text class="blackbox__stat-val">{{bbRecentRoom}}</text>
+          <text class="blackbox__stat-label">最近航程</text>
+        </view>
+        <view class="blackbox__sep"></view>
+        <view class="blackbox__stat">
+          <text class="blackbox__stat-val">{{bbRecentTime}}</text>
+          <text class="blackbox__stat-label">封存时间</text>
         </view>
       </view>
-
-      <view class="sys-row">
-        <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">动效协议</text>
-          <text class="sys-row__label-en">FX</text>
-        </view>
-        <segment-switch options="{{['OFF', 'ON']}}" active="{{animEnabled ? 1 : 0}}" bind:change="onAnimSwitch" />
-      </view>
-
-      <view class="sys-row">
-        <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">触感协议</text>
-          <text class="sys-row__label-en">HAPTIC</text>
-        </view>
-        <segment-switch options="{{['OFF', 'ON']}}" active="{{vibrateEnabled ? 1 : 0}}" bind:change="onVibrateSwitch" />
-      </view>
-
-      <!-- 关于终端 -->
-      <view class="sys-row sys-row--link" bindtap="goAbout">
-        <view class="sys-row__label-group">
-          <text class="sys-row__label-zh">终端信息</text>
-          <text class="sys-row__label-en">ABOUT</text>
-        </view>
+      <view class="blackbox__footer">
+        <text class="blackbox__footer-text">进入黑匣子回放</text>
         <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
-    <!-- 6. TERMINATE SESSION -->
+    <!-- 4. 装备协议 -->
+    <view class="term-card term-card--equip">
+      <text class="term-kicker">装备协议</text>
+      <text class="term-kicker-sub">EQUIPMENT</text>
+
+      <!-- 通讯协议 -->
+      <view class="equip-slot">
+        <view class="equip-slot__info">
+          <text class="equip-slot__name">通讯协议</text>
+          <text class="equip-slot__value">{{voiceEnabled ? '声波链路 ON' : '声波链路 OFF'}}</text>
+        </view>
+        <view class="equip-slot__toggle {{voiceEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onVoiceSwitch">
+          <text class="equip-slot__toggle-text">{{voiceEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+        </view>
+      </view>
+
+      <!-- 通讯音色 -->
+      <view class="equip-slot equip-slot--sub {{voiceEnabled ? '' : 'equip-slot--hidden'}}" bindtap="openVoiceSheet">
+        <view class="equip-slot__info">
+          <text class="equip-slot__name">通讯音色</text>
+          <text class="equip-slot__value">{{voiceName}}</text>
+        </view>
+        <view class="svg-icon svg-icon--arrow"></view>
+      </view>
+
+      <!-- 视觉协议 -->
+      <view class="equip-slot">
+        <view class="equip-slot__info">
+          <text class="equip-slot__name">视觉协议</text>
+          <text class="equip-slot__value">{{animEnabled ? '动态扫描 ON' : '动态扫描 OFF'}}</text>
+        </view>
+        <view class="equip-slot__toggle {{animEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onAnimSwitch">
+          <text class="equip-slot__toggle-text">{{animEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+        </view>
+      </view>
+
+      <!-- 触感协议 -->
+      <view class="equip-slot">
+        <view class="equip-slot__info">
+          <text class="equip-slot__name">触感协议</text>
+          <text class="equip-slot__value">{{vibrateEnabled ? '触感反馈 ON' : '触感反馈 OFF'}}</text>
+        </view>
+        <view class="equip-slot__toggle {{vibrateEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onVibrateSwitch">
+          <text class="equip-slot__toggle-text">{{vibrateEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 6. 断开终端 -->
     <view class="terminate-btn" bindtap="onLogout">
       <text class="terminate-btn__en">TERMINATE</text>
       <text class="terminate-btn__zh">断开终端</text>
+    </view>
+  </view>
+
+  <!-- 舰员代号校准抽屉 -->
+  <view wx:if="{{nicknameDrawerVisible}}" class="drawer-mask" bindtap="closeNicknameDrawer"></view>
+  <view wx:if="{{nicknameDrawerVisible}}" class="nickname-drawer">
+    <view class="nickname-drawer__header">
+      <text class="nickname-drawer__kicker">CREW NAME</text>
+      <text class="nickname-drawer__title">舰员代号校准</text>
+    </view>
+    <view class="nickname-drawer__body">
+      <view class="nickname-drawer__field">
+        <text class="nickname-drawer__label">当前代号</text>
+        <text class="nickname-drawer__current">{{nickname || '未命名舰员'}}</text>
+      </view>
+      <view class="nickname-drawer__field">
+        <text class="nickname-drawer__label">新代号</text>
+        <view class="nickname-drawer__input-row">
+          <input
+            class="nickname-drawer__input"
+            type="nickname"
+            value="{{drawerNickname}}"
+            placeholder="输入新舰员代号"
+            focus="{{nicknameDrawerVisible}}"
+            bindinput="onDrawerNicknameInput"
+          />
+          <view class="nickname-drawer__random" bindtap="onRandomNickname">
+            <view class="svg-icon svg-icon--dice"></view>
+          </view>
+        </view>
+        <text class="nickname-drawer__hint {{drawerNicknameOverflow ? 'nickname-drawer__hint--warn' : ''}}">{{drawerNicknameOverflow ? '舰员代号过长，建议 6 个汉字以内' : '最多 6 个汉字'}}</text>
+      </view>
+    </view>
+    <view class="nickname-drawer__footer">
+      <view class="nickname-drawer__btn nickname-drawer__btn--cancel" bindtap="closeNicknameDrawer">
+        <text>取消</text>
+      </view>
+      <view class="nickname-drawer__btn nickname-drawer__btn--confirm" bindtap="confirmNicknameDrawer">
+        <text>同步协议</text>
+      </view>
     </view>
   </view>
 
@@ -254,11 +236,11 @@
   <view wx:if="{{voiceSheetVisible}}" class="voice-mask voice-mask--show" bindtap="closeVoiceSheet"></view>
   <view wx:if="{{voiceSheetVisible}}" class="voice-sheet voice-sheet--show">
     <view class="voice-sheet__header">
-      <text class="voice-sheet__kicker">VOICE</text>
-      <text class="voice-sheet__title">声音协议</text>
+      <text class="voice-sheet__kicker">VOICE CHANNEL</text>
+      <text class="voice-sheet__title">通讯频道校准</text>
     </view>
     <view class="voice-sheet__body">
-      <!-- 左侧分类 -->
+      <!-- 左侧频道分类 -->
       <scroll-view class="voice-sheet__cat-list" scroll-y enhanced show-scrollbar="{{false}}">
         <view
           class="voice-sheet__cat-item {{activeVoiceCatId === item.id ? 'voice-sheet__cat-item--active' : ''}}"
@@ -271,7 +253,7 @@
           <text class="voice-sheet__cat-zh">{{item.zhLabel}}</text>
         </view>
       </scroll-view>
-      <!-- 右侧音色列表 -->
+      <!-- 右侧音色槽位 -->
       <scroll-view
         class="voice-sheet__voice-list"
         scroll-y
@@ -290,6 +272,7 @@
             data-cat-id="{{cat.id}}"
             bindtap="onVoiceTap"
           >
+            <view class="voice-sheet__voice-status" wx:if="{{item.id === selectedVoiceId}}"></view>
             <view class="voice-sheet__voice-info">
               <text class="voice-sheet__voice-name">{{item.name}}</text>
               <text class="voice-sheet__voice-desc">{{item.desc}}</text>
@@ -300,7 +283,7 @@
                 <view class="voice-sheet__wave-bar"></view>
                 <view class="voice-sheet__wave-bar"></view>
               </view>
-              <text class="voice-sheet__selected" wx:elif="{{item.id === selectedVoiceId}}">已选</text>
+              <text class="voice-sheet__selected" wx:elif="{{item.id === selectedVoiceId}}">接入中</text>
             </view>
           </view>
         </block>

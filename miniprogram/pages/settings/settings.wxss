@@ -153,7 +153,7 @@
 }
 .avionics-switch__track.is-on .avionics-switch__thumb {
   transform: translateX(48rpx);
-  background: var(--accent)
+  background: var(--accent);
   box-shadow: 0 0 12rpx rgba(10,132,255,0.5);
 }
 .avionics-switch__status {
@@ -163,7 +163,7 @@
   color: rgba(126, 156, 180, 0.34);
 }
 .avionics-switch--on .avionics-switch__status {
-  color: var(--accent)
+  color: var(--accent);
 }
 
 /* ===== 音色抽屉 ===== */

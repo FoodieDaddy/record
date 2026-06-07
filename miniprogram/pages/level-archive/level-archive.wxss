@@ -1,0 +1,442 @@
+/* ===== 页面根节点 ===== */
+.terminal-page {
+  --primary: var(--color-cyan);
+  --primary-dim: rgba(10, 132, 255, 0.15);
+  --primary-glow: rgba(10, 132, 255, 0.25);
+  --bg: #05070A;
+  --card-bg: var(--bg-secondary);
+  --card-border: rgba(10, 132, 255, 0.16);
+  --card-radius: 18rpx;
+  --success: #30D158;
+  --text-main: var(--text-primary);
+  --text-secondary: rgba(176, 208, 235, 0.62);
+  --text-muted: var(--text-tertiary);
+
+  position: relative;
+  padding: 24rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.terminal__glow {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800rpx;
+  height: 600rpx;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10, 132, 255, 0.10), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94, 92, 230, 0.06), transparent 30%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+/* ===== 顶部摘要卡 ===== */
+.archive-summary {
+  position: relative;
+  z-index: 1;
+  padding: 28rpx 32rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.22);
+  background: rgba(3, 10, 18, 0.64);
+  clip-path: polygon(
+    24rpx 0, calc(100% - 24rpx) 0,
+    100% 24rpx, 100% calc(100% - 24rpx),
+    calc(100% - 24rpx) 100%, 24rpx 100%,
+    0 calc(100% - 24rpx), 0 24rpx
+  );
+}
+
+.archive-summary__row {
+  display: flex;
+  gap: 32rpx;
+  margin-bottom: 16rpx;
+}
+
+.archive-summary__row:last-child {
+  margin-bottom: 0;
+}
+
+.archive-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.archive-summary__label {
+  font-size: 20rpx;
+  color: var(--text-muted);
+  letter-spacing: 2rpx;
+}
+
+.archive-summary__value {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: monospace;
+}
+
+.archive-summary__value--accent {
+  color: var(--primary);
+}
+
+
+/* ===== 通用卡片 ===== */
+.term-card {
+  position: relative;
+  z-index: 1;
+  background: var(--card-bg);
+  border: 1rpx solid var(--card-border);
+  border-radius: var(--card-radius);
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+}
+
+.term-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.term-card__header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.term-card__header-text .term-kicker-sub {
+  margin-bottom: 0;
+}
+
+.term-kicker {
+  display: block;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--primary);
+  letter-spacing: 4rpx;
+  margin-bottom: 4rpx;
+}
+
+.term-kicker-sub {
+  display: block;
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+  color: rgba(126, 156, 180, 0.34);
+  font-weight: 400;
+}
+
+
+/* ===== 等级进度 ===== */
+.term-card--access {
+  padding: 28rpx 32rpx;
+}
+
+.access-chip {
+  font-size: 18rpx;
+  color: rgba(0, 200, 255, 0.36);
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  padding: 4rpx 12rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.14);
+  border-radius: 4rpx;
+}
+
+.access__main {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.access__lv {
+  font-size: 40rpx;
+  font-weight: 800;
+  color: var(--primary);
+  font-family: monospace;
+  letter-spacing: 2rpx;
+}
+
+.access__title {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.access__bar-track {
+  width: 100%;
+  height: 6rpx;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3rpx;
+  overflow: hidden;
+  margin-bottom: 12rpx;
+}
+
+.access__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-cyan));
+  border-radius: 3rpx;
+  min-width: 4rpx;
+  transition: width 0.6s ease;
+}
+
+.access__exp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.access__exp-text {
+  font-size: 20rpx;
+  color: var(--text-muted);
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+.access__exp-pct {
+  font-size: 20rpx;
+  color: var(--primary);
+  font-family: monospace;
+  font-weight: 600;
+}
+
+.access__next-hint {
+  display: block;
+  font-size: 20rpx;
+  color: var(--text-muted);
+  margin-bottom: 20rpx;
+  font-family: monospace;
+}
+
+/* 等级路线图 */
+.access__route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0 4rpx;
+}
+
+.access__node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  opacity: 0.3;
+}
+
+.access__node--done {
+  opacity: 0.7;
+}
+
+.access__node--current {
+  opacity: 1;
+}
+
+.access__node-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  border: 2rpx solid var(--text-disabled);
+  background: transparent;
+}
+
+.access__node--done .access__node-dot {
+  border-color: var(--primary);
+  background: rgba(10, 132, 255, 0.15);
+}
+
+.access__node--current .access__node-dot {
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: 0 0 12rpx var(--primary-glow);
+}
+
+.access__node-label {
+  font-size: 16rpx;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.access__node--done .access__node-label {
+  color: var(--text-secondary);
+}
+
+.access__node--current .access__node-label {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.access__node-line {
+  flex: 1;
+  height: 2rpx;
+  background: var(--glass-bg-hover);
+  margin: 0 4rpx;
+  margin-bottom: 22rpx;
+}
+
+.access__node-line--done {
+  background: var(--primary-dim);
+}
+
+
+/* ===== 成就列表 ===== */
+.term-card--badges {
+  padding: 28rpx 32rpx;
+}
+
+.badge-count {
+  font-size: 18rpx;
+  color: rgba(0, 200, 255, 0.36);
+  font-family: monospace;
+  letter-spacing: 2rpx;
+  padding: 4rpx 12rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.14);
+  border-radius: 4rpx;
+}
+
+.badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.badge-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 20rpx;
+  border-radius: 14rpx;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1rpx solid rgba(255, 255, 255, 0.04);
+  opacity: 0.52;
+}
+
+.badge-item--on {
+  opacity: 1;
+  border-color: rgba(0, 200, 255, 0.12);
+  background: rgba(0, 200, 255, 0.03);
+}
+
+.badge-item__icon {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-item__ring {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(126, 156, 180, 0.12);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-item--on .badge-item__ring {
+  border-color: var(--primary);
+  background: rgba(10, 132, 255, 0.08);
+  box-shadow: 0 0 12rpx var(--primary-dim);
+}
+
+.badge-item__ring .svg-icon {
+  opacity: 0.4;
+}
+
+.badge-item--on .badge-item__ring .svg-icon {
+  opacity: 0.9;
+}
+
+.badge-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.badge-item__top {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+}
+
+.badge-item__name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.badge-item--on .badge-item__name {
+  color: var(--text-main);
+}
+
+.badge-item__code {
+  font-size: 18rpx;
+  color: rgba(126, 156, 180, 0.28);
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+.badge-item--on .badge-item__code {
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.badge-item__desc {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.badge-item__progress {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 4rpx;
+}
+
+.badge-item__progress-track {
+  flex: 1;
+  height: 4rpx;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2rpx;
+  overflow: hidden;
+}
+
+.badge-item__progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2rpx;
+  opacity: 0.5;
+}
+
+.badge-item__progress-text {
+  font-size: 18rpx;
+  color: var(--text-muted);
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.badge-item__status {
+  font-size: 18rpx;
+  color: var(--success);
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+
+/* ===== 动效兜底 ===== */
+.reduce-motion .terminal__glow,
+.reduce-motion .access__bar-fill,
+.reduce-motion .term-card {
+  transition: none !important;
+  animation: none !important;
+}

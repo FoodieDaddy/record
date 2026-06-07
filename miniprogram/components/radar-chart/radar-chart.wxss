@@ -38,7 +38,7 @@
 .tooltip-value {
   font-size: 24rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 
 .tooltip-desc {

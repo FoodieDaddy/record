@@ -87,7 +87,7 @@
 }
 
 .seg-done {
-  background: var(--color-cyan)
+  background: var(--color-cyan);
   box-shadow: 0 0 4rpx rgba(0, 175, 255, 0.40);
 }
 
@@ -295,7 +295,7 @@
 }
 
 .action-confirm .action-text {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 
 .action-confirm:active {

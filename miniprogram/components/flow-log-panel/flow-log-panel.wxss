@@ -22,7 +22,7 @@
 .flp-cn {
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 .flp-en {
@@ -70,7 +70,7 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: var(--accent)
+  background: var(--accent);
   opacity: 0.3;
   animation: emptyPulse 2.5s ease-in-out infinite;
   margin-bottom: 12rpx;
@@ -117,7 +117,7 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: var(--accent)
+  background: var(--accent);
   box-shadow: 0 0 10rpx rgba(10, 132, 255, 0.5);
   flex-shrink: 0;
 }
@@ -159,7 +159,7 @@
   flex-shrink: 0;
 }
 .flp-event-dot-active {
-  background: var(--accent)
+  background: var(--accent);
   box-shadow: 0 0 8rpx rgba(10, 132, 255, 0.6);
 }
 
@@ -229,7 +229,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: var(--accent)
+  background: var(--accent);
   animation: loadBlink 1.2s ease-in-out infinite;
 }
 @keyframes loadBlink {

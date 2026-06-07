@@ -103,7 +103,7 @@
 }
 .quick-btn:active {
   background: rgba(10, 132, 255, 0.15);
-  color: var(--accent)
+  color: var(--accent);
 }
 
 /* 备注 */

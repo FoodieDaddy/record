@@ -8,6 +8,73 @@
   z-index: 100;
 }
 
+/* ===== HUD 状态条 ===== */
+.sync-hud {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 88rpx);
+  left: 32rpx;
+  right: 32rpx;
+  z-index: 999;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 22rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.22);
+  background: rgba(3, 10, 18, 0.92);
+  color: rgba(226, 242, 255, 0.88);
+  font-size: 24rpx;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-8rpx);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  clip-path: polygon(
+    12rpx 0, calc(100% - 12rpx) 0,
+    100% 12rpx, 100% calc(100% - 12rpx),
+    calc(100% - 12rpx) 100%, 12rpx 100%,
+    0 calc(100% - 12rpx), 0 12rpx
+  );
+}
+
+.sync-hud--show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.sync-hud--error {
+  border-color: rgba(255, 69, 58, 0.35);
+}
+
+.sync-hud--warning {
+  border-color: rgba(255, 159, 10, 0.35);
+}
+
+.sync-hud__dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: var(--color-cyan);
+  margin-right: 14rpx;
+  flex-shrink: 0;
+}
+
+.sync-hud--error .sync-hud__dot {
+  background: #FF453A;
+}
+
+.sync-hud--warning .sync-hud__dot {
+  background: #FF9F0A;
+}
+
+.sync-hud__text {
+  font-family: monospace;
+  letter-spacing: 1rpx;
+}
+
+.reduce-motion .sync-hud {
+  transition: none !important;
+}
+
 /* ===== 蒙层 ===== */
 .mask {
   position: absolute;
@@ -65,6 +132,15 @@
   justify-content: space-between;
   padding: 24rpx 32rpx 16rpx;
   flex-shrink: 0;
+}
+
+.header-kicker {
+  display: block;
+  font-size: 18rpx;
+  font-weight: 500;
+  color: rgba(0, 200, 255, 0.48);
+  letter-spacing: 4rpx;
+  margin-bottom: 4rpx;
 }
 
 .header-title {
@@ -167,7 +243,7 @@
   border-color: rgba(0,200,255,0.6);
 }
 .sidebar-item.active .sidebar-icon::after {
-  background: var(--color-cyan)
+  background: var(--color-cyan);
   box-shadow: 0 0 8rpx rgba(0,200,255,0.5);
 }
 
@@ -207,6 +283,19 @@
   border-radius: 20rpx;
   background: var(--glass-bg);
   border: 1px solid transparent;
+  position: relative;
+}
+
+.voice-status-dot {
+  position: absolute;
+  left: 8rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--color-cyan);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.6);
 }
 
 .voice-card.selected {
@@ -221,6 +310,7 @@
 .voice-info {
   flex: 1;
   min-width: 0;
+  padding-left: 12rpx;
 }
 
 .voice-name {
@@ -249,21 +339,21 @@
 }
 
 .check-icon {
-  width: 32rpx;
+  width: 80rpx;
   height: 32rpx;
   position: relative;
 }
 
 .check-icon::after {
-  content: '';
+  content: '接入中';
   position: absolute;
-  left: 6rpx;
-  top: 8rpx;
-  width: 14rpx;
-  height: 8rpx;
-  border-left: 3rpx solid var(--accent)
-  border-bottom: 3rpx solid var(--accent)
-  transform: rotate(-45deg);
+  left: 0;
+  top: 0;
+  font-size: 18rpx;
+  color: var(--color-cyan);
+  font-family: monospace;
+  letter-spacing: 1rpx;
+  white-space: nowrap;
 }
 
 .play-icon {

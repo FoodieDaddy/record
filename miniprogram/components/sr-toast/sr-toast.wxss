@@ -38,22 +38,22 @@
 }
 
 .toast-dot.dot-sync {
-  background: var(--success)
+  background: var(--success);
   box-shadow: 0 0 6rpx rgba(48, 209, 88, 0.40);
 }
 
 .toast-dot.dot-info {
-  background: var(--color-cyan)
+  background: var(--color-cyan);
   box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.40);
 }
 
 .toast-dot.dot-warn {
-  background: var(--warning)
+  background: var(--warning);
   box-shadow: 0 0 6rpx rgba(255, 159, 10, 0.40);
 }
 
 .toast-dot.dot-error {
-  background: var(--danger)
+  background: var(--danger);
   box-shadow: 0 0 6rpx rgba(255, 69, 58, 0.40);
 }
 

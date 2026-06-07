@@ -22,7 +22,7 @@
 .ssp-cn {
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 .ssp-en {
@@ -54,7 +54,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: var(--accent)
+  background: var(--accent);
   box-shadow: 0 0 8rpx rgba(10, 132, 255, 0.5);
   animation: statusBlink 2s ease-in-out infinite;
 }
@@ -121,7 +121,7 @@
 .ssp-cell-num {
   font-size: 36rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   font-family: "SF Mono", "Menlo", "Courier New", monospace;
   font-variant-numeric: tabular-nums;
 }

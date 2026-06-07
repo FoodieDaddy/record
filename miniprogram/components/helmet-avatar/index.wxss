@@ -136,9 +136,9 @@
   right: 4rpx;
   bottom: 6rpx;
   width: 14rpx;
-  height: 14rpx;
+  height: 14rpx; 
   border-radius: 50%;
-  background: var(--success)
+  background: var(--success);
   box-shadow: 0 0 12rpx rgba(48, 209, 88, 0.72);
 }
 

@@ -26,7 +26,7 @@
 .network-title {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 

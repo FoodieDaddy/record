@@ -1,0 +1,246 @@
+/* insight-card.wxss — 洞察卡片组件样式 */
+
+.insight-card {
+  background: rgba(255, 255, 255, 0.035);
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(10, 132, 255, 0.18);
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.insight-card:last-child {
+  margin-bottom: 0;
+}
+
+/* 卡片头部 */
+.insight-card__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 28rpx;
+}
+
+.insight-card__icon-wrap {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.insight-card__icon-wrap--primary {
+  background: rgba(10, 132, 255, 0.2);
+}
+
+.insight-card__icon-wrap--cyan {
+  background: rgba(0, 200, 255, 0.2);
+}
+
+.insight-card__icon-wrap--purple {
+  background: rgba(94, 92, 230, 0.2);
+}
+
+.insight-card__icon-wrap--green {
+  background: rgba(48, 209, 88, 0.2);
+}
+
+.insight-card__icon-wrap--orange {
+  background: rgba(255, 159, 10, 0.2);
+}
+
+.insight-card__icon-wrap .svg-icon {
+  width: 24rpx;
+  height: 24rpx;
+}
+
+.insight-card__title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-main, rgba(255, 255, 255, 0.92));
+  margin-right: 12rpx;
+}
+
+.insight-card__en {
+  font-family: 'SF Mono', 'Courier New', monospace;
+  font-size: 17rpx;
+  color: var(--text-muted, rgba(255, 255, 255, 0.38));
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+/* 卡片内容 */
+.insight-card__body {
+  padding-left: 4rpx;
+}
+
+/* 主数值行 */
+.insight-card__primary {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 20rpx;
+}
+
+.insight-card__primary-text {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--text-main, rgba(255, 255, 255, 0.92));
+  font-family: 'SF Mono', 'Courier New', monospace;
+  margin-right: 12rpx;
+}
+
+.insight-card__primary-text.text-primary {
+  color: var(--color-primary, #0A84FF);
+}
+
+.insight-card__primary-text.text-cyan {
+  color: var(--color-cyan, #00C8FF);
+}
+
+.insight-card__primary-text.text-purple {
+  color: var(--color-purple, #5E5CE6);
+}
+
+.insight-card__primary-text.text-green {
+  color: var(--color-green, #30D158);
+}
+
+.insight-card__primary-text.text-orange {
+  color: var(--color-orange, #FF9F0A);
+}
+
+.insight-card__primary-hint {
+  font-size: 22rpx;
+  color: var(--text-muted, rgba(255, 255, 255, 0.38));
+}
+
+/* 描述文本 */
+.insight-card__desc {
+  font-size: 26rpx;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.56));
+  line-height: 1.5;
+  margin-bottom: 24rpx;
+}
+
+/* 标签列表 */
+.insight-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+}
+
+.insight-card__tag {
+  font-size: 20rpx;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.56));
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.insight-card__tag.tag-primary {
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--color-primary, #0A84FF);
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.insight-card__tag.tag-cyan {
+  background: rgba(0, 200, 255, 0.15);
+  color: var(--color-cyan, #00C8FF);
+  border-color: rgba(0, 200, 255, 0.3);
+}
+
+.insight-card__tag.tag-purple {
+  background: rgba(94, 92, 230, 0.15);
+  color: var(--color-purple, #5E5CE6);
+  border-color: rgba(94, 92, 230, 0.3);
+}
+
+.insight-card__tag.tag-green {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--color-green, #30D158);
+  border-color: rgba(48, 209, 88, 0.3);
+}
+
+.insight-card__tag.tag-orange {
+  background: rgba(255, 159, 10, 0.15);
+  color: var(--color-orange, #FF9F0A);
+  border-color: rgba(255, 159, 10, 0.3);
+}
+
+.insight-card__tag.tag-red {
+  background: rgba(255, 69, 58, 0.15);
+  color: var(--color-red, #FF453A);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+
+/* 数据指标 */
+.insight-card__metrics {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 28rpx;
+  padding: 24rpx 0;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.insight-card__metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.insight-card__metric-value {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: var(--text-main, rgba(255, 255, 255, 0.92));
+  font-family: 'SF Mono', 'Courier New', monospace;
+}
+
+.insight-card__metric-value.text-primary {
+  color: var(--color-primary, #0A84FF);
+}
+
+.insight-card__metric-value.text-cyan {
+  color: var(--color-cyan, #00C8FF);
+}
+
+.insight-card__metric-value.text-purple {
+  color: var(--color-purple, #5E5CE6);
+}
+
+.insight-card__metric-value.text-green {
+  color: var(--color-green, #30D158);
+}
+
+.insight-card__metric-value.text-orange {
+  color: var(--color-orange, #FF9F0A);
+}
+
+.insight-card__metric-label {
+  font-size: 20rpx;
+  color: var(--text-muted, rgba(255, 255, 255, 0.38));
+}
+
+/* 操作按钮 */
+.insight-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 24rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.06);
+}
+
+.insight-card__action-text {
+  font-size: 26rpx;
+  color: var(--color-primary, #0A84FF);
+}
+
+.insight-card__action .svg-icon {
+  width: 20rpx;
+  height: 20rpx;
+  color: var(--color-primary, #0A84FF);
+}

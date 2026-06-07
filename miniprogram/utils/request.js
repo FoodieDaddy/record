@@ -37,12 +37,16 @@ function request(options) {
           const msg = (res.data && res.data.message) || '请求失败';
           const err = new Error(msg);
           err.code = errCode;
-          wx.showToast({ title: msg, icon: 'none' });
+          if (!options.silent) {
+            wx.showToast({ title: msg, icon: 'none' });
+          }
           reject(err);
         }
       },
       fail(err) {
-        wx.showToast({ title: '网络异常', icon: 'none' });
+        if (!options.silent) {
+          wx.showToast({ title: '网络异常', icon: 'none' });
+        }
         reject(err);
       }
     });
@@ -53,8 +57,8 @@ function get(url, data) {
   return request({ url, method: 'GET', data });
 }
 
-function post(url, data) {
-  return request({ url, method: 'POST', data });
+function post(url, data, opts) {
+  return request({ url, method: 'POST', data, ...opts });
 }
 
 function put(url, data) {

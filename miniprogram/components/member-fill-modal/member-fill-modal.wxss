@@ -99,7 +99,7 @@
 .btn-submit-text {
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 

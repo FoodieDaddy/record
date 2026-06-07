@@ -433,20 +433,52 @@ Page({
     ctx.fillStyle = '#0A0A0A';
     ctx.fillRect(0, 0, W, H);
 
-    var grad = ctx.createRadialGradient(160, 0, 0, 160, 0, 420);
-    grad.addColorStop(0, 'rgba(10,132,255,0.18)');
+    // 径向光
+    var grad = ctx.createRadialGradient(W / 2, 200, 0, W / 2, 200, 480);
+    grad.addColorStop(0, 'rgba(0,200,255,0.10)');
+    grad.addColorStop(0.6, 'rgba(10,132,255,0.06)');
     grad.addColorStop(1, 'rgba(10,132,255,0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
+    // 星场
+    var seed = W * 7 + H * 13;
+    for (var i = 0; i < 30; i++) {
+      seed = (seed * 16807 + 7) % 2147483647;
+      var sx = (seed % 1000) / 1000;
+      seed = (seed * 16807 + 7) % 2147483647;
+      var sy = (seed % 1000) / 1000;
+      seed = (seed * 16807 + 7) % 2147483647;
+      var sb = 0.3 + (seed % 1000) / 1000 * 0.7;
+      ctx.beginPath();
+      ctx.arc(sx * W, sy * H, 0.5 + sb * 0.8, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(200, 220, 255, ' + (0.06 + sb * 0.10) + ')';
+      ctx.fill();
+    }
+
+    // 边框
     ctx.strokeStyle = 'rgba(10,132,255,0.28)';
     ctx.lineWidth = 2;
     this._roundRect(ctx, 44, 44, W - 88, H - 88, 28);
     ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    // HUD 角标
+    var cornerLen = 24;
+    ctx.strokeStyle = 'rgba(0,200,255,0.18)';
     ctx.lineWidth = 1;
-    for (var y = 76; y < H - 76; y += 16) {
+    // 左上
+    ctx.beginPath(); ctx.moveTo(44, 44 + cornerLen); ctx.lineTo(44, 44); ctx.lineTo(44 + cornerLen, 44); ctx.stroke();
+    // 右上
+    ctx.beginPath(); ctx.moveTo(W - 44 - cornerLen, 44); ctx.lineTo(W - 44, 44); ctx.lineTo(W - 44, 44 + cornerLen); ctx.stroke();
+    // 左下
+    ctx.beginPath(); ctx.moveTo(44, H - 44 - cornerLen); ctx.lineTo(44, H - 44); ctx.lineTo(44 + cornerLen, H - 44); ctx.stroke();
+    // 右下
+    ctx.beginPath(); ctx.moveTo(W - 44 - cornerLen, H - 44); ctx.lineTo(W - 44, H - 44); ctx.lineTo(W - 44, H - 44 - cornerLen); ctx.stroke();
+
+    // 极弱扫描线
+    ctx.strokeStyle = 'rgba(0,200,255,0.02)';
+    ctx.lineWidth = 1;
+    for (var y = 76; y < H - 76; y += 4) {
       ctx.beginPath();
       ctx.moveTo(60, y);
       ctx.lineTo(W - 60, y);
@@ -482,36 +514,76 @@ Page({
     ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle || ''), W / 2, coreY + 52);
     ctx.textAlign = 'left';
 
-    // 简化五维扫描线
+    // 五维扫描雷达
     var scanCenterX = W / 2;
-    var scanCenterY = coreY + 140;
+    var scanCenterY = coreY + 150;
     var scanRadius = 100;
     var dims = d.radarDimensions || [];
     if (dims.length > 0 && battle.generated) {
-      ctx.strokeStyle = 'rgba(0, 200, 255, 0.20)';
-      ctx.lineWidth = 1;
-      // 外圈
-      ctx.beginPath();
-      ctx.arc(scanCenterX, scanCenterY, scanRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      // 五条放射线
-      for (var i = 0; i < 5; i++) {
-        var angle = -Math.PI / 2 + (Math.PI * 2 / 5) * i;
-        var val = (dims[i] ? dims[i].value : 0) / 100;
-        var lineLen = scanRadius * val;
-        var x2 = scanCenterX + Math.cos(angle) * lineLen;
-        var y2 = scanCenterY + Math.sin(angle) * lineLen;
-        ctx.strokeStyle = 'rgba(0, 200, 255, 0.50)';
+      var sides = 5;
+      var startAngle = -Math.PI / 2;
+
+      // 五角星网格
+      var gridLevels = [0.33, 0.66, 1.0];
+      for (var gi = 0; gi < gridLevels.length; gi++) {
+        var gl = gridLevels[gi];
+        ctx.beginPath();
+        for (var si = 0; si < sides; si++) {
+          var ga = startAngle + (Math.PI * 2 / sides) * si;
+          var gx = scanCenterX + Math.cos(ga) * scanRadius * gl;
+          var gy = scanCenterY + Math.sin(ga) * scanRadius * gl;
+          if (si === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = gi === 2 ? 'rgba(0,200,255,0.18)' : 'rgba(0,200,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+
+      // 轴线
+      for (var ai = 0; ai < sides; ai++) {
+        var aa = startAngle + (Math.PI * 2 / sides) * ai;
         ctx.beginPath();
         ctx.moveTo(scanCenterX, scanCenterY);
-        ctx.lineTo(x2, y2);
+        ctx.lineTo(scanCenterX + Math.cos(aa) * scanRadius, scanCenterY + Math.sin(aa) * scanRadius);
+        ctx.strokeStyle = 'rgba(0,200,255,0.12)';
+        ctx.lineWidth = 1;
         ctx.stroke();
-        // 端点
-        ctx.fillStyle = '#00C8FF';
+      }
+
+      // 数据面
+      ctx.beginPath();
+      for (var di = 0; di < sides; di++) {
+        var da = startAngle + (Math.PI * 2 / sides) * di;
+        var dv = (dims[di] ? dims[di].value : 0) / 100;
+        var dx = scanCenterX + Math.cos(da) * scanRadius * dv;
+        var dy = scanCenterY + Math.sin(da) * scanRadius * dv;
+        if (di === 0) ctx.moveTo(dx, dy); else ctx.lineTo(dx, dy);
+      }
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0,200,255,0.10)';
+      ctx.fill();
+      ctx.strokeStyle = '#00C8FF';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 数据节点
+      for (var ni = 0; ni < sides; ni++) {
+        var na = startAngle + (Math.PI * 2 / sides) * ni;
+        var nv = (dims[ni] ? dims[ni].value : 0) / 100;
+        var nx = scanCenterX + Math.cos(na) * scanRadius * nv;
+        var ny = scanCenterY + Math.sin(na) * scanRadius * nv;
         ctx.beginPath();
-        ctx.arc(x2, y2, 3, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#00C8FF';
         ctx.fill();
       }
+
+      // 中心点
+      ctx.beginPath();
+      ctx.arc(scanCenterX, scanCenterY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,200,255,0.60)';
+      ctx.fill();
     }
 
     // ---- 信息区 ----

@@ -7,6 +7,8 @@ const { get } = require('../../utils/request')
 let audioCtx = wx.createInnerAudioContext()
 audioCtx.obeyMuteSwitch = false
 
+let _hudTimer = null;
+
 Page({
   data: {
     categories: [],
@@ -18,7 +20,10 @@ Page({
     playingId: '',
     scrollTo: '',
     showSheet: false,
-    animationEnabled: true
+    animationEnabled: true,
+    hudVisible: false,
+    hudText: '',
+    hudType: 'info'
   },
 
   onLoad() {
@@ -48,6 +53,16 @@ Page({
     if (this._sheetTimer) { clearTimeout(this._sheetTimer); this._sheetTimer = null }
     if (this._backTimer) { clearTimeout(this._backTimer); this._backTimer = null }
     if (this._confirmTimer) { clearTimeout(this._confirmTimer); this._confirmTimer = null }
+    if (_hudTimer) { clearTimeout(_hudTimer); _hudTimer = null }
+  },
+
+  showHud(text, type) {
+    if (_hudTimer) { clearTimeout(_hudTimer); _hudTimer = null }
+    this.setData({ hudVisible: true, hudText: text, hudType: type || 'info' });
+    _hudTimer = setTimeout(() => {
+      _hudTimer = null;
+      this.setData({ hudVisible: false });
+    }, 1600);
   },
 
   /** 从后端加载音色目录 */
@@ -56,7 +71,7 @@ Page({
       const catalog = await get('/voice/catalog')
       this.setData({ categories: catalog.categories || [] })
     } catch (e) {
-      wx.showToast({ title: '通讯音色加载失败', icon: 'none' })
+      this.showHud('通讯频道加载失败', 'error')
     }
   },
 
@@ -122,8 +137,8 @@ Page({
       voiceFile: selectedFile
     })
 
-    wx.showToast({ title: '音色已切换：' + selectedName, icon: 'success' })
-    // reduce-motion 下直接返回，否则等待 toast 消失
+    this.showHud('通讯协议已接入', 'info')
+    // reduce-motion 下直接返回，否则等待 HUD 消失
     if (this.data.animationEnabled) {
       this._confirmTimer = setTimeout(() => wx.navigateBack(), 800)
     } else {

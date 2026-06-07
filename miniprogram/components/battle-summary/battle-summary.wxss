@@ -21,7 +21,7 @@
 .summary-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 
@@ -112,12 +112,12 @@
 }
 
 .cell-number.negative {
-  color: var(--danger)
+  color: var(--danger);
   text-shadow: 0 0 16rpx rgba(255, 69, 58, 0.25);
 }
 
 .cell-number.accent {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   text-shadow: 0 0 16rpx rgba(0, 175, 255, 0.30);
 }
 

@@ -1,4 +1,10 @@
 <view class="page {{!animationEnabled ? 'reduce-motion' : ''}}">
+  <!-- HUD 状态条 -->
+  <view class="sync-hud {{hudVisible ? 'sync-hud--show' : ''}} {{hudType === 'error' ? 'sync-hud--error' : hudType === 'warning' ? 'sync-hud--warning' : ''}}">
+    <view class="sync-hud__dot"></view>
+    <text class="sync-hud__text">{{hudText}}</text>
+  </view>
+
   <!-- 蒙层 -->
   <view class="mask {{showSheet ? 'visible' : ''}}" bindtap="closeSheet"></view>
 
@@ -9,7 +15,10 @@
 
     <!-- Header -->
     <view class="header">
-      <text class="header-title">声音协议</text>
+      <view>
+        <text class="header-kicker">VOICE CHANNEL</text>
+        <text class="header-title">通讯频道校准</text>
+      </view>
       <view class="fi fi--close" bindtap="closeSheet"></view>
     </view>
 
@@ -31,8 +40,8 @@
 
       <!-- 右侧音色列表 -->
       <scroll-view class="voice-list" scroll-y scroll-into-view="{{scrollTo}}">
-        <!-- 当前分类标题 -->
-        <view class="section-title">{{categories[activeTab].name}}</view>
+        <!-- 当前频道标题 -->
+        <view class="section-title">{{categories[activeTab].name}} 频道</view>
 
         <block wx:for="{{categories[activeTab].voices}}" wx:key="id">
           <view
@@ -42,6 +51,7 @@
             data-id="{{item.id}}"
             data-file="{{item.file}}"
           >
+            <view class="voice-status-dot" wx:if="{{selectedId === item.id}}"></view>
             <view class="voice-info">
               <view class="voice-name">{{item.name}}</view>
               <view class="voice-desc">{{item.desc}}</view>

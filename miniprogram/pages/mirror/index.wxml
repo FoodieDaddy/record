@@ -1,5 +1,15 @@
 <view class="mirror-bay {{reduceMotion ? 'reduce-motion' : ''}}">
 
+  <!-- 深空背景层 -->
+  <view class="mirror-space-bg" wx:if="{{!loading}}">
+    <view class="mirror-nebula"></view>
+    <view class="mirror-scanlines"></view>
+    <view class="mirror-hud-corner mirror-hud-tl"></view>
+    <view class="mirror-hud-corner mirror-hud-tr"></view>
+    <view class="mirror-hud-corner mirror-hud-bl"></view>
+    <view class="mirror-hud-corner mirror-hud-br"></view>
+  </view>
+
   <!-- Loading Skeleton -->
   <block wx:if="{{loading}}">
     <view class="skeleton-card primary"></view>

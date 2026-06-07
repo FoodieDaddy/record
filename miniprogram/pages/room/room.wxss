@@ -2916,27 +2916,52 @@
 
 /* === 启动核心 === */
 .launch-deck {
+  position: relative;
   text-align: center;
   padding: 48rpx 32rpx;
   overflow: hidden;
+  min-height: 560rpx;
+}
+
+/* 扫描线 */
+.idle-scanline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -30%;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, rgba(0,200,255,0.06), transparent);
+  animation: idleScan 4.8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes idleScan {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(360%); opacity: 0; }
 }
 
 .deck-grid {
   position: absolute;
   inset: 0;
+  opacity: 0.28;
   background:
-    linear-gradient(rgba(0,200,255,0.03) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(0,200,255,0.03) 1rpx, transparent 1rpx);
+    linear-gradient(rgba(0,200,255,0.08) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.08) 1rpx, transparent 1rpx);
   background-size: 48rpx 48rpx;
-  opacity: 0.6;
+  mask-image: radial-gradient(circle at center, #000, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle at center, #000, transparent 72%);
   pointer-events: none;
 }
 
 .launch-core {
   position: relative;
-  width: 280rpx;
-  height: 280rpx;
-  margin: 40rpx auto;
+  width: 300rpx;
+  height: 300rpx;
+  margin: 36rpx auto 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .core-ring {
@@ -2961,14 +2986,57 @@
   to { transform: rotate(360deg); }
 }
 
-.launch-core.is-igniting .core-ring {
+/* 轨道呼吸 */
+.core-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1rpx solid rgba(0,200,255,0.22);
+}
+
+.core-orbit-a {
+  inset: 0;
+  animation: coreBreath 3.2s ease-in-out infinite;
+}
+
+.core-orbit-b {
+  inset: 34rpx;
+  border-color: rgba(10,132,255,0.18);
+  animation: coreBreath 3.2s ease-in-out infinite reverse;
+}
+
+@keyframes coreBreath {
+  0%, 100% { transform: scale(0.98); opacity: 0.58; }
+  50% { transform: scale(1.03); opacity: 0.92; }
+}
+
+/* 核心脉冲 */
+.core-pulse {
+  position: absolute;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,200,255,0.18), rgba(0,200,255,0.02) 62%, transparent);
+  animation: corePulse 2.4s ease-in-out infinite;
+}
+
+@keyframes corePulse {
+  0%, 100% { transform: scale(0.86); opacity: 0.44; }
+  50% { transform: scale(1.08); opacity: 0.9; }
+}
+
+.launch-core.is-igniting .core-ring,
+.launch-core.is-igniting .core-orbit {
   border-color: rgba(0,200,255,0.56);
   box-shadow: 0 0 24rpx rgba(0,200,255,0.2);
 }
 
+.launch-core.is-igniting .core-pulse {
+  background: radial-gradient(circle, rgba(0,200,255,0.36), rgba(0,200,255,0.06) 62%, transparent);
+}
+
 .core-center {
-  position: absolute;
-  inset: 60rpx;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3051,6 +3119,24 @@
   flex-direction: column;
   gap: 16rpx;
   margin-top: 32rpx;
+}
+
+.launch-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-energy {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.12), transparent);
+  animation: btnEnergy 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes btnEnergy {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* === 接入弹窗 === */
@@ -3292,6 +3378,34 @@
   gap: 14rpx;
 }
 
+/* 动态席位布局 */
+.crew-stage {
+  display: grid;
+  gap: 14rpx;
+}
+
+.crew-stage.layout-solo {
+  grid-template-columns: repeat(2, 1fr);
+  padding: 0 48rpx;
+}
+
+.crew-stage.layout-duo {
+  grid-template-columns: repeat(2, 1fr);
+  padding: 0 24rpx;
+}
+
+.crew-stage.layout-compact {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.crew-stage.layout-wide {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.crew-stage.layout-matrix {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .crew-seat {
   min-height: 168rpx;
   padding: 16rpx 10rpx;
@@ -3324,8 +3438,48 @@
 }
 
 .crew-seat.is-selected {
-  border-color: rgba(0,200,255,0.56);
-  background: rgba(0,200,255,0.08);
+  border-color: rgba(0,200,255,0.72);
+  background: rgba(0,200,255,0.09);
+  transform: translateY(-4rpx);
+}
+
+.crew-seat.is-impact {
+  animation: seatImpact .42s ease-out;
+}
+
+@keyframes seatImpact {
+  0% {
+    box-shadow: 0 0 0 rgba(0,200,255,0);
+    transform: scale(1);
+  }
+  40% {
+    box-shadow: 0 0 34rpx rgba(0,200,255,0.38);
+    transform: scale(1.035);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(0,200,255,0);
+    transform: scale(1);
+  }
+}
+
+.reduce-motion .crew-seat.is-impact {
+  animation: none !important;
+}
+
+.crew-seat.is-selected::after {
+  content: '';
+  position: absolute;
+  inset: 6rpx;
+  border: 1rpx solid rgba(0,200,255,0.36);
+  pointer-events: none;
+  clip-path: polygon(
+    10rpx 0,
+    100% 0,
+    100% calc(100% - 10rpx),
+    calc(100% - 10rpx) 100%,
+    0 100%,
+    0 10rpx
+  );
 }
 
 .seat-corner {
@@ -3340,6 +3494,44 @@
 
 .crew-seat.is-empty .seat-corner {
   border-color: rgba(255,255,255,0.06);
+}
+
+/* 接入席位 */
+.crew-seat.is-invite {
+  border-style: dashed;
+  border-color: rgba(226,242,255,0.14);
+  background: rgba(255,255,255,0.018);
+  opacity: 0.72;
+}
+
+.crew-seat.is-invite .seat-corner {
+  border-color: rgba(226,242,255,0.08);
+}
+
+.invite-cross {
+  width: 48rpx;
+  height: 48rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invite-cross-h,
+.invite-cross-v {
+  position: absolute;
+  background: rgba(226,242,255,0.22);
+  border-radius: 1rpx;
+}
+
+.invite-cross-h {
+  width: 28rpx;
+  height: 2rpx;
+}
+
+.invite-cross-v {
+  width: 2rpx;
+  height: 28rpx;
 }
 
 .seat-avatar-wrap {
@@ -3372,6 +3564,11 @@
   color: rgba(226,242,255,0.24);
 }
 
+.crew-seat.is-invite .seat-name {
+  color: rgba(226,242,255,0.38);
+  font-size: 20rpx;
+}
+
 .seat-score {
   margin-top: 4rpx;
   font-family: 'DIN Alternate', Menlo, monospace;
@@ -3391,6 +3588,11 @@
 }
 
 .crew-seat.is-empty .seat-dot {
+  background: rgba(226,242,255,0.22);
+  box-shadow: none;
+}
+
+.seat-dot.muted {
   background: rgba(226,242,255,0.22);
   box-shadow: none;
 }
@@ -3457,6 +3659,219 @@
   font-size: 22rpx;
   color: rgba(226,242,255,0.38);
   margin-top: 12rpx;
+}
+
+/* === 悬浮脉冲控制台 === */
+.pulse-dock {
+  position: fixed;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(126rpx + env(safe-area-inset-bottom));
+  z-index: 88;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(0,200,255,0.24);
+  background: rgba(3,10,18,0.88);
+  backdrop-filter: blur(20rpx);
+  box-shadow: 0 -12rpx 40rpx rgba(0,0,0,0.32);
+  clip-path: polygon(
+    20rpx 0,
+    100% 0,
+    100% calc(100% - 20rpx),
+    calc(100% - 20rpx) 100%,
+    0 100%,
+    0 20rpx
+  );
+}
+
+.pulse-dock-target {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.dock-target-label {
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(0,200,255,0.48);
+}
+
+.dock-target-name {
+  font-size: 24rpx;
+  color: rgba(0,200,255,0.92);
+  font-weight: 600;
+}
+
+.pulse-dock-main {
+  display: grid;
+  grid-template-columns: 68rpx 1fr 68rpx 120rpx;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.pulse-step-btn {
+  height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.035);
+  color: rgba(226,242,255,0.9);
+  font-size: 32rpx;
+  font-weight: 600;
+  padding: 0;
+  line-height: 1;
+  border-radius: 0;
+  clip-path: polygon(12rpx 0, 100% 0, 100% calc(100% - 12rpx), calc(100% - 12rpx) 100%, 0 100%, 0 12rpx);
+}
+
+.pulse-step-btn::after {
+  display: none;
+}
+
+.pulse-dock-input {
+  height: 68rpx;
+  text-align: center;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 34rpx;
+  color: rgba(0,200,255,0.96);
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background: rgba(0,200,255,0.045);
+  caret-color: rgba(0,200,255,0.88);
+}
+
+.pulse-fire-btn {
+  height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(0,200,255,0.48);
+  background: rgba(0,200,255,0.12);
+  color: rgba(226,242,255,0.96);
+  font-size: 26rpx;
+  font-weight: 700;
+  padding: 0;
+  line-height: 1;
+  border-radius: 0;
+  clip-path: polygon(12rpx 0, 100% 0, 100% calc(100% - 12rpx), calc(100% - 12rpx) 100%, 0 100%, 0 12rpx);
+}
+
+.pulse-fire-btn::after {
+  display: none;
+}
+
+.pulse-fire-btn.is-disabled {
+  opacity: 0.38;
+  border-color: rgba(0,200,255,0.18);
+  background: rgba(0,200,255,0.04);
+}
+
+.pulse-fire-btn.is-loading {
+  opacity: 0.58;
+}
+
+.pulse-dock-hint {
+  margin-top: 10rpx;
+  text-align: center;
+  font-size: 21rpx;
+  color: rgba(226,242,255,0.38);
+}
+
+.pulse-dock-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  padding: 16rpx 0;
+  font-size: 23rpx;
+  color: rgba(255,255,255,0.40);
+}
+
+.waiting-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(255,159,10,0.6);
+  animation: waiting-pulse 2s ease-in-out infinite;
+}
+
+@keyframes waiting-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.pulse-dock.is-locked {
+  border-color: rgba(0,200,255,0.38);
+}
+
+/* 脉冲飞行动画层 */
+.pulse-flight-layer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 120;
+}
+
+.pulse-flight-dot {
+  position: absolute;
+  width: 18rpx;
+  height: 18rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.96);
+  box-shadow:
+    0 0 16rpx rgba(0,200,255,0.86),
+    0 0 42rpx rgba(10,132,255,0.46);
+  animation: pulseFlight .72s cubic-bezier(.18,.82,.22,1) forwards;
+}
+
+.pulse-tail {
+  position: absolute;
+  right: 8rpx;
+  top: 7rpx;
+  width: 80rpx;
+  height: 4rpx;
+  transform-origin: right center;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.64));
+  filter: blur(1rpx);
+}
+
+.pulse-flight-value {
+  position: absolute;
+  left: 24rpx;
+  top: -20rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 22rpx;
+  color: rgba(0,200,255,0.96);
+  text-shadow: 0 0 14rpx rgba(0,200,255,0.42);
+}
+
+@keyframes pulseFlight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0,0,0) scale(.55);
+  }
+  12% {
+    opacity: 1;
+    transform: translate3d(calc(var(--dx) * .08), calc(var(--dy) * .02 - 18rpx), 0) scale(1);
+  }
+  58% {
+    opacity: 1;
+    transform: translate3d(calc(var(--dx) * .72), calc(var(--dy) * .62 - 32rpx), 0) scale(.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) scale(.3);
+  }
+}
+
+.reduce-motion .pulse-flight-dot {
+  animation: none !important;
+  opacity: 0;
 }
 
 /* === 脉冲轨迹 === */
@@ -3546,11 +3961,27 @@
   display: flex;
   gap: 16rpx;
   padding: 24rpx 0;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 }
 
 .bottom-command-bar .sr-btn {
   flex: 1;
+}
+
+/* 航程控制区（与主操作分离） */
+.bottom-danger-zone {
+  padding: 16rpx 0 0;
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid rgba(255,255,255,0.06);
+  margin-top: 8rpx;
+}
+
+.danger-zone-label {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.28);
+  letter-spacing: 4rpx;
+  text-transform: uppercase;
+  margin-bottom: 16rpx;
 }
 
 /* === 封存确认弹窗 === */
@@ -3689,6 +4120,11 @@
 /* === reduce-motion === */
 .reduce-motion .core-ring-outer,
 .reduce-motion .core-ring-inner,
+.reduce-motion .core-orbit-a,
+.reduce-motion .core-orbit-b,
+.reduce-motion .core-pulse,
+.reduce-motion .idle-scanline,
+.reduce-motion .btn-energy,
 .reduce-motion .write-beam,
 .reduce-motion .write-desc,
 .reduce-motion .deck-grid {

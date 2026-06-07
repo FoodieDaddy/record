@@ -8,7 +8,8 @@
     "pages/settings/settings",
     "pages/voice-select/voice-select",
     "pages/settle/settle",
-    "pages/score-records/score-records"
+    "pages/score-records/score-records",
+    "pages/level-archive/level-archive"
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",

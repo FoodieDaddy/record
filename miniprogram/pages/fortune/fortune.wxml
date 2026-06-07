@@ -1,201 +1,294 @@
-<scroll-view class="strategy-page {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{pageMode !== 'generating'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+<scroll-view class="strategy-page {{!animationEnabled ? 'reduce-motion' : ''}}" scroll-y="{{pageMode === 'result'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
 
-  <!-- ═══ launch / relaunchReady 启动卡牌页 ═══ -->
-  <view class="strategy-launch" wx:if="{{pageMode === 'launch' || pageMode === 'relaunchReady'}}">
+  <!-- ═══ 飞行甲板统一舞台（贯穿 idle → result） ═══ -->
+  <view class="flight-deck flight-deck--{{flightStage}}">
 
-    <!-- 顶部标题 -->
-    <view class="strategy-launch-header">
-      <text class="strategy-launch-title">今日航行指令</text>
-      <text class="strategy-launch-kicker">CORE STATUS</text>
-      <text class="strategy-launch-date">{{currentDate}}</text>
+    <!-- 甲板透视线（永远存在） -->
+    <view class="deck-perspective">
+      <view class="deck-line deck-line--1"></view>
+      <view class="deck-line deck-line--2"></view>
+      <view class="deck-line deck-line--3"></view>
+      <view class="deck-line deck-line--4"></view>
+      <view class="deck-line deck-line--5"></view>
+    </view>
+
+    <!-- 顶部标题（idle/arming 态可见） -->
+    <view class="flight-deck-header {{flightStage === 'idle' || flightStage === 'arming' ? 'fdh-visible' : 'fdh-hidden'}}">
+      <text class="flight-deck-title">航行核心</text>
+      <text class="flight-deck-kicker">DECK ONLINE</text>
+      <text class="flight-deck-date">{{currentDate}}</text>
     </view>
 
     <!-- 复位状态条（仅 relaunchReady） -->
-    <view class="strategy-reset-bar" wx:if="{{pageMode === 'relaunchReady'}}">
+    <view class="strategy-reset-bar" wx:if="{{pageMode === 'relaunchReady' && flightStage === 'idle'}}">
       <view class="strategy-reset-dot"></view>
-      <text class="strategy-reset-text">策略核心待机 · 点击启动</text>
+      <text class="strategy-reset-text">航行核心待机 · 点击点火</text>
     </view>
 
-    <!-- 核心卡牌 -->
-    <view class="strategy-core-wrap">
-      <view class="scan-ring scan-ring--idle"></view>
-      <view class="strategy-core-card {{pageMode === 'relaunchReady' ? 'strategy-core-card--armed' : ''}}" bindtap="onTapLaunchCore">
-        <view class="strategy-core-visual">
-          <view class="core-inner">
-            <view class="core-ring core-ring--1"></view>
-            <view class="core-ring core-ring--2"></view>
-            <view class="core-ring core-ring--3"></view>
-            <view class="core-dot"></view>
-          </view>
-        </view>
-        <view class="strategy-core-label">策略核心</view>
-        <view class="strategy-core-sublabel">点击启动</view>
-      </view>
-    </view>
-
-    <!-- 底部说明 -->
-    <view class="strategy-launch-info">
-      <text class="strategy-launch-info-text">同步身份协议与黑匣子样本，生成今日航行指令</text>
-    </view>
-
-    <view class="countdown-bar" wx:if="{{countdownText}}">
-      <text class="countdown-label">下次策略刷新：</text>
-      <text class="countdown-value">{{countdownText}}</text>
-    </view>
-  </view>
-
-  <!-- ═══ generating 计算页 ═══ -->
-  <view class="strategy-generate" wx:if="{{pageMode === 'generating'}}">
-
-    <!-- 核心舱 HUD -->
-    <view class="strategy-reactor">
-      <view class="strategy-reactor-core">
+    <!-- 共享航行核心（唯一 DOM，贯穿 idle → done） -->
+    <view class="nav-core-stage">
+      <view class="scan-ring scan-ring--{{flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'gen' : 'idle'}}"></view>
+      <view class="nav-core-rings">
         <view class="core-inner">
           <view class="core-ring core-ring--1"></view>
           <view class="core-ring core-ring--2"></view>
           <view class="core-ring core-ring--3"></view>
+          <view class="core-glow"></view>
           <view class="core-dot"></view>
         </view>
       </view>
-      <view class="scan-ring scan-ring--gen"></view>
+      <view class="nav-core-beam"></view>
     </view>
 
-    <!-- 主文案 -->
-    <view class="strategy-gen-label">
-      <text class="strategy-gen-kicker">STRATEGY CORE</text>
-      <text class="strategy-gen-sub">系统正在同步身份协议、历史样本与今日状态</text>
+    <!-- 投影线（projecting/done 态出现） -->
+    <view class="projection-line"></view>
+
+    <!-- HUD 刻度线 -->
+    <view class="hud-marks hud-marks--left">
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
+    </view>
+    <view class="hud-marks hud-marks--right">
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
+      <view class="hud-mark"></view>
     </view>
 
-    <!-- 进度步骤 -->
-    <view class="strategy-progress-rail">
-      <view class="strategy-step-item {{item.done ? 'strategy-step-item--done' : index === step ? 'strategy-step-item--active' : ''}}"
-            wx:for="{{stages}}" wx:key="index">
-        <view class="strategy-step-dot {{item.done ? 'strategy-step-dot--done' : index === step ? 'strategy-step-dot--active' : ''}}"></view>
-        <text class="strategy-step-label">{{item.label}}</text>
-      </view>
-      <view class="strategy-step-count">{{stagesDoneCount}} / 4</view>
-    </view>
+    <!-- ═══ 甲板点火控制器（永远存在，class 控制可见性） ═══ -->
+    <view class="ignition-console {{flightStage === 'pressed' || flightStage === 'plasma' ? 'ignition-console--active' : ''}} {{flightStage === 'lifting' || flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--dimmed' : ''}}">
 
-    <!-- 日志流 -->
-    <view class="strategy-terminal">
-      <view class="strategy-log-line {{item.visible ? 'strategy-log-line--visible' : ''}}"
-            wx:for="{{logs}}" wx:key="index">
-        <text class="strategy-log-prefix">{{item.prefix}}</text>
-        <text class="strategy-log-text {{item.typing ? 'strategy-log-typing' : ''}}">{{item.text}}</text>
+      <!-- 保险状态头 -->
+      <view class="ignition-arm-header">
+        <text class="ignition-arm-label">{{flightStage === 'idle' ? 'ARM LOCK' : 'READY'}}</text>
+        <view class="ignition-arm-dots">
+          <view class="ignition-arm-dot"></view>
+          <view class="ignition-arm-dot"></view>
+        </view>
       </view>
-    </view>
-  </view>
 
-  <!-- ═══ result 结果页 ═══ -->
-  <view class="strategy-result" wx:if="{{pageMode === 'result'}}" style="--accent: {{themeColor}};">
+      <!-- 四角铆点 -->
+      <view class="ignition-bolt ignition-bolt--tl"></view>
+      <view class="ignition-bolt ignition-bolt--tr"></view>
+      <view class="ignition-bolt ignition-bolt--bl"></view>
+      <view class="ignition-bolt ignition-bolt--br"></view>
 
-    <!-- 顶部标题区 -->
-    <view class="strategy-result-header">
-      <text class="strategy-result-title">今日航行指令</text>
-      <text class="strategy-result-kicker">CORE STATUS</text>
-      <text class="strategy-result-date">{{currentDate}}</text>
-    </view>
+      <!-- 状态灯 - 左 -->
+      <view class="ignition-led ignition-led--left">
+        <view class="ignition-led-dot"></view>
+        <view class="ignition-led-dot"></view>
+      </view>
 
-    <!-- 状态胶囊 -->
-    <view class="strategy-tag-pill" wx:if="{{strategy.tag}}" style="border-color: {{themeColor}}40; background: {{themeColor}}12; color: {{themeColor}};">
-      <text>{{strategy.tag}}</text>
-    </view>
+      <!-- 状态灯 - 右 -->
+      <view class="ignition-led ignition-led--right">
+        <view class="ignition-led-dot"></view>
+        <view class="ignition-led-dot"></view>
+      </view>
 
-    <!-- HUD 芯片 -->
-    <view class="strategy-hud-chips">
-      <view class="strategy-hud-chip">
-        <text class="strategy-hud-chip-label">数据源</text>
-        <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
+      <!-- 保险栅（点火时左右打开） -->
+      <view class="ignition-safety-rail {{flightStage !== 'idle' ? 'rail-open' : ''}}">
+        <view class="rail-half rail-half--left"></view>
+        <view class="rail-gap"></view>
+        <view class="rail-half rail-half--right"></view>
       </view>
-      <view class="strategy-hud-chip">
-        <text class="strategy-hud-chip-label">观测窗口</text>
-        <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
-      </view>
-      <view class="strategy-hud-chip">
-        <text class="strategy-hud-chip-label">状态噪声</text>
-        <text class="strategy-hud-chip-value">{{userTagLabel}}</text>
-      </view>
-    </view>
 
-    <!-- 核心洞察 -->
-    <view class="strategy-insight" wx:if="{{strategy.verdict}}">
-      <view class="strategy-section-head">
-        <text class="strategy-section-title">当前状态</text>
-        <text class="strategy-section-kicker">INSIGHT</text>
+      <!-- 安全护框 + 主点火按钮 -->
+      <view class="ignition-guard">
+        <view class="ignition-button" bindtap="onTapLaunchCore">
+          <text class="ignition-button-text">点火航行核心</text>
+          <text class="ignition-button-kicker">PRESS TO IGNITE</text>
+        </view>
       </view>
-      <text class="strategy-insight-text">{{strategy.verdict}}</text>
-    </view>
 
-    <!-- 策略读数 -->
-    <view class="strategy-reading" wx:if="{{strategy.title}}">
-      <view class="strategy-reading-head">
-        <text class="strategy-reading-name">{{strategy.title}}</text>
-        <text class="strategy-reading-sub" wx:if="{{strategy.subtitle}}">{{strategy.subtitle}}</text>
+      <!-- 离子火（仅 pressed/plasma 态短暂出现） -->
+      <view class="plasma-flame {{flightStage === 'plasma' || flightStage === 'pressed' ? 'plasma-flame--active' : ''}}">
+        <view class="plasma-flame-core"></view>
       </view>
-      <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
-        <text class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</text>
-      </view>
-    </view>
 
-    <!-- 行动优势 -->
-    <view class="strategy-section" wx:if="{{strategy.buffs && strategy.buffs.length}}">
-      <view class="strategy-section-head">
-        <text class="strategy-section-icon strategy-section-icon--pos">+</text>
-        <text class="strategy-section-title strategy-section-title--pos">执行节奏</text>
-        <text class="strategy-section-kicker">ADVANTAGE</text>
+      <!-- 底部能量槽 -->
+      <view class="ignition-energy-slot">
+        <view class="ignition-energy-fill {{flightStage === 'pressed' || flightStage === 'plasma' ? 'ignition-energy-fill--active' : ''}}"></view>
       </view>
-      <view class="strategy-list-card">
-        <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="index">
-          <text class="strategy-list-index strategy-list-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
-          <text class="strategy-list-text">{{item}}</text>
+
+      <!-- 底部状态 -->
+      <view class="ignition-status">
+        <view class="ignition-status-item">
+          <view class="ignition-status-dot"></view>
+          <text class="ignition-status-text">舰员协议</text>
+        </view>
+        <view class="ignition-status-item">
+          <view class="ignition-status-dot"></view>
+          <text class="ignition-status-text">黑匣子</text>
         </view>
       </view>
     </view>
 
-    <!-- 风险提示 -->
-    <view class="strategy-section" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
-      <view class="strategy-section-head">
-        <text class="strategy-section-icon strategy-section-icon--neg">!</text>
-        <text class="strategy-section-title strategy-section-title--neg">风险提示</text>
-        <text class="strategy-section-kicker strategy-section-kicker--neg">RISK</text>
+    <!-- 底部说明（idle 态） -->
+    <view class="flight-deck-info {{flightStage === 'idle' ? 'fdi-visible' : 'fdi-hidden'}}">
+      <text class="flight-deck-info-text">接入舰员协议与黑匣子样本</text>
+      <text class="flight-deck-info-text">等待今日指令投影</text>
+    </view>
+
+    <!-- 底部 HUD 状态栏（idle 态） -->
+    <view class="deck-hud-bar {{flightStage === 'idle' ? 'dhb-visible' : 'dhb-hidden'}}">
+      <view class="deck-hud-bar-left">
+        <view class="deck-status-dot"></view>
+        <text class="deck-status-text">甲板状态：待机</text>
       </view>
-      <view class="strategy-list-card strategy-list-card--risk">
-        <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="index">
-          <text class="strategy-list-index strategy-list-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
-          <text class="strategy-list-text">{{item}}</text>
+      <view class="deck-hud-bar-right" wx:if="{{countdownText}}">
+        <text class="countdown-label">下次校准</text>
+        <text class="countdown-value">{{countdownText}}</text>
+      </view>
+    </view>
+
+    <!-- ═══ 日志舱（syncing/projecting 态，从核心下方投影展开） ═══ -->
+    <view class="sync-console {{flightStage === 'syncing' || flightStage === 'projecting' ? 'sync-visible' : ''}}" wx:if="{{flightStage === 'syncing' || flightStage === 'projecting'}}">
+      <view class="sync-projection-line"></view>
+      <view class="flight-terminal">
+        <view class="flight-terminal-head">
+          <text class="flight-terminal-title">系统日志</text>
+        </view>
+        <view class="flight-terminal-body">
+          <view class="flight-log-line {{item.visible ? 'flight-log-line--visible' : ''}}"
+                wx:for="{{logs}}" wx:key="index">
+            <view class="flight-log-dot"></view>
+            <text class="flight-log-text {{item.typing ? 'flight-log-typing' : ''}}">{{item.text}}</text>
+          </view>
         </view>
       </view>
     </view>
 
-    <!-- 刷新倒计时 -->
-    <view class="countdown-bar" wx:if="{{countdownText}}">
-      <text class="countdown-label">刷新倒计时 </text>
-      <text class="countdown-value">{{countdownText}}</text>
+    <!-- 舰载 heartbeat（syncing 态，延迟出现） -->
+    <view class="flight-heartbeat {{heartbeatText ? 'heartbeat-visible' : ''}}" wx:if="{{flightStage === 'syncing'}}">
+      <view class="flight-heartbeat-dot"></view>
+      <text class="flight-heartbeat-text">{{heartbeatText}}</text>
     </view>
 
-    <!-- 底部操作区 -->
-    <view class="strategy-result-spacer"></view>
-    <view class="strategy-actions">
-      <view class="strategy-action-btn strategy-action-btn--secondary" bindtap="onTapRegenerate">
-        <text class="strategy-action-text">重新推演</text>
-        <text class="strategy-action-kicker">REGEN</text>
+    <!-- ═══ 结果投影层（projecting/done 态，内嵌于 flight-deck） ═══ -->
+    <view class="directive-projection {{flightStage === 'projecting' || flightStage === 'done' ? 'dp-visible' : ''}}" wx:if="{{flightStage === 'projecting' || flightStage === 'done'}}" style="--accent: {{themeColor}};">
+
+      <!-- 投影标题区 -->
+      <view class="dp-header projection-card">
+        <text class="dp-title">今日指令投影</text>
+        <text class="dp-kicker">FLIGHT DIRECTIVE</text>
+        <text class="dp-date">{{currentDate}}</text>
       </view>
-      <view class="strategy-action-btn strategy-action-btn--primary" bindtap="onTapShare">
-        <text class="strategy-action-text">分享策略卡</text>
-        <text class="strategy-action-kicker">SHARE</text>
+
+      <!-- 状态胶囊 -->
+      <view class="strategy-tag-pill projection-card" wx:if="{{strategy.tag}}" style="border-color: {{themeColor}}40; background: {{themeColor}}12; color: {{themeColor}};">
+        <text>{{strategy.tag}}</text>
+      </view>
+
+      <!-- HUD 芯片（单行轻量 HUD） -->
+      <view class="strategy-hud-chips projection-card">
+        <view class="strategy-hud-chip">
+          <text class="strategy-hud-chip-label">指令源</text>
+          <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
+        </view>
+        <view class="strategy-hud-chip-divider"></view>
+        <view class="strategy-hud-chip">
+          <text class="strategy-hud-chip-label">观测窗</text>
+          <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
+        </view>
+        <view class="strategy-hud-chip-divider"></view>
+        <view class="strategy-hud-chip">
+          <text class="strategy-hud-chip-label">状态噪声</text>
+          <text class="strategy-hud-chip-value" style="color: {{userTagColor}};">{{userTagLabel}}</text>
+        </view>
+      </view>
+
+      <!-- 舰载指令（主视觉） -->
+      <view class="strategy-section projection-card" wx:if="{{directiveText}}">
+        <view class="strategy-section-head">
+          <text class="strategy-section-title">舰载指令</text>
+          <text class="strategy-section-kicker">DIRECTIVE</text>
+        </view>
+        <view class="strategy-reading">
+          <view class="strategy-reading-head">
+            <text class="strategy-reading-name">{{directiveText}}</text>
+          </view>
+          <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
+            <text class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 状态读数 -->
+      <view class="strategy-insight projection-card" wx:if="{{strategy.verdict}}">
+        <view class="strategy-section-head">
+          <text class="strategy-section-title">状态读数</text>
+          <text class="strategy-section-kicker">STATUS</text>
+        </view>
+        <text class="strategy-insight-text">{{strategy.verdict}}</text>
+      </view>
+
+      <!-- 推进节奏 -->
+      <view class="strategy-section projection-card" wx:if="{{strategy.buffs && strategy.buffs.length}}">
+        <view class="strategy-section-head">
+          <text class="strategy-section-icon strategy-section-icon--pos">+</text>
+          <text class="strategy-section-title strategy-section-title--pos">推进节奏</text>
+          <text class="strategy-section-kicker">THRUST</text>
+        </view>
+        <view class="strategy-list-card">
+          <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="index">
+            <text class="strategy-list-index strategy-list-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+            <text class="strategy-list-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 安全边界 -->
+      <view class="strategy-section projection-card" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
+        <view class="strategy-section-head">
+          <text class="strategy-section-icon strategy-section-icon--neg">!</text>
+          <text class="strategy-section-title strategy-section-title--neg">安全边界</text>
+          <text class="strategy-section-kicker strategy-section-kicker--neg">SAFETY</text>
+        </view>
+        <view class="strategy-list-card strategy-list-card--risk">
+          <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="index">
+            <text class="strategy-list-index strategy-list-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+            <text class="strategy-list-text">{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 下次校准倒计时 -->
+      <view class="countdown-bar projection-card" wx:if="{{countdownText}}">
+        <text class="countdown-label">下次校准</text>
+        <text class="countdown-value">{{countdownText}}</text>
+        <text class="countdown-kicker">NEXT CALIBRATION</text>
+      </view>
+
+      <!-- 底部操作区 -->
+      <view class="strategy-result-spacer"></view>
+      <view class="strategy-actions projection-card">
+        <view class="strategy-action-btn strategy-action-btn--secondary" bindtap="onTapRegenerate">
+          <text class="strategy-action-text">重新点火</text>
+          <text class="strategy-action-kicker">REIGNITE</text>
+        </view>
+        <view class="strategy-action-btn strategy-action-btn--primary" bindtap="onTapShare">
+          <text class="strategy-action-text">分享指令卡</text>
+          <text class="strategy-action-kicker">SHARE</text>
+        </view>
       </view>
     </view>
+
   </view>
 
-  <!-- ═══ 海报弹层（保留原逻辑） ═══ -->
+  <!-- ═══ 海报弹层 ═══ -->
   <view wx:if="{{phase === 'poster_generating' || phase === 'poster_preview'}}" class="poster-mask" catchtap="noop">
     <view class="poster-container">
 
       <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
-        <text class="poster-gen-text">正在生成策略投影...</text>
-        <view class="poster-gen-bar">
-          <view class="poster-gen-bar-fill"></view>
+        <view class="poster-gen-dots">
+          <view class="poster-gen-dot"></view>
+          <view class="poster-gen-dot"></view>
+          <view class="poster-gen-dot"></view>
         </view>
+        <text class="poster-gen-text">指令卡生成中</text>
+        <text class="poster-gen-kicker">RENDERING DIRECTIVE</text>
       </view>
 
       <view class="poster-preview" wx:if="{{phase === 'poster_preview' && posterPath}}">
@@ -212,7 +305,7 @@
 
       <view class="poster-actions" wx:if="{{phase === 'poster_preview' && posterPath}}">
         <view class="poster-btn poster-btn--save" bindtap="onSavePoster">保存图片</view>
-        <view class="poster-btn poster-btn--share" bindtap="onSharePoster">分享微信</view>
+        <view class="poster-btn poster-btn--share" bindtap="onSharePoster">发送给朋友</view>
         <view class="poster-btn poster-btn--close" bindtap="onClosePoster">关闭</view>
       </view>
 
@@ -221,49 +314,18 @@
 
   <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
 
-  <!-- ═══ 重新推演弹窗（完全自定义 · 推进舱风格） ═══ -->
-  <view class="strategy-regen-mask {{showRegenerateModal ? 'strategy-regen-mask--show' : ''}}" wx:if="{{showRegenerateModal}}" catchtap="noop">
-    <view class="strategy-regen-modal {{reduceMotion ? '' : 'strategy-regen-modal--animate'}}">
-
-      <!-- 顶部能量轨道 -->
-      <view class="strategy-modal-rail">
-        <view class="strategy-modal-rail-fill"></view>
-      </view>
-
-      <!-- 小标签 -->
-      <view class="strategy-modal-tag">核心复位</view>
-
-      <!-- 主标题 -->
-      <view class="strategy-modal-title">重新启动策略核心</view>
-
-      <!-- 英文装饰 -->
-      <view class="strategy-modal-kicker">RE-IGNITION</view>
-
-      <!-- 推进核心图形 -->
-      <view class="strategy-modal-core">
-        <view class="strategy-modal-core-bar">
-          <view class="strategy-modal-core-seg strategy-modal-core-seg--1"></view>
-          <view class="strategy-modal-core-seg strategy-modal-core-seg--2"></view>
-          <view class="strategy-modal-core-seg strategy-modal-core-seg--3"></view>
-        </view>
-        <view class="strategy-modal-core-block"></view>
-      </view>
-
-      <!-- 说明 -->
-      <view class="strategy-modal-desc">
-        当前策略将收起，核心回到待启动状态。再次点击核心卡牌后，系统会重新推演今日策略。
-      </view>
-
-      <!-- 按钮 -->
-      <view class="strategy-modal-actions">
-        <view class="strategy-modal-btn" bindtap="onCancelRegenerate">
-          <text>保持当前</text>
-        </view>
-        <view class="strategy-modal-btn strategy-modal-btn--primary" bindtap="onConfirmRegenerate">
-          <text>复位核心</text>
-        </view>
-      </view>
-    </view>
-  </view>
+  <!-- ═══ 重新点火弹窗（terminal-popup） ═══ -->
+  <terminal-popup
+    visible="{{showRegenerateModal}}"
+    title="重新点火"
+    subtitle="REIGNITE NAV CORE"
+    content="当前指令投影将被收回。系统会重新接入舰员协议与黑匣子样本。确认后返回起飞甲板，由你再次点火航行核心。"
+    cancel-text="保持当前"
+    confirm-text="确认点火"
+    confirm-type="primary"
+    reduce-motion="{{reduceMotion}}"
+    bind:cancel="onCancelRegenerate"
+    bind:confirm="onConfirmRegenerate"
+  />
 
 </scroll-view>

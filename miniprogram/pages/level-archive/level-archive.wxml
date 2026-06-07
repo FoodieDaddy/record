@@ -1,0 +1,121 @@
+<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}}">
+  <view class="terminal__glow" aria-hidden="true"></view>
+
+  <!-- 页面标题 -->
+  <view class="page-title-block">
+    <text class="page-main-title">身份档案</text>
+    <text class="page-main-kicker">IDENTITY ARCHIVE</text>
+  </view>
+
+  <!-- 顶部摘要卡 -->
+  <view class="archive-summary">
+    <view class="archive-summary__row">
+      <view class="archive-summary__item">
+        <text class="archive-summary__label">当前等级</text>
+        <text class="archive-summary__value">Lv.{{level}} · {{levelTitle}}</text>
+      </view>
+      <view class="archive-summary__item">
+        <text class="archive-summary__label">身份经验</text>
+        <text class="archive-summary__value">{{levelExpDisplay}} / {{levelExpRange}}</text>
+      </view>
+    </view>
+    <view class="archive-summary__row">
+      <view class="archive-summary__item" wx:if="{{bestAchievement}}">
+        <text class="archive-summary__label">最强成就</text>
+        <text class="archive-summary__value archive-summary__value--accent">{{bestAchievement.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 等级进度 -->
+  <view class="term-card term-card--access">
+    <view class="term-card__header">
+      <view class="term-card__header-text">
+        <text class="term-kicker">等级进度</text>
+        <text class="term-kicker-sub">LEVEL PROGRESS</text>
+      </view>
+      <text class="access-chip">ACCESS L-{{level < 10 ? '0' : ''}}{{level}}</text>
+    </view>
+
+    <view class="access__main">
+      <text class="access__lv">Lv.{{level}}</text>
+      <text class="access__title">{{levelTitle}}</text>
+    </view>
+
+    <view class="access__bar-track">
+      <view class="access__bar-fill" style="width:{{levelProgress}}%;"></view>
+    </view>
+    <view class="access__exp-row">
+      <text class="access__exp-text">EXP {{levelExpDisplay}} / {{levelExpRange}}</text>
+      <text class="access__exp-pct">{{levelProgress}}%</text>
+    </view>
+    <text class="access__next-hint" wx:if="{{level < 5 && levelRemainingExp > 0}}">下一权限：{{nextLevelTitle}} · 还差 {{levelRemainingExp}} EXP</text>
+    <text class="access__next-hint" wx:elif="{{level < 5}}">等级进度已就绪，继续完成样本</text>
+
+    <!-- 等级路线图 -->
+    <view class="access__route">
+      <view class="access__node {{level >= 1 ? 'access__node--done' : ''}} {{level == 1 ? 'access__node--current' : ''}}">
+        <view class="access__node-dot"></view>
+        <text class="access__node-label">观察员</text>
+      </view>
+      <view class="access__node-line {{level >= 2 ? 'access__node-line--done' : ''}}"></view>
+      <view class="access__node {{level >= 2 ? 'access__node--done' : ''}} {{level == 2 ? 'access__node--current' : ''}}">
+        <view class="access__node-dot"></view>
+        <text class="access__node-label">参与者</text>
+      </view>
+      <view class="access__node-line {{level >= 3 ? 'access__node-line--done' : ''}}"></view>
+      <view class="access__node {{level >= 3 ? 'access__node--done' : ''}} {{level == 3 ? 'access__node--current' : ''}}">
+        <view class="access__node-dot"></view>
+        <text class="access__node-label">执行者</text>
+      </view>
+      <view class="access__node-line {{level >= 4 ? 'access__node-line--done' : ''}}"></view>
+      <view class="access__node {{level >= 4 ? 'access__node--done' : ''}} {{level == 4 ? 'access__node--current' : ''}}">
+        <view class="access__node-dot"></view>
+        <text class="access__node-label">掌控者</text>
+      </view>
+      <view class="access__node-line {{level >= 5 ? 'access__node-line--done' : ''}}"></view>
+      <view class="access__node {{level >= 5 ? 'access__node--done' : ''}} {{level == 5 ? 'access__node--current' : ''}}">
+        <view class="access__node-dot"></view>
+        <text class="access__node-label">候选者</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成就列表 -->
+  <view class="term-card term-card--badges">
+    <view class="term-card__header">
+      <view class="term-card__header-text">
+        <text class="term-kicker">航程徽章</text>
+        <text class="term-kicker-sub">VOYAGE BADGES</text>
+      </view>
+      <text class="badge-count">{{achievements.length}}</text>
+    </view>
+
+    <view class="badge-list">
+      <view class="badge-item {{item.unlocked ? 'badge-item--on' : ''}}" wx:for="{{achievements}}" wx:key="id">
+        <view class="badge-item__icon">
+          <view class="badge-item__ring">
+            <view class="svg-icon svg-icon--badge-{{item.icon}}"></view>
+          </view>
+        </view>
+        <view class="badge-item__info">
+          <view class="badge-item__top">
+            <text class="badge-item__name">{{item.name}}</text>
+            <text class="badge-item__code">{{item.code}}</text>
+          </view>
+          <text class="badge-item__desc">{{item.desc}}</text>
+          <view class="badge-item__progress" wx:if="{{!item.unlocked}}">
+            <view class="badge-item__progress-track">
+              <view class="badge-item__progress-fill" style="width:{{item.progressPct}}%;"></view>
+            </view>
+            <text class="badge-item__progress-text">{{item.progressText}}</text>
+          </view>
+          <text class="badge-item__status" wx:else>已解锁</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view style="height:48rpx;"></view>
+</view>

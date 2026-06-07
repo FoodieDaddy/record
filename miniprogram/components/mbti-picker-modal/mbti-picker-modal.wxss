@@ -40,7 +40,7 @@
   height: 120rpx;
   border-radius: 50%;
   border: 2rpx solid rgba(0, 175, 255, 0.30);
-  border-top-color: var(--color-cyan)
+  border-top-color: var(--color-cyan);
   animation: syncRingSpin 1.2s linear infinite;
 }
 
@@ -279,7 +279,7 @@
 }
 
 .dim-btn-active .dim-btn-letter {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 
 .dim-btn-label {
@@ -331,7 +331,7 @@
 }
 
 .selection-type.selection-changed {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   text-shadow: 0 0 16rpx rgba(0, 175, 255, 0.30);
 }
 

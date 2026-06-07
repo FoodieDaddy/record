@@ -3,7 +3,6 @@
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "helmet-avatar": "/components/helmet-avatar/index",
-    "segment-switch": "/components/segment-switch/segment-switch"
+    "helmet-avatar": "/components/helmet-avatar/index"
   }
 }

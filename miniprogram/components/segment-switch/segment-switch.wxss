@@ -44,7 +44,7 @@
   font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
 }
 .seg-option-on .seg-label {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 .reduce-motion .seg-thumb {
   transition: none;

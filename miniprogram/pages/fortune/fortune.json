@@ -1,6 +1,8 @@
 {
-  "navigationBarTitleText": "策略核心",
+  "navigationBarTitleText": "起飞甲板",
   "navigationBarBackgroundColor": "#0a0a0a",
   "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "usingComponents": {
+    "terminal-popup": "/components/terminal-popup/terminal-popup"
+  }
 }

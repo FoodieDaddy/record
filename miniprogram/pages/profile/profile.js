@@ -9,6 +9,7 @@ const config = require('../../config');
 const app = getApp();
 
 const SAVE_DELAY = 2000;
+const HUD_FADE_DELAY = 1600;
 const audioCtx = wx.createInnerAudioContext();
 audioCtx.obeyMuteSwitch = false;
 
@@ -16,6 +17,7 @@ let _saveTimer = null;
 let _uploadingAvatar = false;
 let _settingsTimer = null;
 let _pendingSettings = {};
+let _hudHideTimer = null;
 
 // 音色分类标签映射（后端 ID → 终端显示）
 const CATEGORY_LABELS = {
@@ -24,21 +26,14 @@ const CATEGORY_LABELS = {
   funny:   { en: 'SPECIAL',  zh: '特殊' }
 };
 
-// 成就配置
-const BADGE_CONFIG = [
-  { id: 'first_match',   name: '首次封存',   code: '首任',     icon: 'circle',  desc: '完成第一次任务封存',    field: 'matchCount',  target: 1 },
-  { id: 'match_10',      name: '累计十任',   code: 'x10',      icon: 'layers',  desc: '累计完成10次封存',    field: 'matchCount',  target: 10 },
-  { id: 'match_50',      name: '半百任务',   code: 'x50',      icon: 'layers',  desc: '累计完成50次封存',    field: 'matchCount',  target: 50 },
-  { id: 'score_100',     name: '百分舰员',   code: '100+',     icon: 'star',    desc: '累计净数值达到100',   field: 'totalScore',  target: 100 },
-  { id: 'score_1000',    name: '数值破千',   code: '1000+',    icon: 'diamond', desc: '累计净数值达到1000',  field: 'totalScore',  target: 1000 },
-  { id: 'win_3_streak',  name: '三次正馈',   code: '3 连续',   icon: 'bolt',    desc: '连续3场获得正向反馈',   field: 'winStreak',   target: 3 },
-  { id: 'win_10',        name: '十次正馈',   code: '10 连续',  icon: 'bolt',    desc: '连续10场获得正向反馈',  field: 'winStreak',   target: 10 },
-  { id: 'win_rate_50',   name: '正馈过半',   code: '50%+',     icon: 'target',  desc: '正反馈率达到50%',      field: 'winRate',     target: 50 },
-  { id: 'mirror_sync',   name: '镜像同步',   code: '已同步',   icon: 'scan',    desc: '完成MBTI校准',        field: 'mbtiSync',    target: 1 },
-  { id: 'level_2',       name: '等级提升',   code: 'Lv.2',     icon: 'arrow-up',desc: '身份等级达到2级',     field: 'level',       target: 2 },
-  { id: 'level_3',       name: '策略执行者', code: 'Lv.3',     icon: 'arrow-up',desc: '身份等级达到3级',     field: 'level',       target: 3 },
-  { id: 'stability_80',  name: '稳定执行者', code: '稳定',     icon: 'shield',  desc: '稳定度达到80',        field: 'stability',   target: 80 }
-];
+// 等级名称映射
+const LEVEL_TITLES = {
+  1: '观察员',
+  2: '参与者',
+  3: '执行者',
+  4: '掌控者',
+  5: '候选者'
+};
 
 Page({
   data: {
@@ -47,13 +42,25 @@ Page({
     avatarUrl: '',
     avatarColor: '',
     avatarChar: '',
-    saving: false,
     _lastSavedNickname: '',
     _lastSavedAvatar: '',
 
     // 身份信息
     playerCode: '',
     daysSinceJoined: 0,
+
+    // 舰员代号展示
+    isLongCrewName: false,
+
+    // HUD 状态条
+    hudVisible: false,
+    hudText: '',
+    hudType: 'info', // info | error | warning
+
+    // 昵称抽屉
+    nicknameDrawerVisible: false,
+    drawerNickname: '',
+    drawerNicknameOverflow: false,
 
     // 积分统计
     totalScore: 0,
@@ -63,16 +70,19 @@ Page({
     // 身份等级
     level: 1,
     levelTitle: '新人观察员',
-    levelExp: 0,          // 等级内已获得经验
-    levelExpDisplay: 0,   // 展示用经验，限制在等级区间内
-    levelExpRange: 0,     // 等级所需经验区间
+    levelExp: 0,
+    levelExpDisplay: 0,
+    levelExpRange: 0,
     levelRemainingExp: 0,
-    nextLevelExp: 100,    // 下一级累计阈值
+    nextLevelExp: 100,
     levelProgress: 0,
+    nextLevelTitle: '',
     stability: null,
 
-    // 成就
-    achievements: [],
+    // 黑匣子摘要
+    bbSampleCount: 0,
+    bbRecentRoom: '--',
+    bbRecentTime: '--',
 
     // 动画开关
     animationEnabled: true,
@@ -106,10 +116,12 @@ Page({
     if (cached && cached.nickname) {
       const rawAvatar = cached.avatarUrl || '';
       const avatar = rawAvatar.startsWith('http') ? rawAvatar : '';
+      const name = cached.nickname;
       this.setData({
-        nickname: cached.nickname,
+        nickname: name,
         avatarUrl: avatar,
-        _lastSavedNickname: cached.nickname,
+        isLongCrewName: name.length >= 5,
+        _lastSavedNickname: name,
         _lastSavedAvatar: avatar
       });
       this.updateAvatar();
@@ -122,6 +134,7 @@ Page({
     this.loadIdentityLevel();
     this.loadMbtiStatus();
     this.loadSettings();
+    this.loadBlackboxSummary();
   },
 
   async onPullDownRefresh() {
@@ -140,6 +153,90 @@ Page({
     }
   },
 
+  // ========== HUD 状态条 ==========
+
+  showHud(text, type, autoHide) {
+    if (_hudHideTimer) {
+      clearTimeout(_hudHideTimer);
+      _hudHideTimer = null;
+    }
+    this.setData({ hudVisible: true, hudText: text, hudType: type || 'info' });
+    if (autoHide !== false) {
+      _hudHideTimer = setTimeout(() => {
+        _hudHideTimer = null;
+        this.setData({ hudVisible: false });
+      }, HUD_FADE_DELAY);
+    }
+  },
+
+  hideHud() {
+    if (_hudHideTimer) {
+      clearTimeout(_hudHideTimer);
+      _hudHideTimer = null;
+    }
+    this.setData({ hudVisible: false });
+  },
+
+  onHudTap() {
+    // 失败状态点击重试
+    if (this.data.hudType === 'error') {
+      this.hideHud();
+      this.saveProfile();
+    }
+  },
+
+  // ========== 昵称抽屉 ==========
+
+  openNicknameDrawer() {
+    this.setData({
+      nicknameDrawerVisible: true,
+      drawerNickname: this.data.nickname,
+      drawerNicknameOverflow: false
+    });
+  },
+
+  closeNicknameDrawer() {
+    this.setData({ nicknameDrawerVisible: false });
+  },
+
+  onDrawerNicknameInput(e) {
+    let val = e.detail.value || '';
+    const overflow = getWidth(val) > 6;
+    this.setData({
+      drawerNickname: val,
+      drawerNicknameOverflow: overflow
+    });
+  },
+
+  onRandomNickname() {
+    const name = generateNickname();
+    this.setData({
+      drawerNickname: name,
+      drawerNicknameOverflow: false
+    });
+  },
+
+  confirmNicknameDrawer() {
+    const raw = this.data.drawerNickname || '';
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
+    const finalName = truncate(trimmed);
+    if (finalName === this.data.nickname) {
+      this.closeNicknameDrawer();
+      return;
+    }
+
+    this.setData({
+      nickname: finalName,
+      isLongCrewName: finalName.length >= 5,
+      nicknameDrawerVisible: false
+    });
+    this.updateAvatar();
+    this.showHud('协议待同步', 'info', false);
+    this.debouncedSave();
+  },
+
   // ========== 数据加载 ==========
 
   async loadUserInfo() {
@@ -152,6 +249,7 @@ Page({
         this.setData({
           nickname: loadedNick,
           avatarUrl: loadedAvatar,
+          isLongCrewName: loadedNick.length >= 5,
           _lastSavedNickname: loadedNick,
           _lastSavedAvatar: loadedAvatar
         });
@@ -184,7 +282,6 @@ Page({
       const matchCount = points.length;
       const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
 
-      // [Round4] 计算最大连续正反馈
       let winStreak = 0;
       let maxWinStreak = 0;
       for (const p of points) {
@@ -197,7 +294,6 @@ Page({
       }
 
       this.setData({ totalScore, winRate, matchCount, maxWinStreak });
-      this.computeAchievements();
     } catch (e) {
       console.error('加载积分数据失败', e);
     }
@@ -212,9 +308,11 @@ Page({
       const levelExpDisplay = levelExpRange > 0 ? Math.min(levelExp, levelExpRange) : levelExp;
       const levelRemainingExp = Math.max(0, levelExpRange - levelExp);
       const levelProgress = Math.max(0, Math.min(100, res.progress || 0));
+      const nextLevel = (res.level || 1) + 1;
       this.setData({
         level: res.level || 1,
-        levelTitle: res.title || '新人观察员',
+        levelTitle: res.title || '观察员',
+        nextLevelTitle: LEVEL_TITLES[nextLevel] || '',
         levelExp,
         levelExpDisplay,
         levelExpRange,
@@ -223,7 +321,6 @@ Page({
         levelProgress,
         stability: res.stability
       });
-      this.computeAchievements();
     } catch (e) {
       console.error('加载身份等级失败', e);
     }
@@ -234,44 +331,36 @@ Page({
       const res = await getMirrorProfile();
       if (res && res.mbti) {
         app.globalData.mbtiCalibrated = !!res.mbti.calibrated;
-        this.computeAchievements();
       }
     } catch (e) {
       // 镜像数据加载失败不影响主流程
     }
   },
 
-  computeAchievements() {
-    const { matchCount, totalScore, winRate, maxWinStreak, level, stability } = this.data;
-    const mbtiSync = app.globalData.mbtiCalibrated ? 1 : 0;
-
-    const statsMap = {
-      matchCount, totalScore, winRate,
-      winStreak: maxWinStreak || 0,
-      mbtiSync,
-      level,
-      stability: stability || 0
-    };
-
-    const achievements = BADGE_CONFIG.map(badge => {
-      const current = Math.max(0, statsMap[badge.field] || 0);
-      const progress = Math.max(0, Math.min(current, badge.target));
-      const progressPct = badge.target > 0 ? Math.round(progress * 100 / badge.target) : 0;
-      return {
-        id: badge.id,
-        name: badge.name,
-        code: badge.code,
-        icon: badge.icon,
-        desc: badge.desc,
-        progress,
-        progressPct,
-        progressText: progress + '/' + badge.target,
-        target: badge.target,
-        unlocked: current >= badge.target
-      };
-    });
-
-    this.setData({ achievements });
+  async loadBlackboxSummary() {
+    try {
+      const resp = await get('/score/yield-log');
+      if (!resp) return;
+      const records = resp.records || [];
+      const sampleCount = resp.sampleCount || 0;
+      let recentRoom = '--';
+      let recentTime = '--';
+      if (records.length > 0) {
+        const latest = records[0];
+        recentRoom = latest.roomNo || latest.roomId || '--';
+        if (latest.settledAt || latest.createdAt) {
+          const t = new Date(latest.settledAt || latest.createdAt);
+          const m = t.getMonth() + 1;
+          const d = t.getDate();
+          const hh = String(t.getHours()).padStart(2, '0');
+          const mm = String(t.getMinutes()).padStart(2, '0');
+          recentTime = m + '/' + d + ' ' + hh + ':' + mm;
+        }
+      }
+      this.setData({ bbSampleCount: sampleCount, bbRecentRoom: recentRoom, bbRecentTime: recentTime });
+    } catch (e) {
+      // 黑匣子摘要加载失败不影响主流程
+    }
   },
 
   updateAvatar() {
@@ -303,7 +392,6 @@ Page({
     try {
       const catalog = await get('/voice/catalog');
       const rawCategories = catalog.categories || [];
-      // 为每个分类添加终端标签
       const categories = rawCategories.map(cat => {
         const label = CATEGORY_LABELS[cat.id] || { en: cat.id.toUpperCase(), zh: cat.name };
         return { ...cat, enLabel: label.en, zhLabel: label.zh };
@@ -333,31 +421,34 @@ Page({
     this.setData({ voiceName: voiceId });
   },
 
-  onVoiceSwitch(e) {
-    const enabled = e.detail.index === 1;
+  onVoiceSwitch() {
+    const enabled = !this.data.voiceEnabled;
     this.setData({ voiceEnabled: enabled });
     saveSettings({ enabled });
     app.globalData.audioEnabled = enabled;
     wx.setStorageSync('audioEnabled', enabled);
     this.debouncedSaveSettings({ voiceEnabled: enabled });
+    this.showHud(enabled ? '通讯协议已接入' : '通讯协议已断开', 'info');
     vibrateShort('light');
   },
 
-  onAnimSwitch(e) {
-    const enabled = e.detail.index === 1;
+  onAnimSwitch() {
+    const enabled = !this.data.animEnabled;
     this.setData({ animEnabled: enabled, animationEnabled: enabled });
     app.globalData.animationEnabled = enabled;
     wx.setStorageSync('animationEnabled', enabled);
     this.debouncedSaveSettings({ animEnabled: enabled });
+    this.showHud(enabled ? '视觉协议已开启' : '视觉协议已关闭', 'info');
     vibrateShort('light');
   },
 
-  onVibrateSwitch(e) {
-    const enabled = e.detail.index === 1;
+  onVibrateSwitch() {
+    const enabled = !this.data.vibrateEnabled;
     this.setData({ vibrateEnabled: enabled });
     app.globalData.vibrateEnabled = enabled;
     wx.setStorageSync('vibrateEnabled', enabled);
     this.debouncedSaveSettings({ vibrateEnabled: enabled });
+    this.showHud(enabled ? '触感协议已开启' : '触感协议已关闭', 'info');
     vibrateShort('light');
   },
 
@@ -372,6 +463,7 @@ Page({
       saveSettings({ voiceId: pv.voiceId });
       this.debouncedSaveSettings({ voiceId: pv.voiceId });
       this.setData({ pendingVoice: null });
+      this.showHud('通讯音色已接入', 'info');
     }
     this.setData({ voiceSheetVisible: false });
     audioCtx.stop();
@@ -434,51 +526,19 @@ Page({
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
+    this.showHud('头盔识别上传中', 'info', false);
     _uploadingAvatar = true;
     try {
       const ossUrl = await this.uploadToOSS(tempPath);
       this.setData({ avatarUrl: ossUrl });
+      this.showHud('头盔识别已更新', 'info');
     } catch (err) {
       console.error('头像上传失败', err);
+      this.showHud('头盔识别上传失败', 'error');
     } finally {
       _uploadingAvatar = false;
     }
     this.debouncedSave();
-  },
-
-  // ========== 昵称 ==========
-
-  onNicknameInput(e) {
-    let val = e.detail.value || '';
-    val = truncate(val);
-    this.setData({ nickname: val });
-    this.debouncedSave();
-  },
-
-  onNicknameBlur() {
-    this.flushSave();
-  },
-
-  shuffleNickname() {
-    let nickname = truncate(generateNickname());
-    this.setData({ nickname });
-    this.updateAvatar();
-    this.debouncedSave();
-    wx.showToast({ title: '舰员代号已更新', icon: 'none', duration: 1200 });
-  },
-
-  // ========== 导航 ==========
-
-  goLogin() {
-    wx.navigateTo({ url: '/pages/login/login' });
-  },
-
-  goScoreRecords() {
-    wx.navigateTo({ url: '/pages/score-records/score-records' });
-  },
-
-  goAbout() {
-    wx.showToast({ title: '脉冲方舟 v1.0', icon: 'none' });
   },
 
   // ========== 自动保存 ==========
@@ -500,14 +560,18 @@ Page({
   },
 
   async saveProfile() {
-    if (this.data.saving || _uploadingAvatar) return;
+    if (_uploadingAvatar) return;
     const { nickname, avatarUrl } = this.data;
     if (!nickname || !nickname.trim()) return;
 
     const trimmed = nickname.trim();
-    if (trimmed === this.data._lastSavedNickname && avatarUrl === this.data._lastSavedAvatar) return;
+    if (trimmed === this.data._lastSavedNickname && avatarUrl === this.data._lastSavedAvatar) {
+      // 无变化，清除待同步状态
+      this.hideHud();
+      return;
+    }
 
-    this.setData({ saving: true });
+    this.showHud('协议同步中', 'info', false);
     try {
       let finalAvatarUrl = avatarUrl;
       if (avatarUrl && !avatarUrl.startsWith('http')) {
@@ -535,10 +599,10 @@ Page({
         _lastSavedAvatar: finalAvatarUrl || ''
       });
       this.updateAvatar();
+      this.showHud('舰员代号已同步', 'info');
     } catch (e) {
       console.error('自动保存失败', e);
-    } finally {
-      this.setData({ saving: false });
+      this.showHud('同步失败，点击重试', 'error', false);
     }
   },
 
@@ -573,13 +637,27 @@ Page({
     return presignData.accessUrl || presignData.objectKey;
   },
 
+  // ========== 导航 ==========
+
+  goLogin() {
+    wx.navigateTo({ url: '/pages/login/login' });
+  },
+
+  goScoreRecords() {
+    wx.navigateTo({ url: '/pages/score-records/score-records' });
+  },
+
+  goLevelArchive() {
+    wx.navigateTo({ url: '/pages/level-archive/level-archive' });
+  },
+
   // ========== 退出登录 ==========
 
   async onLogout() {
     const { confirm } = await wx.showModal({
-      title: '终端警告',
-      content: '确认结束当前会话？退出后需要重新授权接入。',
-      confirmText: '结束会话',
+      title: '断开身份终端？',
+      content: '当前本地接入状态将被清除。',
+      confirmText: '断开终端',
       confirmColor: '#FF4D4F',
       cancelText: '取消'
     });
@@ -591,9 +669,23 @@ Page({
   onHide() {
     this.flushSave();
     this.flushSaveSettings();
+    this.hideHud();
   },
 
   onUnload() {
+    // 清理所有 timer
+    if (_saveTimer) {
+      clearTimeout(_saveTimer);
+      _saveTimer = null;
+    }
+    if (_settingsTimer) {
+      clearTimeout(_settingsTimer);
+      _settingsTimer = null;
+    }
+    if (_hudHideTimer) {
+      clearTimeout(_hudHideTimer);
+      _hudHideTimer = null;
+    }
     this.flushSave();
     this.flushSaveSettings();
     if (this.data.pendingVoice) {

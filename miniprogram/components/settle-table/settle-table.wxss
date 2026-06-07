@@ -108,7 +108,7 @@
 }
 
 .cell-negative .diagonal-score {
-  color: var(--danger)
+  color: var(--danger);
 }
 
 .cell-zero .diagonal-score {

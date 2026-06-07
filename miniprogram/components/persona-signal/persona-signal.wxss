@@ -20,7 +20,7 @@
 .signal-title {
   font-size: 26rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 
@@ -46,7 +46,7 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: var(--warning)
+  background: var(--warning);
   flex-shrink: 0;
 }
 

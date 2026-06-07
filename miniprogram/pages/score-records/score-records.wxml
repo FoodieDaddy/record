@@ -10,125 +10,69 @@
 
   <!-- 终端标题 -->
   <view class="terminal-header">
-    <text class="terminal-kicker">LOG</text>
-    <text class="terminal-title">脉冲日志</text>
+    <text class="terminal-kicker">BLACKBOX REPLAY</text>
+    <text class="terminal-title">黑匣子回放</text>
     <view class="terminal-line"></view>
   </view>
 
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">正在同步脉冲数据...</text>
+    <text class="loading-text">正在读取黑匣子索引</text>
   </view>
 
   <!-- 加载失败 -->
   <view class="error-state" wx:elif="{{loadError}}">
     <text class="error-kicker">ERROR</text>
-    <text class="error-text">数据同步失败</text>
-    <text class="error-hint">下拉刷新重试</text>
+    <text class="error-text">黑匣子索引读取失败</text>
+    <view class="error-retry" bindtap="loadSamples">
+      <text class="error-retry-text">重新读取</text>
+    </view>
   </view>
 
   <!-- 空状态 -->
-  <view class="empty-state" wx:elif="{{!loading && records.length === 0 && sampleCount === 0}}">
-    <text class="empty-kicker">EMPTY</text>
-    <text class="empty-text">暂无封存记录</text>
-    <text class="empty-hint">完成一次航程封存后写入黑匣子</text>
+  <view class="empty-state" wx:elif="{{!loading && records.length === 0}}">
+    <view class="empty-box">
+      <view class="empty-box-inner"></view>
+    </view>
+    <text class="empty-text">黑匣子尚未写入样本</text>
+    <text class="empty-hint">完成一次航程封存后，回放索引将自动点亮</text>
   </view>
 
-  <!-- 有数据时 -->
-  <block wx:if="{{records.length > 0 || sampleCount > 0}}">
-
-    <!-- 净积分摘要卡 -->
-    <view class="yield-summary-card">
-      <text class="card-label">近期脉冲</text>
-      <text class="card-kicker">VALUE</text>
-      <view class="yield-value {{netYield > 0 ? 'text-positive' : netYield < 0 ? 'text-negative' : 'text-zero'}}">
-        {{netYield > 0 ? '+' : ''}}{{netYield}}
-      </view>
+  <!-- 航程样本列表 -->
+  <block wx:if="{{records.length > 0}}">
+    <view class="section-header">
+      <text class="section-label">航程样本</text>
+      <text class="section-kicker">SEALED SAMPLES</text>
     </view>
 
-    <!-- 采样状态 -->
-    <view class="sample-card">
-      <text class="card-label">样本状态</text>
-      <text class="card-kicker">SAMPLE</text>
-      <view class="sample-progress">
-        <text class="sample-current">{{sampleCount}}</text>
-        <text class="sample-sep">/</text>
-        <text class="sample-target">{{curveUnlockCount}}</text>
-      </view>
-    </view>
-
-    <!-- 曲线区域 -->
-    <view class="curve-section">
-      <view class="curve-locked-card" wx:if="{{sampleCount < curveUnlockCount}}">
-        <text class="locked-kicker">LOCKED</text>
-        <text class="locked-text">脉冲曲线未解锁</text>
-        <text class="locked-sub">当前样本：{{sampleCount}} / {{curveUnlockCount}}</text>
-        <text class="locked-hint">完成至少 {{curveUnlockCount}} 次航程封存后，系统将展开脉冲曲线。</text>
-      </view>
-      <view class="curve-chart-card" wx:else>
-        <text class="card-label">数值曲线</text>
-        <text class="card-kicker">CURVE</text>
-        <yield-chart points="{{curveData}}" />
-      </view>
-    </view>
-
-    <!-- 任务档案 -->
-    <view class="match-log-header">
-      <text class="card-label">任务档案</text>
-      <text class="card-kicker">DOSSIER</text>
-    </view>
-
-    <view class="room-list">
+    <view class="sample-list">
       <view
-        class="match-card"
+        class="sample-card"
         wx:for="{{records}}"
         wx:key="roomId"
         data-room-id="{{item.roomId}}"
-        bindtap="onRoomTap"
+        bindtap="onSampleTap"
       >
-        <view class="match-card__header">
-          <text class="match-card__room">ROOM {{item.roomNo}}</text>
-          <text class="match-card__time">{{item.settledAt}}</text>
-        </view>
-        <view class="match-card__result">
-          <text class="match-card__label">SUMMARY</text>
-          <text class="match-card__label-cn">封存摘要</text>
-        </view>
-        <view class="match-card__players">
-          <view
-            class="match-player"
-            wx:for="{{item.players}}"
-            wx:for-item="p"
-            wx:key="userId"
-          >
-            <view class="match-player__role {{p.isMe ? 'role-me' : 'role-opponent'}}">
-              {{p.isMe ? '我' : '对手'}}
-            </view>
-            <view class="match-player__avatar" style="background:{{p.avatarBgColor}};" wx:if="{{!p.avatarUrl}}">
-              <text class="match-player__char">{{p.avatarChar}}</text>
-            </view>
-            <image
-              wx:else
-              class="match-player__img"
-              src="{{p.avatarUrl}}"
-              mode="aspectFill"
-              binderror="onAvatarError"
-              data-room-id="{{item.roomId}}"
-              data-user-id="{{p.userId}}"
-            />
-            <text class="match-player__name">{{p.nickname}}</text>
-            <text class="match-player__score {{p.score > 0 ? 'positive' : p.score < 0 ? 'negative' : ''}}">{{p.score > 0 ? '+' : ''}}{{p.score}}</text>
+        <view class="sample-card__left">
+          <view class="sample-card__id-row">
+            <text class="sample-card__prefix">样本</text>
+            <text class="sample-card__room">{{item.roomNo}}</text>
           </view>
+          <text class="sample-card__time">{{item.settledAt}} 已封存</text>
         </view>
-        <view class="match-card__footer">
-          <text class="match-card__footer-label">DOSSIER</text>
-          <text class="match-card__footer-cn">查看任务档案</text>
+        <view class="sample-card__right">
+          <text class="sample-card__score {{item.myScore > 0 ? 'score-positive' : item.myScore < 0 ? 'score-negative' : 'score-zero'}}">
+            {{item.myScore > 0 ? '+' : ''}}{{item.myScore}}
+          </text>
+          <text class="sample-card__rank">#{{item.myRank}} / {{item.memberCount}}</text>
+        </view>
+        <view class="sample-card__action">
+          <text class="sample-card__action-text">回放</text>
           <view class="svg-icon svg-icon--arrow-sm"></view>
         </view>
       </view>
     </view>
-
   </block>
 
 </scroll-view>

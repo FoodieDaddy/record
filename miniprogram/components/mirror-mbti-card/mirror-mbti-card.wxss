@@ -22,7 +22,7 @@
 .card-title {
   font-size: 30rpx;
   font-weight: 700;
-  color: var(--color-cyan)
+  color: var(--color-cyan);
   letter-spacing: 2rpx;
 }
 
@@ -57,7 +57,7 @@
   line-height: 72rpx;
   text-align: center;
   border-radius: 18rpx;
-  background: var(--accent)
+  background: var(--accent);
   color: var(--text-primary);
   font-size: 26rpx;
   font-weight: 600;
@@ -121,13 +121,13 @@
 .mbti-tactic-text {
   font-size: 22rpx;
   font-weight: 600;
-  color: var(--accent)
+  color: var(--accent);
   letter-spacing: 1rpx;
 }
 
 .mbti-tactic-cursor {
   font-size: 22rpx;
-  color: var(--accent)
+  color: var(--accent);
   margin-left: 2rpx;
   animation: cursorBlink 0.6s step-end infinite;
 }

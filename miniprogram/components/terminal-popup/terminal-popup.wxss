@@ -43,18 +43,20 @@
 
 .tp-kicker {
   display: block;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 17rpx;
   letter-spacing: 3rpx;
-  color: rgba(0, 175, 255, 0.55);
+  color: rgba(0, 175, 255, 0.25);
   text-transform: uppercase;
 }
 
 .tp-subtitle {
   display: block;
   margin-top: 6rpx;
-  font-size: 28rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 4rpx;
 }
 
 .tp-body {
@@ -101,7 +103,7 @@
 }
 
 .tp-btn-primary {
-  color: var(--color-cyan)
+  color: var(--color-cyan);
 }
 
 .tp-btn-primary:active {

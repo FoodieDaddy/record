@@ -18,8 +18,8 @@
     </view>
   </view>
 
-  <!-- 驾驶舱 Header（已登录时显示） -->
-  <view wx:if="{{isLoggedIn}}" class="cockpit-header">
+  <!-- 驾驶舱 Header（idle 状态显示） -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-header">
     <view class="header-kicker">COCKPIT ONLINE</view>
     <view class="header-main">
       <view>
@@ -35,11 +35,13 @@
 
   <!-- idle 状态：启动核心 -->
   <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="launch-deck sr-hud-panel">
+    <view class="idle-scanline"></view>
     <view class="deck-grid"></view>
 
     <view class="launch-core {{launching ? 'is-igniting' : ''}}">
-      <view class="core-ring core-ring-outer"></view>
-      <view class="core-ring core-ring-inner"></view>
+      <view class="core-orbit core-orbit-a"></view>
+      <view class="core-orbit core-orbit-b"></view>
+      <view class="core-pulse"></view>
       <view class="core-center">
         <view class="core-label">MISSION SPACE</view>
         <view class="core-title">任务空间待机</view>
@@ -63,8 +65,9 @@
     </view>
 
     <view class="launch-actions">
-      <button class="sr-btn sr-btn-primary {{launching ? 'sr-btn--loading' : ''}}" bindtap="handleStartSpace">
+      <button class="sr-btn sr-btn-primary launch-btn {{launching ? 'sr-btn--loading' : ''}}" bindtap="handleStartSpace">
         <text class="btn-text">启动空间</text>
+        <view class="btn-energy"></view>
       </button>
       <button class="sr-btn sr-btn-secondary" bindtap="openJoinPanel">
         <text class="btn-text">接入空间</text>
@@ -171,79 +174,53 @@
           <view class="section-count">{{memberGrid.length}}/16</view>
         </view>
 
-        <view class="crew-grid">
+        <view class="crew-stage layout-{{seatLayoutMode}}">
           <view
             wx:for="{{seatList}}"
             wx:key="seatKey"
-            class="crew-seat {{item.active ? 'is-active' : 'is-empty'}} {{item.isSelf ? 'is-self' : ''}} {{selectedCrew.userId === item.userId ? 'is-selected' : ''}}"
+            id="seat-{{item.userId || item.seatKey}}"
+            class="crew-seat {{item.active ? 'is-active' : 'is-invite'}} {{item.isSelf ? 'is-self' : ''}} {{selectedCrew.userId === item.userId ? 'is-selected' : ''}} {{item.impact ? 'is-impact' : ''}}"
             bindtap="handleSelectCrew"
             data-user-id="{{item.userId}}"
+            data-active="{{item.active}}"
           >
             <view class="seat-corner"></view>
-            <view class="seat-avatar-wrap">
-              <helmet-avatar
-                wx:if="{{item.active}}"
-                src="{{item.avatarUrl || ''}}"
-                size="sm"
-                active="{{selectedCrew.userId === item.userId}}"
-                controller="{{item.isHost}}"
-                showStatus="{{false}}"
-                reduceMotion="{{!animationEnabled}}"
-              />
-              <view wx:else class="empty-seat-mark"></view>
-            </view>
 
-            <view class="seat-name">{{item.displayName}}</view>
-            <view class="seat-score" wx:if="{{item.active}}">{{item.scoreText}}</view>
-            <view class="seat-state">
-              <view class="seat-dot"></view>
-              <text>{{item.active ? '在线' : '待接入'}}</text>
-            </view>
+            <block wx:if="{{item.active}}">
+              <view class="seat-avatar-wrap">
+                <helmet-avatar
+                  src="{{item.avatarUrl || ''}}"
+                  size="sm"
+                  active="{{selectedCrew.userId === item.userId}}"
+                  controller="{{item.isHost}}"
+                  showStatus="{{false}}"
+                  reduceMotion="{{!animationEnabled}}"
+                />
+              </view>
+              <view class="seat-name">{{item.displayName}}</view>
+              <view class="seat-score">{{item.scoreText}}</view>
+              <view class="seat-state">
+                <view class="seat-dot"></view>
+                <text>{{item.isSelf ? '本舰' : '在线'}}</text>
+              </view>
+            </block>
+
+            <block wx:else>
+              <view class="invite-cross">
+                <view class="invite-cross-h"></view>
+                <view class="invite-cross-v"></view>
+              </view>
+              <view class="seat-name">接入席位</view>
+              <view class="seat-state">
+                <view class="seat-dot muted"></view>
+                <text>待接入</text>
+              </view>
+            </block>
           </view>
         </view>
       </view>
 
-      <!-- C. 记录脉冲控制区 -->
-      <view class="pulse-control sr-hud-panel">
-        <view class="section-head">
-          <view>
-            <view class="section-kicker">PULSE CONTROL</view>
-            <view class="section-title">记录脉冲</view>
-          </view>
-          <view class="target-chip" wx:if="{{selectedCrew}}">
-            指向 {{selectedCrew.displayName}}
-          </view>
-        </view>
-
-        <view class="pulse-input-row">
-          <button class="pulse-step" bindtap="decreasePulse">
-            <text>−</text>
-          </button>
-          <input
-            class="pulse-input"
-            type="number"
-            value="{{pulseValue}}"
-            bindinput="onPulseValueInput"
-            placeholder="0"
-            placeholder-class="input-placeholder"
-          />
-          <button class="pulse-step" bindtap="increasePulse">
-            <text>＋</text>
-          </button>
-        </view>
-
-        <button
-          class="sr-btn sr-btn-primary pulse-submit {{!selectedCrew || !pulseValue ? 'sr-btn--disabled' : ''}} {{submittingPulse ? 'sr-btn--loading' : ''}}"
-          bindtap="handleSubmitPulse"
-        >
-          <text class="btn-text">写入脉冲轨迹</text>
-        </button>
-        <view class="pulse-hint" wx:if="{{!selectedCrew}}">
-          请选择舰员席位
-        </view>
-      </view>
-
-      <!-- D. 脉冲轨迹 -->
+      <!-- C. 脉冲轨迹 -->
       <view class="trace-section sr-card">
         <view class="section-head">
           <view>
@@ -299,8 +276,16 @@
         <button class="sr-btn sr-btn-secondary" bindtap="copyRoomNo">
           <text class="btn-text">发送识别码</text>
         </button>
+        <button class="sr-btn sr-btn-secondary" bindtap="openShareSheet">
+          <text class="btn-text">空间接入</text>
+        </button>
+      </view>
+
+      <!-- 更多操作区（与主操作分离） -->
+      <view class="bottom-danger-zone">
+        <view class="danger-zone-label">航程控制</view>
         <button class="sr-btn sr-btn-danger-outline" bindtap="openSealConfirm" wx:if="{{isOwner}}">
-          <text class="btn-text">封存航程</text>
+          <text class="btn-text">{{canSealRoom ? '封存航程' : '解散空空间'}}</text>
         </button>
         <button class="sr-btn sr-btn-danger-outline" bindtap="quitRoom" wx:else>
           <text class="btn-text">断开空间</text>
@@ -309,14 +294,65 @@
 
     </scroll-view>
 
-    <!-- 封存确认弹窗 -->
+    <!-- 悬浮脉冲控制台 -->
+    <view class="pulse-dock sr-hud-panel {{selectedCrew ? 'is-locked' : ''}}">
+      <!-- 只有自己时：等待提示 -->
+      <view wx:if="{{memberGrid.length <= 1}}" class="pulse-dock-waiting">
+        <view class="waiting-dot"></view>
+        <text>等待舰员接入后开始记录脉冲</text>
+      </view>
+
+      <!-- 有多人时：正常录入 -->
+      <block wx:else>
+        <view wx:if="{{selectedCrew}}" class="pulse-dock-target">
+          <view class="dock-target-label">目标锁定</view>
+          <view class="dock-target-name">{{selectedCrew.displayName}}</view>
+        </view>
+
+        <view class="pulse-dock-main">
+          <button class="pulse-step-btn" bindtap="decreasePulse">−</button>
+          <input
+            class="pulse-dock-input"
+            type="number"
+            value="{{pulseValue}}"
+            placeholder="0"
+            placeholder-class="input-placeholder"
+            bindinput="onPulseValueInput"
+          />
+          <button class="pulse-step-btn" bindtap="increasePulse">＋</button>
+          <button
+            class="pulse-fire-btn {{!selectedCrew || !pulseValue ? 'is-disabled' : ''}} {{submittingPulse ? 'is-loading' : ''}}"
+            bindtap="handleSubmitPulse"
+          >
+            <text>写入</text>
+          </button>
+        </view>
+
+        <view wx:if="{{!selectedCrew}}" class="pulse-dock-hint">
+          选择舰员席位后写入脉冲
+        </view>
+      </block>
+    </view>
+
+    <!-- 脉冲飞行动画层 -->
+    <view wx:if="{{pulseFlight.visible}}" class="pulse-flight-layer">
+      <view
+        class="pulse-flight-dot"
+        style="left: {{pulseFlight.fromX}}px; top: {{pulseFlight.fromY}}px; --dx: {{pulseFlight.dx}}px; --dy: {{pulseFlight.dy}}px;"
+      >
+        <view class="pulse-tail"></view>
+        <text class="pulse-flight-value">+{{pulseFlight.value}}</text>
+      </view>
+    </view>
+
+    <!-- 封存/解散确认弹窗 -->
     <view wx:if="{{sealConfirmVisible}}" class="cockpit-mask" bindtap="closeSealConfirm">
       <view class="seal-panel sr-hud-panel" catchtap="preventClose">
         <view class="seal-core">
           <view class="seal-ring"></view>
-          <view class="seal-title">确认封存航程</view>
+          <view class="seal-title">{{canSealRoom ? '确认封存航程' : '解散空空间'}}</view>
           <view class="seal-desc">
-            当前脉冲轨迹将写入黑匣子，封存后不可继续记录。
+            {{canSealRoom ? '当前脉冲轨迹将写入黑匣子，封存后不可继续记录。' : '当前空间暂无轨迹记录，解散后不会生成航程档案。'}}
           </view>
         </view>
 
@@ -333,10 +369,10 @@
 
         <view class="seal-actions">
           <button class="sr-btn sr-btn-secondary" bindtap="closeSealConfirm">
-            <text class="btn-text">继续航程</text>
+            <text class="btn-text">{{canSealRoom ? '继续航程' : '返回'}}</text>
           </button>
           <button class="sr-btn sr-btn-danger-outline" bindtap="handleSealRoom">
-            <text class="btn-text">确认封存</text>
+            <text class="btn-text">{{canSealRoom ? '确认封存' : '确认解散'}}</text>
           </button>
         </view>
       </view>
