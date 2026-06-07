@@ -37,7 +37,9 @@ miniprogram/node_modules/
 miniprogram/miniprogram_npm/
 
 # Claude
-.claude/
+.claude/*
+!.claude/rules/
+!.claude/rules/*.md
 CLAUDE.local.md
 
 # CodeGraph
