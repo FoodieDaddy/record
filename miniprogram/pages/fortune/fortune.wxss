@@ -13,12 +13,37 @@
   position: relative;
 }
 
+/* ===== 0. 跨 Tab 骨架屏 ===== */
+.page-skeleton {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0A0A0A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.page-skeleton-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #00C8FF;
+  box-shadow: 0 0 16rpx rgba(0,200,255,.45);
+}
+
+.page-skeleton-text {
+  color: rgba(255,255,255,.58);
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+}
+
 /* ===== 2. reduce-motion 静默模式 ===== */
 .reduce-motion .core-glow,
 .reduce-motion .core-dot,
 .reduce-motion .scan-ring,
 .reduce-motion .deck-line,
-.reduce-motion .deck-status-dot,
 .reduce-motion .hud-mark,
 .reduce-motion .ignition-button,
 .reduce-motion .ignition-led-dot,
@@ -37,11 +62,15 @@
 .reduce-motion .strategy-reset-dot,
 .reduce-motion .nav-core-beam,
 .reduce-motion .projection-line,
-.reduce-motion .sync-projection-line,
+.reduce-motion .sync-chip,
+.reduce-motion .sync-chip-dot,
+.reduce-motion .sync-bar-line,
 .reduce-motion .ignition-arm-dot,
 .reduce-motion .ignition-safety-rail,
 .reduce-motion .rail-half,
-.reduce-motion .projection-card {
+.reduce-motion .projection-card,
+.reduce-motion .generation-status-dot,
+.reduce-motion .wait-step {
   animation: none !important;
   transition-duration: 0ms !important;
   opacity: 1 !important;
@@ -49,13 +78,12 @@
 
 .reduce-motion .core-dot { opacity: 0.6; }
 .reduce-motion .core-glow { opacity: 0.3; }
-.reduce-motion .deck-status-dot { opacity: 0.6; }
 .reduce-motion .flight-heartbeat-dot { opacity: 0.6; }
 
 .reduce-motion .plasma-flame { display: none !important; }
 .reduce-motion .nav-core-beam { display: none !important; }
 .reduce-motion .projection-line { display: none !important; }
-.reduce-motion .sync-projection-line { display: none !important; }
+.reduce-motion .sync-bar-line { display: none !important; }
 
 .reduce-motion .flight-deck--plasma,
 .reduce-motion .flight-deck--lifting,
@@ -274,9 +302,10 @@
   position: relative;
 }
 
-/* result 态：从顶部开始，允许滚动 */
+/* result 态：从顶部开始，减少顶部留白 */
 .flight-deck--done {
   justify-content: flex-start;
+  padding-top: 40rpx;
 }
 
 /* --- 顶部标题 --- */
@@ -362,7 +391,7 @@
   margin-bottom: 32rpx;
   opacity: 0;
   animation: coreEntrance 0.7s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
 }
 
 @keyframes coreEntrance {
@@ -394,24 +423,31 @@
 }
 
 /* ===== 9. 投影线（核心与内容之间的连接线） ===== */
+/* 使用 scaleX 替代 width 动画，避免重排 */
 .projection-line {
-  width: 0;
+  width: 560rpx;
   height: 2rpx;
   background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), transparent);
   margin-bottom: 24rpx;
   opacity: 0;
+  transform: scaleX(0);
+  transform-origin: center;
   transition: none;
 }
 
-.flight-deck--projecting .projection-line,
-.flight-deck--done .projection-line {
-  animation: projectionLineExpand 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+.flight-deck--projecting .projection-line {
+  animation: projectionLineIn 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
-@keyframes projectionLineExpand {
-  0%   { width: 0; opacity: 0; }
-  50%  { opacity: 1; }
-  100% { width: 560rpx; opacity: 0.6; }
+.flight-deck--done .projection-line {
+  opacity: 0;
+  height: 0;
+  margin: 0;
+}
+
+@keyframes projectionLineIn {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 0.55; transform: scaleX(1); }
 }
 
 /* ===== 10. 底部说明 ===== */
@@ -426,65 +462,19 @@
   animation: fadeIn 0.6s ease 0.9s forwards;
 }
 
+/* entered 态：跳过入场动画延迟（重新点火用） */
+.fdi-entered {
+  animation: none !important;
+  opacity: 1 !important;
+}
+
 .flight-deck-info-text {
   display: block;
   font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(126, 156, 180, 0.22);
+  color: rgba(126, 156, 180, 0.28);
   letter-spacing: 3rpx;
   line-height: 1.8;
-}
-
-/* --- 底部 HUD 状态栏 --- */
-.deck-hud-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  max-width: 640rpx;
-  padding: 16rpx 24rpx;
-  background: rgba(0,175,255,0.03);
-  border: 1rpx solid rgba(0,175,255,0.06);
-  border-radius: 8rpx;
-  transition: opacity 0.4s ease, height 0.4s ease;
-}
-
-.dhb-visible {
-  opacity: 0;
-  animation: fadeIn 0.6s ease 1.1s forwards;
-}
-
-.deck-hud-bar-left {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.deck-hud-bar-right {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.deck-status-dot {
-  width: 8rpx;
-  height: 8rpx;
-  border-radius: 50%;
-  background: rgba(48,209,88,0.6);
-  box-shadow: 0 0 8rpx rgba(48,209,88,0.3);
-  animation: statusDotPulse 2.5s ease-in-out infinite;
-}
-
-@keyframes statusDotPulse {
-  0%, 100% { opacity: 0.4; }
-  50%      { opacity: 0.9; }
-}
-
-.deck-status-text {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 20rpx;
-  color: rgba(48,209,88,0.45);
-  letter-spacing: 2rpx;
 }
 
 /* ===== 11. 甲板点火控制器 ===== */
@@ -498,7 +488,13 @@
   z-index: 2;
   opacity: 0;
   animation: fadeIn 0.6s ease 0.5s forwards;
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), max-height 0.35s ease, margin 0.35s ease, padding 0.35s ease;
+}
+
+/* 首次入场完成后：移除动画，保持可见 */
+.ignition-console--entered {
+  animation: none !important;
+  opacity: 1 !important;
 }
 
 .ignition-console::before {
@@ -526,11 +522,34 @@
   border-color: rgba(0,200,255,0.28);
 }
 
-/* 淡出态：点火后下沉消失，但不销毁 DOM */
-.ignition-console--dimmed {
-  opacity: 0;
-  transform: translateY(30rpx) scale(0.95);
+/* 保险态：略微降低透明度 */
+.ignition-console--arming {
+  opacity: 0.86;
+}
+
+/* 淡出态：进一步降低透明度，缩小 */
+.ignition-console--fading {
+  opacity: 0.38;
+  transform: translateY(12rpx) scale(0.97);
   pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* 隐藏态：强制取消入场动画，完全隐藏 */
+.ignition-console--hidden {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translateY(24rpx) scale(0.96);
+  pointer-events: none;
+  max-height: 0;
+  overflow: hidden;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 /* 保险状态头 */
@@ -620,7 +639,7 @@
   background: rgba(0,200,255,0.15);
   border: 1rpx solid rgba(0,200,255,0.25);
   z-index: 5;
-  transition: opacity .4s ease, transform .4s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 .ignition-bolt--tl { top: 14rpx; left: 14rpx; }
@@ -849,7 +868,7 @@
 .ignition-status-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 16rpx;
-  color: rgba(126,156,180,0.2);
+  color: rgba(126,156,180,0.22);
   letter-spacing: 2rpx;
 }
 
@@ -908,7 +927,7 @@
   100% { opacity: 0.9; box-shadow: 0 0 40rpx rgba(10,132,255,0.5); }
 }
 
-/* lifting: 光束拉长、核心上浮 */
+/* lifting: 光束拉长、核心上浮（限制幅度） */
 .flight-deck--lifting .nav-core-beam {
   width: 6rpx;
   height: 160rpx;
@@ -924,12 +943,12 @@
 }
 
 .flight-deck--lifting .nav-core-stage {
-  transform: translateY(-40rpx) scale(1.08);
+  transform: translateY(-24rpx) scale(1.04);
 }
 
-/* syncing: 核心进入生成位置 */
+/* syncing: 核心进入生成位置（限制幅度） */
 .flight-deck--syncing .nav-core-stage {
-  transform: translateY(-60rpx) scale(0.9);
+  transform: translateY(-36rpx) scale(0.92);
   opacity: 0.8;
 }
 
@@ -945,118 +964,147 @@
   50%      { opacity: 0.7; height: 140rpx; }
 }
 
-/* projecting: 核心淡出 */
+/* projecting: 核心轻微缩小变暗（限制幅度） */
 .flight-deck--projecting .nav-core-stage {
-  opacity: 0.3;
-  transform: translateY(-80rpx) scale(0.7);
+  opacity: 0.35;
+  transform: translateY(-52rpx) scale(0.82);
 }
 
-/* done: 核心进一步淡出 */
+/* done: 核心淡出退到背景，保留最小占位 */
 .flight-deck--done .nav-core-stage {
-  opacity: 0;
-  transform: translateY(-100rpx) scale(0.5);
+  opacity: 0 !important;
+  animation: none !important;
+  transform: translateY(-64rpx) scale(0.68);
   pointer-events: none;
-  height: 0;
-  margin: 0;
+  min-height: 80rpx;
+  max-height: 80rpx;
+  margin-bottom: 0;
   overflow: hidden;
 }
 
-.flight-deck--done .deck-perspective { opacity: 0; }
-.flight-deck--done .hud-marks { opacity: 0; pointer-events: none; }
-
-/* ===== 13. 日志舱（syncing 态，从核心下方投影展开） ===== */
-.sync-console {
-  width: 480rpx;
-  margin-top: 0;
-  opacity: 0;
-  transform: scaleY(0.86) translateY(-16rpx);
-  transform-origin: top center;
-  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  pointer-events: none;
+/* entered 态：跳过入场动画，立即可见（重新点火用） */
+.nav-core-stage--entered {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
-.sync-visible {
+/* compact 态：done 阶段核心进一步收缩（优先级高于 entered） */
+.nav-core-stage--compact {
+  opacity: 0 !important;
+  animation: none !important;
+  transform: translateY(-64rpx) scale(0.72) !important;
+  pointer-events: none;
+  min-height: 80rpx;
+}
+
+.flight-deck--done .nav-core-rings {
+  opacity: 0;
+}
+
+.flight-deck--done .deck-perspective { opacity: 0; transition: opacity 0.4s ease; }
+.flight-deck--done .hud-marks { opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
+
+/* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
+.sync-bar {
+  width: 400rpx;
+  margin-top: -4rpx;
+  opacity: 0;
+  transform: translateY(-8rpx);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sync-bar--visible {
   opacity: 1;
-  transform: scaleY(1) translateY(0);
+  transform: translateY(0);
   pointer-events: auto;
 }
 
-.sync-projection-line {
+/* compact 态：日志收缩为小型完成点 */
+.sync-bar--compact {
+  width: 160rpx;
+  padding: 8rpx 12rpx;
+  justify-content: center;
+  gap: 12rpx;
+  opacity: 0.52;
+  background: transparent;
+  border-color: transparent;
+}
+
+.sync-bar--compact .sync-chip {
+  min-height: 14rpx;
+  padding: 4rpx 6rpx;
+  background: transparent;
+  border-color: transparent;
+}
+
+.sync-bar--compact .sync-chip-dot {
+  width: 8rpx;
+  height: 8rpx;
+}
+
+.sync-bar--compact .sync-chip-text {
+  display: none;
+}
+
+.sync-bar-line {
   width: 2rpx;
-  height: 0;
+  height: 24rpx;
   background: linear-gradient(to bottom, rgba(0,200,255,0.3), transparent);
-  margin: 0 auto 12rpx;
-  opacity: 0;
-  transition: height 0.4s ease 0.1s, opacity 0.4s ease 0.1s;
+  margin-bottom: 10rpx;
 }
 
-.sync-visible .sync-projection-line {
-  height: 40rpx;
-  opacity: 0.6;
-}
-
-.flight-terminal {
+.sync-bar-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
   width: 100%;
-  min-height: 180rpx;
-  background: rgba(0,175,255,0.02);
-  border: 1rpx solid rgba(0,175,255,0.08);
-  border-radius: 10rpx;
-  overflow: hidden;
 }
 
-.flight-terminal-head {
-  padding: 12rpx 20rpx;
-  border-bottom: 1rpx solid rgba(0,175,255,0.06);
-}
-
-.flight-terminal-title {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 18rpx;
-  color: rgba(0,175,255,0.35);
-  letter-spacing: 3rpx;
-}
-
-.flight-terminal-body {
-  padding: 16rpx 20rpx;
-}
-
-.flight-log-line {
+.sync-chip {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  margin-bottom: 14rpx;
+  gap: 10rpx;
+  padding: 8rpx 16rpx;
+  background: rgba(0,175,255,0.03);
+  border: 1rpx solid rgba(0,175,255,0.06);
+  border-radius: 6rpx;
   opacity: 0;
-  transform: translateY(8rpx);
+  transform: translateX(-8rpx);
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-.flight-log-line--visible {
+.sync-chip--on {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
 }
 
-.flight-log-dot {
-  width: 8rpx;
-  height: 8rpx;
+.sync-chip-dot {
+  width: 6rpx;
+  height: 6rpx;
   border-radius: 50%;
   background: rgba(0,175,255,0.5);
   flex-shrink: 0;
-  animation: logDotPulse 1.5s ease-in-out infinite;
+  animation: chipDotPulse 1.5s ease-in-out infinite;
 }
 
-@keyframes logDotPulse {
+@keyframes chipDotPulse {
   0%, 100% { opacity: 0.3; }
-  50%      { opacity: 0.8; }
+  50%      { opacity: 0.9; }
 }
 
-.flight-log-text {
+.sync-chip-text {
   font-family: 'Courier New', Courier, monospace;
-  font-size: 22rpx;
-  color: rgba(140, 176, 205, 0.5);
+  font-size: 20rpx;
+  color: rgba(140, 176, 205, 0.55);
   letter-spacing: 1rpx;
 }
 
-.flight-log-typing {
+.sync-chip-typing {
   border-right: 2rpx solid rgba(10,132,255,0.6);
   animation: blink 0.6s step-end infinite;
 }
@@ -1071,7 +1119,7 @@
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-top: 24rpx;
+  margin-top: 20rpx;
   opacity: 0;
   transition: opacity 0.4s ease;
 }
@@ -1096,7 +1144,7 @@
 .flight-heartbeat-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(0,175,255,0.45);
+  color: rgba(0,175,255,0.50);
   letter-spacing: 2rpx;
 }
 
@@ -1108,7 +1156,7 @@
   flex-direction: column;
   align-items: center;
   padding: 0 16rpx;
-  padding-bottom: calc(220rpx + env(safe-area-inset-bottom));
+  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   opacity: 0;
   transform: translateY(20rpx);
@@ -1160,7 +1208,7 @@
   font-size: 40rpx;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 6rpx;
+  letter-spacing: 4rpx;
 }
 
 .dp-kicker {
@@ -1176,7 +1224,7 @@
   display: block;
   font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
-  color: rgba(126, 156, 180, 0.12);
+  color: rgba(126, 156, 180, 0.16);
   margin-top: 4rpx;
 }
 
@@ -1190,7 +1238,7 @@
   border: 1rpx solid;
   font-size: 28rpx;
   font-weight: 600;
-  letter-spacing: 4rpx;
+  letter-spacing: 2rpx;
   margin-bottom: 20rpx;
 }
 
@@ -1226,7 +1274,7 @@
 .strategy-hud-chip-label {
   font-family: 'Courier New', Courier, monospace;
   font-size: 16rpx;
-  color: rgba(126, 156, 180, 0.28);
+  color: rgba(126, 156, 180, 0.32);
   letter-spacing: 1rpx;
 }
 
@@ -1236,6 +1284,11 @@
   color: rgba(0,175,255,0.72);
   letter-spacing: 1rpx;
   font-weight: 600;
+}
+
+/* 舰载指令（主视觉，首屏优先） */
+.strategy-section--directive {
+  margin-bottom: 20rpx;
 }
 
 /* 状态读数 */
@@ -1253,9 +1306,9 @@
   display: block;
   font-size: 28rpx;
   font-weight: 600;
-  color: var(--text-primary);
+  color: rgba(255,255,255,0.90);
   line-height: 1.6;
-  letter-spacing: 2rpx;
+  letter-spacing: 1rpx;
 }
 
 /* 区块标题 */
@@ -1269,7 +1322,7 @@
 .strategy-section-title {
   font-size: 22rpx;
   color: var(--accent, #0A84FF);
-  letter-spacing: 3rpx;
+  letter-spacing: 2rpx;
   font-weight: 600;
 }
 
@@ -1292,7 +1345,7 @@
   color: rgba(255,159,10,0.28);
 }
 
-/* 舰载指令 */
+/* 舰载指令卡片 */
 .strategy-reading {
   width: 100%;
   max-width: 640rpx;
@@ -1312,8 +1365,8 @@
 .strategy-reading-name {
   font-size: 30rpx;
   font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 3rpx;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 1rpx;
 }
 
 .strategy-reading-tags {
@@ -1414,7 +1467,7 @@
 
 .strategy-list-text {
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.72);
   line-height: 1.55;
   letter-spacing: 1rpx;
 }
@@ -1433,6 +1486,14 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.strategy-action-btn:first-child {
+  flex: 1;
+}
+
+.strategy-action-btn:last-child {
+  flex: 1.35;
+}
+
 .strategy-action-btn {
   flex: 1;
   position: relative;
@@ -1442,6 +1503,22 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* button 元素重置（分享按钮） */
+button.strategy-action-btn {
+  margin: 0;
+  padding: 0;
+  line-height: normal;
+  font-size: inherit;
+  background: transparent;
+  border: none;
+  border-radius: 14rpx;
+}
+
+button.strategy-action-btn::after {
+  display: none;
 }
 
 .strategy-action-btn--secondary {
@@ -1454,7 +1531,7 @@
 }
 
 .strategy-action-btn--secondary .strategy-action-text {
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.62);
 }
 
 .strategy-action-btn--secondary .strategy-action-kicker {
@@ -1483,7 +1560,7 @@
   font-family: 'Courier New', Courier, monospace;
   font-size: 26rpx;
   font-weight: 600;
-  letter-spacing: 4rpx;
+  letter-spacing: 2rpx;
 }
 
 .strategy-action-kicker {
@@ -1510,7 +1587,7 @@
 .countdown-label {
   font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
-  color: rgba(126, 156, 180, 0.22);
+  color: rgba(126, 156, 180, 0.28);
   letter-spacing: 3rpx;
 }
 
@@ -1532,13 +1609,15 @@
 .poster-mask {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 99999;
   background: rgba(0,0,0,0.92);
   backdrop-filter: blur(16px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 48rpx;
+  padding-bottom: calc(72rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .poster-container {
@@ -1598,18 +1677,16 @@
   50%      { opacity: 0.9; }
 }
 
-/* 750:1200 = 5:8 比例预览 */
+/* 海报预览 */
 .poster-preview {
-  width: 450rpx;
-  height: 720rpx;
+  width: 600rpx;
   margin-bottom: 32rpx;
   overflow: hidden;
 }
 
 .poster-image {
-  width: 450rpx;
-  height: 720rpx;
-  border-radius: 8rpx;
+  width: 600rpx;
+  border-radius: 12rpx;
   border: 1rpx solid rgba(0,175,255,0.2);
 }
 
@@ -1636,7 +1713,7 @@
 .poster-error-btn {
   font-family: 'Courier New', Courier, monospace;
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: rgba(255,255,255,0.62);
   letter-spacing: 3rpx;
   padding: 16rpx 40rpx;
   border: 1rpx solid rgba(126, 156, 180, 0.10);
@@ -1644,8 +1721,6 @@
 }
 
 .poster-actions {
-  display: flex;
-  gap: 20rpx;
   width: 100%;
 }
 
@@ -1696,4 +1771,93 @@
 @keyframes fadeInDown {
   from { opacity: 0; transform: translateY(-20rpx); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 19. 统一等待主文案 ===== */
+.generation-status {
+  margin: 18rpx auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  min-height: 34rpx;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
+  color: rgba(0,200,255,0.62);
+  opacity: 0;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.generation-status--deep {
+  color: rgba(255,255,255,0.58);
+}
+
+.generation-status--fallback {
+  color: rgba(255,159,10,0.76);
+}
+
+.generation-status-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 12rpx currentColor;
+  animation: engineWaitDotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes engineWaitDotPulse {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+.reduce-motion .generation-status-dot {
+  animation: none !important;
+  opacity: 0.6;
+}
+
+/* 旧字段兜底（不直接渲染，但保留样式以防万一） */
+.engine-wait-line {
+  display: none;
+}
+
+/* ===== 19b. 四段式进度条 ===== */
+.wait-steps {
+  width: 260rpx;
+  margin: 18rpx auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8rpx;
+}
+
+.wait-step {
+  height: 4rpx;
+  border-radius: 999rpx;
+  background: rgba(255,255,255,0.10);
+}
+
+.wait-step--active {
+  background: rgba(0,200,255,0.58);
+  box-shadow: 0 0 10rpx rgba(0,200,255,0.25);
+}
+
+.wait-steps--3 .wait-step--active {
+  background: rgba(255,159,10,0.72);
+  box-shadow: 0 0 10rpx rgba(255,159,10,0.25);
+}
+
+/* ===== 20. 海报按钮布局 ===== */
+.poster-actions--two {
+  display: grid;
+  grid-template-columns: 1.2fr .8fr;
+  gap: 20rpx;
+}
+
+.poster-actions--three {
+  display: flex;
+  gap: 20rpx;
+}
+
+.poster-actions--three .poster-btn {
+  flex: 1;
 }

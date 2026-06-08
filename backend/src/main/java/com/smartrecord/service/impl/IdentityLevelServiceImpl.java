@@ -1,6 +1,5 @@
 package com.smartrecord.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartrecord.dto.user.IdentityLevelResp;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.UserIdentityLevel;
@@ -70,12 +69,8 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
         // 1. 查询已结算场次（quitTime 不为空的去重房间数）
         int matchCount = roomMemberMapper.countSettledRooms(userId);
 
-        // 2. 查询所有已结算的 room_member 记录，计算总分和正反馈率
-        List<RoomMember> settledRecords = roomMemberMapper.selectList(
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getUserId, userId)
-                        .isNotNull(RoomMember::getQuitTime)
-        );
+        // 2. 查询所有已封存的 room_member 记录，计算总分和正反馈率
+        List<RoomMember> settledRecords = roomMemberMapper.selectSettledMembersByUserId(userId);
 
         int totalScore = 0;
         int winCount = 0;

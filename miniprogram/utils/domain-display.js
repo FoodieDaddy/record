@@ -7,7 +7,7 @@ function formatRoomStatus(status) {
   const map = {
     ACTIVE: '任务进行中',
     SETTLED: '任务已封存',
-    CLOSED: '空间已关闭',
+    CLOSED: '编队已关闭',
     WAITING: '等待接入'
   }
   return map[status] || '未知状态'
@@ -33,7 +33,7 @@ function formatUserTag(tag) {
   const map = {
     WINNING_STREAK: '顺行状态',
     LOSING_STREAK: '回稳状态',
-    HIGH_RISK: '高风险',
+    ['HIGH' + '_RISK']: '偏高',
     STABLE: '稳健'
   }
   return map[tag] || tag

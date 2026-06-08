@@ -14,6 +14,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import org.springframework.web.socket.WebSocketHttpHeaders;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,7 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         session.getAttributes().put(USER_ID_ATTR, userId);
         ROOM_SESSIONS.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(session);
         log.info("WebSocket 连接建立: roomId={}, userId={}, sessionId={}", roomId, userId, session.getId());
+        pushPresence(roomId);
     }
 
     @Override
@@ -75,8 +77,28 @@ public class ScoreWebSocket extends TextWebSocketHandler {
                 if (sessions.isEmpty()) {
                     ROOM_SESSIONS.remove(roomId);
                 }
+                pushPresence(roomId);
             }
         }
+    }
+
+    private void pushPresence(String roomId) {
+        Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
+        List<String> onlineUserIds = new ArrayList<>();
+        if (sessions != null) {
+            sessions.stream()
+                    .filter(WebSocketSession::isOpen)
+                    .map(s -> s.getAttributes().get(USER_ID_ATTR))
+                    .filter(Long.class::isInstance)
+                    .map(String::valueOf)
+                    .distinct()
+                    .forEach(onlineUserIds::add);
+        }
+        pushToRoom(roomId, Map.of(
+                "type", "PRESENCE_UPDATE",
+                "roomId", roomId,
+                "onlineUserIds", onlineUserIds
+        ));
     }
 
     /**

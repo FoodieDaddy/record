@@ -1,4 +1,4 @@
-/* ===== SPACE SCAN PANEL 空间扫描面板 ===== */
+/* ===== SPACE SCAN PANEL 编队扫描面板 ===== */
 .ssp {
   padding: 24rpx;
   border: 1rpx solid rgba(10, 132, 255, 0.12);

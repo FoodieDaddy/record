@@ -47,3 +47,13 @@ CLAUDE.local.md
 
 # Cursor
 .cursor/
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
+
+# Tool artifacts
+.superpowers/
+.ui-review/
+docs/superpowers/
+*.zip

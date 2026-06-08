@@ -9,7 +9,9 @@ App({
     userInfo: null,
     audioEnabled: true,
     animationEnabled: true,
-    vibrateEnabled: true
+    vibrateEnabled: true,
+    enableWechatShare: false,
+    activeTabKey: 'cockpit'
   },
 
   onLaunch() {

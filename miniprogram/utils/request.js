@@ -13,11 +13,18 @@ function request(options) {
       header['Authorization'] = `Bearer ${app.globalData.token}`;
     }
 
-    wx.request({
+    const reqOptions = {
       url: `${app.globalData.baseUrl}${options.url}`,
       method: options.method || 'GET',
       data: options.data,
       header,
+    }
+    if (options.timeout) {
+      reqOptions.timeout = options.timeout
+    }
+
+    wx.request({
+      ...reqOptions,
       success(res) {
         const errCode = res.data && res.data.code;
         // 4001: token 无效/过期/用户不存在 | 4003: 账号已注销/已封禁
@@ -53,8 +60,8 @@ function request(options) {
   });
 }
 
-function get(url, data) {
-  return request({ url, method: 'GET', data });
+function get(url, data, opts) {
+  return request({ url, method: 'GET', data, ...opts });
 }
 
 function post(url, data, opts) {

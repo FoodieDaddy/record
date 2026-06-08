@@ -20,7 +20,7 @@
       <view class="vo-header-line"></view>
 
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
-        <text class="text-tertiary">至少需要 2 名舰员</text>
+        <text class="text-tertiary">至少需要 2 名成员</text>
       </view>
       <view wx:else class="panel-body">
 
@@ -37,7 +37,7 @@
           <view class="relation-section">
             <view class="relation-header">
               <view class="relation-header-left">
-                <text class="relation-title">往来舰员</text>
+                <text class="relation-title">往来成员</text>
                 <text class="relation-en">FLOW LINKS</text>
               </view>
               <text class="relation-count">{{relationList.length}}人</text>

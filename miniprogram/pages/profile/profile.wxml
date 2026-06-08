@@ -21,14 +21,13 @@
       <text class="sync-hud__text">{{hudText}}</text>
     </view>
 
-    <!-- 0. SYSTEM STATUS -->
-    <view class="status-bar">
-      <view class="status-bar__dot {{isLoggedIn ? 'status-bar__dot--online' : ''}}"></view>
-      <text class="status-bar__label">识别舱已接入</text>
-      <text class="status-bar__value">{{isLoggedIn ? 'ONLINE' : 'OFFLINE'}}</text>
+    <!-- 左上角舱位状态 Tab -->
+    <view class="bay-status-tab bay-status-tab--{{identityBayState}}">
+      <view class="bay-status-tab__dot"></view>
+      <text class="bay-status-tab__label">{{identityBayLabel}}</text>
     </view>
 
-    <!-- 1. 舰员铭牌 -->
+    <!-- 1. 本舰档案 -->
     <view class="profile-hud">
       <view class="profile-hud__kicker">
         <text class="profile-hud__kicker-zh">本舰档案</text>
@@ -73,10 +72,10 @@
       </view>
     </view>
 
-    <!-- 3. 本舰状态 -->
+    <!-- 2. 授权状态 -->
     <view class="term-card term-card--ship-status">
-      <text class="term-kicker">本舰状态</text>
-      <text class="term-kicker-sub">SHIP STATUS</text>
+      <text class="term-kicker">授权状态</text>
+      <text class="term-kicker-sub">IDENTITY STATUS</text>
       <view class="ship-status__row">
         <view class="ship-status__item">
           <text class="ship-status__label">航行经验</text>
@@ -96,7 +95,7 @@
       </view>
     </view>
 
-    <!-- 4. 装备协议 -->
+    <!-- 3. 装备协议 -->
     <view class="term-card term-card--equip">
       <text class="term-kicker">装备协议</text>
       <text class="term-kicker-sub">EQUIPMENT</text>
@@ -144,49 +143,58 @@
       </view>
     </view>
 
-    <!-- 6. 断开终端 -->
-    <view class="terminate-btn" bindtap="onLogout">
-      <text class="terminate-btn__en">TERMINATE</text>
-      <text class="terminate-btn__zh">断开终端</text>
+    <!-- 4. 终端控制 -->
+    <view class="terminal-control">
+      <text class="term-kicker">终端控制</text>
+      <text class="term-kicker-sub">TERMINAL CONTROL</text>
+      <view class="terminate-btn" bindtap="onLogout">
+        <text class="terminate-btn__en">TERMINATE</text>
+        <text class="terminate-btn__zh">断开终端</text>
+      </view>
     </view>
   </view>
 
-  <!-- 舰员代号校准抽屉 -->
-  <view wx:if="{{nicknameDrawerVisible}}" class="drawer-mask" bindtap="closeNicknameDrawer"></view>
-  <view wx:if="{{nicknameDrawerVisible}}" class="nickname-drawer">
-    <view class="nickname-drawer__header">
-      <text class="nickname-drawer__kicker">SHIP NAME</text>
-      <text class="nickname-drawer__title">本舰呼号校准</text>
-    </view>
-    <view class="nickname-drawer__body">
-      <view class="nickname-drawer__field">
-        <text class="nickname-drawer__label">当前呼号</text>
-        <text class="nickname-drawer__current">{{nickname || '未命名航船'}}</text>
+  <!-- 本舰呼号校准悬浮终端 -->
+  <view wx:if="{{nicknameDrawerVisible}}" class="callsign-overlay {{!animationEnabled ? 'reduce-motion' : ''}}" bindtap="closeNicknameDrawer">
+    <view class="callsign-float {{callsignKeyboardHeight > 0 ? 'is-keyboard' : ''}}" catchtap="noop">
+      <view class="callsign-status">
+        <view class="callsign-status__dot"></view>
+        <text class="callsign-status__text">呼号校准待写入</text>
       </view>
-      <view class="nickname-drawer__field">
-        <text class="nickname-drawer__label">新呼号</text>
-        <view class="nickname-drawer__input-row">
+
+      <view class="callsign-field">
+        <text class="callsign-field__label">当前呼号</text>
+        <text class="callsign-field__value">{{nickname || '未命名航船'}}</text>
+      </view>
+
+      <view class="callsign-field">
+        <text class="callsign-field__label">新呼号</text>
+        <view class="callsign-input-row">
           <input
-            class="nickname-drawer__input"
-            type="nickname"
+            class="callsign-input"
             value="{{drawerNickname}}"
-            placeholder="输入新呼号"
-            focus="{{nicknameDrawerVisible}}"
+            type="text"
+            maxlength="12"
+            placeholder="输入本舰呼号"
+            adjust-position="{{false}}"
+            cursor-spacing="80"
             bindinput="onDrawerNicknameInput"
+            bindkeyboardheightchange="onCallsignKeyboardHeightChange"
           />
-          <view class="nickname-drawer__random" bindtap="onRandomNickname">
-            <view class="svg-icon svg-icon--dice"></view>
+          <view class="callsign-generate" bindtap="onRandomNickname">
+            <text class="callsign-generate__text">生成呼号</text>
           </view>
         </view>
-        <text class="nickname-drawer__hint {{drawerNicknameOverflow ? 'nickname-drawer__hint--warn' : ''}}">{{drawerNicknameOverflow ? '呼号过长，建议 6 个汉字以内' : '最多 6 个汉字'}}</text>
+        <text class="callsign-hint {{drawerNicknameOverflow ? 'callsign-hint--warn' : ''}}">{{drawerNicknameOverflow ? '呼号过长，建议 6 个汉字以内' : '最多 6 个汉字'}}</text>
       </view>
-    </view>
-    <view class="nickname-drawer__footer">
-      <view class="nickname-drawer__btn nickname-drawer__btn--cancel" bindtap="closeNicknameDrawer">
-        <text>取消</text>
-      </view>
-      <view class="nickname-drawer__btn nickname-drawer__btn--confirm" bindtap="confirmNicknameDrawer">
-        <text>同步协议</text>
+
+      <view class="callsign-actions">
+        <view class="callsign-btn callsign-btn--cancel" bindtap="closeNicknameDrawer">
+          <text>取消</text>
+        </view>
+        <view class="callsign-btn callsign-btn--confirm" bindtap="confirmNicknameDrawer">
+          <text>写入呼号</text>
+        </view>
       </view>
     </view>
   </view>

@@ -8,7 +8,7 @@
   <view class="swipe-top">
     <view class="top-center">
       <text class="swipe-kicker">CALIBRATION</text>
-      <text class="swipe-subtitle">协议同步中</text>
+      <text class="swipe-subtitle">协议校准</text>
       <view class="top-progress-row">
         <text class="swipe-progress">{{progress}}</text>
         <view class="progress-segments">
@@ -22,19 +22,31 @@
     </view>
   </view>
 
-  <!-- 题目卡片 -->
+  <!-- 双卡栈 -->
   <view class="swipe-card-area">
-    <!-- 正常卡片 -->
-    <view class="swipe-card {{slideDirection === 'right' ? 'slide-right' : ''}} {{slideDirection === 'left' ? 'slide-left' : ''}}">
-      <view class="card-scan-line"></view>
-      <text class="signal-header">SIGNAL #{{signalIndex}}</text>
-      <text class="signal-label">行为判断</text>
-      <view class="question-divider-top"></view>
-      <text class="question-text">{{currentQuestion.text}}</text>
-      <view class="question-divider-bottom"></view>
-      <view class="dim-detect">
-        <text class="dim-detect-label">检测维度</text>
-        <text class="dim-detect-value">{{dimensionLabel}}</text>
+    <view class="card-stack {{promotingNext ? 'card-stack--promote' : ''}}">
+      <!-- 下一题预览（在后方） -->
+      <view wx:if="{{nextQuestion}}" class="signal-card signal-card--next">
+        <view class="card-scan-line"></view>
+        <text class="signal-header">SIGNAL #{{signalIndex}}</text>
+        <text class="signal-label">行为判断</text>
+        <view class="question-divider-top"></view>
+        <text class="question-text">{{nextQuestion.text}}</text>
+        <view class="question-divider-bottom"></view>
+      </view>
+
+      <!-- 当前题 -->
+      <view class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
+        <view class="card-scan-line"></view>
+        <text class="signal-header">SIGNAL #{{signalIndex}}</text>
+        <text class="signal-label">行为判断</text>
+        <view class="question-divider-top"></view>
+        <text class="question-text">{{currentQuestion.text}}</text>
+        <view class="question-divider-bottom"></view>
+        <view class="dim-detect">
+          <text class="dim-detect-label">检测维度</text>
+          <text class="dim-detect-value">{{dimensionLabel}}</text>
+        </view>
       </view>
     </view>
   </view>

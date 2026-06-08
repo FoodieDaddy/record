@@ -2,8 +2,8 @@
   <!-- 标题区 -->
   <view class="ssp-header">
     <view class="ssp-title-group">
-      <text class="ssp-cn">空间扫描</text>
-      <text class="ssp-en">SPACE SCAN</text>
+      <text class="ssp-cn">编队扫描</text>
+      <text class="ssp-en">FLEET SCAN</text>
     </view>
   </view>
   <view class="ssp-divider"></view>
@@ -11,7 +11,7 @@
   <!-- 摘要状态行 -->
   <view class="ssp-status-row">
     <view class="ssp-status-dot"></view>
-    <text class="ssp-status-text">空间状态：{{densityLabel}}</text>
+    <text class="ssp-status-text">编队状态：{{densityLabel}}</text>
   </view>
 
   <!-- 2x2 扫描格 -->

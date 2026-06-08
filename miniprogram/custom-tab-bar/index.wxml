@@ -1,0 +1,66 @@
+<view class="terminal-dock">
+  <view class="dock-top-line"></view>
+  <view class="dock-energy-rail"></view>
+
+  <view class="dock-tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="pagePath"
+      class="dock-tab {{selected === index ? 'is-active' : ''}}"
+      data-index="{{index}}"
+      data-path="{{item.pagePath}}"
+      bindtap="switchTab"
+    >
+      <view class="dock-slot">
+        <view class="slot-active-plate"></view>
+
+        <!-- 驾驶舱：HUD 框 + 舰点 + 连接线 -->
+        <view wx:if="{{item.iconClass === 'icon-cockpit'}}" class="dock-icon icon-cockpit">
+          <view class="cockpit-frame"></view>
+          <view class="fleet-node n1"></view>
+          <view class="fleet-node n2"></view>
+          <view class="fleet-node n3"></view>
+          <view class="fleet-link l1"></view>
+          <view class="fleet-link l2"></view>
+        </view>
+
+        <!-- 导航舱：轨道环 + 核心 + 航线 -->
+        <view wx:if="{{item.iconClass === 'icon-nav'}}" class="dock-icon icon-nav">
+          <view class="nav-orbit"></view>
+          <view class="nav-core"></view>
+          <view class="route-line"></view>
+          <view class="nav-node s1"></view>
+          <view class="nav-node s2"></view>
+        </view>
+
+        <!-- 全息舱：投影框 + 扫描线 -->
+        <view wx:if="{{item.iconClass === 'icon-holo'}}" class="dock-icon icon-holo">
+          <view class="holo-frame"></view>
+          <view class="holo-core"></view>
+          <view class="scan-line"></view>
+          <view class="holo-tick t1"></view>
+          <view class="holo-tick t2"></view>
+        </view>
+
+        <!-- 识别舱：扫描框 + 识别点 + 信息线 -->
+        <view wx:if="{{item.iconClass === 'icon-identity'}}" class="dock-icon icon-identity">
+          <view class="scan-frame"></view>
+          <view class="scan-corner sc-tl"></view>
+          <view class="scan-corner sc-tr"></view>
+          <view class="scan-corner sc-bl"></view>
+          <view class="scan-corner sc-br"></view>
+          <view class="id-core"></view>
+          <view class="id-line line1"></view>
+          <view class="id-line line2"></view>
+          <view class="id-pin p1"></view>
+          <view class="id-pin p2"></view>
+        </view>
+
+        <view class="dock-connect-dot" wx:if="{{selected === index}}"></view>
+      </view>
+
+      <text class="dock-label">{{item.text}}</text>
+      <view class="dock-active-bar" wx:if="{{selected === index}}"></view>
+    </view>
+  </view>
+</view>

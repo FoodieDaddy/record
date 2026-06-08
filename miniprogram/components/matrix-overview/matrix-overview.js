@@ -1,5 +1,5 @@
 /**
- * 积分总览组件 — 矩阵面板 + 折线图 + 积分明细弹窗
+ * 脉冲总览组件 — 矩阵面板 + 折线图 + 脉冲明细弹窗
  * 两段式平滑卸载 · 列表懒加载
  */
 const { get } = require('../../utils/request');
@@ -31,7 +31,7 @@ Component({
     chartSeries: [],
     chartVisibleUsers: [],
 
-    // 积分明细
+    // 脉冲明细
     showMatrixDetail: false,
     detailFrom: {},
     detailTo: {},
@@ -192,7 +192,7 @@ Component({
       }
     },
 
-    // ========== 积分明细 ==========
+  // ========== 脉冲明细 ==========
 
     onRelationTap(e) {
       const { userId } = e.currentTarget.dataset;

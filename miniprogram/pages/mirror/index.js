@@ -71,8 +71,9 @@ Page({
     heroOpacity: 0,
     sectionsOpacity: 0,
 
-    // 舱位状态
-    baySubtitle: '接入人格协议以启动镜像',
+    // 舱位状态 Tab
+    bayStatusState: 'starting',
+    bayStatusText: '全息舱启动中',
 
     // 人格协议
     mbti: {
@@ -133,6 +134,9 @@ Page({
 
     // 协议演化
     evolution: [],
+
+    // 协议分析折叠
+    analysisExpanded: false,
 
     // 弹窗控制
     showMbtiPicker: false,
@@ -271,6 +275,10 @@ Page({
 
   noop() {},
 
+  toggleAnalysis() {
+    this.setData({ analysisExpanded: !this.data.analysisExpanded });
+  },
+
   // ==================== 数据加载 ====================
 
   /**
@@ -286,11 +294,17 @@ Page({
     if (initial) {
       this.setData({
         mirrorPhase: 'initial_loading',
+        bayStatusState: 'starting',
+        bayStatusText: '全息舱启动中',
         ...deriveViewFlags('initial_loading')
       });
     } else if (!silent) {
       // 非静默非首次：轻量状态
-      this.setData({ isSilentSyncing: true });
+      this.setData({
+        isSilentSyncing: true,
+        bayStatusState: 'starting',
+        bayStatusText: '全息舱启动中'
+      });
     }
 
     var runId = ++this._profileRunId;
@@ -342,7 +356,7 @@ Page({
           loadedOnce: true
         });
       }
-      this._showToast('镜像投影加载失败', 'dot-error');
+      this._showToast('镜像数据加载失败', 'dot-error');
     }
   },
 
@@ -394,11 +408,14 @@ Page({
     var signals = this._calcSignalTags(battle, traits);
     var evolution = res.evolution || [];
 
-    var baySubtitle = '镜像舱在线';
+    var bayStatusState = 'online';
+    var bayStatusText = '全息舱已接入';
     if (!mbti.calibrated) {
-      baySubtitle = '接入人格协议以启动镜像';
+      bayStatusState = 'standby';
+      bayStatusText = '全息舱待机中';
     } else if (battle.sampleSize < 3) {
-      baySubtitle = '航迹样本读取中';
+      bayStatusState = 'starting';
+      bayStatusText = '全息舱启动中';
     }
 
     // stats 可能失败，降级处理
@@ -438,7 +455,8 @@ Page({
       personaSignals: signals,
       evolution: evolution,
       generatedAt: this._generatedAt,
-      baySubtitle: baySubtitle,
+      bayStatusState: bayStatusState,
+      bayStatusText: bayStatusText,
       radarDimensions: radarDimensions,
       radarLocked: radarLocked,
       needRefresh: false,
@@ -714,13 +732,13 @@ Page({
         ...deriveViewFlags('main'),
         calibrationError: ''
       });
-      this._showToast('协议已同步', 'dot-sync');
+      this._showToast('校准已完成', 'dot-sync');
     } catch (err) {
       if (runId !== this._calibrationRunId || self._unloaded) return;
       this.setData({
         mirrorPhase: 'calibrating',
         ...deriveViewFlags('calibrating'),
-        calibrationError: '协议写入失败，请重试'
+        calibrationError: '校准失败，请稍后重试'
       });
     }
   },
@@ -756,7 +774,9 @@ Page({
     this.setData({
       pickerSyncState: 'syncing',
       pickerError: '',
-      mirrorPhase: 'quick_syncing'
+      mirrorPhase: 'quick_syncing',
+      bayStatusState: 'starting',
+      bayStatusText: '全息舱启动中'
     });
 
     try {
@@ -885,9 +905,9 @@ Page({
       this.setData({
         mirrorPhase: 'main',
         ...deriveViewFlags('main'),
-        cardError: '镜像卡生成失败'
+        cardError: '镜像图片生成失败'
       });
-      this._showToast('投影生成失败，请稍后重试', 'dot-error');
+      this._showToast('镜像图片生成失败，请稍后重试', 'dot-error');
     }
   },
 
@@ -1186,7 +1206,7 @@ Page({
     ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '16px sans-serif';
     this._fillLetterSpaced(ctx, 'SMART RECORD', padL, 72);
-    this._fillLetterSpacedRight(ctx, 'MIRROR PROJECTION', W - padL, 72);
+    this._fillLetterSpacedRight(ctx, 'HOLO PROJECTION', W - padL, 72);
 
     // MBTI 核心
     var coreY = 280;
@@ -1200,7 +1220,7 @@ Page({
     ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle || ''), W / 2, coreY + 52);
     ctx.textAlign = 'left';
 
-    // 五维扫描区域
+    // 全息扫描区域
     var scanCenterX = W / 2;
     var scanCenterY = coreY + 170;
     var scanRadius = 100;
@@ -1262,7 +1282,7 @@ Page({
 
     ctx.fillStyle = 'rgba(10,132,255,0.42)';
     ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'SMART RECORD · MIRROR PROJECTION', padL, H - 50);
+    this._fillLetterSpaced(ctx, 'SMART RECORD · HOLO BAY', padL, H - 50);
   },
 
   /**
@@ -1341,7 +1361,7 @@ Page({
     ctx.textBaseline = 'middle';
     ctx.font = 'bold 14px sans-serif';
     ctx.fillStyle = 'rgba(0,200,255,0.62)';
-    ctx.fillText('全息扫描采集中', cx, cy - 10);
+    ctx.fillText('全息扫描中', cx, cy - 10);
     ctx.font = '12px sans-serif';
     ctx.fillStyle = 'rgba(0,200,255,0.42)';
     ctx.fillText('航迹样本 ' + sampleSize + ' / ' + required, cx, cy + 10);
@@ -1511,7 +1531,7 @@ Page({
   saveCard() {
     var path = this.data.cardTempPath;
     if (!path) {
-      this._showToast('请先生成镜像档案', 'dot-warn');
+      this._showToast('请先生成镜像图片', 'dot-warn');
       return;
     }
 
@@ -1519,7 +1539,7 @@ Page({
     wx.saveImageToPhotosAlbum({
       filePath: path,
       success: function () {
-        self._showToast('镜像档案已保存', 'dot-sync');
+        self._showToast('镜像图片已保存', 'dot-sync');
       },
       fail: function (err) {
         if (err.errMsg && err.errMsg.indexOf('auth deny') !== -1) {

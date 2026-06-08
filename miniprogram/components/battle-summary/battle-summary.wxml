@@ -6,10 +6,10 @@
     <view class="summary-line"></view>
   </view>
 
-  <!-- 空间信息条 -->
+  <!-- 编队信息条 -->
   <view class="summary-meta">
     <view class="meta-item" wx:if="{{roomNo}}">
-      <text class="meta-label">空间</text>
+      <text class="meta-label">编队</text>
       <text class="meta-value mono">{{roomNo}}</text>
     </view>
     <view class="meta-item" wx:if="{{settleTime}}">
@@ -17,7 +17,7 @@
       <text class="meta-value">{{settleTime}}</text>
     </view>
     <view class="meta-item" wx:if="{{memberCount}}">
-      <text class="meta-label">舰员</text>
+      <text class="meta-label">成员</text>
       <text class="meta-value">{{memberCount}}人</text>
     </view>
   </view>

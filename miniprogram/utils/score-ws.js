@@ -1,5 +1,5 @@
 /**
- * WebSocket 全局单例 — 房间级实时记分同步
+ * WebSocket 全局单例 — 编队级实时记分同步
  *
  * 设计原则：
  * - 全局唯一实例，不随页面销毁
@@ -30,7 +30,7 @@ class ScoreWS {
   }
 
   /**
-   * 连接到房间的 WebSocket
+   * 连接到编队的 WebSocket
    */
   connect(roomId) {
     if (!roomId) return;
@@ -110,7 +110,7 @@ class ScoreWS {
   }
 
   /**
-   * 切换房间（断开当前 → 连接新房间）
+   * 切换编队（断开当前 -> 连接新编队）
    */
   switchRoom(roomId) {
     if (this.roomId === roomId && this.isConnected) return;

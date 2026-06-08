@@ -5,53 +5,60 @@
   <view class="ws-mask {{wsReconnecting ? 'ws-mask--show' : ''}}" catchtap catchtouchmove="preventClose">
     <view class="ws-mask__card glass-card">
       <view class="ws-mask__dot"></view>
-      <text class="ws-mask__text">网络不太稳定，正在重试...</text>
+      <text class="ws-mask__text">通讯链路波动，正在重试...</text>
     </view>
   </view>
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
     <text class="text-lg text-bold" style="margin-bottom:12rpx;">终端未接入</text>
-    <text class="text-secondary" style="margin-bottom:40rpx;">接入终端后可启动或接入任务空间</text>
+    <text class="text-secondary" style="margin-bottom:40rpx;">接入终端后可创建或加入任务编队</text>
     <view class="flight-primary" style="width:320rpx;" bindtap="goLogin">
       <text>接入终端</text>
     </view>
   </view>
 
-  <!-- 驾驶舱 Header（idle 状态显示） -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-header">
-    <view class="header-kicker">COCKPIT ONLINE</view>
-    <view class="header-main">
-      <view>
-        <view class="page-title">驾驶舱</view>
-        <view class="page-subtitle">启动空间，记录脉冲</view>
-      </view>
-      <view class="sync-chip">
-        <view class="status-dot {{wsConnected ? 'status-dot--on' : ''}}"></view>
-        <text>{{wsConnected ? '链路在线' : '链路待接入'}}</text>
-      </view>
+  <!-- 驾驶舱 Header -->
+  <view wx:if="{{isLoggedIn}}" class="cockpit-header">
+    <view class="bay-status-tab bay-status-tab--{{cockpitView.statusDot === 'online' ? 'online' : cockpitView.statusDot === 'connecting' ? 'starting' : 'standby'}}">
+      <view class="bay-status-tab__dot"></view>
+      <text class="bay-status-tab__label">{{cockpitView.statusLabel}}</text>
     </view>
   </view>
 
-  <!-- idle 状态：启动核心 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="launch-deck sr-hud-panel">
-    <view class="idle-scanline"></view>
-    <view class="deck-grid"></view>
+  <!-- idle 状态：驾驶舱舷窗待机 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle sr-hud-panel">
+    <view class="starfield"></view>
+    <view class="windshield-grid"></view>
+    <view class="windshield-frame"></view>
+    <view class="windshield-horizon"></view>
 
-    <view class="launch-core {{launching ? 'is-igniting' : ''}}">
-      <view class="core-orbit core-orbit-a"></view>
-      <view class="core-orbit core-orbit-b"></view>
-      <view class="core-pulse"></view>
-      <view class="core-center">
-        <view class="core-label">MISSION SPACE</view>
-        <view class="core-title">任务空间待机</view>
-        <view class="core-desc">接入舰员后开始记录脉冲轨迹</view>
+    <view class="standby-window-copy">
+      <view class="standby-title">任务编队待机</view>
+      <view class="standby-desc">创建编队，开始记录本次航程脉冲</view>
+    </view>
+
+    <view class="cockpit-id-panel cockpit-id-panel--idle">
+      <text class="hud-label">状态</text>
+      <text class="hud-code">待机</text>
+    </view>
+
+    <view class="cockpit-stats cockpit-stats--idle">
+      <view class="hud-stat">
+        <text class="hud-stat-label">编队成员</text>
+        <text class="hud-stat-value">0/16</text>
+      </view>
+      <view class="hud-stat">
+        <text class="hud-stat-label">航程阶段</text>
+        <text class="hud-stat-value">待机</text>
+      </view>
+      <view class="hud-stat">
+        <text class="hud-stat-label">链路状态</text>
+        <text class="hud-stat-value">待接入</text>
       </view>
     </view>
 
-    <!-- 空间模式选择 -->
-    <view class="launch-config">
-      <view class="config-kicker">SPACE MODE</view>
+    <view class="launch-config cockpit-mode-console">
       <view class="config-chips">
         <view class="config-chip {{scoreMode === 1 ? 'config-chip--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
           <view class="chip-dot {{scoreMode === 1 ? 'chip-dot--on' : ''}}"></view>
@@ -64,24 +71,60 @@
       </view>
     </view>
 
-    <view class="launch-actions">
+    <view class="launch-actions cockpit-launch-actions">
       <button class="sr-btn sr-btn-primary launch-btn {{launching ? 'sr-btn--loading' : ''}}" bindtap="handleStartSpace">
-        <text class="btn-text">启动空间</text>
+        <text class="btn-text">创建编队</text>
         <view class="btn-energy"></view>
       </button>
       <button class="sr-btn sr-btn-secondary" bindtap="openJoinPanel">
-        <text class="btn-text">接入空间</text>
+        <text class="btn-text">加入编队</text>
       </button>
     </view>
   </view>
 
-  <!-- 接入空间弹窗 -->
+  <!-- 启动过渡层 -->
+  <view wx:if="{{isLaunching}}" class="launch-transition">
+    <view class="launch-transition-bg"></view>
+    <view class="launch-ring">
+      <view class="launch-ring-outer"></view>
+      <view class="launch-ring-inner"></view>
+    </view>
+    <view class="launch-phase-text">
+      <text wx:if="{{launchPhase === 'linking'}}">编队链路建立中</text>
+      <text wx:elif="{{launchPhase === 'window'}}">舷窗正在开启</text>
+      <text wx:elif="{{launchPhase === 'hud'}}">HUD 接入完成</text>
+    </view>
+    <view class="launch-phase-bar">
+      <view class="launch-phase-dot {{launchPhase === 'linking' ? 'launch-phase-dot--active' : ''}}"></view>
+      <view class="launch-phase-dot {{launchPhase === 'window' ? 'launch-phase-dot--active' : ''}}"></view>
+      <view class="launch-phase-dot {{launchPhase === 'hud' ? 'launch-phase-dot--active' : ''}}"></view>
+    </view>
+  </view>
+
+  <!-- connecting 状态：链路接入中 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'connecting'}}" class="cockpit-viewport cockpit-viewport--connecting sr-hud-panel">
+    <view class="starfield"></view>
+    <view class="windshield-grid"></view>
+    <view class="windshield-frame"></view>
+    <view class="windshield-horizon"></view>
+
+    <view class="standby-window-copy">
+      <view class="standby-title">链路接入中</view>
+      <view class="standby-desc">正在建立编队链路...</view>
+    </view>
+
+    <view class="cockpit-id-panel cockpit-id-panel--idle">
+      <text class="hud-label">状态</text>
+      <text class="hud-code">接入中</text>
+    </view>
+  </view>
+
+  <!-- 加入编队弹窗 -->
   <view wx:if="{{joinPanelVisible}}" class="cockpit-mask" bindtap="closeJoinPanel">
     <view class="join-panel sr-hud-panel" catchtap="preventClose">
       <view class="panel-head">
         <view>
-          <view class="panel-kicker">ACCESS CODE</view>
-          <view class="panel-title">接入空间</view>
+          <view class="panel-title">加入编队</view>
         </view>
         <view class="panel-close" bindtap="closeJoinPanel">
           <view class="icon-close"></view>
@@ -93,34 +136,33 @@
           class="code-input"
           value="{{joinCode}}"
           maxlength="6"
-          placeholder="输入 6 位识别码"
+          placeholder="输入 6 位编队码"
           placeholder-class="input-placeholder"
           bindinput="onJoinCodeInput"
         />
       </view>
 
       <button class="sr-btn sr-btn-primary {{joining ? 'sr-btn--loading' : ''}}" bindtap="handleJoinSpace">
-        <text class="btn-text">确认接入</text>
+        <text class="btn-text">确认加入</text>
       </button>
     </view>
   </view>
 
-  <!-- idle 状态：已有空间快捷入口 -->
+  <!-- idle 状态：已有编队快捷入口 -->
   <view wx:if="{{isLoggedIn && cockpitState === 'idle' && currentRoom && !viewingRoom}}" class="reentry-card sr-card">
     <view class="reentry-head">
-      <view class="reentry-kicker">MISSION ACTIVE</view>
-      <view class="reentry-title">进行中的任务空间</view>
+      <view class="reentry-title">进行中的任务编队</view>
     </view>
     <view class="reentry-info">
       <view class="reentry-code">SR-{{currentRoom.roomNo}}</view>
       <view class="reentry-meta">
-        <text>{{currentRoom.members ? currentRoom.members.length : 0}} 名舰员</text>
+        <text>编队成员 {{currentRoom.members ? currentRoom.members.length : 0}}</text>
         <text>{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
       </view>
     </view>
     <view class="reentry-actions">
       <button class="sr-btn sr-btn-primary" bindtap="enterRoom">
-        <text class="btn-text">进入空间</text>
+        <text class="btn-text">进入编队</text>
       </button>
     </view>
   </view>
@@ -132,130 +174,131 @@
       <text>{{toastMsg}}</text>
     </view>
 
-    <scroll-view scroll-y class="cockpit-scroll" style="height:100vh;">
+    <scroll-view
+      scroll-y
+      class="cockpit-scroll"
+      style="height:100vh;"
+      scroll-into-view="{{cockpitScrollTarget}}"
+      scroll-with-animation="{{animationEnabled}}"
+    >
 
-      <!-- A. 空间识别区 -->
-      <view class="space-status-card sr-card">
-        <view class="space-id-block">
-          <view class="label">空间识别码</view>
-          <view class="space-code">{{currentRoom.roomNo}}</view>
-        </view>
-        <view class="space-meta">
-          <view class="meta-item">
-            <text class="meta-label">舰员</text>
-            <text class="meta-value">{{memberGrid.length}}/16</text>
+      <view class="cockpit-main">
+        <view id="formation-window" class="cockpit-starry-shell">
+          <view class="cockpit-starry-bg">
+            <view class="cockpit-starry-nebula"></view>
+            <view class="cockpit-starry-grid"></view>
+            <view class="cockpit-starry-vignette"></view>
           </view>
-          <view class="meta-item">
-            <text class="meta-label">模式</text>
-            <text class="meta-value">{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
-          </view>
-          <view class="meta-item">
-            <text class="meta-label">状态</text>
-            <text class="meta-value">航程中</text>
-          </view>
-        </view>
-        <view class="space-actions">
-          <view class="icon-btn" bindtap="copyRoomNo">
-            <view class="icon-clip"></view>
-          </view>
-          <view class="icon-btn" bindtap="openShareSheet">
-            <view class="icon-share"></view>
-          </view>
-        </view>
-      </view>
 
-      <!-- B. 舰员席位矩阵 -->
-      <view class="crew-section">
-        <view class="section-head">
-          <view>
-            <view class="section-kicker">CREW MATRIX</view>
-            <view class="section-title">舰员席位</view>
+          <view class="overlay-readout overlay-readout--code">
+            <text>{{cockpitView.roomNo}}</text>
           </view>
-          <view class="section-count">{{memberGrid.length}}/16</view>
-        </view>
+          <view class="overlay-readout overlay-readout--members">
+            <text>{{cockpitView.memberCountText}}</text>
+          </view>
 
-        <view class="crew-stage layout-{{seatLayoutMode}}">
-          <view
-            wx:for="{{seatList}}"
-            wx:key="seatKey"
-            id="seat-{{item.userId || item.seatKey}}"
-            class="crew-seat {{item.active ? 'is-active' : 'is-invite'}} {{item.isSelf ? 'is-self' : ''}} {{selectedCrew.userId === item.userId ? 'is-selected' : ''}} {{item.impact ? 'is-impact' : ''}}"
-            bindtap="handleSelectCrew"
-            data-user-id="{{item.userId}}"
-            data-active="{{item.active}}"
-          >
-            <view class="seat-corner"></view>
-
-            <block wx:if="{{item.active}}">
-              <view class="seat-avatar-wrap">
-                <helmet-avatar
-                  src="{{item.avatarUrl || ''}}"
-                  size="sm"
-                  active="{{selectedCrew.userId === item.userId}}"
-                  controller="{{item.isHost}}"
-                  showStatus="{{false}}"
-                  reduceMotion="{{!animationEnabled}}"
-                />
+          <view class="overlay-ships">
+            <view
+              wx:for="{{cockpitView.externalShips}}"
+              wx:key="userId"
+              id="seat-{{item.userId}}"
+              class="ship-craft {{item.sizeClass}} {{item.online ? 'is-online' : 'is-offline'}} {{item.isNew ? 'is-new' : ''}}"
+              style="left: {{item.x}}%; top: {{item.y}}%;"
+              bindtap="handleTapShip"
+              data-user-id="{{item.userId}}"
+              data-active="{{item.online}}"
+            >
+              <view class="ship-craft-body">
+                <view class="ship-craft-nose"></view>
+                <view class="ship-craft-wing ship-craft-wing--left"></view>
+                <view class="ship-craft-wing ship-craft-wing--right"></view>
+                <view class="ship-craft-core">
+                  <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" mode="aspectFill" class="ship-craft-avatar" />
+                  <text wx:else class="ship-craft-char">{{item.avatarChar}}</text>
+                </view>
+                <view class="ship-craft-ring"></view>
+                <view class="ship-craft-dot"></view>
               </view>
-              <view class="seat-name">{{item.displayName}}</view>
-              <view class="seat-score">{{item.scoreText}}</view>
-              <view class="seat-state">
-                <view class="seat-dot"></view>
-                <text>{{item.isSelf ? '本舰' : '在线'}}</text>
-              </view>
-            </block>
 
-            <block wx:else>
-              <view class="invite-cross">
-                <view class="invite-cross-h"></view>
-                <view class="invite-cross-v"></view>
+              <view class="ship-craft-label">
+                <text class="ship-craft-name">{{item.callsign}}</text>
+                <text class="ship-craft-pulse {{item.pulseClass}}">{{item.pulseDisplay}}</text>
               </view>
-              <view class="seat-name">接入席位</view>
-              <view class="seat-state">
-                <view class="seat-dot muted"></view>
-                <text>待接入</text>
-              </view>
-            </block>
-          </view>
-        </view>
-      </view>
-
-      <!-- C. 脉冲轨迹 -->
-      <view class="trace-section sr-card">
-        <view class="section-head">
-          <view>
-            <view class="section-kicker">BLACK BOX BUFFER</view>
-            <view class="section-title">脉冲轨迹</view>
-          </view>
-          <view class="trace-status">
-            <view class="status-dot status-dot--on"></view>
-            <text>实时写入</text>
-          </view>
-        </view>
-
-        <scroll-view scroll-y class="trace-list" scroll-into-view="{{traceAnchor}}" style="max-height:520rpx;">
-          <view
-            wx:for="{{pulseTraces}}"
-            wx:key="id"
-            id="trace-{{item.id}}"
-            class="trace-item {{item.isNew ? 'is-new' : ''}}"
-          >
-            <view class="trace-line"></view>
-            <view class="trace-main">
-              <view class="trace-title">{{item.title}}</view>
-              <view class="trace-desc">{{item.desc}}</view>
             </view>
-            <view class="trace-value {{item.valueClass}}">{{item.valueText}}</view>
+
+            <view class="external-ship-empty" wx:if="{{cockpitView.externalShips.length === 0}}">
+              <text>外部航船</text>
+              <text>编队记录中</text>
+            </view>
           </view>
 
-          <view wx:if="{{!pulseTraces.length}}" class="trace-empty">
-            <view class="empty-title">暂无脉冲轨迹</view>
-            <view class="empty-desc">记录后的数值流向会写入这里</view>
+          <view class="overlay-gauge {{cockpitView.selfPulseClass}}">
+            <text class="overlay-gauge-title">本舰脉冲</text>
+            <text class="overlay-gauge-value">{{cockpitView.selfPulseDisplay}}</text>
+            <view class="overlay-gauge-status">
+              <view class="overlay-gauge-dot"></view>
+              <text>{{cockpitView.linkText}}</text>
+            </view>
           </view>
-        </scroll-view>
+
+          <view class="overlay-terminal">
+            <view class="terminal-meta">
+              <view class="terminal-code">
+                <text class="terminal-meta-label">编队码</text>
+                <text class="terminal-meta-code">{{cockpitView.roomNo}}</text>
+                <button class="terminal-copy" bindtap="copyRoomNo" hover-class="none">复制</button>
+              </view>
+              <view class="terminal-chips">
+                <text>{{cockpitView.memberCountText}}</text>
+                <text>{{cockpitView.modeText}}</text>
+                <text>{{cockpitView.stageText}}</text>
+              </view>
+            </view>
+
+            <view class="terminal-pulse-head">
+              <text class="terminal-section-title">实时脉冲</text>
+              <view class="terminal-badges">
+                <text>流转 {{cockpitView.transferCount}}</text>
+                <text>总额 {{cockpitView.totalPulse}}</text>
+              </view>
+            </view>
+
+            <view class="terminal-last-event">
+              <text>{{cockpitView.lastPulseText}}</text>
+              <text>{{cockpitView.lastPulseAmount}}</text>
+            </view>
+
+            <view class="terminal-trajectory">
+              <text class="trajectory-label">脉冲轨迹</text>
+              <view class="trajectory-mini {{cockpitView.hasTrajectory ? '' : 'is-empty'}}">
+                <view class="trajectory-base"></view>
+                <view
+                  wx:for="{{cockpitView.sparklinePoints}}"
+                  wx:key="index"
+                  class="trajectory-dot"
+                  style="left: {{item.x}}%; bottom: {{item.y}}%;"
+                ></view>
+                <text wx:if="{{!cockpitView.hasTrajectory}}" class="trajectory-empty-text">等待更多脉冲写入</text>
+              </view>
+              <button class="trajectory-link" bindtap="goPulseTrajectory" hover-class="none">查看轨迹</button>
+            </view>
+          </view>
+
+          <view class="overlay-control">
+            <view class="control-title-row">
+              <text>航程控制</text>
+              <text>{{cockpitView.stageText}}</text>
+            </view>
+            <view class="control-actions">
+              <button bindtap="openPulseRecorder" hover-class="none">记录脉冲</button>
+              <button bindtap="openBeacon" hover-class="none">展开信标</button>
+              <button class="control-danger" bindtap="handleSettle" hover-class="none">封存航程</button>
+            </view>
+          </view>
+        </view>
       </view>
 
-      <!-- 本局录入状态条（保留现有组件） -->
+      <!-- 本局录入状态条 -->
       <round-status-bar
         wx:if="{{currentRoom.scoreMode === 2 && roundRecord}}"
         round="{{roundRecord}}"
@@ -264,75 +307,7 @@
         bind:cancel="onRoundCancel"
       />
 
-      <!-- 录入本局按钮 -->
-      <view class="round-start-wrap" wx:if="{{currentRoom.scoreMode === 2 && !roundRecord && isOwner}}">
-        <view class="round-start-btn" bindtap="startRound">
-          <text class="round-start-text">录入本局</text>
-        </view>
-      </view>
-
-      <!-- 底部操作栏 -->
-      <view class="bottom-command-bar">
-        <button class="sr-btn sr-btn-secondary" bindtap="copyRoomNo">
-          <text class="btn-text">发送识别码</text>
-        </button>
-        <button class="sr-btn sr-btn-secondary" bindtap="openShareSheet">
-          <text class="btn-text">空间接入</text>
-        </button>
-      </view>
-
-      <!-- 更多操作区（与主操作分离） -->
-      <view class="bottom-danger-zone">
-        <view class="danger-zone-label">航程控制</view>
-        <button class="sr-btn sr-btn-danger-outline" bindtap="openSealConfirm" wx:if="{{isOwner}}">
-          <text class="btn-text">{{canSealRoom ? '封存航程' : '解散空空间'}}</text>
-        </button>
-        <button class="sr-btn sr-btn-danger-outline" bindtap="quitRoom" wx:else>
-          <text class="btn-text">断开空间</text>
-        </button>
-      </view>
-
     </scroll-view>
-
-    <!-- 悬浮脉冲控制台 -->
-    <view class="pulse-dock sr-hud-panel {{selectedCrew ? 'is-locked' : ''}}">
-      <!-- 只有自己时：等待提示 -->
-      <view wx:if="{{memberGrid.length <= 1}}" class="pulse-dock-waiting">
-        <view class="waiting-dot"></view>
-        <text>等待舰员接入后开始记录脉冲</text>
-      </view>
-
-      <!-- 有多人时：正常录入 -->
-      <block wx:else>
-        <view wx:if="{{selectedCrew}}" class="pulse-dock-target">
-          <view class="dock-target-label">目标锁定</view>
-          <view class="dock-target-name">{{selectedCrew.displayName}}</view>
-        </view>
-
-        <view class="pulse-dock-main">
-          <button class="pulse-step-btn" bindtap="decreasePulse">−</button>
-          <input
-            class="pulse-dock-input"
-            type="number"
-            value="{{pulseValue}}"
-            placeholder="0"
-            placeholder-class="input-placeholder"
-            bindinput="onPulseValueInput"
-          />
-          <button class="pulse-step-btn" bindtap="increasePulse">＋</button>
-          <button
-            class="pulse-fire-btn {{!selectedCrew || !pulseValue ? 'is-disabled' : ''}} {{submittingPulse ? 'is-loading' : ''}}"
-            bindtap="handleSubmitPulse"
-          >
-            <text>写入</text>
-          </button>
-        </view>
-
-        <view wx:if="{{!selectedCrew}}" class="pulse-dock-hint">
-          选择舰员席位后写入脉冲
-        </view>
-      </block>
-    </view>
 
     <!-- 脉冲飞行动画层 -->
     <view wx:if="{{pulseFlight.visible}}" class="pulse-flight-layer">
@@ -341,7 +316,7 @@
         style="left: {{pulseFlight.fromX}}px; top: {{pulseFlight.fromY}}px; --dx: {{pulseFlight.dx}}px; --dy: {{pulseFlight.dy}}px;"
       >
         <view class="pulse-tail"></view>
-        <text class="pulse-flight-value">+{{pulseFlight.value}}</text>
+        <text class="pulse-flight-value">{{pulseFlight.value}}</text>
       </view>
     </view>
 
@@ -350,15 +325,15 @@
       <view class="seal-panel sr-hud-panel" catchtap="preventClose">
         <view class="seal-core">
           <view class="seal-ring"></view>
-          <view class="seal-title">{{canSealRoom ? '确认封存航程' : '解散空空间'}}</view>
+          <view class="seal-title">{{canSealRoom ? '确认封存航程' : '解散编队'}}</view>
           <view class="seal-desc">
-            {{canSealRoom ? '当前脉冲轨迹将写入黑匣子，封存后不可继续记录。' : '当前空间暂无轨迹记录，解散后不会生成航程档案。'}}
+            {{canSealRoom ? '当前脉冲轨迹将写入航迹档案，封存后不可继续记录。' : '当前编队暂无轨迹记录，解散后不会生成航程档案。'}}
           </view>
         </view>
 
         <view class="seal-meta">
           <view class="meta-item">
-            <text class="meta-label">舰员</text>
+            <text class="meta-label">成员</text>
             <text class="meta-value">{{memberGrid.length}}</text>
           </view>
           <view class="meta-item">
@@ -378,95 +353,67 @@
       </view>
     </view>
 
-    <!-- TRANSFER TERMINAL 流转终端 -->
+    <!-- 记录脉冲面板 -->
     <view class="transfer-overlay {{showNumpad ? 'transfer-show' : ''}}" catchtap="closeNumpad">
       <view class="transfer-sheet" catchtap="preventClose">
-        <view class="transfer-header">
-          <text class="transfer-kicker">FLOW SHIFT</text>
-          <text class="transfer-subtitle">流向调整</text>
-        </view>
-
-        <!-- FROM → TO -->
-        <view class="transfer-direction">
-          <view class="transfer-player">
-            <text class="transfer-role-label">源舰员</text>
-            <helmet-avatar
-              src="{{transferFromInfo.avatarUrl || ''}}"
-              size="sm"
-              active
-              showStatus="{{false}}"
-              reduceMotion="{{!animationEnabled}}"
-            />
-            <text class="transfer-player-name">{{t.truncateName(transferFromInfo.nickname)}}</text>
-          </view>
-          <view class="transfer-arrow-wrap">
-            <view class="transfer-arrow-line"></view>
-            <view class="transfer-arrow-beam"></view>
-            <text class="transfer-arrow-head">→</text>
-          </view>
-          <view class="transfer-player">
-            <text class="transfer-role-label">目标舰员</text>
-            <helmet-avatar
-              src="{{transferToInfo.avatarUrl || ''}}"
-              size="sm"
-              active
-              showStatus="{{false}}"
-              reduceMotion="{{!animationEnabled}}"
-            />
-            <text class="transfer-player-name">{{t.truncateName(transferToInfo.nickname)}}</text>
-          </view>
-        </view>
-
-        <!-- AMOUNT -->
-        <view class="transfer-amount-section">
-          <text class="transfer-amount-label">流向数值</text>
-          <text class="transfer-display-value">{{numpadValue || '0'}}</text>
-        </view>
-
-        <!-- 实时预览 -->
-        <view class="transfer-preview" wx:if="{{numpadValue > 0 && transferPreview}}">
-          <view class="tp-row">
-            <text class="tp-name">{{transferPreview.fromName}}</text>
-            <view class="tp-arrow">
-              <text class="tp-score-old">{{transferPreview.fromOldScore}}</text>
-              <text class="tp-arrow-icon">→</text>
-              <text class="tp-score tp-score-neg">-{{numpadValue}}</text>
+        <!-- 顶部：标题 + 目标 + 数值 -->
+        <view class="transfer-header transfer-header--compact">
+          <view class="transfer-title-row">
+            <text class="transfer-title">记录脉冲</text>
+            <view class="transfer-sender-info" wx:if="{{transferToInfo}}">
+              <helmet-avatar
+                src="{{transferToInfo.avatarUrl || ''}}"
+                size="xs"
+                active="{{false}}"
+                showStatus="{{false}}"
+                reduceMotion="{{!animationEnabled}}"
+              />
+              <text class="transfer-sender-name">{{t.truncateName(transferToInfo.nickname)}}</text>
             </view>
           </view>
-          <view class="tp-divider"></view>
-          <view class="tp-row">
-            <text class="tp-name">{{transferPreview.toName}}</text>
-            <view class="tp-arrow">
-              <text class="tp-score-old">{{transferPreview.toOldScore}}</text>
-              <text class="tp-arrow-icon">→</text>
-              <text class="tp-score tp-score-pos">+{{numpadValue}}</text>
+          <view class="transfer-display-compact">{{numpadValue || '0'}}</view>
+        </view>
+
+        <!-- 常用脉冲 -->
+        <view class="transfer-suggestions" wx:if="{{transferAmountSuggestions.length}}">
+          <view class="suggestion-grid">
+            <view
+              wx:for="{{transferAmountSuggestions}}"
+              wx:key="amount"
+              class="suggestion-chip {{numpadValue === item.amount ? 'is-active' : ''}}"
+              bindtap="tapTransferSuggestion"
+              data-amount="{{item.amount}}"
+            >
+              <text class="suggestion-amount">{{item.amount}}</text>
+              <text class="suggestion-label">{{item.label}}</text>
             </view>
           </view>
         </view>
 
-        <!-- 数字键盘 -->
-        <view class="transfer-numpad">
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="1">1</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="2">2</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="3">3</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="4">4</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="5">5</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="6">6</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="7">7</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="8">8</view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="9">9</view>
-          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="clear">
-            <text class="numpad-func-icon">C</text>
+        <!-- 数字键盘 + 确认 -->
+        <view class="transfer-bottom-row">
+          <view class="transfer-numpad transfer-numpad--compact">
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="1">1</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="2">2</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="3">3</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="4">4</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="5">5</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="6">6</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="7">7</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="8">8</view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="9">9</view>
+            <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="clear">
+              <text class="numpad-func-icon">清空</text>
+            </view>
+            <view class="transfer-key" bindtap="onNumpadKey" data-key="0">0</view>
+            <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">
+              <text class="numpad-func-icon numpad-func-icon--del"></text>
+            </view>
           </view>
-          <view class="transfer-key" bindtap="onNumpadKey" data-key="0">0</view>
-          <view class="transfer-key transfer-key-func" bindtap="onNumpadKey" data-key="del">
-            <text class="numpad-func-icon numpad-func-icon--del"></text>
-          </view>
-        </view>
-        <view class="transfer-actions">
-          <view class="transfer-confirm {{numpadValue > 0 ? '' : 'transfer-confirm-disabled'}}" bindtap="confirmNumpad">
-            <text class="transfer-confirm-text">确认调整</text>
-            <text class="transfer-confirm-sub">CONFIRM</text>
+          <view class="transfer-confirm-wrap">
+            <view class="transfer-confirm {{numpadValue > 0 ? '' : 'transfer-confirm-disabled'}}" bindtap="confirmNumpad">
+              <text class="transfer-confirm-text">确认记录</text>
+            </view>
           </view>
         </view>
       </view>
@@ -529,22 +476,21 @@
     />
   </view>
 
-  <!-- sealing 状态：黑匣子写入中 -->
+  <!-- sealing 状态：航迹档案写入中 -->
   <view wx:if="{{cockpitState === 'sealing'}}" class="sealing-overlay">
     <view class="blackbox-write sr-hud-panel">
       <view class="write-beam"></view>
-      <view class="write-title">黑匣子写入中</view>
+      <view class="write-title">航迹档案写入中</view>
       <view class="write-desc">{{sealHeartbeatText}}</view>
     </view>
   </view>
 
-  <!-- 空间接入面板 -->
+  <!-- 编队加入面板 -->
   <view class="share-overlay {{showShareSheet ? 'share-show' : ''}}" catchtap="closeShareSheet" catchtouchmove="preventClose">
     <view class="share-sheet" catchtap="preventClose">
       <view class="share-header">
         <view class="share-title-area">
-          <text class="share-kicker">ACCESS PORTAL</text>
-          <text class="share-title">空间接入</text>
+          <text class="share-title">编队加入</text>
         </view>
         <view class="fi fi--close" bindtap="closeShareSheet"></view>
       </view>
@@ -553,17 +499,17 @@
       <view class="share-qr-section" wx:if="{{qrLoading}}">
         <view class="share-qr-frame share-qr-loading">
           <view class="share-qr-spinner"></view>
-          <text class="share-qr-loading-text">生成识别图中...</text>
+          <text class="share-qr-loading-text">生成信标中...</text>
         </view>
       </view>
 
       <!-- 二维码区域：生成失败 -->
       <view class="share-qr-section" wx:elif="{{qrFailed}}">
         <view class="share-qr-frame share-qr-fail">
-          <text class="share-qr-fail-text">识别图生成失败</text>
-          <text class="share-qr-fail-hint">可使用识别码接入</text>
+          <text class="share-qr-fail-text">信标生成失败</text>
+          <text class="share-qr-fail-hint">可使用编队码加入</text>
           <view class="share-qr-retry" bindtap="retryLoadQrCode">
-            <text class="share-qr-retry-text">重新点火</text>
+            <text class="share-qr-retry-text">重新生成</text>
           </view>
         </view>
       </view>
@@ -573,34 +519,34 @@
         <view class="share-qr-frame">
           <image class="share-qr-image" src="{{currentRoom.qrCodeUrl}}" mode="aspectFit" show-menu-by-longpress></image>
         </view>
-        <text class="share-qr-hint">长按识别二维码接入空间</text>
+        <text class="share-qr-hint">长按识别信标加入编队</text>
       </view>
 
-      <!-- 二维码区域：无二维码，显示识别码 -->
+      <!-- 二维码区域：无二维码，显示编队码 -->
       <view class="share-qr-section" wx:else>
         <view class="share-qr-frame share-qr-placeholder">
           <text class="share-qr-room-no">{{currentRoom.roomNo}}</text>
         </view>
-        <text class="share-qr-hint">识别码 {{currentRoom.roomNo}}</text>
+        <text class="share-qr-hint">编队码 {{currentRoom.roomNo}}</text>
       </view>
 
       <!-- 操作按钮 -->
       <view class="share-actions">
         <button class="share-action-btn" open-type="share">
           <view class="icon-chat share-action-svg"></view>
-          <text class="share-action-text">分享空间</text>
+          <text class="share-action-text">发送信标</text>
         </button>
         <view class="share-action-btn" bindtap="sharePoster">
           <view class="icon-image share-action-svg"></view>
-          <text class="share-action-text">保存识别图</text>
+          <text class="share-action-text">保存信标</text>
         </view>
         <view class="share-action-btn" bindtap="copyRoomLink">
           <view class="icon-link share-action-svg"></view>
-          <text class="share-action-text">复制识别码</text>
+          <text class="share-action-text">复制编队码</text>
         </view>
         <view class="share-action-btn" bindtap="scanJoin">
           <view class="icon-cam share-action-svg"></view>
-          <text class="share-action-text">扫码接入</text>
+          <text class="share-action-text">扫描信标</text>
         </view>
       </view>
     </view>
@@ -610,7 +556,6 @@
   <terminal-popup
     visible="{{showRejectConfirm}}"
     title="操作确认"
-    subtitle="ROUND REJECT"
     content="确认驳回本轮录入？驳回后本轮数据将被清除。"
     cancel-text="返回"
     confirm-text="确认驳回"
@@ -648,7 +593,7 @@
       <view class="settle-card" wx:if="{{settleSeries.length > 0}}">
         <view class="settle-card-header">
           <view class="settle-card-title">数值演化轨迹</view>
-          <view class="settle-kicker">TIMELINE</view>
+
           <view class="settle-card-line"></view>
         </view>
         <view class="settle-chart-wrap">
@@ -668,7 +613,7 @@
         links="{{settleNetworkLinks}}"
         my-user-id="{{myUserId}}" />
 
-      <!-- 4. 空间洞察 -->
+      <!-- 4. 编队洞察 -->
       <battle-insight
         wx:if="{{settleInsight}}"
         mostActiveUser="{{settleInsight.mostActiveUser}}"
@@ -681,7 +626,6 @@
       <view class="settle-card" wx:if="{{settleRankedMembers.length > 0}}">
         <view class="settle-card-header">
           <view class="settle-card-title">实时序列</view>
-          <view class="settle-kicker">SEQUENCE</view>
           <view class="settle-card-line"></view>
         </view>
         <view class="settle-rank-list">
@@ -725,9 +669,9 @@
         <view class="nc-icon">!</view>
       </view>
       <text class="nc-title">身份重叠</text>
-      <text class="nc-desc">检测到场域内存在同名实体，请前往[我的]终端重新校准代号。</text>
+      <text class="nc-desc">检测到场域内存在同名实体，请前往[身份]终端重新校准呼号。</text>
       <view class="nc-btn" bindtap="goToProfile">
-        <text class="nc-btn-text">前往档案</text>
+        <text class="nc-btn-text">前往身份</text>
       </view>
     </view>
   </view>

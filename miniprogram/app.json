@@ -19,6 +19,7 @@
     "backgroundTextStyle": "light"
   },
   "tabBar": {
+    "custom": true,
     "color": "#8C9BAA",
     "selectedColor": "#0A84FF",
     "backgroundColor": "#0a0a0a",
@@ -26,27 +27,19 @@
     "list": [
       {
         "pagePath": "pages/room/room",
-        "text": "空间",
-        "iconPath": "images/tab-room.png",
-        "selectedIconPath": "images/tab-room-active.png"
+        "text": "编队"
       },
       {
         "pagePath": "pages/fortune/fortune",
-        "text": "策略",
-        "iconPath": "images/tab-fortune.png",
-        "selectedIconPath": "images/tab-fortune-active.png"
+        "text": "指令"
       },
       {
         "pagePath": "pages/mirror/index",
-        "text": "镜像",
-        "iconPath": "images/tab-mirror.png",
-        "selectedIconPath": "images/tab-mirror-active.png"
+        "text": "镜像"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "身份",
-        "iconPath": "images/tab-profile.png",
-        "selectedIconPath": "images/tab-profile-active.png"
+        "text": "身份"
       }
     ]
   },

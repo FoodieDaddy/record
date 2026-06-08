@@ -9,7 +9,7 @@ const TERMINOLOGY = {
   appName: '脉冲方舟',
   appEnglishName: 'PULSE ARK',
 
-  // 编队（原空间）
+  // 编队（旧称）
   space: '编队',
   spaceCore: '编队核心',
   activeSpace: '当前编队',
@@ -99,7 +99,7 @@ const TERMINOLOGY = {
   statusSealed: '航程已封存',
   statusClosed: '编队已关闭',
 
-  // 航迹档案（原黑匣子）
+  // 航迹档案（旧称）
   blackBox: '航迹档案',
 
   // 系统编号前缀

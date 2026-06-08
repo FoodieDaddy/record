@@ -12,6 +12,11 @@
   height: 64rpx;
 }
 
+.ha--xs {
+  width: 48rpx;
+  height: 48rpx;
+}
+
 .ha--md {
   width: 96rpx;
   height: 96rpx;

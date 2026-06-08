@@ -14,14 +14,14 @@ const BADGE_CONFIG = [
   { id: 'first_match',   name: '首次封存',   code: '首任',     icon: 'circle',  desc: '完成第一次任务封存',    field: 'matchCount',  target: 1 },
   { id: 'match_10',      name: '累计十任',   code: 'x10',      icon: 'layers',  desc: '累计完成10次封存',    field: 'matchCount',  target: 10 },
   { id: 'match_50',      name: '半百任务',   code: 'x50',      icon: 'layers',  desc: '累计完成50次封存',    field: 'matchCount',  target: 50 },
-  { id: 'score_100',     name: '百分舰员',   code: '100+',     icon: 'star',    desc: '累计净数值达到100',   field: 'totalScore',  target: 100 },
+  { id: 'score_100',     name: '百分成员',   code: '100+',     icon: 'star',    desc: '累计净数值达到100',   field: 'totalScore',  target: 100 },
   { id: 'score_1000',    name: '数值破千',   code: '1000+',    icon: 'diamond', desc: '累计净数值达到1000',  field: 'totalScore',  target: 1000 },
   { id: 'win_3_streak',  name: '三次正馈',   code: '3 连续',   icon: 'bolt',    desc: '连续3场获得正向反馈',   field: 'winStreak',   target: 3 },
   { id: 'win_10',        name: '十次正馈',   code: '10 连续',  icon: 'bolt',    desc: '连续10场获得正向反馈',  field: 'winStreak',   target: 10 },
   { id: 'win_rate_50',   name: '正馈过半',   code: '50%+',     icon: 'target',  desc: '正反馈率达到50%',      field: 'winRate',     target: 50 },
   { id: 'mirror_sync',   name: '镜像同步',   code: '已同步',   icon: 'scan',    desc: '完成MBTI校准',        field: 'mbtiSync',    target: 1 },
   { id: 'level_2',       name: '等级提升',   code: 'Lv.2',     icon: 'arrow-up',desc: '身份等级达到2级',     field: 'level',       target: 2 },
-  { id: 'level_3',       name: '策略执行者', code: 'Lv.3',     icon: 'arrow-up',desc: '身份等级达到3级',     field: 'level',       target: 3 },
+  { id: 'level_3',       name: '指令执行者', code: 'Lv.3',     icon: 'arrow-up',desc: '身份等级达到3级',     field: 'level',       target: 3 },
   { id: 'stability_80',  name: '稳定执行者', code: '稳定',     icon: 'shield',  desc: '稳定度达到80',        field: 'stability',   target: 80 }
 ];
 

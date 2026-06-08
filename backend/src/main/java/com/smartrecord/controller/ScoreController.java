@@ -80,6 +80,15 @@ public class ScoreController {
         return Result.ok(scoreService.getRoomTransfers(roomId, page, size));
     }
 
+    @Operation(summary = "常用转出金额推荐", description = "从 Redis 小排行读取个人常发与编队高频金额，数据不足时随机补齐")
+    @GetMapping("/room/{roomId}/transfer-amount-suggestions")
+    public Result<TransferAmountSuggestionResp> getTransferAmountSuggestions(
+            HttpServletRequest request,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        return Result.ok(scoreService.getTransferAmountSuggestions(userId, roomId));
+    }
+
     @Operation(summary = "结束对局", description = "房主操作，数据归档到房间")
     @PostMapping("/room/{roomId}/settle")
     public Result<SettleResp> settleRoom(

@@ -453,7 +453,7 @@
 /* ===== 底部信息 ===== */
 .bottom-info {
   position: absolute;
-  bottom: 60rpx;
+  bottom: calc(60rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;

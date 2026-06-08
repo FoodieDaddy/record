@@ -21,7 +21,7 @@ Page({
       if (!resp) return;
       this.setData({ records: resp.records || [] });
     } catch (e) {
-      console.error('读取黑匣子索引失败', e);
+      console.error('读取航迹索引失败', e);
       this.setData({ loadError: true });
     } finally {
       this.setData({ loading: false });

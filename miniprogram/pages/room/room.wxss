@@ -1,6 +1,6 @@
 .room-page {
   padding: 24rpx;
-  padding-bottom: 160rpx;
+  padding-bottom: calc(380rpx + env(safe-area-inset-bottom));
   min-height: 100vh;
 }
 
@@ -492,7 +492,7 @@
   justify-content: center;
 }
 
-/* ===== 无房间状态 ===== */
+/* ===== 无编队状态 ===== */
 .empty-room {
   padding-top: 32rpx;
 }
@@ -805,7 +805,7 @@
   font-weight: 500;
 }
 
-/* ===== 启动房间按钮（切角） ===== */
+/* ===== 创建编队按钮（切角） ===== */
 .cyber-create-btn {
   padding: 8rpx 0;
 }
@@ -859,7 +859,7 @@
   100% { left: 100%; }
 }
 
-/* 主按钮：加入房间（保留原样式） */
+/* 主按钮：加入编队（保留原样式） */
 .card-header {
   margin-bottom: 24rpx;
 }
@@ -1041,7 +1041,7 @@
   50% { opacity: 0; }
 }
 
-/* ===== 房间状态反馈 ===== */
+/* ===== 编队状态反馈 ===== */
 .cyber-room-status {
   margin-top: 16rpx;
   padding: 16rpx;
@@ -1128,7 +1128,7 @@
   color: var(--text-disabled);
 }
 
-/* ===== 已有房间快捷入口 ===== */
+/* ===== 已有编队快捷入口 ===== */
 .has-room {
   padding-top: 32rpx;
   animation: fadeSlideUp 0.3s ease;
@@ -1233,7 +1233,7 @@
   color: var(--text-secondary);
 }
 
-/* ===== 房间内容 ===== */
+/* ===== 编队内容 ===== */
 .room-content {
   height: 100vh;
   overflow: hidden;
@@ -1452,7 +1452,7 @@
   transform: translateY(-4rpx);
 }
 
-/* 头像容器 */
+/* 识别徽标容器 */
 .mg-avatar-wrap {
   position: relative;
   width: 66rpx;
@@ -1626,12 +1626,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== TRANSFER TERMINAL 流转终端 ===== */
+/* ===== 脉冲记录面板（终端浮动记录器） ===== */
 .transfer-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.6);
-  z-index: 200;
+  z-index: 998;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -1642,92 +1642,171 @@
 }
 .transfer-sheet {
   position: absolute;
-  bottom: 0;
+  bottom: calc(140rpx + env(safe-area-inset-bottom));
   left: 0;
   right: 0;
-  background: rgba(16,16,16,0.97);
-  backdrop-filter: blur(40rpx);
-  -webkit-backdrop-filter: blur(40rpx);
-  border-top: 1rpx solid rgba(10,132,255,0.2);
-  border-radius: 32rpx 32rpx 0 0;
-  padding: 28rpx 24rpx;
-  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+  max-height: 62vh;
+  background: rgba(6,10,18,0.96);
+  border-top: 1rpx solid rgba(0,200,255,0.22);
+  border-left: 1rpx solid rgba(0,200,255,0.12);
+  border-right: 1rpx solid rgba(0,200,255,0.12);
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 24rpx 28rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.transfer-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent 10%, rgba(0,200,255,0.35) 30%, rgba(0,200,255,0.52) 50%, rgba(0,200,255,0.35) 70%, transparent 90%);
+  pointer-events: none;
+  animation: scanLineMove 3s ease-in-out infinite;
+}
+
+@keyframes scanLineMove {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.transfer-sheet::after {
+  content: '';
+  position: absolute;
+  top: 4rpx;
+  left: 24rpx;
+  right: 24rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(0,200,255,0.12), transparent 20%, transparent 80%, rgba(0,200,255,0.12));
+  pointer-events: none;
 }
 .transfer-show .transfer-sheet {
   transform: translateY(0);
 }
-.transfer-header {
-  text-align: center;
-  margin-bottom: 20rpx;
-}
-.transfer-kicker {
-  font-size: 18rpx;
-  color: rgba(10,132,255,0.72);
-  letter-spacing: 4rpx;
-  font-family: monospace;
-}
-.transfer-role-label {
-  font-size: 14rpx;
-  color: var(--text-secondary);
-  letter-spacing: 2rpx;
-  font-family: monospace;
-}
-.transfer-subtitle {
-  display: block;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 8rpx;
-}
-.transfer-direction {
+
+.transfer-header--compact {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 24rpx;
-  margin-bottom: 24rpx;
-  padding: 16rpx 0;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
 }
-.transfer-player {
+
+.transfer-title-row {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.transfer-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.92);
+}
+
+.transfer-sender-info {
+  display: flex;
   align-items: center;
   gap: 8rpx;
 }
-.transfer-player-name {
+
+.transfer-sender-name {
   font-size: 22rpx;
-  color: var(--text-secondary);
+  color: rgba(226,242,255,0.56);
   max-width: 120rpx;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.transfer-arrow-wrap {
+
+.transfer-display-compact {
+  position: relative;
+  min-width: 180rpx;
+  height: 64rpx;
+  padding: 0 20rpx;
   display: flex;
   align-items: center;
-  gap: 4rpx;
-  position: relative;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.24);
+  background: rgba(0,200,255,0.045);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 44rpx;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
 }
-.transfer-arrow-line {
-  width: 40rpx;
-  height: 1rpx;
-  background: rgba(10,132,255,0.4);
-}
-.transfer-arrow-beam {
+
+/* 终端显示器角标 */
+.transfer-display-compact::before {
+  content: '';
   position: absolute;
-  left: 0;
-  top: 50%;
-  width: 40rpx;
-  height: 6rpx;
-  margin-top: -3rpx;
-  background: linear-gradient(90deg, rgba(10,132,255,0.08), rgba(10,132,255,0.35));
-  border-radius: 6rpx;
-  filter: blur(2rpx);
+  top: -1rpx;
+  left: -1rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-top: 2rpx solid rgba(0,200,255,0.52);
+  border-left: 2rpx solid rgba(0,200,255,0.52);
+  pointer-events: none;
 }
-.transfer-arrow-head {
-  font-size: 28rpx;
-  color: #0A84FF;
+
+.transfer-display-compact::after {
+  content: '';
+  position: absolute;
+  bottom: -1rpx;
+  right: -1rpx;
+  width: 12rpx;
+  height: 12rpx;
+  border-bottom: 2rpx solid rgba(0,200,255,0.52);
+  border-right: 2rpx solid rgba(0,200,255,0.52);
+  pointer-events: none;
+}
+
+.transfer-suggestions {
+  margin-bottom: 10rpx;
+}
+
+.suggestion-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8rpx;
+}
+
+.suggestion-chip {
+  min-width: 0;
+  height: 50rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.022);
+  clip-path: polygon(8rpx 0, 100% 0, 100% calc(100% - 8rpx), calc(100% - 8rpx) 100%, 0 100%, 0 8rpx);
+}
+
+.suggestion-chip.is-active {
+  border-color: rgba(0,200,255,0.46);
+  background: rgba(0,200,255,0.10);
+}
+
+.suggestion-amount {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 22rpx;
+  line-height: 1;
+  color: rgba(226,242,255,0.88);
+}
+
+.suggestion-label {
+  margin-top: 2rpx;
+  font-size: 14rpx;
+  line-height: 1;
+  color: rgba(0,200,255,0.48);
 }
 /* AMOUNT 区域 */
 .transfer-amount-section {
@@ -1803,30 +1882,53 @@
   margin: 6rpx 0;
 }
 
+/* 底部行：键盘 + 确认按钮 */
+.transfer-bottom-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: stretch;
+}
+
 /* 数字键盘 */
 .transfer-numpad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16rpx;
-  margin-bottom: 20rpx;
+  gap: 8rpx;
+  flex: 1;
+}
+
+.transfer-numpad--compact {
+  gap: 6rpx;
+}
+
+.transfer-confirm-wrap {
+  display: flex;
+  align-items: stretch;
+  width: 120rpx;
+}
+
+.transfer-confirm-wrap .transfer-confirm {
+  width: 100%;
+  height: auto;
+  min-height: 160rpx;
 }
 .transfer-key {
-  height: 100rpx;
+  height: 64rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-card);
   border: 1rpx solid rgba(10,132,255,0.16);
-  border-radius: 14rpx;
-  font-size: 40rpx;
+  border-radius: 0;
+  clip-path: polygon(8rpx 0, 100% 0, 100% calc(100% - 8rpx), calc(100% - 8rpx) 100%, 0 100%, 0 8rpx);
+  font-size: 32rpx;
   font-weight: 500;
   color: var(--text-primary);
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .transfer-key:active {
   background: rgba(10,132,255,0.10);
-  border-color: rgba(10,132,255,0.35);
-  box-shadow: inset 0 0 20rpx rgba(10,132,255,0.12);
+  border-color: rgba(0,200,255,0.42);
 }
 .transfer-key-func {
   background: transparent;
@@ -1835,8 +1937,7 @@
   font-size: 32rpx;
 }
 .transfer-key-func:active {
-  background: var(--glass-bg);
-  box-shadow: inset 0 0 16rpx rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.035);
 }
 
 /* 数字键盘功能图标 */
@@ -1874,17 +1975,11 @@
   transform: translateY(50%) rotate(30deg);
 }
 
-/* 确认按钮：能量风格 */
-.transfer-actions {
-  margin-top: 4rpx;
-}
+/* 确认按钮 */
 .transfer-confirm {
-  height: 96rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2rpx;
   background: linear-gradient(135deg, rgba(0, 200, 255,0.15), rgba(10, 132, 255,0.08));
   border: 1rpx solid rgba(0, 200, 255,0.35);
   border-radius: 14rpx;
@@ -1895,6 +1990,8 @@
 .transfer-confirm:active {
   background: linear-gradient(135deg, rgba(0, 200, 255,0.25), rgba(10, 132, 255,0.15));
   transform: scale(0.98);
+  border-color: rgba(0,200,255,0.62);
+  box-shadow: 0 0 16rpx rgba(0,200,255,0.2);
 }
 .transfer-confirm-disabled {
   opacity: 0.35;
@@ -1911,18 +2008,10 @@
   animation: cyberSweep 4s ease-in-out infinite;
 }
 .transfer-confirm-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: var(--color-cyan);
   letter-spacing: 4rpx;
-  position: relative;
-  z-index: 1;
-}
-.transfer-confirm-sub {
-  font-size: 14rpx;
-  color: rgba(0, 200, 255,0.4);
-  letter-spacing: 3rpx;
-  font-family: monospace;
   position: relative;
   z-index: 1;
 }
@@ -1936,7 +2025,7 @@
   transition: none;
 }
 
-/* ===== 积分记录标题按钮（极简胶囊） ===== */
+/* ===== 脉冲记录标题按钮（极简胶囊） ===== */
 .matrix-btn {
   display: flex;
   align-items: center;
@@ -1965,7 +2054,7 @@
 
 /* flow-log-panel / space-scan-panel 样式已迁移到组件内部 */
 
-/* ===== 积分表格 ===== */
+/* ===== 脉冲表格 ===== */
 
 /* ===== 通用工具 ===== */
 .score-number {
@@ -2079,7 +2168,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 空间接入面板 ===== */
+/* ===== 编队接入面板 ===== */
 .share-overlay {
   position: fixed;
   top: 0;
@@ -2761,7 +2850,7 @@
 
 /* === 页面根节点 === */
 .cockpit-page {
-  padding: 32rpx 28rpx calc(220rpx + env(safe-area-inset-bottom));
+  padding: 32rpx 28rpx calc(320rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   color: var(--text-primary);
   background:
@@ -2772,45 +2861,9 @@
 
 /* === 驾驶舱 Header === */
 .cockpit-header {
-  margin-bottom: 32rpx;
-}
-
-.header-kicker {
-  font-size: 20rpx;
-  letter-spacing: 4rpx;
-  color: rgba(0,200,255,0.46);
-  font-family: 'DIN Alternate', Menlo, monospace;
-  margin-bottom: 8rpx;
-}
-
-.header-main {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.page-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: rgba(226,242,255,0.96);
-  letter-spacing: 2rpx;
-}
-
-.page-subtitle {
-  font-size: 24rpx;
-  color: rgba(226,242,255,0.46);
-  margin-top: 4rpx;
-}
-
-.sync-chip {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: 8rpx 16rpx;
-  border: 1rpx solid rgba(255,255,255,0.08);
-  border-radius: 20rpx;
-  font-size: 20rpx;
-  color: rgba(226,242,255,0.56);
+  align-items: flex-start;
+  margin-bottom: 16rpx;
 }
 
 .status-dot {
@@ -2851,6 +2904,21 @@
   background: rgba(255,255,255,0.035);
   padding: 28rpx;
   margin-bottom: 24rpx;
+}
+
+.cockpit-viewport {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 980rpx;
+  overflow: hidden;
+}
+
+.cockpit-viewport--idle {
+  min-height: 1020rpx;
+}
+
+.cockpit-viewport--connecting {
+  min-height: 620rpx;
 }
 
 /* === 通用按钮 === */
@@ -2895,9 +2963,9 @@
 }
 
 .sr-btn-danger-outline {
-  border-color: rgba(255,69,58,0.42);
+  border-color: rgba(255,69,58,0.38);
   color: rgba(255,126,118,0.96);
-  background: rgba(255,69,58,0.035);
+  background: transparent;
 }
 
 .sr-btn--disabled {
@@ -3130,13 +3198,118 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(0,200,255,0.12), transparent);
-  animation: btnEnergy 2.4s ease-in-out infinite;
+  opacity: 0.42;
   pointer-events: none;
+  animation: btnEnergy 3s ease-in-out infinite;
 }
 
 @keyframes btnEnergy {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* 加入编队按钮微弱边框呼吸 */
+.sr-btn-secondary {
+  animation: secondaryGlow 4s ease-in-out infinite;
+}
+
+@keyframes secondaryGlow {
+  0%, 100% { border-color: rgba(255,255,255,0.12); }
+  50% { border-color: rgba(0,200,255,0.22); }
+}
+
+/* 按钮按压态 */
+.sr-btn:active {
+  transform: scale(0.97);
+  border-color: rgba(0,200,255,0.52);
+}
+
+/* === 启动过渡层 === */
+.launch-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 48rpx;
+}
+
+.launch-transition-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(0,200,255,0.06), transparent 60%),
+    #0A0A0A;
+}
+
+.launch-ring {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+}
+
+.launch-ring-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2rpx solid rgba(0,200,255,0.35);
+  animation: launchRingPulse 1.6s ease-in-out infinite;
+}
+
+.launch-ring-inner {
+  position: absolute;
+  inset: 24rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(0,200,255,0.52);
+  animation: launchRingPulse 1.6s ease-in-out 0.3s infinite;
+}
+
+@keyframes launchRingPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+.launch-phase-text {
+  position: relative;
+  z-index: 1;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 28rpx;
+  color: rgba(0,200,255,0.88);
+  letter-spacing: 4rpx;
+  animation: phaseTextFade 0.4s ease-out;
+}
+
+@keyframes phaseTextFade {
+  0% { opacity: 0; transform: translateY(8rpx); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.launch-phase-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 16rpx;
+}
+
+.launch-phase-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.launch-phase-dot--active {
+  background: rgba(0,200,255,0.88);
+  box-shadow: 0 0 12rpx rgba(0,200,255,0.4);
+}
+
+.reduce-motion .launch-ring-outer,
+.reduce-motion .launch-ring-inner,
+.reduce-motion .launch-phase-text {
+  animation: none !important;
 }
 
 /* === 接入弹窗 === */
@@ -3273,13 +3446,1586 @@
   margin-top: 8rpx;
 }
 
-/* === 空间识别卡 === */
+/* === 驾驶舱一体化外壳 === */
+.cockpit-shell {
+  position: relative;
+  min-height: 980rpx;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 20rpx, 100% calc(100% - 20rpx), calc(100% - 20rpx) 100%, 20rpx 100%, 0 calc(100% - 20rpx), 0 20rpx);
+}
+
+/* === 舷窗区域 === */
+.cockpit-window {
+  position: relative;
+  height: 560rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(10,132,255,0.12), transparent 32%),
+    linear-gradient(180deg, rgba(3,10,18,0.96), rgba(0,0,0,0.98));
+}
+
+.reduce-motion .cockpit-window {
+  transition: none;
+}
+
+/* 角落读数 */
+.window-corner {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.window-corner--tl {
+  top: 28rpx;
+  left: 28rpx;
+}
+
+.window-corner--tr {
+  top: 28rpx;
+  right: 28rpx;
+}
+
+.window-corner-value {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.58);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 2rpx;
+}
+
+/* 舷窗底部读数 */
+.window-bottom-readout {
+  position: absolute;
+  bottom: 20rpx;
+  z-index: 2;
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.38);
+  letter-spacing: 2rpx;
+  pointer-events: none;
+}
+
+.window-bottom-readout--mode {
+  left: 28rpx;
+}
+
+.window-bottom-readout--link {
+  right: 28rpx;
+}
+
+/* === 驾驶台区域 === */
+.cockpit-deck {
+  position: relative;
+  z-index: 2;
+  min-height: 360rpx;
+  transform: translateY(-40rpx);
+  padding: 0 4rpx 24rpx;
+  background:
+    linear-gradient(180deg, rgba(0,200,255,0.03), rgba(3,10,18,0.94) 30%),
+    rgba(3,10,18,0.92);
+  border: 1rpx solid rgba(0,200,255,0.18);
+  border-top: none;
+}
+
+/* === 驾驶台唇缘 === */
+.deck-lip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent 8%, rgba(0,200,255,0.28) 30%, rgba(0,200,255,0.36) 50%, rgba(0,200,255,0.28) 70%, transparent 92%);
+  z-index: 3;
+}
+
+/* 驾驶台深度线 */
+.deck-depth-lines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.10) 1rpx, transparent 1rpx);
+  background-size: 100% 56rpx;
+  pointer-events: none;
+}
+
+/* === 半圆脉冲仪表 === */
+.self-gauge-module {
+  position: relative;
+  width: 480rpx;
+  height: 200rpx;
+  margin: -90rpx auto 0;
+  overflow: hidden;
+  z-index: 4;
+}
+
+/* 弧线容器 — 外环 */
+.gauge-arc {
+  position: absolute;
+  left: 0;
+  bottom: -200rpx;
+  width: 480rpx;
+  height: 480rpx;
+  border-radius: 50%;
+  clip-path: inset(0 0 50% 0);
+}
+
+.gauge-arc--outer {
+  border: 2rpx solid rgba(0,200,255,0.28);
+}
+
+.is-positive .gauge-arc--outer {
+  border-color: rgba(48,209,88,0.32);
+}
+
+.is-negative .gauge-arc--outer {
+  border-color: rgba(255,159,10,0.32);
+}
+
+.gauge-arc--inner {
+  left: 28rpx;
+  bottom: -172rpx;
+  width: 424rpx;
+  height: 424rpx;
+  border: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.gauge-ticks {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0;
+  height: 0;
+}
+
+.gauge-tick {
+  position: absolute;
+  left: -1rpx;
+  bottom: 0;
+  width: 2rpx;
+  height: 14rpx;
+  background: rgba(0,200,255,0.24);
+  transform-origin: center 200rpx;
+}
+
+.gauge-tick--mid {
+  height: 20rpx;
+  background: rgba(0,200,255,0.42);
+}
+
+.gauge-title {
+  position: absolute;
+  left: 50%;
+  bottom: 52rpx;
+  transform: translateX(-50%);
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(226,242,255,0.42);
+  font-family: 'Courier New', Courier, monospace;
+  z-index: 1;
+}
+
+.gauge-value {
+  position: absolute;
+  left: 50%;
+  bottom: 16rpx;
+  transform: translateX(-50%);
+  font-family: 'DIN Alternate', 'SF Mono', Menlo, monospace;
+  font-size: 56rpx;
+  line-height: 1;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+
+.is-positive .gauge-value {
+  color: rgba(48,209,88,0.92);
+}
+
+.is-negative .gauge-value {
+  color: rgba(255,159,10,0.92);
+}
+
+.gauge-link {
+  position: absolute;
+  left: 50%;
+  bottom: -6rpx;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.44);
+  z-index: 1;
+}
+
+.gauge-link-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(226,242,255,0.22);
+}
+
+.gauge-link-dot--on {
+  background: rgba(48,209,88,0.88);
+  box-shadow: 0 0 6rpx rgba(48,209,88,0.4);
+}
+
+.gauge-stand {
+  position: absolute;
+  left: 50%;
+  bottom: -8rpx;
+  transform: translateX(-50%);
+  width: 120rpx;
+  height: 6rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.22), transparent);
+  border-radius: 3rpx;
+}
+
+/* === 驾驶台中轴线 === */
+.deck-spine {
+  width: 1rpx;
+  height: 24rpx;
+  margin: 8rpx auto 0;
+  background: linear-gradient(180deg, rgba(0,200,255,0.28), rgba(0,200,255,0.08));
+}
+
+/* === 终端屏幕 === */
+.terminal-screen {
+  margin-top: 16rpx;
+  width: 100%;
+}
+
+/* 编队信息行 */
+.terminal-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4rpx;
+  margin-bottom: 14rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1rpx solid rgba(255,255,255,0.06);
+}
+
+.terminal-room-code {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.terminal-meta-label {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.42);
+  letter-spacing: 1rpx;
+}
+
+.terminal-meta-value {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: rgba(0,200,255,0.92);
+  letter-spacing: 3rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-copy-btn {
+  padding: 4rpx 12rpx;
+  border: 1rpx solid rgba(0,200,255,0.28);
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.72);
+}
+
+.terminal-copy-btn:active {
+  border-color: rgba(0,200,255,0.52);
+  background: rgba(0,200,255,0.08);
+}
+
+.terminal-chip-row {
+  display: flex;
+  gap: 8rpx;
+}
+
+.terminal-chip {
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.62);
+  padding: 2rpx 10rpx;
+  border: 1rpx solid rgba(0,200,255,0.14);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 实时脉冲行 */
+.terminal-pulse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+  padding: 0 4rpx;
+}
+
+.terminal-pulse-title {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.78);
+  letter-spacing: 1rpx;
+}
+
+.terminal-pulse-badges {
+  display: flex;
+  gap: 12rpx;
+}
+
+.terminal-badge {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20rpx;
+  color: rgba(0,200,255,0.62);
+  font-variant-numeric: tabular-nums;
+  padding: 2rpx 10rpx;
+  border: 1rpx solid rgba(0,200,255,0.14);
+}
+
+/* 最近流向 */
+.terminal-last-event {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 10rpx;
+  margin-bottom: 10rpx;
+  border: 1rpx solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.015);
+}
+
+.terminal-event-flow {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.62);
+}
+
+.terminal-event-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-event-value.positive,
+.terminal-event-value.is-positive {
+  color: rgba(48,209,88,0.86);
+}
+
+.terminal-event-value.negative,
+.terminal-event-value.is-negative {
+  color: rgba(255,159,10,0.9);
+}
+
+/* === 脉冲轨迹预览行 === */
+.terminal-trajectory-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 10rpx;
+  padding: 0 4rpx;
+}
+
+.trajectory-label {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.32);
+  letter-spacing: 1rpx;
+  flex-shrink: 0;
+}
+
+.trajectory-sparkline {
+  position: relative;
+  flex: 1;
+  height: 40rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.08);
+  background: rgba(0,0,0,0.16);
+}
+
+.trajectory-sparkline.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spark-dot {
+  position: absolute;
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.62);
+  transform: translateX(-50%);
+}
+
+.spark-base-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1rpx;
+  background: rgba(0,200,255,0.12);
+}
+
+.trajectory-waiting {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.22);
+  white-space: nowrap;
+}
+
+.trajectory-action {
+  flex-shrink: 0;
+  padding: 8rpx 14rpx;
+  text-align: center;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  font-size: 20rpx;
+  color: rgba(0,200,255,0.72);
+}
+
+.trajectory-action:active {
+  border-color: rgba(0,200,255,0.42);
+  background: rgba(0,200,255,0.04);
+}
+
+.terminal-chart {
+  margin-top: 12rpx;
+  border: 1rpx solid rgba(0,200,255,0.08);
+  background: rgba(0,0,0,0.24);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.reduce-motion .self-gauge-module,
+.reduce-motion .terminal-screen {
+  transition: none;
+}
+
+/* === 角落 HUD 读数 === */
+.vch-value--faint {
+  color: rgba(0,200,255,0.38);
+}
+
+/* === 外部航船标记 === */
+.ship-target {
+  position: absolute;
+  width: 90rpx;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  color: rgba(226,242,255,0.78);
+  transition: opacity .18s, transform .18s;
+}
+
+.ship-target:active {
+  transform: translate(-50%, -50%) scale(0.92);
+}
+
+.ship-target--offline {
+  opacity: 0.42;
+}
+
+/* 飞船剪影 — CSS-only 三角头 + 翼条 + 护盾环 */
+.ship-silhouette {
+  position: relative;
+  width: 48rpx;
+  height: 48rpx;
+}
+
+.ship-shield-ring {
+  position: absolute;
+  inset: -4rpx;
+  border: 1rpx solid rgba(0,200,255,0.32);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ship-nose {
+  position: absolute;
+  top: -8rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6rpx solid transparent;
+  border-right: 6rpx solid transparent;
+  border-bottom: 10rpx solid rgba(0,200,255,0.42);
+}
+
+.ship-wing {
+  position: absolute;
+  top: 50%;
+  width: 12rpx;
+  height: 3rpx;
+  background: rgba(0,200,255,0.32);
+  transform: translateY(-50%);
+}
+
+.ship-wing--left {
+  left: -10rpx;
+  transform: translateY(-50%) rotate(-12deg);
+}
+
+.ship-wing--right {
+  right: -10rpx;
+  transform: translateY(-50%) rotate(12deg);
+}
+
+.ship-core {
+  position: absolute;
+  inset: 6rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.ship-avatar-mini {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.ship-avatar-char {
+  font-size: 18rpx;
+  font-weight: 700;
+  color: rgba(0,200,255,0.88);
+}
+
+.ship-link-dot {
+  position: absolute;
+  top: 2rpx;
+  right: 2rpx;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(226,242,255,0.22);
+  z-index: 3;
+}
+
+.ship-link-dot--on {
+  background: rgba(48,209,88,0.88);
+  box-shadow: 0 0 6rpx rgba(48,209,88,0.4);
+}
+
+/* 飞船标签 */
+.ship-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+  min-width: 0;
+}
+
+.ship-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16rpx;
+  line-height: 1.2;
+  color: rgba(226,242,255,0.72);
+  text-align: center;
+}
+
+.ship-pulse {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.ship-target--positive .ship-pulse {
+  color: rgba(48,209,88,0.86);
+}
+
+.ship-target--negative .ship-pulse {
+  color: rgba(255,159,10,0.9);
+}
+
+/* 新成员接入动画 */
+.ship-target--new {
+  animation: shipJoin 0.45s ease-out;
+}
+
+@keyframes shipJoin {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.ship-target--new .ship-shield-ring {
+  border-color: rgba(0,200,255,0.62);
+  box-shadow: 0 0 12rpx rgba(0,200,255,0.2);
+}
+
+.reduce-motion .ship-target--new {
+  animation: none;
+}
+
+.starfield {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,0.22) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 70% 42%, rgba(0,200,255,0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 46% 76%, rgba(255,255,255,0.16) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 12% 68%, rgba(255,255,255,0.14) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 84% 20%, rgba(0,200,255,0.14) 0 1rpx, transparent 2rpx),
+    linear-gradient(180deg, rgba(3,10,18,0.96), rgba(0,0,0,0.98));
+}
+
+.starfield--layer2 {
+  opacity: 0.6;
+  background:
+    radial-gradient(circle at 35% 55%, rgba(255,255,255,0.12) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 62% 18%, rgba(255,255,255,0.10) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 88% 65%, rgba(0,200,255,0.08) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 8% 82%, rgba(255,255,255,0.10) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 52% 92%, rgba(255,255,255,0.08) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 78% 8%, rgba(255,255,255,0.10) 0 1rpx, transparent 2rpx);
+  pointer-events: none;
+}
+
+.windshield-grid {
+  position: absolute;
+  inset: 24rpx;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.10) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.08) 1rpx, transparent 1rpx),
+    linear-gradient(120deg, transparent 0 48%, rgba(0,200,255,0.10) 49%, transparent 50%),
+    linear-gradient(60deg, transparent 0 48%, rgba(0,200,255,0.08) 49%, transparent 50%);
+  background-size: 56rpx 56rpx, 56rpx 56rpx, 220rpx 220rpx, 220rpx 220rpx;
+  mask-image: radial-gradient(ellipse at center, black 0 58%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0 58%, transparent 78%);
+  pointer-events: none;
+}
+
+.windshield-frame {
+  position: absolute;
+  inset: 18rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  clip-path: polygon(42rpx 0, calc(100% - 42rpx) 0, 100% 54rpx, 100% calc(100% - 54rpx), calc(100% - 42rpx) 100%, 42rpx 100%, 0 calc(100% - 54rpx), 0 54rpx);
+  pointer-events: none;
+}
+
+.windshield-frame::before,
+.windshield-frame::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 28%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.32));
+}
+
+.windshield-frame::before {
+  left: 28rpx;
+}
+
+.windshield-frame::after {
+  right: 28rpx;
+  transform: rotate(180deg);
+}
+
+/* 角落 HUD 标签 */
+.viewport-corner-hud {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  pointer-events: none;
+}
+
+.viewport-corner-hud--tl {
+  top: 32rpx;
+  left: 32rpx;
+}
+
+.viewport-corner-hud--tr {
+  top: 32rpx;
+  right: 32rpx;
+  align-items: flex-end;
+}
+
+.viewport-corner-hud--bl {
+  bottom: 32rpx;
+  left: 32rpx;
+}
+
+.viewport-corner-hud--br {
+  bottom: 32rpx;
+  right: 32rpx;
+  align-items: flex-end;
+}
+
+.vch-label {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.38);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.vch-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.68);
+  font-variant-numeric: tabular-nums;
+}
+
+.windshield-horizon {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 56%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.28), transparent);
+  opacity: 0.7;
+}
+
+.cockpit-glass-readout {
+  position: absolute;
+  top: 40rpx;
+  left: 44rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 5rpx;
+  color: rgba(0,200,255,0.34);
+}
+
+/* === 舷窗中央脉冲 HUD === */
+.viewport-pulse-center {
+  position: absolute;
+  left: 50%;
+  top: 66%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.vpulse-ring {
+  position: relative;
+  width: 240rpx;
+  height: 240rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.vpulse-ring-outer {
+  position: absolute;
+  inset: 0;
+  border: 1rpx solid rgba(0,200,255,0.32);
+  border-radius: 50%;
+  box-shadow: 0 0 32rpx rgba(0,200,255,0.10);
+  animation: vpulseBreathe 3.2s ease-in-out infinite;
+}
+
+.vpulse-ring-inner {
+  position: absolute;
+  inset: 20rpx;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  border-radius: 50%;
+  animation: vpulseBreathe 3.2s ease-in-out infinite reverse;
+}
+
+@keyframes vpulseBreathe {
+  0%, 100% { transform: scale(0.97); opacity: 0.5; }
+  50% { transform: scale(1.02); opacity: 0.85; }
+}
+
+.reduce-motion .vpulse-ring-outer,
+.reduce-motion .vpulse-ring-inner {
+  animation: none;
+}
+
+.vpulse-title {
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.56);
+  position: relative;
+  z-index: 1;
+}
+
+.vpulse-value {
+  margin-top: 6rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 64rpx;
+  line-height: 1;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+
+.vpulse-link {
+  margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.44);
+  position: relative;
+  z-index: 1;
+}
+
+/* === 本舰信息条 === */
+.ownship-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18rpx 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.ownship-bar-call {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: rgba(226,242,255,0.92);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 50%;
+}
+
+.ownship-bar-meta {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.ownship-bar-tag {
+  font-size: 20rpx;
+  color: rgba(0,200,255,0.68);
+  padding: 4rpx 12rpx;
+  border: 1rpx solid rgba(0,200,255,0.18);
+}
+
+.ownship-bar-sep {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.22);
+}
+
+.standby-window-copy {
+  position: absolute;
+  left: 64rpx;
+  right: 64rpx;
+  top: 168rpx;
+  z-index: 2;
+  text-align: center;
+}
+
+.standby-kicker {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 5rpx;
+  color: rgba(0,200,255,0.42);
+}
+
+.standby-title {
+  margin-top: 14rpx;
+  font-size: 42rpx;
+  font-weight: 700;
+  color: rgba(226,242,255,0.94);
+}
+
+.standby-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.56);
+}
+
+.ship-field {
+  position: absolute;
+  top: 18%;
+  bottom: 48%;
+  left: 18%;
+  right: 18%;
+  z-index: 2;
+}
+
+
+.empty-formation {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  width: 320rpx;
+  text-align: center;
+  padding: 28rpx;
+  border: 1rpx solid rgba(0,200,255,0.16);
+  background: rgba(3,10,18,0.54);
+  clip-path: polygon(18rpx 0, calc(100% - 18rpx) 0, 100% 18rpx, 100% calc(100% - 18rpx), calc(100% - 18rpx) 100%, 18rpx 100%, 0 calc(100% - 18rpx), 0 18rpx);
+}
+
+.empty-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.9);
+}
+
+.empty-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.5);
+}
+
+.ownship-reticle {
+  position: absolute;
+  left: 50%;
+  bottom: 120rpx;
+  width: 132rpx;
+  height: 82rpx;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(226,242,255,0.48);
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+  z-index: 2;
+}
+
+.reticle-line {
+  position: absolute;
+  background: rgba(0,200,255,0.28);
+}
+
+.reticle-line--x {
+  left: 0;
+  right: 0;
+  height: 1rpx;
+}
+
+.reticle-line--y {
+  top: 0;
+  bottom: 0;
+  width: 1rpx;
+}
+
+.reticle-core {
+  position: absolute;
+  width: 18rpx;
+  height: 18rpx;
+  border: 1rpx solid rgba(0,200,255,0.52);
+  border-radius: 50%;
+}
+
+.cockpit-id-panel {
+  position: absolute;
+  left: 34rpx;
+  bottom: 34rpx;
+  z-index: 3;
+  min-width: 208rpx;
+  padding: 14rpx 18rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background: rgba(0,0,0,0.32);
+}
+
+.cockpit-id-panel--idle {
+  bottom: 360rpx;
+}
+
+.hud-label {
+  display: block;
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.42);
+  letter-spacing: 2rpx;
+}
+
+.hud-code {
+  display: block;
+  margin-top: 4rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 38rpx;
+  color: rgba(0,200,255,0.92);
+  letter-spacing: 4rpx;
+}
+
+.cockpit-stats {
+  position: absolute;
+  right: 34rpx;
+  bottom: 34rpx;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10rpx;
+  width: 360rpx;
+}
+
+.cockpit-stats--idle {
+  bottom: 360rpx;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 420rpx;
+}
+
+.hud-stat {
+  min-width: 0;
+  padding: 12rpx 14rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.30);
+}
+
+.hud-stat-label {
+  display: block;
+  font-size: 17rpx;
+  color: rgba(226,242,255,0.42);
+  white-space: nowrap;
+}
+
+.hud-stat-value {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.86);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cockpit-mode-console {
+  position: absolute;
+  left: 34rpx;
+  right: 34rpx;
+  bottom: 238rpx;
+  z-index: 3;
+  margin: 0;
+}
+
+.cockpit-launch-actions {
+  position: absolute;
+  left: 34rpx;
+  right: 34rpx;
+  bottom: 34rpx;
+}
+
+.cockpit-hud-grid {
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: 18rpx;
+  margin-bottom: 24rpx;
+}
+
+.pulse-hud {
+  min-height: 340rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.pulse-ring {
+  position: relative;
+  width: 270rpx;
+  height: 270rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-kicker {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.46);
+}
+
+.pulse-title {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.68);
+}
+
+.pulse-value {
+  margin-top: 8rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 74rpx;
+  line-height: 1;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+  max-width: 210rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pulse-link {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.5);
+}
+
+.ownship-panel {
+  min-height: 340rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.ownship-panel-kicker {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.42);
+}
+
+.ownship-call {
+  margin-top: 18rpx;
+  font-size: 38rpx;
+  font-weight: 700;
+  color: rgba(226,242,255,0.94);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ownship-meta {
+  margin-top: 28rpx;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12rpx;
+}
+
+.ownship-meta view {
+  padding: 16rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+}
+
+.ownship-meta text {
+  display: block;
+}
+
+.ownship-meta text:first-child {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.42);
+}
+
+.ownship-meta text:last-child {
+  margin-top: 6rpx;
+  font-size: 22rpx;
+  color: rgba(0,200,255,0.78);
+}
+
+/* === 实时脉冲概览 === */
+.pulse-overview {
+  margin-bottom: 24rpx;
+}
+
+.pulse-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.pulse-overview-stats {
+  display: flex;
+  gap: 20rpx;
+}
+
+.po-stat {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22rpx;
+  color: rgba(0,200,255,0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.po-latest {
+  margin-bottom: 8rpx;
+}
+
+.po-latest:last-of-type {
+  margin-bottom: 0;
+}
+
+.po-latest-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 12rpx;
+  border: 1rpx solid rgba(255,255,255,0.04);
+  background: rgba(255,255,255,0.015);
+}
+
+.po-latest-flow {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.62);
+}
+
+.po-latest-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 22rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.po-latest-value.positive {
+  color: rgba(48,209,88,0.86);
+}
+
+.po-latest-value.negative {
+  color: rgba(255,159,10,0.9);
+}
+
+.po-empty {
+  padding: 24rpx 0;
+  text-align: center;
+}
+
+.po-empty-text {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.32);
+}
+
+/* === 脉冲轨迹预览 === */
+.trace-preview {
+  margin-bottom: 24rpx;
+}
+
+.trace-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.trace-preview-toggle {
+  padding: 6rpx 16rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  cursor: pointer;
+}
+
+.trace-preview-toggle:active {
+  border-color: rgba(0,200,255,0.48);
+}
+
+.trace-toggle-text {
+  font-size: 22rpx;
+  color: rgba(0,200,255,0.78);
+}
+
+.trace-preview-chart {
+  margin-top: 12rpx;
+  border: 1rpx solid rgba(0,200,255,0.08);
+  background: rgba(0,0,0,0.24);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.voyage-control-panel {
+  margin-bottom: 24rpx;
+}
+
+.control-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.control-state {
+  padding: 8rpx 14rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  color: rgba(0,200,255,0.78);
+  font-size: 20rpx;
+}
+
+.control-actions {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14rpx;
+}
+
+.control-hint {
+  min-height: 82rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  color: rgba(226,242,255,0.56);
+  font-size: 24rpx;
+}
+
+.trace-dock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 24rpx;
+}
+
+.trace-dock:active {
+  border-color: rgba(0,200,255,0.42);
+  background: rgba(0,200,255,0.055);
+}
+
+.trace-dock-desc {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.48);
+  line-height: 1.5;
+}
+
+.trace-dock-status {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 10rpx 16rpx;
+  border: 1rpx solid rgba(48,209,88,0.22);
+  color: rgba(48,209,88,0.78);
+  font-size: 20rpx;
+}
+
+/* === 编队识别卡 === */
 .space-status-card {
   position: relative;
 }
 
+.flight-control-panel {
+  margin-bottom: 24rpx;
+  padding: 26rpx 24rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background:
+    linear-gradient(180deg, rgba(0,200,255,0.045), transparent 48%),
+    rgba(3,10,18,0.66);
+  overflow: hidden;
+  clip-path: polygon(22rpx 0, calc(100% - 22rpx) 0, 100% 22rpx, 100% calc(100% - 22rpx), calc(100% - 22rpx) 100%, 22rpx 100%, 0 calc(100% - 22rpx), 0 22rpx);
+}
+
+.flight-scope-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.26;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.10) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.10) 1rpx, transparent 1rpx);
+  background-size: 44rpx 44rpx;
+  pointer-events: none;
+}
+
+.flight-id-block {
+  position: relative;
+  z-index: 1;
+  padding-right: 260rpx;
+}
+
+.flight-kicker {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.44);
+  margin-bottom: 8rpx;
+}
+
+.flight-label {
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.52);
+  margin-bottom: 4rpx;
+}
+
+.flight-meta {
+  position: relative;
+  z-index: 1;
+  margin-top: 22rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.flight-actions {
+  top: 24rpx;
+  right: 22rpx;
+  flex-direction: column;
+  gap: 10rpx;
+}
+
+.signal-btn {
+  width: 216rpx;
+  height: 54rpx;
+  justify-content: flex-start;
+  padding: 0 16rpx;
+  gap: 12rpx;
+  color: rgba(226,242,255,0.72);
+}
+
+.signal-btn--primary {
+  border-color: rgba(0,200,255,0.34);
+  background: rgba(0,200,255,0.09);
+  color: rgba(0,200,255,0.92);
+}
+
+.signal-icon {
+  width: 24rpx;
+  height: 24rpx;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.signal-icon--burn {
+  border: 2rpx solid currentColor;
+  border-radius: 4rpx;
+}
+
+.signal-icon--burn::before {
+  content: '';
+  position: absolute;
+  left: 5rpx;
+  right: 5rpx;
+  top: -5rpx;
+  height: 6rpx;
+  border: 2rpx solid currentColor;
+  border-bottom: none;
+}
+
+.signal-icon--beacon {
+  border: 2rpx solid currentColor;
+  border-radius: 50%;
+}
+
+.signal-icon--beacon::before,
+.signal-icon--beacon::after {
+  content: '';
+  position: absolute;
+  inset: -7rpx;
+  border: 1rpx solid currentColor;
+  border-radius: 50%;
+  opacity: 0.34;
+}
+
+.signal-icon--beacon::after {
+  inset: 6rpx;
+  opacity: 0.72;
+}
+
+.self-pulse-instrument {
+  position: relative;
+  height: 360rpx;
+  margin-bottom: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.instrument-grid {
+  position: absolute;
+  inset: 24rpx;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(226,242,255,0.08) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(226,242,255,0.08) 1rpx, transparent 1rpx);
+  background-size: 38rpx 38rpx;
+  mask-image: radial-gradient(circle, black 0%, black 56%, transparent 76%);
+}
+
+.instrument-axis {
+  position: absolute;
+  background: rgba(0,200,255,0.18);
+}
+
+.instrument-axis-x {
+  left: 12%;
+  right: 12%;
+  height: 1rpx;
+}
+
+.instrument-axis-y {
+  top: 12%;
+  bottom: 12%;
+  width: 1rpx;
+}
+
+.instrument-core {
+  position: relative;
+  z-index: 1;
+  width: 280rpx;
+  height: 280rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.instrument-ring {
+  position: absolute;
+  inset: 0;
+  border: 1rpx solid rgba(0,200,255,0.36);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 18rpx rgba(0,200,255,0.018),
+    inset 0 0 0 48rpx rgba(255,255,255,0.012),
+    0 0 38rpx rgba(0,200,255,0.10);
+}
+
+.instrument-kicker {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  color: rgba(0,200,255,0.46);
+}
+
+.instrument-title {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: rgba(226,242,255,0.66);
+}
+
+.instrument-value {
+  margin-top: 8rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 78rpx;
+  line-height: 1;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+}
+
+.instrument-value--positive {
+  color: rgba(48,209,88,0.92);
+}
+
+.instrument-value--negative {
+  color: rgba(255,159,10,0.92);
+}
+
+.instrument-readout {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 20rpx;
+  color: rgba(226,242,255,0.48);
+}
+
 .space-id-block {
   margin-bottom: 16rpx;
+  padding-right: 220rpx;
 }
 
 .space-id-block .label {
@@ -3327,6 +5073,37 @@
   gap: 12rpx;
 }
 
+.space-actions--stacked {
+  top: 30rpx;
+  right: 24rpx;
+}
+
+.space-action-btn {
+  width: 92rpx;
+  height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  background: rgba(0,200,255,0.045);
+  color: rgba(226,242,255,0.72);
+  font-size: 20rpx;
+  font-weight: 600;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
+}
+
+.space-action-btn:active {
+  border-color: rgba(0,200,255,0.42);
+  background: rgba(0,200,255,0.10);
+}
+
+.space-action-btn .icon-clip,
+.space-action-btn .icon-share {
+  transform: scale(0.78);
+}
+
 .icon-btn {
   width: 56rpx;
   height: 56rpx;
@@ -3367,7 +5144,7 @@
   color: rgba(0,200,255,0.64);
 }
 
-/* === 舰员席位矩阵 === */
+/* === 编队席位矩阵 === */
 .crew-section {
   margin-bottom: 24rpx;
 }
@@ -3385,8 +5162,8 @@
 }
 
 .crew-stage.layout-solo {
-  grid-template-columns: repeat(2, 1fr);
-  padding: 0 48rpx;
+  grid-template-columns: 1fr;
+  padding: 0 128rpx;
 }
 
 .crew-stage.layout-duo {
@@ -3407,7 +5184,7 @@
 }
 
 .crew-seat {
-  min-height: 168rpx;
+  min-height: 188rpx;
   padding: 16rpx 10rpx;
   box-sizing: border-box;
   border: 1rpx solid rgba(255,255,255,0.08);
@@ -3426,6 +5203,31 @@
     0 14rpx
   );
   transition: border-color .18s, background-color .18s;
+}
+
+.crew-seat::before {
+  content: '';
+  position: absolute;
+  left: 18rpx;
+  right: 18rpx;
+  bottom: 8rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.10);
+  filter: blur(8rpx);
+}
+
+.crew-seat::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8rpx;
+  width: 42rpx;
+  height: 8rpx;
+  transform: translateX(-50%);
+  border: 1rpx solid rgba(0,200,255,0.18);
+  border-radius: 999rpx;
+  opacity: 0.7;
 }
 
 .crew-seat.is-active {
@@ -3540,6 +5342,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
 .empty-seat-mark {
@@ -3558,6 +5362,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .crew-seat.is-empty .seat-name {
@@ -3575,6 +5381,8 @@
   font-size: 26rpx;
   color: rgba(0,200,255,0.92);
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .seat-state {
@@ -3585,6 +5393,59 @@
   gap: 6rpx;
   font-size: 18rpx;
   color: rgba(226,242,255,0.46);
+  position: relative;
+  z-index: 1;
+}
+
+.seat-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.42);
+}
+
+.seat-state--online {
+  color: rgba(48,209,88,0.76);
+}
+
+.seat-state--online .seat-dot {
+  background: rgba(48,209,88,0.78);
+  box-shadow: 0 0 12rpx rgba(48,209,88,0.24);
+}
+
+.seat-state--syncing {
+  color: rgba(0,200,255,0.62);
+}
+
+.seat-state--syncing .seat-dot {
+  background: rgba(0,200,255,0.62);
+}
+
+.seat-state--offline {
+  color: rgba(226,242,255,0.34);
+}
+
+.seat-state--offline .seat-dot {
+  background: rgba(226,242,255,0.20);
+  box-shadow: none;
+}
+
+.seat-host-chip {
+  position: absolute;
+  right: 8rpx;
+  top: 8rpx;
+  padding: 2rpx 8rpx;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  color: rgba(0,200,255,0.76);
+  background: rgba(0,200,255,0.055);
+  font-size: 16rpx;
+  line-height: 1.4;
+  clip-path: polygon(6rpx 0, 100% 0, 100% calc(100% - 6rpx), calc(100% - 6rpx) 100%, 0 100%, 0 6rpx);
+}
+
+.crew-seat.is-self .seat-dot {
+  background: rgba(48,209,88,0.72);
+  box-shadow: 0 0 12rpx rgba(48,209,88,0.22);
 }
 
 .crew-seat.is-empty .seat-dot {
@@ -3595,6 +5456,28 @@
 .seat-dot.muted {
   background: rgba(226,242,255,0.22);
   box-shadow: none;
+}
+
+.seat-transfer-chip {
+  margin-top: 8rpx;
+  width: 100%;
+  height: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  background: rgba(0,200,255,0.045);
+  color: rgba(0,200,255,0.68);
+  font-size: 17rpx;
+  font-weight: 600;
+  clip-path: polygon(8rpx 0, 100% 0, 100% calc(100% - 8rpx), calc(100% - 8rpx) 100%, 0 100%, 0 8rpx);
+}
+
+.seat-transfer-chip.is-ready {
+  color: rgba(226,242,255,0.96);
+  border-color: rgba(0,200,255,0.48);
+  background: rgba(0,200,255,0.14);
 }
 
 /* === 脉冲控制 === */
@@ -3661,18 +5544,14 @@
   margin-top: 12rpx;
 }
 
-/* === 悬浮脉冲控制台 === */
+/* === 脉冲控制台 === */
 .pulse-dock {
-  position: fixed;
-  left: 24rpx;
-  right: 24rpx;
-  bottom: calc(126rpx + env(safe-area-inset-bottom));
-  z-index: 88;
-  padding: 18rpx 20rpx;
+  position: relative;
+  margin: 24rpx 0;
+  padding: 22rpx 20rpx 20rpx;
   border: 1rpx solid rgba(0,200,255,0.24);
-  background: rgba(3,10,18,0.88);
-  backdrop-filter: blur(20rpx);
-  box-shadow: 0 -12rpx 40rpx rgba(0,0,0,0.32);
+  background: rgba(3,10,18,0.72);
+  box-shadow: none;
   clip-path: polygon(
     20rpx 0,
     100% 0,
@@ -3686,10 +5565,40 @@
 .pulse-dock-target {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: stretch;
+  gap: 16rpx;
   margin-bottom: 12rpx;
   padding-bottom: 12rpx;
   border-bottom: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.pulse-dock-target--idle {
+  color: rgba(226,242,255,0.52);
+}
+
+.pulse-flow-line {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.dock-node {
+  min-width: 96rpx;
+  max-width: 184rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.dock-node--target {
+  align-items: flex-end;
+}
+
+.dock-node-label {
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.38);
 }
 
 .dock-target-label {
@@ -3698,59 +5607,133 @@
   color: rgba(0,200,255,0.48);
 }
 
+.dock-source-name,
 .dock-target-name {
+  max-width: 190rpx;
   font-size: 24rpx;
   color: rgba(0,200,255,0.92);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-source-name {
+  color: rgba(226,242,255,0.74);
+}
+
+.dock-flow-beam {
+  flex: 1;
+  min-width: 64rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, rgba(226,242,255,0.12), rgba(0,200,255,0.82));
+  position: relative;
+}
+
+.dock-flow-beam::after {
+  content: '';
+  position: absolute;
+  right: -4rpx;
+  top: -5rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-top: 2rpx solid rgba(0,200,255,0.9);
+  border-right: 2rpx solid rgba(0,200,255,0.9);
+  transform: rotate(45deg);
+}
+
+.dock-delta-preview {
+  flex: 0 0 190rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8rpx;
+}
+
+.dock-delta-item {
+  min-width: 0;
+  padding: 8rpx 10rpx;
+  border: 1rpx solid rgba(0,200,255,0.14);
+  background: rgba(0,200,255,0.035);
+}
+
+.delta-label {
+  display: block;
+  font-size: 17rpx;
+  color: rgba(226,242,255,0.42);
+}
+
+.delta-value {
+  display: block;
+  margin-top: 2rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 24rpx;
+  color: rgba(0,200,255,0.92);
+}
+
+.dock-idle-copy {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.42);
+}
+
+.dock-idle-mark {
+  width: 28rpx;
+  height: 28rpx;
+  border: 2rpx solid rgba(0,200,255,0.28);
+  transform: rotate(45deg);
 }
 
 .pulse-dock-main {
   display: grid;
-  grid-template-columns: 68rpx 1fr 68rpx 120rpx;
+  grid-template-columns: minmax(0, 1fr) 176rpx;
   gap: 12rpx;
-  align-items: center;
+  align-items: stretch;
 }
 
-.pulse-step-btn {
-  height: 68rpx;
-  display: flex;
+.pulse-input-box {
+  min-width: 0;
+  height: 72rpx;
+  display: grid;
+  grid-template-columns: 132rpx minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  border: 1rpx solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.035);
-  color: rgba(226,242,255,0.9);
-  font-size: 32rpx;
-  font-weight: 600;
-  padding: 0;
-  line-height: 1;
-  border-radius: 0;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background: rgba(0,200,255,0.045);
   clip-path: polygon(12rpx 0, 100% 0, 100% calc(100% - 12rpx), calc(100% - 12rpx) 100%, 0 100%, 0 12rpx);
 }
 
-.pulse-step-btn::after {
-  display: none;
+.pulse-input-label {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1rpx solid rgba(0,200,255,0.14);
+  color: rgba(226,242,255,0.48);
+  font-size: 22rpx;
+  font-weight: 600;
 }
 
 .pulse-dock-input {
-  height: 68rpx;
-  text-align: center;
+  height: 72rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  text-align: left;
   font-family: 'DIN Alternate', Menlo, monospace;
   font-size: 34rpx;
   color: rgba(0,200,255,0.96);
-  border: 1rpx solid rgba(0,200,255,0.22);
-  background: rgba(0,200,255,0.045);
+  border: 0;
+  background: transparent;
   caret-color: rgba(0,200,255,0.88);
 }
 
 .pulse-fire-btn {
-  height: 68rpx;
+  height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1rpx solid rgba(0,200,255,0.48);
   background: rgba(0,200,255,0.12);
   color: rgba(226,242,255,0.96);
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 700;
   padding: 0;
   line-height: 1;
@@ -3772,11 +5755,42 @@
   opacity: 0.58;
 }
 
-.pulse-dock-hint {
-  margin-top: 10rpx;
-  text-align: center;
-  font-size: 21rpx;
-  color: rgba(226,242,255,0.38);
+.pulse-quick-head {
+  margin-top: 16rpx;
+  margin-bottom: 8rpx;
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: rgba(226,242,255,0.34);
+}
+
+.pulse-quick-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10rpx;
+}
+
+.pulse-quick-chip {
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.026);
+  color: rgba(226,242,255,0.56);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 22rpx;
+  clip-path: polygon(8rpx 0, 100% 0, 100% calc(100% - 8rpx), calc(100% - 8rpx) 100%, 0 100%, 0 8rpx);
+}
+
+.pulse-quick-chip.is-active {
+  color: rgba(0,200,255,0.94);
+  border-color: rgba(0,200,255,0.38);
+  background: rgba(0,200,255,0.10);
+}
+
+.pulse-quick-clear {
+  color: rgba(226,242,255,0.42);
+  font-family: inherit;
 }
 
 .pulse-dock-waiting {
@@ -3875,6 +5889,77 @@
 }
 
 /* === 脉冲轨迹 === */
+.blackbox-console {
+  margin-bottom: 24rpx;
+  overflow: hidden;
+}
+
+.blackbox-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+
+.blackbox-toggle-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10rpx;
+}
+
+.blackbox-toggle-btn {
+  height: 52rpx;
+  min-width: 148rpx;
+  padding: 0 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.28);
+  color: rgba(0,200,255,0.92);
+  background: rgba(0,200,255,0.065);
+  font-size: 22rpx;
+  font-weight: 600;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
+}
+
+.blackbox-panel {
+  margin-top: 20rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.blackbox-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.blackbox-tab {
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  color: rgba(226,242,255,0.46);
+  background: rgba(255,255,255,0.022);
+  font-size: 22rpx;
+  font-weight: 600;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
+}
+
+.blackbox-tab.is-active {
+  color: rgba(0,200,255,0.94);
+  border-color: rgba(0,200,255,0.36);
+  background: rgba(0,200,255,0.08);
+}
+
+.blackbox-view {
+  min-height: 160rpx;
+}
+
 .trace-section {
   margin-bottom: 24rpx;
 }
@@ -3891,6 +5976,73 @@
   margin-top: 20rpx;
 }
 
+.trace-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10rpx;
+  margin: 4rpx 0 16rpx;
+}
+
+.trace-stat {
+  min-width: 0;
+  padding: 12rpx 10rpx;
+  border: 1rpx solid rgba(0,200,255,0.12);
+  background: rgba(0,200,255,0.035);
+  clip-path: polygon(8rpx 0, 100% 0, 100% calc(100% - 8rpx), calc(100% - 8rpx) 100%, 0 100%, 0 8rpx);
+}
+
+.trace-stat-label {
+  display: block;
+  font-size: 17rpx;
+  color: rgba(226,242,255,0.38);
+  white-space: nowrap;
+}
+
+.trace-stat-value {
+  display: block;
+  margin-top: 4rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 24rpx;
+  color: rgba(0,200,255,0.86);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trace-chart-panel {
+  margin: 12rpx 0 16rpx;
+  padding: 10rpx 0 0;
+  border: 1rpx solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.018);
+  overflow: hidden;
+}
+
+.trace-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10rpx;
+  margin: 14rpx 0 4rpx;
+}
+
+.trace-filter {
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+  color: rgba(226,242,255,0.48);
+  font-size: 22rpx;
+  font-weight: 600;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
+}
+
+.trace-filter.is-active {
+  color: rgba(0,200,255,0.94);
+  border-color: rgba(0,200,255,0.34);
+  background: rgba(0,200,255,0.08);
+}
+
 .trace-item {
   position: relative;
   display: flex;
@@ -3900,8 +6052,112 @@
   border-bottom: 1rpx solid rgba(255,255,255,0.06);
 }
 
+.trace-item--crew {
+  display: grid;
+  grid-template-columns: minmax(112rpx, 1fr) 86rpx minmax(112rpx, 1fr) auto;
+  grid-template-areas:
+    "from beam to value"
+    "from time to value";
+  column-gap: 12rpx;
+  row-gap: 4rpx;
+  padding: 16rpx 0 16rpx 18rpx;
+}
+
+.trace-item--crew .trace-line {
+  position: absolute;
+  left: 0;
+  top: 14rpx;
+  bottom: 14rpx;
+}
+
+.trace-party {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.trace-party--from {
+  grid-area: from;
+}
+
+.trace-party--to {
+  grid-area: to;
+}
+
+.trace-party text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 21rpx;
+  color: rgba(226,242,255,0.82);
+}
+
+.trace-beam {
+  grid-area: beam;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 16rpx;
+  color: rgba(0,200,255,0.54);
+}
+
+.trace-beam-line {
+  width: 64rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, rgba(0,200,255,0.10), rgba(0,200,255,0.72));
+  position: relative;
+}
+
+.trace-beam-line::after {
+  content: '';
+  position: absolute;
+  right: -2rpx;
+  top: -4rpx;
+  width: 0;
+  height: 0;
+  border-top: 5rpx solid transparent;
+  border-bottom: 5rpx solid transparent;
+  border-left: 8rpx solid rgba(0,200,255,0.72);
+}
+
+.trace-time {
+  grid-area: time;
+  align-self: start;
+  text-align: center;
+  font-size: 18rpx;
+  color: rgba(226,242,255,0.34);
+}
+
+.trace-item--crew .trace-value {
+  grid-area: value;
+  align-self: center;
+  justify-self: end;
+  padding-right: 6rpx;
+}
+
 .trace-item.is-new {
   background: rgba(0,200,255,0.04);
+}
+
+.trace-item.is-mine {
+  background: rgba(0,200,255,0.045);
+}
+
+.trace-item.is-mine .trace-line {
+  width: 4rpx;
+  background: linear-gradient(to bottom, rgba(48,209,88,0.0), rgba(48,209,88,0.72), rgba(0,200,255,0.42));
+}
+
+.trace-item.is-mine .trace-title {
+  color: rgba(226,242,255,0.96);
+}
+
+.trace-value.is-related {
+  color: rgba(48,209,88,0.92);
 }
 
 .trace-line {
@@ -3940,6 +6196,49 @@
   color: rgba(255,159,10,0.92);
 }
 
+.overview-rank {
+  margin-top: 18rpx;
+  border: 1rpx solid rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.018);
+}
+
+.overview-rank-title {
+  padding: 16rpx 18rpx 10rpx;
+  font-size: 22rpx;
+  color: rgba(226,242,255,0.64);
+}
+
+.overview-rank-row {
+  min-height: 68rpx;
+  padding: 10rpx 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1rpx solid rgba(255,255,255,0.055);
+}
+
+.overview-rank-left {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: rgba(226,242,255,0.76);
+  font-size: 23rpx;
+}
+
+.overview-rank-left text {
+  max-width: 340rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-rank-score {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  color: rgba(0,200,255,0.88);
+  font-size: 26rpx;
+}
+
 .trace-empty {
   text-align: center;
   padding: 48rpx 0;
@@ -3956,27 +6255,15 @@
   color: rgba(226,242,255,0.24);
 }
 
-/* === 底部操作栏 === */
-.bottom-command-bar {
-  display: flex;
-  gap: 16rpx;
-  padding: 24rpx 0;
-  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
-}
-
-.bottom-command-bar .sr-btn {
-  flex: 1;
-}
-
-/* 航程控制区（与主操作分离） */
-.bottom-danger-zone {
-  padding: 16rpx 0 0;
-  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+/* 航程封存区 */
+.voyage-seal-zone {
+  padding: 24rpx 0 0;
+  padding-bottom: calc(360rpx + env(safe-area-inset-bottom));
   border-top: 1rpx solid rgba(255,255,255,0.06);
-  margin-top: 8rpx;
+  margin-top: 24rpx;
 }
 
-.danger-zone-label {
+.seal-zone-label {
   font-size: 22rpx;
   color: rgba(255,255,255,0.28);
   letter-spacing: 4rpx;
@@ -4050,7 +6337,7 @@
   flex: 1;
 }
 
-/* === 黑匣子写入中 === */
+/* === 航迹档案写入中 === */
 .sealing-overlay {
   position: fixed;
   inset: 0;
@@ -4125,8 +6412,1266 @@
 .reduce-motion .core-pulse,
 .reduce-motion .idle-scanline,
 .reduce-motion .btn-energy,
+.reduce-motion .sr-btn-secondary,
 .reduce-motion .write-beam,
 .reduce-motion .write-desc,
 .reduce-motion .deck-grid {
   animation: none !important;
+}
+
+/* === active v2：一屏驾驶舱 === */
+.cockpit-scroll {
+  box-sizing: border-box;
+  padding-bottom: calc(380rpx + env(safe-area-inset-bottom));
+}
+
+.cockpit-main {
+  margin: 24rpx 28rpx 0;
+}
+
+.cockpit-shell-v2 {
+  position: relative;
+  height: 800rpx;
+  max-height: 820rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.26);
+  background:
+    radial-gradient(circle at 24% 4%, rgba(10,132,255,0.12), transparent 34%),
+    radial-gradient(circle at 80% 18%, rgba(0,200,255,0.08), transparent 30%),
+    linear-gradient(180deg, rgba(1,8,18,0.98), rgba(2,10,18,0.96) 46%, rgba(3,12,22,0.98));
+  clip-path: polygon(24rpx 0, calc(100% - 24rpx) 0, 100% 24rpx, 100% calc(100% - 24rpx), calc(100% - 24rpx) 100%, 24rpx 100%, 0 calc(100% - 24rpx), 0 24rpx);
+}
+
+.cockpit-window-v2 {
+  position: relative;
+  height: 430rpx;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(0,200,255,0.10), transparent 42%),
+    linear-gradient(180deg, rgba(1,7,16,0.98), rgba(0,0,0,0.98));
+}
+
+.space-field {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 28%, rgba(255,255,255,0.22) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 34% 16%, rgba(0,200,255,0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 66% 28%, rgba(255,255,255,0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 84% 12%, rgba(0,200,255,0.14) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 72% 58%, rgba(255,255,255,0.13) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 26% 62%, rgba(255,255,255,0.12) 0 1rpx, transparent 2rpx);
+  opacity: 0.86;
+}
+
+.window-grid {
+  position: absolute;
+  inset: 24rpx 22rpx 18rpx;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.11) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.08) 1rpx, transparent 1rpx),
+    linear-gradient(120deg, transparent 0 48%, rgba(0,200,255,0.10) 49%, transparent 50%),
+    linear-gradient(60deg, transparent 0 48%, rgba(0,200,255,0.08) 49%, transparent 50%);
+  background-size: 54rpx 54rpx, 54rpx 54rpx, 210rpx 210rpx, 210rpx 210rpx;
+  mask-image: radial-gradient(ellipse at center, black 0 56%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 0 56%, transparent 78%);
+  pointer-events: none;
+}
+
+.window-readout {
+  position: absolute;
+  z-index: 4;
+  top: 26rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 20rpx;
+  line-height: 1;
+  color: rgba(0,200,255,0.62);
+  letter-spacing: 2rpx;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.window-readout--code {
+  left: 28rpx;
+}
+
+.window-readout--members {
+  right: 28rpx;
+}
+
+.external-ship-field-v2 {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.external-ship-empty {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  color: rgba(226,242,255,0.34);
+  font-size: 20rpx;
+  letter-spacing: 2rpx;
+  pointer-events: none;
+}
+
+.ship-craft {
+  position: absolute;
+  width: 112rpx;
+  min-height: 104rpx;
+  padding: 10rpx 8rpx 8rpx;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5rpx;
+  color: rgba(226,242,255,0.74);
+  transition: opacity .18s, transform .18s;
+}
+
+.ship-craft:active {
+  transform: translate(-50%, -50%) scale(0.94);
+}
+
+.ship-craft.is-offline {
+  opacity: 0.42;
+}
+
+.ship-craft-body {
+  position: relative;
+  width: 72rpx;
+  height: 54rpx;
+}
+
+.ship-craft--solo .ship-craft-body,
+.ship-craft--duo .ship-craft-body {
+  transform: scale(1.04);
+}
+
+.ship-craft--compact {
+  width: 102rpx;
+}
+
+.ship-craft-nose {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 9rpx solid transparent;
+  border-right: 9rpx solid transparent;
+  border-bottom: 16rpx solid rgba(0,200,255,0.54);
+}
+
+.ship-craft-wing {
+  position: absolute;
+  top: 28rpx;
+  width: 22rpx;
+  height: 7rpx;
+  background: linear-gradient(90deg, rgba(0,200,255,0.10), rgba(0,200,255,0.44));
+}
+
+.ship-craft-wing--left {
+  left: 2rpx;
+  transform: rotate(-18deg);
+}
+
+.ship-craft-wing--right {
+  right: 2rpx;
+  transform: rotate(18deg) scaleX(-1);
+}
+
+.ship-craft-core {
+  position: absolute;
+  left: 50%;
+  top: 17rpx;
+  width: 38rpx;
+  height: 38rpx;
+  transform: translateX(-50%);
+  border: 1rpx solid rgba(0,200,255,0.26);
+  border-radius: 50%;
+  background: rgba(2,12,22,0.92);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.ship-craft-avatar {
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 50%;
+}
+
+.ship-craft-char {
+  font-size: 17rpx;
+  font-weight: 700;
+  color: rgba(0,200,255,0.86);
+}
+
+.ship-craft-ring {
+  position: absolute;
+  left: 50%;
+  top: 12rpx;
+  width: 54rpx;
+  height: 44rpx;
+  transform: translateX(-50%);
+  border: 1rpx solid rgba(0,200,255,0.26);
+  border-radius: 50%;
+  box-shadow: 0 0 12rpx rgba(0,200,255,0.08);
+}
+
+.ship-craft-dot {
+  position: absolute;
+  right: 15rpx;
+  top: 16rpx;
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: rgba(226,242,255,0.28);
+  z-index: 3;
+}
+
+.ship-craft.is-online .ship-craft-dot {
+  background: rgba(48,209,88,0.9);
+  box-shadow: 0 0 7rpx rgba(48,209,88,0.45);
+}
+
+.ship-craft-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rpx;
+  width: 100%;
+}
+
+.ship-craft-name,
+.ship-craft-pulse {
+  max-width: 94rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.ship-craft-name {
+  font-size: 15rpx;
+  line-height: 18rpx;
+  color: rgba(226,242,255,0.58);
+}
+
+.ship-craft-pulse {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  line-height: 20rpx;
+  color: rgba(0,200,255,0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.ship-craft-pulse.is-positive {
+  color: rgba(48,209,88,0.86);
+}
+
+.ship-craft-pulse.is-negative {
+  color: rgba(255,159,10,0.9);
+}
+
+.ship-craft.is-new {
+  animation: shipCraftJoin .45s ease-out;
+}
+
+@keyframes shipCraftJoin {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.cockpit-deck-v2 {
+  position: relative;
+  height: 370rpx;
+  overflow: hidden;
+  border-top: 1rpx solid rgba(0,200,255,0.18);
+  background:
+    linear-gradient(180deg, rgba(0,200,255,0.02), rgba(2,12,22,0.92) 22%, rgba(0,4,10,0.98)),
+    linear-gradient(90deg, rgba(0,200,255,0.05), transparent 18%, transparent 82%, rgba(0,200,255,0.05));
+}
+
+.deck-lip-v2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent 8%, rgba(0,200,255,0.28), rgba(0,200,255,0.44), rgba(0,200,255,0.28), transparent 92%);
+  z-index: 3;
+}
+
+.self-gauge-compact {
+  position: relative;
+  z-index: 2;
+  width: 360rpx;
+  height: 150rpx;
+  margin: -42rpx auto 0;
+  overflow: visible;
+}
+
+.gauge-shell {
+  position: absolute;
+  left: 20rpx;
+  right: 20rpx;
+  bottom: 0;
+  height: 102rpx;
+  background: linear-gradient(180deg, rgba(2,12,22,0.48), rgba(2,12,22,0.96));
+  border-left: 1rpx solid rgba(0,200,255,0.12);
+  border-right: 1rpx solid rgba(0,200,255,0.12);
+}
+
+.self-gauge-compact .gauge-arc-outer,
+.self-gauge-compact .gauge-arc-inner {
+  position: absolute;
+  left: 0;
+  bottom: 17rpx;
+  box-sizing: border-box;
+  border-bottom: none;
+}
+
+.self-gauge-compact .gauge-arc-outer {
+  width: 360rpx;
+  height: 180rpx;
+  border: 2rpx solid rgba(0,200,255,0.28);
+  border-bottom: none;
+  border-top-left-radius: 360rpx;
+  border-top-right-radius: 360rpx;
+}
+
+.self-gauge-compact.is-positive .gauge-arc-outer {
+  border-color: rgba(48,209,88,0.34);
+}
+
+.self-gauge-compact.is-negative .gauge-arc-outer {
+  border-color: rgba(255,159,10,0.36);
+}
+
+.self-gauge-compact .gauge-arc-inner {
+  left: 36rpx;
+  bottom: 20rpx;
+  width: 288rpx;
+  height: 144rpx;
+  border: 1rpx solid rgba(0,200,255,0.13);
+  border-bottom: none;
+  border-top-left-radius: 288rpx;
+  border-top-right-radius: 288rpx;
+}
+
+.self-gauge-compact .gauge-ticks {
+  position: absolute;
+  left: 50%;
+  bottom: 19rpx;
+  width: 0;
+  height: 0;
+}
+
+.self-gauge-compact .gauge-tick {
+  position: absolute;
+  left: -1rpx;
+  bottom: 0;
+  width: 2rpx;
+  height: 14rpx;
+  background: rgba(0,200,255,0.30);
+  transform-origin: center 148rpx;
+}
+
+.self-gauge-compact .gauge-tick.t1 { transform: rotate(-58deg); }
+.self-gauge-compact .gauge-tick.t2 { transform: rotate(-29deg); }
+.self-gauge-compact .gauge-tick.t3 { transform: rotate(0deg); height: 18rpx; background: rgba(0,200,255,0.48); }
+.self-gauge-compact .gauge-tick.t4 { transform: rotate(29deg); }
+.self-gauge-compact .gauge-tick.t5 { transform: rotate(58deg); }
+
+.self-gauge-compact .gauge-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 62rpx;
+  transform: none;
+  z-index: 2;
+  font-size: 20rpx;
+  line-height: 24rpx;
+  text-align: center;
+  color: rgba(226,242,255,0.48);
+  letter-spacing: 2rpx;
+  font-family: inherit;
+}
+
+.self-gauge-compact .gauge-value {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 15rpx;
+  transform: none;
+  z-index: 2;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 60rpx;
+  line-height: 62rpx;
+  text-align: center;
+  color: rgba(226,242,255,0.94);
+  font-variant-numeric: tabular-nums;
+}
+
+.self-gauge-compact.is-positive .gauge-value {
+  color: rgba(48,209,88,0.9);
+}
+
+.self-gauge-compact.is-negative .gauge-value {
+  color: rgba(255,159,10,0.92);
+}
+
+.gauge-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10rpx;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6rpx;
+  font-size: 18rpx;
+  line-height: 20rpx;
+  color: rgba(226,242,255,0.42);
+}
+
+.gauge-status-dot {
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: rgba(48,209,88,0.9);
+  box-shadow: 0 0 7rpx rgba(48,209,88,0.38);
+}
+
+.deck-spine-v2 {
+  width: 1rpx;
+  height: 24rpx;
+  margin: -2rpx auto 0;
+  background: linear-gradient(180deg, rgba(0,200,255,0.32), rgba(0,200,255,0.08));
+}
+
+.deck-terminal {
+  position: relative;
+  z-index: 1;
+  height: 218rpx;
+  margin: 8rpx 24rpx 0;
+  padding: 16rpx 20rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-top: 1rpx solid rgba(0,200,255,0.18);
+  border-left: 1rpx solid rgba(0,200,255,0.08);
+  border-right: 1rpx solid rgba(0,200,255,0.08);
+  background:
+    linear-gradient(180deg, rgba(0,200,255,0.035), transparent 40%),
+    rgba(2,12,22,0.76);
+}
+
+.deck-meta-line,
+.deck-pulse-line,
+.deck-last-event,
+.deck-trajectory-line {
+  min-width: 0;
+}
+
+.deck-meta-line {
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.deck-room-code {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.meta-label {
+  font-size: 18rpx;
+  line-height: 22rpx;
+  color: rgba(226,242,255,0.38);
+  white-space: nowrap;
+}
+
+.meta-code {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 25rpx;
+  line-height: 30rpx;
+  font-weight: 700;
+  color: rgba(0,200,255,0.9);
+  letter-spacing: 2rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-copy,
+.trajectory-link,
+.vcp-actions button,
+.vcp-danger {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  line-height: 1;
+  background: transparent;
+}
+
+.meta-copy::after,
+.trajectory-link::after,
+.vcp-actions button::after,
+.vcp-danger::after {
+  border: none;
+}
+
+.meta-copy {
+  width: 58rpx;
+  height: 30rpx;
+  border: 1rpx solid rgba(0,200,255,0.24);
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.72);
+}
+
+.deck-meta-chips {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6rpx;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.deck-meta-chips text {
+  max-width: 112rpx;
+  padding: 3rpx 8rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.13);
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(0,200,255,0.58);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-pulse-line {
+  height: 36rpx;
+  margin-top: 7rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.deck-section-title {
+  font-size: 22rpx;
+  line-height: 28rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.78);
+  white-space: nowrap;
+}
+
+.deck-pulse-badges {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8rpx;
+  min-width: 0;
+}
+
+.deck-badge {
+  padding: 3rpx 8rpx;
+  border: 1rpx solid rgba(0,200,255,0.13);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 18rpx;
+  line-height: 20rpx;
+  color: rgba(0,200,255,0.64);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-last-event {
+  height: 42rpx;
+  margin-top: 6rpx;
+  padding: 0 10rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14rpx;
+  border: 1rpx solid rgba(255,255,255,0.045);
+  background: rgba(255,255,255,0.014);
+}
+
+.deck-last-event text:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 22rpx;
+  line-height: 26rpx;
+  color: rgba(226,242,255,0.62);
+}
+
+.deck-last-event text:last-child {
+  flex-shrink: 0;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 22rpx;
+  line-height: 26rpx;
+  color: rgba(0,200,255,0.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-trajectory-line {
+  height: 54rpx;
+  margin-top: 7rpx;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.deck-trajectory-line .trajectory-label {
+  flex-shrink: 0;
+  width: 72rpx;
+  font-size: 18rpx;
+  line-height: 22rpx;
+  color: rgba(226,242,255,0.34);
+  letter-spacing: 1rpx;
+}
+
+.trajectory-mini {
+  position: relative;
+  flex: 1;
+  height: 46rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.09);
+  background:
+    linear-gradient(90deg, rgba(0,200,255,0.06) 0 1rpx, transparent 1rpx) 0 0 / 25% 100%,
+    rgba(0,0,0,0.18);
+}
+
+.trajectory-base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 38%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.18), transparent);
+}
+
+.trajectory-dot {
+  position: absolute;
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: rgba(0,200,255,0.78);
+  box-shadow: 0 0 8rpx rgba(0,200,255,0.18);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.trajectory-mini.is-empty .trajectory-dot {
+  opacity: 0.54;
+}
+
+.trajectory-empty-text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(226,242,255,0.28);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.trajectory-link {
+  flex-shrink: 0;
+  width: 120rpx;
+  height: 40rpx;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  color: rgba(0,200,255,0.74);
+  font-size: 20rpx;
+}
+
+.terminal-chart-v2 {
+  margin-top: 10rpx;
+  height: 260rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.08);
+  background: rgba(0,0,0,0.24);
+}
+
+.voyage-control-panel-v2 {
+  min-height: 190rpx;
+  margin: 24rpx 0 56rpx;
+  padding: 20rpx 22rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.22);
+  background:
+    linear-gradient(180deg, rgba(0,200,255,0.045), transparent 48%),
+    rgba(3,10,18,0.76);
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 20rpx, 100% calc(100% - 20rpx), calc(100% - 20rpx) 100%, 20rpx 100%, 0 calc(100% - 20rpx), 0 20rpx);
+}
+
+.vcp-header {
+  height: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.vcp-header text:first-child {
+  font-size: 26rpx;
+  line-height: 32rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.9);
+}
+
+.vcp-header text:last-child {
+  padding: 5rpx 12rpx;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.66);
+}
+
+.vcp-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+}
+
+.vcp-actions button,
+.vcp-danger {
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  clip-path: polygon(12rpx 0, 100% 0, 100% calc(100% - 12rpx), calc(100% - 12rpx) 100%, 0 100%, 0 12rpx);
+  font-size: 24rpx;
+}
+
+.vcp-actions button:first-child {
+  border: 1rpx solid rgba(0,200,255,0.36);
+  color: rgba(226,242,255,0.92);
+  background: rgba(0,200,255,0.10);
+}
+
+.vcp-actions button:last-child {
+  border: 1rpx solid rgba(0,200,255,0.22);
+  color: rgba(0,200,255,0.82);
+  background: rgba(0,200,255,0.035);
+}
+
+.vcp-danger {
+  width: 100%;
+  height: 58rpx;
+  border: 1rpx solid rgba(255,69,58,0.36);
+  color: rgba(255,69,58,0.86);
+}
+
+.reduce-motion .ship-craft,
+.reduce-motion .ship-craft.is-new {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* === active：全局星空背景 + 动态覆盖层 === */
+.cockpit-main {
+  margin: 0;
+}
+
+.cockpit-starry-shell {
+  position: relative;
+  width: calc(100% - 56rpx);
+  height: 0;
+  padding-top: 136.2319%;
+  margin: 24rpx auto 56rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.12);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
+    #0A0A0A;
+  clip-path: polygon(24rpx 0, calc(100% - 24rpx) 0, 100% 24rpx, 100% calc(100% - 24rpx), calc(100% - 24rpx) 100%, 24rpx 100%, 0 calc(100% - 24rpx), 0 24rpx);
+}
+
+.cockpit-starry-bg,
+.cockpit-starry-nebula,
+.cockpit-starry-grid,
+.cockpit-starry-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cockpit-starry-bg {
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(226,242,255,0.35) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 36% 20%, rgba(0,200,255,0.28) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 64% 14%, rgba(226,242,255,0.22) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 78% 30%, rgba(0,200,255,0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 24% 44%, rgba(226,242,255,0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 52% 38%, rgba(226,242,255,0.16) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 84% 56%, rgba(0,200,255,0.16) 0 1rpx, transparent 2rpx),
+    linear-gradient(180deg, rgba(2,8,18,0.96), rgba(1,4,10,0.98) 58%, rgba(0,0,0,0.98));
+}
+
+.cockpit-starry-nebula {
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 62% 36% at 50% 16%, rgba(0,200,255,0.075), transparent 64%),
+    radial-gradient(ellipse 52% 46% at 22% 58%, rgba(10,132,255,0.055), transparent 68%),
+    radial-gradient(ellipse 50% 36% at 82% 70%, rgba(94,92,230,0.045), transparent 70%);
+}
+
+.cockpit-starry-grid {
+  z-index: 2;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(0,200,255,0.10) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0,200,255,0.08) 1rpx, transparent 1rpx);
+  background-size: 72rpx 72rpx;
+  mask-image: radial-gradient(ellipse at 50% 28%, black 0 46%, transparent 76%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 28%, black 0 46%, transparent 76%);
+}
+
+.cockpit-starry-vignette {
+  z-index: 3;
+  background:
+    linear-gradient(180deg, transparent 0 46%, rgba(0,0,0,0.30) 66%, rgba(0,0,0,0.58) 100%),
+    radial-gradient(ellipse at center, transparent 0 54%, rgba(0,0,0,0.56) 100%);
+}
+
+.overlay-readout {
+  position: absolute;
+  z-index: 4;
+  top: 7%;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 20rpx;
+  line-height: 1;
+  color: rgba(0,200,255,0.68);
+  letter-spacing: 2rpx;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.overlay-readout--code {
+  left: 8%;
+}
+
+.overlay-readout--members {
+  right: 8%;
+}
+
+.overlay-ships {
+  position: absolute;
+  z-index: 5;
+  top: 10%;
+  left: 0;
+  right: 0;
+  height: 34%;
+  pointer-events: none;
+}
+
+.overlay-ships .ship-craft {
+  width: 108rpx;
+  min-height: 98rpx;
+  padding: 6rpx 6rpx 4rpx;
+  pointer-events: auto;
+}
+
+.overlay-ships .ship-craft-body {
+  width: 70rpx;
+  height: 54rpx;
+}
+
+.overlay-ships .ship-craft--compact {
+  width: 100rpx;
+}
+
+.overlay-ships .ship-craft-name {
+  font-size: 14rpx;
+  line-height: 17rpx;
+}
+
+.overlay-ships .ship-craft-pulse {
+  font-size: 17rpx;
+  line-height: 19rpx;
+}
+
+.overlay-ships .external-ship-empty {
+  top: 38%;
+}
+
+.overlay-gauge {
+  position: absolute;
+  z-index: 4;
+  top: 51%;
+  left: 50%;
+  width: 340rpx;
+  height: 144rpx;
+  padding-top: 8rpx;
+  box-sizing: border-box;
+  transform: translateX(-50%);
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 28%, rgba(0,200,255,0.08), rgba(0,0,0,0.30) 72%, transparent);
+  pointer-events: none;
+}
+
+.overlay-gauge-title {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  line-height: 24rpx;
+  color: rgba(226,242,255,0.48);
+  letter-spacing: 2rpx;
+}
+
+.overlay-gauge-value {
+  display: block;
+  margin-top: 4rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 60rpx;
+  line-height: 64rpx;
+  color: rgba(226,242,255,0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+.overlay-gauge.is-positive .overlay-gauge-value {
+  color: rgba(48,209,88,0.9);
+}
+
+.overlay-gauge.is-negative .overlay-gauge-value {
+  color: rgba(255,159,10,0.92);
+}
+
+.overlay-gauge-status {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  font-size: 18rpx;
+  line-height: 22rpx;
+  color: rgba(226,242,255,0.46);
+}
+
+.overlay-gauge-dot {
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: rgba(48,209,88,0.9);
+  box-shadow: 0 0 7rpx rgba(48,209,88,0.38);
+}
+
+.overlay-terminal {
+  position: absolute;
+  z-index: 4;
+  top: 66.5%;
+  left: 8%;
+  right: 8%;
+  height: 15.5%;
+  padding: 10rpx 14rpx 8rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1rpx solid rgba(0,200,255,0.10);
+  background: rgba(2,10,18,0.54);
+}
+
+.terminal-meta,
+.terminal-pulse-head,
+.terminal-last-event,
+.terminal-trajectory {
+  min-width: 0;
+}
+
+.terminal-meta {
+  height: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+}
+
+.terminal-code {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.terminal-meta-label {
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(226,242,255,0.38);
+  white-space: nowrap;
+}
+
+.terminal-meta-code {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 24rpx;
+  line-height: 28rpx;
+  font-weight: 700;
+  color: rgba(0,200,255,0.9);
+  letter-spacing: 2rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-copy,
+.terminal-trajectory .trajectory-link,
+.control-actions button {
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  line-height: 1;
+  background: transparent;
+}
+
+.terminal-copy::after,
+.terminal-trajectory .trajectory-link::after,
+.control-actions button::after {
+  border: none;
+}
+
+.terminal-copy {
+  width: 56rpx;
+  height: 28rpx;
+  border: 1rpx solid rgba(0,200,255,0.24);
+  font-size: 17rpx;
+  color: rgba(0,200,255,0.72);
+}
+
+.terminal-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 6rpx;
+  overflow: hidden;
+}
+
+.terminal-chips text {
+  max-width: 106rpx;
+  padding: 2rpx 7rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.12);
+  font-size: 16rpx;
+  line-height: 19rpx;
+  color: rgba(0,200,255,0.60);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-pulse-head {
+  height: 28rpx;
+  margin-top: 5rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+}
+
+.terminal-section-title {
+  flex-shrink: 0;
+  font-size: 21rpx;
+  line-height: 25rpx;
+  font-weight: 600;
+  color: rgba(0,200,255,0.78);
+}
+
+.terminal-badges {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 7rpx;
+}
+
+.terminal-badges text {
+  padding: 2rpx 7rpx;
+  border: 1rpx solid rgba(0,200,255,0.12);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(0,200,255,0.64);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-last-event {
+  height: 31rpx;
+  margin-top: 5rpx;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10rpx;
+  background: rgba(0,0,0,0.14);
+}
+
+.terminal-last-event text:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20rpx;
+  line-height: 24rpx;
+  color: rgba(226,242,255,0.62);
+}
+
+.terminal-last-event text:last-child {
+  flex-shrink: 0;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 21rpx;
+  line-height: 24rpx;
+  color: rgba(0,200,255,0.82);
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-trajectory {
+  height: 42rpx;
+  margin-top: 5rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.terminal-trajectory .trajectory-label {
+  flex-shrink: 0;
+  width: 72rpx;
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(226,242,255,0.36);
+  letter-spacing: 1rpx;
+}
+
+.terminal-trajectory .trajectory-mini {
+  flex: 1;
+  height: 38rpx;
+  border-color: rgba(0,200,255,0.08);
+  background:
+    linear-gradient(90deg, rgba(0,200,255,0.05) 0 1rpx, transparent 1rpx) 0 0 / 25% 100%,
+    rgba(0,0,0,0.12);
+}
+
+.terminal-trajectory .trajectory-dot {
+  width: 6rpx;
+  height: 6rpx;
+}
+
+.terminal-trajectory .trajectory-empty-text {
+  font-size: 16rpx;
+  line-height: 18rpx;
+}
+
+.terminal-trajectory .trajectory-link {
+  flex-shrink: 0;
+  width: 112rpx;
+  height: 36rpx;
+  border: 1rpx solid rgba(0,200,255,0.18);
+  color: rgba(0,200,255,0.74);
+  font-size: 19rpx;
+}
+
+.overlay-control {
+  position: absolute;
+  z-index: 4;
+  top: 85.4%;
+  left: 9.4%;
+  right: 9.4%;
+  min-height: 116rpx;
+  padding: 10rpx 12rpx 12rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(0,200,255,0.08);
+  background: rgba(2,8,14,0.44);
+}
+
+.control-title-row {
+  height: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.control-title-row text:first-child {
+  font-size: 22rpx;
+  line-height: 26rpx;
+  font-weight: 600;
+  color: rgba(226,242,255,0.82);
+}
+
+.control-title-row text:last-child {
+  max-width: 180rpx;
+  padding: 3rpx 10rpx;
+  border: 1rpx solid rgba(0,200,255,0.16);
+  font-size: 16rpx;
+  line-height: 19rpx;
+  color: rgba(0,200,255,0.62);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.control-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 116rpx;
+  gap: 12rpx;
+}
+
+.control-actions button {
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  clip-path: polygon(9rpx 0, 100% 0, 100% calc(100% - 9rpx), calc(100% - 9rpx) 100%, 0 100%, 0 9rpx);
+  font-size: 20rpx;
+}
+
+.control-actions button:first-child {
+  border: 1rpx solid rgba(0,200,255,0.32);
+  color: rgba(226,242,255,0.9);
+  background: rgba(0,200,255,0.08);
+}
+
+.control-actions button:nth-child(2) {
+  border: 1rpx solid rgba(0,200,255,0.20);
+  color: rgba(0,200,255,0.82);
+  background: rgba(0,200,255,0.025);
+}
+
+.control-actions .control-danger {
+  border: 1rpx solid rgba(255,69,58,0.34);
+  color: rgba(255,69,58,0.84);
+  background: rgba(255,69,58,0.035);
 }

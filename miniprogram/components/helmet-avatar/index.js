@@ -31,6 +31,19 @@ Component({
   },
 
   data: {
-    defaultAvatar: '/images/default-avatar.png'
+    defaultAvatar: '/images/default-avatar.png',
+    imgSrc: ''
+  },
+
+  observers: {
+    'src': function(val) {
+      this.setData({ imgSrc: val || '' });
+    }
+  },
+
+  methods: {
+    onImgError() {
+      this.setData({ imgSrc: '' });
+    }
   }
 })

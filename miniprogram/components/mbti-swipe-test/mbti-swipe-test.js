@@ -2,7 +2,7 @@ const QUESTIONS = [
   { id: 'q01', dimension: 'E_I', text: '在复杂局面中，我更倾向于主动发起对话，而不是等待别人先开口。' },
   { id: 'q02', dimension: 'E_I', text: '长时间独处后，我会感到能量下降，需要和人交流来恢复。' },
   { id: 'q03', dimension: 'E_I', text: '在团队讨论中，我通常是发言最多的那个人。' },
-  { id: 'q04', dimension: 'E_I', text: '我更喜欢在热闹的环境中工作，而不是安静的独处空间。' },
+  { id: 'q04', dimension: 'E_I', text: '我更喜欢在热闹的环境中工作，而不是安静独处。' },
   { id: 'q05', dimension: 'E_I', text: '面对陌生社交场合，我会感到兴奋而非疲惫。' },
 
   { id: 'q06', dimension: 'S_N', text: '我更关注眼前的具体事实，而不是未来的可能性。' },
@@ -42,10 +42,12 @@ Component({
     progress: '01 / 20',
     progressPercent: 5,
     currentQuestion: null,
+    nextQuestion: null,
     totalQuestions: 20,
     answers: [],
-    animating: false,
-    slideDirection: '',
+    cardAnimating: false,
+    answerMotion: '',
+    promotingNext: false,
     signalIndex: '01',
     dimensionLabel: '',
     dataLoading: false
@@ -55,8 +57,10 @@ Component({
     attached() {
       this.setData({
         currentQuestion: QUESTIONS[0],
+        nextQuestion: QUESTIONS.length > 1 ? QUESTIONS[1] : null,
         dimensionLabel: DIM_LABELS[QUESTIONS[0].dimension] || ''
       });
+      this._animTimer = null;
       // 5s 加载提示兜底
       var self = this;
       this._loadingTimer = setTimeout(function () {
@@ -67,6 +71,7 @@ Component({
     },
     detached() {
       if (this._loadingTimer) clearTimeout(this._loadingTimer);
+      if (this._animTimer) clearTimeout(this._animTimer);
     }
   },
 
@@ -80,11 +85,11 @@ Component({
     },
 
     onNotSure() {
-      this.submitAnswer(0, '');
+      this.submitAnswer(0, 'skip');
     },
 
     submitAnswer(score, direction) {
-      if (this.data.animating) return;
+      if (this.data.cardAnimating) return;
 
       var question = QUESTIONS[this.data.currentIndex];
       var answer = {
@@ -98,41 +103,61 @@ Component({
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
 
       if (this.data.reduceMotion) {
+        // reduce-motion：直接切换，无动画
         if (nextIndex >= QUESTIONS.length) {
           this.complete(answers);
         } else {
+          var nextNext = nextIndex + 1 < QUESTIONS.length ? QUESTIONS[nextIndex + 1] : null;
           this.setData({
             currentIndex: nextIndex,
             progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
             progressPercent: percent,
             currentQuestion: QUESTIONS[nextIndex],
+            nextQuestion: nextNext,
             answers: answers,
             signalIndex: String(nextIndex + 1).padStart(2, '0'),
-            dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
+            dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || '',
+            answerMotion: '',
+            promotingNext: false
           });
         }
-      } else {
-        var self = this;
-        this.setData({ animating: true, slideDirection: direction });
-
-        setTimeout(function () {
-          if (nextIndex >= QUESTIONS.length) {
-            self.complete(answers);
-          } else {
-            self.setData({
-              currentIndex: nextIndex,
-              progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
-              progressPercent: percent,
-              currentQuestion: QUESTIONS[nextIndex],
-              answers: answers,
-              animating: false,
-              slideDirection: '',
-              signalIndex: String(nextIndex + 1).padStart(2, '0'),
-              dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
-            });
-          }
-        }, 300);
+        return;
       }
+
+      // 动画模式：当前卡滑出 → 下一卡提升
+      var self = this;
+      this.setData({ cardAnimating: true, answerMotion: direction });
+
+      // 260ms 后当前卡滑出完成，提升下一卡
+      this._animTimer = setTimeout(function () {
+        if (nextIndex >= QUESTIONS.length) {
+          self.setData({ cardAnimating: false, answerMotion: '' });
+          self.complete(answers);
+          return;
+        }
+
+        var nextNext = nextIndex + 1 < QUESTIONS.length ? QUESTIONS[nextIndex + 1] : null;
+        self.setData({
+          promotingNext: true,
+          currentIndex: nextIndex,
+          progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
+          progressPercent: percent,
+          answers: answers,
+          signalIndex: String(nextIndex + 1).padStart(2, '0'),
+          dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
+        });
+
+        // 160ms 后提升动画完成，重置状态，加载新 next
+        self._animTimer = setTimeout(function () {
+          self.setData({
+            currentQuestion: QUESTIONS[nextIndex],
+            nextQuestion: nextNext,
+            answerMotion: '',
+            promotingNext: false,
+            cardAnimating: false
+          });
+        }, 160);
+      }, 260);
     },
 
     complete(answers) {

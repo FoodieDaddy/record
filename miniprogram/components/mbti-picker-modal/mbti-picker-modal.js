@@ -36,7 +36,10 @@ function resolveTitle(mbtiType) {
 
 Component({
   properties: {
-    reduceMotion: { type: Boolean, value: false }
+    reduceMotion: { type: Boolean, value: false },
+    // 由父页面驱动：'idle' | 'syncing' | 'success' | 'error'
+    syncState: { type: String, value: 'idle' },
+    errorText: { type: String, value: '' }
   },
 
   data: {
@@ -46,16 +49,11 @@ Component({
     mbtiTraits: [],
     originalType: '',
     dirty: false,
-    syncing: false,
-    syncStep: 0,
-    syncSuccess: false,
-    syncError: '',
     showExitConfirm: false
   },
 
   lifetimes: {
     attached: function () {
-      // 从父页面获取当前 MBTI 类型作为初始值
       var pages = getCurrentPages();
       var parent = pages[pages.length - 1];
       var originalType = (parent && parent.data.mbti && parent.data.mbti.mbtiType) || 'INTJ';
@@ -71,6 +69,9 @@ Component({
         mbtiTraits: traits,
         originalType: originalType
       });
+    },
+    detached: function () {
+      // 组件销毁时无需清理内部定时器（已移除假动画）
     }
   },
 
@@ -101,34 +102,13 @@ Component({
     },
 
     onConfirm: function () {
-      if (this.data.syncing || this.data.syncSuccess) return;
-      this.setData({ syncing: true, syncStep: 0, syncSuccess: false, syncError: '' });
-
-      var self = this;
-      setTimeout(function () { self.setData({ syncStep: 1 }); }, 400);
-      setTimeout(function () { self.setData({ syncStep: 2 }); }, 1000);
-      setTimeout(function () {
-        self.setData({ syncStep: 3 });
-        setTimeout(function () {
-          self.setData({ syncing: false, syncStep: 0, syncSuccess: true, dirty: false });
-          self.triggerEvent('confirm', { mbtiCode: MBTI_CODE_MAP[self.data.mbtiType] });
-          setTimeout(function () {
-            self.setData({ syncSuccess: false });
-          }, 1200);
-        }, 600);
-      }, 1600);
-    },
-
-    showError: function (msg) {
-      this.setData({ syncing: false, syncStep: 0, syncError: msg || '同步失败' });
-      var self = this;
-      setTimeout(function () {
-        self.setData({ syncError: '' });
-      }, 2500);
+      // 不再内部假装成功，直接通知父页面
+      if (this.data.syncState === 'syncing' || this.data.syncState === 'success') return;
+      this.triggerEvent('confirm', { mbtiCode: MBTI_CODE_MAP[this.data.mbtiType] });
     },
 
     onClose: function () {
-      if (this.data.syncing) return;
+      if (this.data.syncState === 'syncing') return;
       if (this.data.dirty) {
         this.setData({ showExitConfirm: true });
       } else {

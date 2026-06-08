@@ -132,20 +132,10 @@ public class RoomServiceImpl implements RoomService {
             roomId = room.getId();
         }
 
-        // 2. 从 Redis 缓存检查是否已在房间
+        // 2. 检查是否为活跃成员（先查 active Hash，再兼容旧 meta）
         Long rid = roomId;
         String metaKey = "sr:room:" + rid + ":meta";
-        Boolean isMember = redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId);
-        if (Boolean.TRUE.equals(isMember)) {
-            throw new BizException(4009, "你已接入当前空间，无需重复接入");
-        }
-
-        RoomMember existingMember = roomMemberMapper.selectOne(
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, rid)
-                        .eq(RoomMember::getUserId, userId)
-                        .isNull(RoomMember::getQuitTime));
-        if (existingMember != null) {
+        if (isActiveMemberWithFallback(rid, userId)) {
             throw new BizException(4009, "你已接入当前空间，无需重复接入");
         }
 
@@ -156,8 +146,12 @@ public class RoomServiceImpl implements RoomService {
         }
 
         // 4. 检查房间人数上限
-        Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
-        long memberCount = allFields.keySet().stream().filter(k -> ((String) k).startsWith("m:")).count();
+        Long memberCount = redisTemplate.opsForHash().size(activeMembersKey(rid));
+        if (memberCount == null || memberCount == 0) {
+            // 兼容降级：active Hash 为空时统计旧 meta 中 m: 前缀
+            Map<Object, Object> allMetaFields = redisTemplate.opsForHash().entries(metaKey);
+            memberCount = allMetaFields.keySet().stream().filter(k -> ((String) k).startsWith("m:")).count();
+        }
         if (memberCount >= 16) throw new BizException(4003, "空间舰员已满（上限16人）");
 
         // 5. 加载用户信息并检查重名
@@ -176,24 +170,40 @@ public class RoomServiceImpl implements RoomService {
             avatarUrl = user.getAvatarUrl();
         }
 
-        // 重名检查：遍历已有成员，碰撞则拦截
-        for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
-            String key = (String) entry.getKey();
-            if (!key.startsWith("m:")) continue;
-            JSONObject memberObj = JSONUtil.parseObj((String) entry.getValue());
+        // 重名检查：遍历活跃成员，碰撞则拦截
+        Map<Long, JSONObject> activeMembers = readActiveMembers(rid);
+        for (JSONObject memberObj : activeMembers.values()) {
             if (nickname.equals(memberObj.getStr("nickname"))) {
                 throw new BizException(4009, "身份重叠：场域内存在同名实体，请前往[我的]修改昵称");
             }
         }
 
-        // 6. 加入房间
-        RoomMember member = new RoomMember();
-        member.setId(idGenerator.nextId());
-        member.setRoomId(rid);
-        member.setUserId(userId);
-        roomMemberMapper.insert(member);
+        // 6. 加入房间（支持重新接入：已有记录则清空 quitTime 和 finalScore）
+        RoomMember existingRecord = roomMemberMapper.selectOne(
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getRoomId, rid)
+                        .eq(RoomMember::getUserId, userId));
+        RoomMember member;
+        if (existingRecord != null) {
+            // 重新接入：清空 quitTime 和 finalScore
+            existingRecord.setQuitTime(null);
+            existingRecord.setFinalScore(null);
+            roomMemberMapper.updateById(existingRecord);
+            member = existingRecord;
+        } else {
+            // 新成员
+            member = new RoomMember();
+            member.setId(idGenerator.nextId());
+            member.setRoomId(rid);
+            member.setUserId(userId);
+            roomMemberMapper.insert(member);
+        }
 
         // 7. 更新 Redis 房间成员缓存
+        // 写入 active + archive 成员 Hash
+        upsertActiveMember(rid, userId, nickname, avatarUrl);
+        upsertArchiveMember(rid, userId, nickname, avatarUrl);
+        // 兼容旧 meta
         String memberJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", nickname,
@@ -203,7 +213,9 @@ public class RoomServiceImpl implements RoomService {
 
         // 初始化新成员排行榜 0 分（确保 0 分成员也能出现在排行榜）
         String scoresKey = "sr:room:" + rid + ":scores";
-        redisTemplate.opsForZSet().add(scoresKey, String.valueOf(userId), 0);
+        if (redisTemplate.opsForZSet().score(scoresKey, String.valueOf(userId)) == null) {
+            redisTemplate.opsForZSet().add(scoresKey, String.valueOf(userId), 0);
+        }
 
         // 8. 异步 WebSocket 广播 MEMBER_JOIN（通知房间内已有成员）
         asyncPushMemberJoin(rid, userId, nickname, avatarUrl);
@@ -219,26 +231,30 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException("空间不存在");
 
-        // 从 Redis 缓存查询房间成员
-        String metaKey = "sr:room:" + roomId + ":meta";
-        Map<Object, Object> allFields = redisTemplate.opsForHash().entries(metaKey);
-
         List<RoomMember> members;
-        if (allFields != null && !allFields.isEmpty()) {
+        if (room.getStatus() == 0) {
+            // 进行中：从 active 成员组读取
+            Map<Long, JSONObject> activeMap = readActiveMembers(roomId);
             members = new ArrayList<>();
-            for (Map.Entry<Object, Object> entry : allFields.entrySet()) {
-                String key = (String) entry.getKey();
-                if (!key.startsWith("m:")) continue;
-                JSONObject memberObj = JSONUtil.parseObj((String) entry.getValue());
-                RoomMember member = new RoomMember();
-                member.setRoomId(roomId);
-                member.setUserId(memberObj.getLong("userId"));
-                members.add(member);
+            for (JSONObject obj : activeMap.values()) {
+                RoomMember m = new RoomMember();
+                m.setRoomId(roomId);
+                m.setUserId(obj.getLong("userId"));
+                members.add(m);
+            }
+            if (members.isEmpty()) {
+                // 兜底：查 DB 中未退出的成员
+                members = roomMemberMapper.selectList(
+                        new LambdaQueryWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, roomId)
+                                .isNull(RoomMember::getQuitTime));
             }
         } else {
-            // 降级查数据库
+            // 已封存：从 DB 读取已写入 final_score/quit_time 的成员
             members = roomMemberMapper.selectList(
-                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+                    new LambdaQueryWrapper<RoomMember>()
+                            .eq(RoomMember::getRoomId, roomId)
+                            .isNotNull(RoomMember::getQuitTime));
         }
 
         // 构建二维码 URL（OSS 中的固定路径）
@@ -248,25 +264,28 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public List<RoomResp> getMyRooms(Long userId) {
-        // 从 Redis 获取用户所在房间
+        // 只从 Redis 获取用户当前活跃空间
         Set<String> roomIds = redisTemplate.opsForSet().members("sr:user:rooms:" + userId);
         if (roomIds == null || roomIds.isEmpty()) {
-            // 降级查数据库
-            List<RoomMember> memberships = roomMemberMapper.selectList(
-                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getUserId, userId));
-            roomIds = memberships.stream()
-                    .map(m -> String.valueOf(m.getRoomId()))
-                    .collect(Collectors.toSet());
+            return Collections.emptyList();
         }
 
         List<RoomResp> result = new ArrayList<>();
         for (String rid : roomIds) {
             try {
-                RoomResp resp = getRoomDetail(Long.parseLong(rid));
-                // 只返回进行中的房间，已结束的通过历史房间查看
-                if (resp.getStatus() != null && resp.getStatus() == 0) {
-                    result.add(resp);
+                Room room = roomMapper.selectById(Long.parseLong(rid));
+                if (room == null || room.getStatus() != 0) {
+                    // 已封存或不存在的空间，清理残留映射
+                    redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, rid);
+                    continue;
                 }
+                // 验证用户确实在 active 成员中
+                if (!isActiveMemberWithFallback(room.getId(), userId)) {
+                    redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, rid);
+                    continue;
+                }
+                RoomResp resp = getRoomDetail(room.getId());
+                result.add(resp);
             } catch (Exception e) {
                 log.warn("获取房间详情失败: roomId={}", rid, e);
             }
@@ -293,13 +312,15 @@ public class RoomServiceImpl implements RoomService {
             return;
         }
 
-        // 普通成员退出
-        roomMemberMapper.delete(
-                new LambdaQueryWrapper<RoomMember>()
+        // 普通成员退出：不删除 room_member 记录，quitTime 作为离席标记，封存时会统一覆盖为封存时间
+        roomMemberMapper.update(null,
+                new LambdaUpdateWrapper<RoomMember>()
                         .eq(RoomMember::getRoomId, roomId)
-                        .eq(RoomMember::getUserId, userId));
-
-        // 清理 Redis
+                        .eq(RoomMember::getUserId, userId)
+                        .set(RoomMember::getQuitTime, java.time.LocalDateTime.now()));
+        // 只从 active 成员组移除，保留 archive 快照和 scores
+        removeActiveMember(roomId, userId);
+        // 兼容：同时从旧 meta 中移除
         redisTemplate.opsForHash().delete("sr:room:" + roomId + ":meta", "m:" + userId);
         redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
 
@@ -345,7 +366,9 @@ public class RoomServiceImpl implements RoomService {
                 prefix + "round",
                 prefix + "round:details",
                 prefix + "round:members",
-                prefix + "round:confirms"));
+                prefix + "round:confirms",
+                prefix + "members:active",
+                prefix + "members:archive"));
         if (batchTsList != null) {
             for (String ts : batchTsList) {
                 keysToDelete.add(prefix + "batch:" + ts);
@@ -500,6 +523,149 @@ public class RoomServiceImpl implements RoomService {
         scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
     }
 
+    // ===== 成员 Hash 辅助方法 =====
+
+    private String activeMembersKey(Long roomId) {
+        return "sr:room:" + roomId + ":members:active";
+    }
+
+    private String archiveMembersKey(Long roomId) {
+        return "sr:room:" + roomId + ":members:archive";
+    }
+
+    /**
+     * 从 members:active Hash 读取成员列表，如果为空则兼容降级读旧 meta 中 m: 前缀
+     */
+    private Map<Long, JSONObject> readActiveMembers(Long roomId) {
+        String activeKey = activeMembersKey(roomId);
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(activeKey);
+        if (entries != null && !entries.isEmpty()) {
+            Map<Long, JSONObject> result = new HashMap<>();
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                Long userId = Long.parseLong((String) entry.getKey());
+                JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
+                result.put(userId, obj);
+            }
+            return result;
+        }
+        // 兼容降级：读旧 meta 中 m: 前缀字段
+        String metaKey = "sr:room:" + roomId + ":meta";
+        Map<Object, Object> metaEntries = redisTemplate.opsForHash().entries(metaKey);
+        Map<Long, JSONObject> result = new HashMap<>();
+        if (metaEntries != null) {
+            for (Map.Entry<Object, Object> entry : metaEntries.entrySet()) {
+                String key = (String) entry.getKey();
+                if (key.startsWith("m:")) {
+                    Long userId = Long.parseLong(key.substring(2));
+                    JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
+                    result.put(userId, obj);
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 从 members:archive Hash 读取归档成员快照
+     */
+    private Map<Long, JSONObject> readArchiveMembers(Long roomId) {
+        String archiveKey = archiveMembersKey(roomId);
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(archiveKey);
+        Map<Long, JSONObject> result = new HashMap<>();
+        if (entries != null) {
+            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                Long userId = Long.parseLong((String) entry.getKey());
+                JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
+                result.put(userId, obj);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 写入 active Hash，设置 TTL
+     */
+    private void upsertActiveMember(Long roomId, Long userId, String nickname, String avatarUrl) {
+        String key = activeMembersKey(roomId);
+        JSONObject obj = JSONUtil.createObj()
+                .set("userId", userId)
+                .set("nickname", nickname)
+                .set("avatarUrl", avatarUrl != null ? avatarUrl : "");
+        redisTemplate.opsForHash().put(key, String.valueOf(userId), obj.toString());
+        redisTemplate.expire(key, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+    }
+
+    /**
+     * 写入 archive Hash，存在则更新昵称头像和 lastSeenAt，不存在则新增（含 firstJoinedAt），设置 TTL
+     */
+    private void upsertArchiveMember(Long roomId, Long userId, String nickname, String avatarUrl) {
+        String key = archiveMembersKey(roomId);
+        long now = System.currentTimeMillis();
+        Object existing = redisTemplate.opsForHash().get(key, String.valueOf(userId));
+        JSONObject obj;
+        if (existing != null) {
+            obj = JSONUtil.parseObj((String) existing);
+            obj.set("nickname", nickname);
+            obj.set("avatarUrl", avatarUrl != null ? avatarUrl : "");
+            obj.set("lastSeenAt", now);
+        } else {
+            obj = JSONUtil.createObj()
+                    .set("userId", userId)
+                    .set("nickname", nickname)
+                    .set("avatarUrl", avatarUrl != null ? avatarUrl : "")
+                    .set("firstJoinedAt", now)
+                    .set("lastSeenAt", now);
+        }
+        redisTemplate.opsForHash().put(key, String.valueOf(userId), obj.toString());
+        redisTemplate.expire(key, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+    }
+
+    /**
+     * 从 active Hash 移除
+     */
+    private void removeActiveMember(Long roomId, Long userId) {
+        redisTemplate.opsForHash().delete(activeMembersKey(roomId), String.valueOf(userId));
+    }
+
+    /**
+     * 判断是否在 active Hash 中
+     */
+    private boolean isActiveMember(Long roomId, Long userId) {
+        return Boolean.TRUE.equals(
+                redisTemplate.opsForHash().hasKey(activeMembersKey(roomId), String.valueOf(userId)));
+    }
+
+    /**
+     * 先查 active，再兼容旧 meta
+     */
+    private boolean isActiveMemberWithFallback(Long roomId, Long userId) {
+        if (isActiveMember(roomId, userId)) {
+            return true;
+        }
+        // 兼容旧 meta
+        String metaKey = "sr:room:" + roomId + ":meta";
+        return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId));
+    }
+
+    /**
+     * 三源合并：archive + scores 中的 playerTotalMap + events 中的 eventUserIds
+     */
+    private Set<Long> collectArchiveUserIdsForSettle(Long roomId, Map<Long, Integer> playerTotalMap, Set<Long> eventUserIds) {
+        Set<Long> userIds = new HashSet<>();
+        // 1. 归档成员
+        Map<Long, JSONObject> archiveMembers = readArchiveMembers(roomId);
+        userIds.addAll(archiveMembers.keySet());
+        // 2. 分数记录中的用户
+        if (playerTotalMap != null) {
+            userIds.addAll(playerTotalMap.keySet());
+        }
+        // 3. 事件记录中的用户
+        if (eventUserIds != null) {
+            userIds.addAll(eventUserIds);
+        }
+        return userIds;
+    }
+
     // ===== 私有方法 =====
 
     private void asyncPushMemberJoin(Long roomId, Long userId, String nickname, String avatarUrl) {
@@ -561,9 +727,13 @@ public class RoomServiceImpl implements RoomService {
         meta.put("m:" + ownerId, JSONUtil.toJsonStr(Map.of(
                 "userId", ownerId,
                 "nickname", owner.getNickname(),
-                "avatarUrl", owner.getAvatarUrl())));
+                "avatarUrl", owner.getAvatarUrl() != null ? owner.getAvatarUrl() : "")));
         redisTemplate.opsForHash().putAll(metaKey, meta);
         redisTemplate.expire(metaKey, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+
+        // 写入 members:active 和 members:archive
+        upsertActiveMember(room.getId(), ownerId, owner.getNickname(), owner.getAvatarUrl());
+        upsertArchiveMember(room.getId(), ownerId, owner.getNickname(), owner.getAvatarUrl());
 
         // 初始化排行榜 ZSet，房主初始 0 分（确保 0 分成员也能出现在排行榜）
         String scoresKey = "sr:room:" + roomId + ":scores";

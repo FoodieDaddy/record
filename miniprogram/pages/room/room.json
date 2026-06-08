@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "空间",
+  "navigationBarTitleText": "驾驶舱",
   "usingComponents": {
     "matrix-overview": "/components/matrix-overview/matrix-overview",
     "score-chart": "/components/score-chart/score-chart",
@@ -15,6 +15,7 @@
     "helmet-avatar": "/components/helmet-avatar/index",
     "flow-log-panel": "/components/flow-log-panel/flow-log-panel",
     "space-scan-panel": "/components/space-scan-panel/space-scan-panel",
-    "terminal-popup": "/components/terminal-popup/terminal-popup"
+    "terminal-popup": "/components/terminal-popup/terminal-popup",
+    "score-timeline": "/components/score-timeline/score-timeline"
   }
 }

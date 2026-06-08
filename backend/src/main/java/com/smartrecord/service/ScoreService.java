@@ -27,6 +27,9 @@ public interface ScoreService {
     /** 房间计分流水（分页） */
     PageResult<TransferScoreResp> getRoomTransfers(Long roomId, int page, int size);
 
+    /** 常用转出金额推荐 */
+    TransferAmountSuggestionResp getTransferAmountSuggestions(Long userId, Long roomId);
+
     /** 多场趋势数据 */
     TrendResp getTrend(Long userId, int limit);
 

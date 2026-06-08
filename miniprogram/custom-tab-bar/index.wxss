@@ -1,0 +1,443 @@
+/* 舰载系统 Dock */
+.terminal-dock {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  background: linear-gradient(180deg, rgba(4,12,24,0.98), rgba(0,0,0,0.98));
+  border-top: 1rpx solid rgba(10,132,255,0.18);
+  box-shadow: inset 0 1rpx 0 rgba(0,200,255,0.10);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 顶部弱蓝线 */
+.dock-top-line {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.22), transparent);
+}
+
+/* 中央能量轨 */
+.dock-energy-rail {
+  position: absolute;
+  top: 1rpx;
+  left: 17.5%;
+  right: 17.5%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.15), transparent);
+  pointer-events: none;
+}
+
+.dock-tabs {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 140rpx;
+  padding: 0 8rpx;
+}
+
+/* 单个舱位插槽 */
+.dock-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 12rpx;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dock-slot {
+  position: relative;
+  width: 72rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6rpx;
+}
+
+/* 选中弱蓝底板 */
+.slot-active-plate {
+  position: absolute;
+  inset: -6rpx -10rpx;
+  border-radius: 8rpx;
+  background: transparent;
+  border: 1rpx solid transparent;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s, border-color 0.2s;
+}
+
+.dock-tab.is-active .slot-active-plate {
+  background: rgba(10,132,255,0.08);
+  border-color: rgba(10,132,255,0.18);
+  opacity: 1;
+}
+
+/* 连接状态点 */
+.dock-connect-dot {
+  position: absolute;
+  bottom: -2rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: #00C8FF;
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.5);
+}
+
+/* 主文案 */
+.dock-label {
+  font-size: 21rpx;
+  line-height: 1;
+  color: rgba(255,255,255,0.55);
+  transition: color 0.2s;
+}
+
+.dock-tab.is-active .dock-label {
+  color: #0A84FF;
+}
+
+
+/* 底部能量条 */
+.dock-active-bar {
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent, #00C8FF, transparent);
+  border-radius: 2rpx;
+}
+
+/* ===== 通用图标容器 ===== */
+.dock-icon {
+  position: relative;
+  width: 48rpx;
+  height: 44rpx;
+}
+
+/* ===== 驾驶舱图标：HUD 框 + 舰点 + 连接线 ===== */
+.cockpit-frame {
+  position: absolute;
+  inset: 0;
+  border: 2.5rpx solid rgba(255,255,255,0.44);
+  border-radius: 4rpx;
+  /* 切角效果 */
+  clip-path: polygon(12% 0%, 88% 0%, 100% 12%, 100% 88%, 88% 100%, 12% 100%, 0% 88%, 0% 12%);
+  transition: border-color 0.2s;
+}
+
+.dock-tab.is-active .cockpit-frame {
+  border-color: rgba(0,200,255,0.88);
+}
+
+.fleet-node {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.44);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .fleet-node {
+  background: #00C8FF;
+  box-shadow: 0 0 4rpx rgba(0,200,255,0.4);
+}
+
+.fleet-node.n1 { top: 8rpx; left: 10rpx; }
+.fleet-node.n2 { top: 8rpx; right: 10rpx; }
+.fleet-node.n3 { bottom: 8rpx; left: 50%; transform: translateX(-50%); }
+
+.fleet-link {
+  position: absolute;
+  height: 1.5rpx;
+  background: rgba(255,255,255,0.3);
+  transform-origin: left center;
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .fleet-link {
+  background: rgba(0,200,255,0.6);
+}
+
+.fleet-link.l1 {
+  top: 12rpx;
+  left: 14rpx;
+  width: 20rpx;
+}
+
+.fleet-link.l2 {
+  top: 12rpx;
+  left: 24rpx;
+  width: 20rpx;
+  transform: rotate(60deg);
+}
+
+/* ===== 导航舱图标：轨道环 + 核心 + 航线 ===== */
+.nav-orbit {
+  position: absolute;
+  top: 2rpx;
+  left: 2rpx;
+  right: 2rpx;
+  bottom: 2rpx;
+  border: 2.5rpx solid rgba(255,255,255,0.44);
+  border-radius: 50%;
+  /* 开口环：隐藏右下 90 度 */
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  transform: rotate(-45deg);
+  transition: border-color 0.2s;
+}
+
+.dock-tab.is-active .nav-orbit {
+  border-color: rgba(0,200,255,0.88);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.nav-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8rpx;
+  height: 8rpx;
+  margin: -4rpx 0 0 -4rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.44);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .nav-core {
+  background: #00C8FF;
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.5);
+}
+
+.route-line {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 14rpx;
+  height: 2.5rpx;
+  background: rgba(255,255,255,0.3);
+  transform: rotate(45deg);
+  transform-origin: right center;
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .route-line {
+  background: rgba(0,200,255,0.6);
+}
+
+.nav-node {
+  position: absolute;
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .nav-node {
+  background: #00C8FF;
+}
+
+.nav-node.s1 { top: 4rpx; right: 4rpx; }
+.nav-node.s2 { bottom: 10rpx; right: 8rpx; }
+
+/* ===== 全息舱图标：投影框 + 扫描线 ===== */
+.holo-frame {
+  position: absolute;
+  top: 2rpx;
+  left: 6rpx;
+  right: 6rpx;
+  bottom: 2rpx;
+  border: 2.5rpx solid rgba(255,255,255,0.44);
+  /* 菱形 */
+  transform: rotate(45deg);
+  border-radius: 2rpx;
+  transition: border-color 0.2s;
+}
+
+.dock-tab.is-active .holo-frame {
+  border-color: rgba(0,200,255,0.88);
+}
+
+.holo-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10rpx;
+  height: 10rpx;
+  margin: -5rpx 0 0 -5rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .holo-core {
+  background: #00C8FF;
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.5);
+}
+
+.scan-line {
+  position: absolute;
+  top: 50%;
+  left: 2rpx;
+  right: 2rpx;
+  height: 2rpx;
+  background: rgba(255,255,255,0.3);
+  margin-top: -1rpx;
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .scan-line {
+  background: rgba(0,200,255,0.7);
+}
+
+.holo-tick {
+  position: absolute;
+  width: 8rpx;
+  height: 2rpx;
+  background: rgba(255,255,255,0.3);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .holo-tick {
+  background: rgba(0,200,255,0.6);
+}
+
+.holo-tick.t1 { left: 0; top: 50%; margin-top: -1rpx; }
+.holo-tick.t2 { right: 0; top: 50%; margin-top: -1rpx; }
+
+/* ===== 识别舱图标：扫描框 + 四角 + 识别点 + 信息线 ===== */
+.scan-frame {
+  position: absolute;
+  top: 2rpx;
+  left: 6rpx;
+  right: 6rpx;
+  bottom: 2rpx;
+  border: 2rpx solid rgba(255,255,255,0.15);
+  border-radius: 4rpx;
+  transition: border-color 0.2s;
+}
+
+.dock-tab.is-active .scan-frame {
+  border-color: rgba(0,200,255,0.18);
+}
+
+.scan-corner {
+  position: absolute;
+  width: 10rpx;
+  height: 10rpx;
+  transition: border-color 0.2s;
+}
+
+.scan-corner.sc-tl {
+  top: 2rpx; left: 6rpx;
+  border-top: 2.5rpx solid rgba(255,255,255,0.44);
+  border-left: 2.5rpx solid rgba(255,255,255,0.44);
+}
+
+.scan-corner.sc-tr {
+  top: 2rpx; right: 6rpx;
+  border-top: 2.5rpx solid rgba(255,255,255,0.44);
+  border-right: 2.5rpx solid rgba(255,255,255,0.44);
+}
+
+.scan-corner.sc-bl {
+  bottom: 2rpx; left: 6rpx;
+  border-bottom: 2.5rpx solid rgba(255,255,255,0.44);
+  border-left: 2.5rpx solid rgba(255,255,255,0.44);
+}
+
+.scan-corner.sc-br {
+  bottom: 2rpx; right: 6rpx;
+  border-bottom: 2.5rpx solid rgba(255,255,255,0.44);
+  border-right: 2.5rpx solid rgba(255,255,255,0.44);
+}
+
+.dock-tab.is-active .scan-corner {
+  border-color: rgba(0,200,255,0.88);
+}
+
+.id-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10rpx;
+  height: 10rpx;
+  margin: -5rpx 0 0 -5rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .id-core {
+  background: #00C8FF;
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.5);
+}
+
+.id-line {
+  position: absolute;
+  height: 1.5rpx;
+  background: rgba(255,255,255,0.3);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .id-line {
+  background: rgba(0,200,255,0.5);
+}
+
+.id-line.line1 { right: 4rpx; top: 14rpx; width: 10rpx; }
+.id-line.line2 { right: 6rpx; top: 21rpx; width: 7rpx; }
+
+.id-pin {
+  position: absolute;
+  width: 4rpx;
+  height: 4rpx;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transition: background 0.2s;
+}
+
+.dock-tab.is-active .id-pin {
+  background: #00C8FF;
+}
+
+.id-pin.p1 { left: 6rpx; top: 8rpx; }
+.id-pin.p2 { left: 6rpx; bottom: 8rpx; }
+
+/* reduce-motion 兜底 */
+.reduce-motion .dock-tab,
+.reduce-motion .dock-icon,
+.reduce-motion .slot-active-plate,
+.reduce-motion .dock-label,
+.reduce-motion .dock-active-bar,
+.reduce-motion .dock-connect-dot,
+.reduce-motion .cockpit-frame,
+.reduce-motion .fleet-node,
+.reduce-motion .fleet-link,
+.reduce-motion .nav-orbit,
+.reduce-motion .nav-core,
+.reduce-motion .route-line,
+.reduce-motion .nav-node,
+.reduce-motion .holo-frame,
+.reduce-motion .holo-core,
+.reduce-motion .scan-line,
+.reduce-motion .holo-tick,
+.reduce-motion .scan-frame,
+.reduce-motion .scan-corner,
+.reduce-motion .id-core,
+.reduce-motion .id-line,
+.reduce-motion .id-pin {
+  animation: none !important;
+  transition: none !important;
+}

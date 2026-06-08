@@ -56,4 +56,7 @@ public class FortuneResp {
 
     @Schema(description = "下次可刷新时间 (HH:mm:ss)，null 表示今日已生成", example = "20:30:43")
     private String nextRefreshAt;
+
+    @Schema(description = "下次可刷新时间戳（毫秒），前端优先使用此字段计算倒计时", example = "1717852243000")
+    private Long nextRefreshAtEpochMs;
 }

@@ -1,6 +1,6 @@
 /**
  * 趋势折线图组件 — Canvas 2D
- * 单系列累计积分 · 发光特效 · 渐变填充 · Y 轴网格
+ * 单系列累计脉冲 · 发光特效 · 渐变填充 · Y 轴网格
  */
 
 Component({
@@ -120,7 +120,7 @@ Component({
       const chartH = h - pad.top - pad.bottom;
       const n = points.length;
 
-      // 计算累计积分
+      // 计算累计脉冲
       const cumulative = [];
       let sum = 0;
       points.forEach(p => { sum += p.netScore; cumulative.push(sum); });

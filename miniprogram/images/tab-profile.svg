@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#7A8494" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- ID 芯片外框 -->
+  <rect x="10" y="8" width="28" height="32" rx="4"/>
+  <!-- 芯片触点（左侧） -->
+  <line x1="10" y1="16" x2="6" y2="16" stroke-width="1.5"/>
+  <line x1="10" y1="22" x2="6" y2="22" stroke-width="1.5"/>
+  <line x1="10" y1="28" x2="6" y2="28" stroke-width="1.5"/>
+  <!-- 芯片触点（右侧） -->
+  <line x1="38" y1="16" x2="42" y2="16" stroke-width="1.5"/>
+  <line x1="38" y1="22" x2="42" y2="22" stroke-width="1.5"/>
+  <line x1="38" y1="28" x2="42" y2="28" stroke-width="1.5"/>
+  <!-- 头盔面罩 -->
+  <path d="M16 16 C16 12 20 10 24 10 C28 10 32 12 32 16 L32 24 C32 28 28 30 24 30 C20 30 16 28 16 24 Z"/>
+  <!-- 面罩横线 -->
+  <line x1="18" y1="18" x2="30" y2="18" stroke-width="1.5"/>
+  <line x1="18" y1="22" x2="30" y2="22" stroke-width="1.5"/>
+  <!-- 底部接口 -->
+  <line x1="20" y1="36" x2="28" y2="36" stroke-width="1.5"/>
+  <line x1="22" y1="39" x2="26" y2="39" stroke-width="1.5"/>
+</svg>

@@ -62,15 +62,15 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
         int dominance = calcDominance(netScores);
 
         List<StatDimension> dimensions = List.of(
-                StatDimension.builder().key("aggression").label("进攻性").value(aggression)
+                StatDimension.builder().key("aggression").label("推进倾向").value(aggression)
                         .desc("基于主动计分次数与单次大额得分。").build(),
-                StatDimension.builder().key("stability").label("稳定性").value(stability)
+                StatDimension.builder().key("stability").label("舰体稳定").value(stability)
                         .desc("基于总得分波动率，波动越小越稳定。").build(),
-                StatDimension.builder().key("participation").label("参局率").value(participation)
+                StatDimension.builder().key("participation").label("接入频率").value(participation)
                         .desc("基于历史对局参与轮次。").build(),
-                StatDimension.builder().key("comeback").label("回稳力").value(comeback)
+                StatDimension.builder().key("comeback").label("回稳能力").value(comeback)
                         .desc("基于低位波动后的修正能力。").build(),
-                StatDimension.builder().key("dominance").label("控场力").value(dominance)
+                StatDimension.builder().key("dominance").label("场域控制").value(dominance)
                         .desc("基于单局最大得分占比。").build()
         );
 
@@ -105,8 +105,8 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
             if (json == null || json.isBlank() || "null".equals(json)) continue;
 
             try {
-                com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-                List<Object> records = om.readValue(json, om.getTypeFactory().constructCollectionType(List.class, Object.class));
+                List<Object> records = objectMapper.readValue(json,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, Object.class));
                 for (Object obj : records) {
                     if (result.size() >= limit) break;
                     @SuppressWarnings("unchecked")
@@ -114,6 +114,7 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
                     List<?> scores = (List<?>) batch.get("scores");
                     if (scores == null) continue;
                     for (Object scoreObj : scores) {
+                        if (result.size() >= limit) break;
                         @SuppressWarnings("unchecked")
                         Map<String, Object> ps = (Map<String, Object>) scoreObj;
                         Number uidNum = (Number) ps.get("userId");
@@ -125,7 +126,7 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
                     }
                 }
             } catch (Exception e) {
-                log.warn("解析房间 {} all_record 失败", roomId, e);
+                log.warn("解析房间 all_record 失败: roomId={}", roomId);
             }
         }
         return result;

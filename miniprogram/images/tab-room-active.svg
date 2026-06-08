@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="#0A84FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 驾驶舱 / 舰员席位 / 2x2 舱位格 -->
+  <rect x="6" y="6" width="36" height="36" rx="3"/>
+  <line x1="24" y1="6" x2="24" y2="42"/>
+  <line x1="6" y1="24" x2="42" y2="24"/>
+  <!-- 席位标记 -->
+  <circle cx="15" cy="15" r="3" stroke-width="1.5"/>
+  <circle cx="33" cy="15" r="3" stroke-width="1.5"/>
+  <circle cx="15" cy="33" r="3" stroke-width="1.5"/>
+  <circle cx="33" cy="33" r="3" stroke-width="1.5"/>
+</svg>

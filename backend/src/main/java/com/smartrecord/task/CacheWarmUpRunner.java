@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,22 +56,37 @@ public class CacheWarmUpRunner implements ApplicationRunner {
             for (Room room : activeRooms) {
                 Long roomId = room.getId();
                 try {
-                    // 恢复房间成员（仅未退出的）
+                    // 恢复房间成员：活跃席位、归档席位分开重建
                     List<RoomMember> members = roomMemberMapper.selectList(
                             new LambdaQueryWrapper<RoomMember>()
-                                    .eq(RoomMember::getRoomId, roomId)
-                                    .isNull(RoomMember::getQuitTime));
+                                    .eq(RoomMember::getRoomId, roomId));
 
                     String metaKey = "sr:room:" + roomId + ":meta";
+                    String activeKey = "sr:room:" + roomId + ":members:active";
+                    String archiveKey = "sr:room:" + roomId + ":members:archive";
 
                     // 写入房间信息字段
                     redisTemplate.opsForHash().put(metaKey, "ownerId", String.valueOf(room.getOwnerId()));
                     redisTemplate.opsForHash().put(metaKey, "status", "0");
 
+                    // 启动恢复时先清掉活跃/归档成员缓存，避免旧的活跃字段残留
+                    redisTemplate.delete(activeKey);
+                    redisTemplate.delete(archiveKey);
+                    Map<Object, Object> existingMetaFields = redisTemplate.opsForHash().entries(metaKey);
+                    if (existingMetaFields != null && !existingMetaFields.isEmpty()) {
+                        for (Object field : existingMetaFields.keySet()) {
+                            String key = String.valueOf(field);
+                            if (key.startsWith("m:")) {
+                                redisTemplate.opsForHash().delete(metaKey, key);
+                            }
+                        }
+                    }
+
                     if (!members.isEmpty()) {
                         List<Long> userIds = members.stream()
                                 .map(RoomMember::getUserId).collect(Collectors.toList());
                         Map<Long, String> userJsonMap = batchLoadUserJson(userIds);
+                        long now = System.currentTimeMillis();
 
                         for (RoomMember m : members) {
                             String userJson = userJsonMap.get(m.getUserId());
@@ -86,11 +102,32 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                                     "userId", m.getUserId(),
                                     "nickname", nickname,
                                     "avatarUrl", avatarUrl));
-                            redisTemplate.opsForHash().put(metaKey, "m:" + m.getUserId(), memberJson);
+                            long joinedAtMs = m.getJoinedAt() != null ?
+                                    m.getJoinedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                                    now;
+                            long lastSeenAtMs = m.getQuitTime() != null ?
+                                    m.getQuitTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli() :
+                                    now;
+                            String archiveJson = JSONUtil.toJsonStr(Map.of(
+                                    "userId", m.getUserId(),
+                                    "nickname", nickname,
+                                    "avatarUrl", avatarUrl,
+                                    "firstJoinedAt", joinedAtMs,
+                                    "lastSeenAt", lastSeenAtMs));
+                            redisTemplate.opsForHash().put(archiveKey, String.valueOf(m.getUserId()), archiveJson);
 
-                            redisTemplate.opsForSet().add("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
-                            redisTemplate.expire("sr:user:rooms:" + m.getUserId(), EXPIRE_HOURS, TimeUnit.HOURS);
+                            if (m.getQuitTime() == null) {
+                                // 活跃成员写入 meta / active / user room mapping
+                                redisTemplate.opsForHash().put(metaKey, "m:" + m.getUserId(), memberJson);
+                                redisTemplate.opsForHash().put(activeKey, String.valueOf(m.getUserId()), memberJson);
+                                redisTemplate.opsForSet().add("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
+                            } else {
+                                // 已离席成员只保留 archive，避免重启后被误识别成实时席位
+                                redisTemplate.opsForSet().remove("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
+                            }
                         }
+                        redisTemplate.expire(activeKey, EXPIRE_HOURS, TimeUnit.HOURS);
+                        redisTemplate.expire(archiveKey, EXPIRE_HOURS, TimeUnit.HOURS);
                     }
                     redisTemplate.expire(metaKey, EXPIRE_HOURS, TimeUnit.HOURS);
 

@@ -20,22 +20,18 @@
   <!-- ==================== MAIN 视图 ==================== -->
   <block wx:if="{{mainVisible}}">
 
-    <!-- 顶部区：舱位状态 -->
     <view class="mirror-main {{mainDimmed ? 'mirror-main--dimmed' : ''}}">
+
+      <!-- ===== 一级：全息总览 ===== -->
       <view class="bay-header" style="opacity: {{headerOpacity}};">
-        <view class="bay-title-row">
-          <text class="bay-title">全息观测舱</text>
-          <text class="bay-kicker">MIRROR BAY</text>
-        </view>
-        <view class="bay-subtitle-row">
-          <text class="bay-subtitle">{{baySubtitle}}</text>
-          <text class="bay-sync-hint" wx:if="{{isSilentSyncing}}">同步中</text>
+        <view class="bay-status-tab bay-status-tab--{{bayStatusState}}">
+          <view class="bay-status-tab__dot"></view>
+          <text class="bay-status-tab__label">{{bayStatusText}}</text>
         </view>
       </view>
 
-      <!-- 中部区：镜像核心 -->
       <view class="mirror-hero" style="opacity: {{heroOpacity}};">
-        <!-- 雷达图 / 扫描环 -->
+        <!-- 全息扫描图 -->
         <view class="hero-radar-wrap">
           <radar-chart
             id="radarChart"
@@ -47,7 +43,7 @@
           />
         </view>
 
-        <!-- 核心信息 -->
+        <!-- 镜像投影核心 -->
         <view class="hero-info">
           <block wx:if="{{mbti.calibrated}}">
             <text class="hero-type">{{mbti.mbtiType}}</text>
@@ -59,16 +55,23 @@
           </block>
         </view>
 
+        <!-- 核心标签（默认可见） -->
+        <view class="hero-signals" wx:if="{{mbti.calibrated && personaSignals.length > 0}}">
+          <view class="hero-signal-tag" wx:for="{{personaSignals}}" wx:key="*this">
+            <text>{{item}}</text>
+          </view>
+        </view>
+
         <!-- 状态摘要 -->
         <view class="hero-summary" wx:if="{{mbti.calibrated}}">
           <view class="summary-item">
             <text class="summary-label">协议一致率</text>
-            <text class="summary-val">{{personaConfidence}}%</text>
+            <text class="summary-val summary-val--match">{{personaMatch.matchPercentage}}%</text>
           </view>
           <view class="summary-sep"></view>
           <view class="summary-item">
             <text class="summary-label">航迹样本</text>
-            <text class="summary-val">{{battlePersona.sampleSize}} / 3</text>
+            <text class="summary-val summary-val--sample">{{battlePersona.sampleSize}}</text>
           </view>
         </view>
 
@@ -85,203 +88,8 @@
         </view>
       </view>
 
-      <!-- 底部区：信息卡片 -->
-      <view class="mirror-sections" style="opacity: {{sectionsOpacity}};">
-
-        <!-- 协议状态卡 -->
-        <view class="sr-card protocol-card" wx:if="{{mbti.calibrated}}">
-          <view class="card-header">
-            <view class="card-title-row">
-              <text class="card-title">协议状态</text>
-              <text class="card-kicker">PROTOCOL STATUS</text>
-            </view>
-            <view class="sr-card-line card-line"></view>
-          </view>
-          <view class="protocol-grid">
-            <view class="protocol-row">
-              <text class="protocol-label">协议编号</text>
-              <view class="protocol-value protocol-code">
-                <text class="pc-prefix">SR</text><text class="pc-sep">-</text><text class="pc-core">MBTI</text><text class="pc-sep">-</text><text class="pc-type">{{mbti.mbtiType}}</text>
-              </view>
-            </view>
-            <view class="protocol-row">
-              <text class="protocol-label">来源</text>
-              <text class="protocol-value">{{mbti.mbtiSource === 'test' ? '完整校准' : '快速接入'}}</text>
-            </view>
-            <view class="protocol-row">
-              <text class="protocol-label">状态</text>
-              <text class="protocol-value status-active">已同步</text>
-            </view>
-          </view>
-          <view class="protocol-actions">
-            <view class="term-btn-sm" bindtap="startFullCalibration">重新校准</view>
-            <view class="term-btn-sm ghost" bindtap="openMbtiPicker">修改协议</view>
-          </view>
-        </view>
-
-        <!-- 系统判读 -->
-        <view class="sr-card reading-card">
-          <view class="card-header">
-            <view class="card-title-row">
-              <text class="card-title">系统判读</text>
-              <text class="card-kicker">SYSTEM READING</text>
-            </view>
-            <view class="sr-card-line card-line"></view>
-          </view>
-
-          <block wx:if="{{reading.available}}">
-            <view class="reading-sub-card" wx:if="{{reading.observation}}">
-              <text class="reading-sub-label">观测</text>
-              <text class="reading-sub-text">{{reading.observation}}</text>
-            </view>
-            <view class="reading-sub-card" wx:if="{{reading.deviation}}">
-              <text class="reading-sub-label">偏差</text>
-              <text class="reading-sub-text">{{reading.deviation}}</text>
-            </view>
-            <view class="reading-sub-card" wx:if="{{reading.risk}}">
-              <text class="reading-sub-label">边界</text>
-              <text class="reading-sub-text">{{reading.risk}}</text>
-            </view>
-            <view class="reading-sub-card" wx:if="{{reading.growthAdvice}}">
-              <text class="reading-sub-label">成长建议</text>
-              <text class="reading-sub-text">{{reading.growthAdvice}}</text>
-            </view>
-            <view class="reading-sub-card" wx:if="{{!reading.observation && reading.text}}">
-              <text class="reading-sub-label">系统判断</text>
-              <text class="reading-sub-text">{{reading.text}}</text>
-            </view>
-          </block>
-
-          <block wx:else>
-            <view class="reading-locked">
-              <text class="reading-locked-text" wx:if="{{!mbti.calibrated}}">请先完成人格协议校准</text>
-              <text class="reading-locked-text" wx:elif="{{battlePersona.sampleSize < 3}}">完成 3 次封存后解锁系统判读</text>
-              <text class="reading-locked-text" wx:else>数据计算中</text>
-            </view>
-          </block>
-        </view>
-
-        <!-- 信号标签 -->
-        <view class="sr-card signal-card">
-          <view class="card-header">
-            <view class="card-title-row">
-              <text class="card-title">信号标签</text>
-              <text class="card-kicker">SIGNAL TAGS</text>
-            </view>
-            <view class="sr-card-line card-line"></view>
-          </view>
-
-          <block wx:if="{{personaSignals.length > 0}}">
-            <view class="signal-tag-wrap">
-              <view class="signal-tag" wx:for="{{personaSignals}}" wx:key="*this">
-                <text>{{item}}</text>
-              </view>
-            </view>
-          </block>
-
-          <block wx:else>
-            <view class="signal-scanning">
-              <text class="scanning-text">信号采集中</text>
-              <view class="scanning-dots">
-                <view class="scanning-dot"></view>
-                <view class="scanning-dot"></view>
-                <view class="scanning-dot"></view>
-              </view>
-              <text class="scanning-hint">完成校准后生成信号标签</text>
-            </view>
-          </block>
-        </view>
-
-        <!-- 协议偏移 -->
-        <view class="sr-card deviation-card">
-          <view class="card-header">
-            <view class="card-title-row">
-              <text class="card-title">协议偏移</text>
-              <text class="card-kicker">DEVIATION</text>
-            </view>
-            <view class="sr-card-line card-line"></view>
-          </view>
-
-          <block wx:if="{{personaMatch.available}}">
-            <view class="dev-grid">
-              <view class="dev-col">
-                <text class="dev-label">校准人格</text>
-                <text class="dev-type dev-type-blue">{{mbti.mbtiType}}</text>
-              </view>
-              <view class="dev-connector">
-                <view class="dev-arrow"></view>
-                <text class="dev-percent">{{personaMatch.deviationPercent}}%</text>
-              </view>
-              <view class="dev-col">
-                <text class="dev-label">行为人格</text>
-                <text class="dev-type dev-type-orange">{{personaMatch.inferredMbtiType}}</text>
-              </view>
-            </view>
-            <view class="dev-bar-track">
-              <view class="dev-bar-fill" style="width: {{personaMatch.deviationPercent}}%;"></view>
-            </view>
-            <text class="dev-summary">{{personaMatch.summary}}</text>
-          </block>
-
-          <block wx:else>
-            <view class="dev-empty">
-              <view class="dev-empty-grid">
-                <view class="dev-col">
-                  <text class="dev-label">校准人格</text>
-                  <text class="dev-type dev-type-blue">{{mbti.mbtiType || '---'}}</text>
-                </view>
-                <view class="dev-connector">
-                  <view class="dev-arrow dim"></view>
-                  <text class="dev-percent dim">--</text>
-                </view>
-                <view class="dev-col">
-                  <text class="dev-label">行为人格</text>
-                  <text class="dev-type dev-type-dim">采集中</text>
-                </view>
-              </view>
-              <view class="dev-empty-status">
-                <text class="dev-status-text" wx:if="{{!mbti.calibrated}}">完成人格校准后解锁</text>
-                <text class="dev-status-text" wx:elif="{{battlePersona.sampleSize < 3}}">等待任务样本</text>
-                <text class="dev-status-text" wx:else>数据计算中</text>
-                <text class="dev-status-hint" wx:if="{{!mbti.calibrated || battlePersona.sampleSize < 3}}">完成 3 次封存后自动生成</text>
-              </view>
-            </view>
-          </block>
-        </view>
-
-        <!-- 协议演化 -->
-        <view class="sr-card evolution-card">
-          <view class="card-header">
-            <view class="card-title-row">
-              <text class="card-title">协议演化</text>
-              <text class="card-kicker">EVOLUTION</text>
-            </view>
-            <view class="sr-card-line card-line"></view>
-          </view>
-
-          <block wx:if="{{evolution.length > 0}}">
-            <view class="evo-timeline">
-              <view class="evo-item" wx:for="{{evolution}}" wx:key="date">
-                <view class="evo-dot {{index === 0 ? 'evo-dot-current' : ''}}"></view>
-                <view class="evo-line" wx:if="{{index < evolution.length - 1}}"></view>
-                <view class="evo-content">
-                  <text class="evo-date">{{item.date}}</text>
-                  <text class="evo-type">{{item.type}}</text>
-                  <text class="evo-deviation">偏差 {{item.deviation}}%</text>
-                </view>
-              </view>
-            </view>
-          </block>
-
-          <block wx:else>
-            <view class="evo-empty">
-              <text class="evo-empty-text">协议演化轨迹将在多次校准后生成</text>
-              <text class="evo-empty-hint">每次校准将记录一次快照</text>
-            </view>
-          </block>
-        </view>
-
-        <!-- 航迹档案 -->
+      <!-- ===== 二级：航迹档案 ===== -->
+      <view class="mirror-track" style="opacity: {{sectionsOpacity}};">
         <view class="sr-card track-archive-card" bindtap="goScoreRecords">
           <view class="card-header">
             <view class="card-title-row">
@@ -311,11 +119,149 @@
             <view class="mirror-arrow-icon"></view>
           </view>
         </view>
-
       </view>
 
-      <!-- 底部占位 -->
-      <view class="dossier-spacer"></view>
+      <!-- ===== 三级：协议分析（独立卡片） ===== -->
+      <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
+        <view class="sr-card analysis-card">
+          <view class="card-header">
+            <view class="card-title-row">
+              <text class="card-title">协议分析</text>
+              <text class="card-kicker">PROTOCOL ANALYSIS</text>
+            </view>
+            <view class="sr-card-line card-line"></view>
+          </view>
+
+          <view class="analysis-body">
+
+            <!-- 系统判读 -->
+            <view class="analysis-section">
+              <view class="analysis-section-header">
+                <text class="analysis-section-title">系统判读</text>
+                <text class="analysis-section-kicker">SYSTEM READING</text>
+              </view>
+
+              <block wx:if="{{reading.available}}">
+                <view class="reading-sub-card" wx:if="{{reading.observation}}">
+                  <text class="reading-sub-label">观测</text>
+                  <text class="reading-sub-text">{{reading.observation}}</text>
+                </view>
+                <view class="reading-sub-card" wx:if="{{reading.deviation}}">
+                  <text class="reading-sub-label">偏差</text>
+                  <text class="reading-sub-text">{{reading.deviation}}</text>
+                </view>
+                <view class="reading-sub-card" wx:if="{{reading.risk}}">
+                  <text class="reading-sub-label">边界</text>
+                  <text class="reading-sub-text">{{reading.risk}}</text>
+                </view>
+                <view class="reading-sub-card" wx:if="{{reading.growthAdvice}}">
+                  <text class="reading-sub-label">成长建议</text>
+                  <text class="reading-sub-text">{{reading.growthAdvice}}</text>
+                </view>
+                <view class="reading-sub-card" wx:if="{{!reading.observation && reading.text}}">
+                  <text class="reading-sub-label">系统判断</text>
+                  <text class="reading-sub-text">{{reading.text}}</text>
+                </view>
+              </block>
+
+              <block wx:else>
+                <view class="reading-locked">
+                  <text class="reading-locked-text" wx:if="{{!mbti.calibrated}}">请先完成协议校准</text>
+                  <text class="reading-locked-text" wx:elif="{{battlePersona.sampleSize < 3}}">完成 3 次封存后解锁系统判读</text>
+                  <text class="reading-locked-text" wx:else>数据计算中</text>
+                </view>
+              </block>
+            </view>
+
+            <!-- 协议偏移 -->
+            <view class="analysis-section">
+              <view class="analysis-section-header">
+                <text class="analysis-section-title">协议偏移</text>
+                <text class="analysis-section-kicker">DEVIATION</text>
+              </view>
+
+              <block wx:if="{{personaMatch.available}}">
+                <view class="dev-grid">
+                  <view class="dev-col">
+                    <text class="dev-label">校准人格</text>
+                    <text class="dev-type dev-type-blue">{{mbti.mbtiType}}</text>
+                  </view>
+                  <view class="dev-connector">
+                    <view class="dev-arrow"></view>
+                    <text class="dev-percent">{{personaMatch.deviationPercent}}%</text>
+                  </view>
+                  <view class="dev-col">
+                    <text class="dev-label">行为人格</text>
+                    <text class="dev-type dev-type-orange">{{personaMatch.inferredMbtiType}}</text>
+                  </view>
+                </view>
+                <view class="dev-bar-track">
+                  <view class="dev-bar-fill" style="width: {{personaMatch.deviationPercent}}%;"></view>
+                </view>
+                <text class="dev-summary">{{personaMatch.summary}}</text>
+              </block>
+
+              <block wx:else>
+                <view class="dev-empty">
+                  <view class="dev-empty-grid">
+                    <view class="dev-col">
+                      <text class="dev-label">校准人格</text>
+                      <text class="dev-type dev-type-blue">{{mbti.mbtiType || '---'}}</text>
+                    </view>
+                    <view class="dev-connector">
+                      <view class="dev-arrow dim"></view>
+                      <text class="dev-percent dim">--</text>
+                    </view>
+                    <view class="dev-col">
+                      <text class="dev-label">行为人格</text>
+                      <text class="dev-type dev-type-dim">采集中</text>
+                    </view>
+                  </view>
+                  <view class="dev-empty-status">
+                    <text class="dev-status-text" wx:if="{{!mbti.calibrated}}">完成协议校准后解锁</text>
+                    <text class="dev-status-text" wx:elif="{{battlePersona.sampleSize < 3}}">等待任务样本</text>
+                    <text class="dev-status-text" wx:else>数据计算中</text>
+                    <text class="dev-status-hint" wx:if="{{!mbti.calibrated || battlePersona.sampleSize < 3}}">完成 3 次封存后自动生成</text>
+                  </view>
+                </view>
+              </block>
+            </view>
+
+            <!-- 协议演化 -->
+            <view class="analysis-section">
+              <view class="analysis-section-header">
+                <text class="analysis-section-title">协议演化</text>
+                <text class="analysis-section-kicker">EVOLUTION</text>
+              </view>
+
+              <block wx:if="{{evolution.length > 0}}">
+                <view class="evo-timeline">
+                  <view class="evo-item" wx:for="{{evolution}}" wx:key="date">
+                    <view class="evo-dot {{index === 0 ? 'evo-dot-current' : ''}}"></view>
+                    <view class="evo-line" wx:if="{{index < evolution.length - 1}}"></view>
+                    <view class="evo-content">
+                      <text class="evo-date">{{item.date}}</text>
+                      <text class="evo-type">{{item.type}}</text>
+                      <text class="evo-deviation">偏差 {{item.deviation}}%</text>
+                    </view>
+                  </view>
+                </view>
+              </block>
+
+              <block wx:else>
+                <view class="evo-empty">
+                  <text class="evo-empty-text">协议演化轨迹将在多次校准后生成</text>
+                  <text class="evo-empty-hint">每次校准将记录一次快照</text>
+                </view>
+              </block>
+            </view>
+
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部占位：action dock + tabbar + safe area -->
+      <view class="mirror-bottom-spacer"></view>
     </view>
 
   </block>
@@ -325,8 +271,8 @@
     <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
       <!-- 顶部 -->
       <view class="cal-header">
-        <text class="cal-title">镜像舱</text>
-        <text class="cal-subtitle">协议校准中</text>
+        <text class="cal-title">协议校准</text>
+        <text class="cal-subtitle">CALIBRATION</text>
       </view>
 
       <!-- 扫描环 -->
@@ -363,9 +309,17 @@
     </view>
   </block>
 
-  <!-- 固定底部：生成镜像卡 -->
-  <view class="dossier-bar {{reduceMotion ? '' : 'scan-glow'}}" wx:if="{{mainVisible && !calibrationVisible}}" bindtap="generateDossier">
-    <text class="flight-primary dossier-btn">生成镜像卡</text>
+  <!-- 固定操作栏：三按钮（tabbar 上方） -->
+  <view class="mirror-action-dock {{reduceMotion ? '' : 'dock-glow'}}" wx:if="{{mainVisible && !calibrationVisible && mbti.calibrated}}">
+    <view class="dock-btn dock-btn-primary" bindtap="generateDossier">
+      <text class="dock-btn-text">生成镜像图片</text>
+    </view>
+    <view class="dock-btn" bindtap="startFullCalibration">
+      <text class="dock-btn-text">重新校准</text>
+    </view>
+    <view class="dock-btn dock-btn-ghost" bindtap="openMbtiPicker">
+      <text class="dock-btn-text">修改协议</text>
+    </view>
   </view>
 
   <!-- MBTI 直接输入 -->
@@ -385,7 +339,7 @@
     visible="{{showExitConfirm}}"
     title="退出校准"
     subtitle="EXIT"
-    content="本次信号尚未写入镜像，确认退出？"
+    content="本次校准尚未写入协议，确认退出？"
     cancelText="继续校准"
     confirmText="确认退出"
     confirmType="danger"
@@ -412,6 +366,9 @@
         <button class="preview-btn preview-btn-share" open-type="share">
           <text class="preview-btn-text">发送给朋友</text>
         </button>
+        <view class="preview-btn" bindtap="closeCardPreview">
+          <text class="preview-btn-text">关闭预览</text>
+        </view>
       </view>
     </view>
   </view>
@@ -420,7 +377,7 @@
   <view class="card-scan-layer" wx:if="{{cardOverlayVisible && !isCardPreview}}" catchtouchmove="noop">
     <view class="card-scan-box">
       <view class="card-scan-ring {{reduceMotion ? '' : 'card-scan-ring-spin'}}"></view>
-      <text class="card-scan-title">镜像档案封装中</text>
+      <text class="card-scan-title">镜像图片生成中</text>
       <view class="card-scan-terminal">
         <view class="card-scan-line card-scan-line--{{item.status}}" wx:for="{{cardScanStepViews}}" wx:key="text">
           <text class="scan-status-dot"></text>
@@ -433,10 +390,10 @@
   <!-- 镜像卡错误态 -->
   <view class="card-error-layer" wx:if="{{cardError}}" catchtouchmove="noop">
     <view class="card-error-box">
-      <text class="card-error-title">镜像卡生成失败</text>
-      <text class="card-error-hint">识别徽标或画布资源暂未完成接入，请重试。</text>
+      <text class="card-error-title">镜像图片生成失败</text>
+      <text class="card-error-hint">请稍后重试</text>
       <view class="card-error-actions">
-        <view class="term-btn-sm" bindtap="retryCard">重试</view>
+        <view class="term-btn-sm" bindtap="retryCard">重新生成</view>
         <view class="term-btn-sm ghost" bindtap="closeCardError">关闭</view>
       </view>
     </view>
@@ -448,7 +405,7 @@
     visible="{{showPermDialog}}"
     title="需要相册权限"
     subtitle="PERMISSION"
-    content="保存档案图需要相册访问权限。"
+    content="保存镜像图片需要相册访问权限。"
     cancelText="取消"
     confirmText="去设置"
     confirmType="primary"

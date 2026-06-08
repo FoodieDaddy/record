@@ -49,18 +49,21 @@ Page({
     playerCode: '',
     daysSinceJoined: 0,
 
-    // 舰员代号展示
+    // 本舰呼号展示
     isLongCrewName: false,
 
     // HUD 状态条
     hudVisible: false,
     hudText: '',
     hudType: 'info', // info | error | warning
+    identityBayState: 'standby',
+    identityBayLabel: '识别舱待机中',
 
-    // 昵称抽屉
+    // 呼号校准
     nicknameDrawerVisible: false,
     drawerNickname: '',
     drawerNicknameOverflow: false,
+    callsignKeyboardHeight: 0,
 
     // 身份等级
     level: 1,
@@ -101,12 +104,15 @@ Page({
     const loggedIn = !!app.globalData.token;
     this.setData({
       isLoggedIn: loggedIn,
-      animationEnabled: app.globalData.animationEnabled !== false
+      animationEnabled: app.globalData.animationEnabled !== false,
+      identityBayState: loggedIn ? 'starting' : 'standby',
+      identityBayLabel: loggedIn ? '识别舱启动中' : '识别舱待机中'
     });
     if (!loggedIn) return;
 
     // 缓存优先
     const cached = app.globalData.userInfo;
+    let userTask = Promise.resolve();
     if (cached && cached.nickname) {
       const rawAvatar = cached.avatarUrl || '';
       const avatar = rawAvatar.startsWith('http') ? rawAvatar : '';
@@ -120,13 +126,20 @@ Page({
       });
       this.updateAvatar();
     } else {
-      this.loadUserInfo();
+      userTask = this.loadUserInfo();
     }
 
     // 并行加载数据
-    this.loadIdentityLevel();
-    this.loadMbtiStatus();
+    const levelTask = this.loadIdentityLevel();
+    const mbtiTask = this.loadMbtiStatus();
     this.loadSettings();
+    Promise.allSettled([userTask, levelTask, mbtiTask]).then(() => {
+      if (!this.data.isLoggedIn) return;
+      this.setData({
+        identityBayState: 'online',
+        identityBayLabel: '识别舱已接入'
+      });
+    });
   },
 
   async onPullDownRefresh() {
@@ -176,7 +189,7 @@ Page({
     }
   },
 
-  // ========== 昵称抽屉 ==========
+  // ========== 呼号校准 ==========
 
   openNicknameDrawer() {
     this.setData({
@@ -187,7 +200,14 @@ Page({
   },
 
   closeNicknameDrawer() {
-    this.setData({ nicknameDrawerVisible: false });
+    this.setData({ nicknameDrawerVisible: false, callsignKeyboardHeight: 0 });
+  },
+
+  noop() {},
+
+  onCallsignKeyboardHeightChange(e) {
+    const height = e.detail && e.detail.height ? e.detail.height : 0;
+    this.setData({ callsignKeyboardHeight: height });
   },
 
   onDrawerNicknameInput(e) {
@@ -513,6 +533,7 @@ Page({
       return;
     }
 
+    this.setData({ identityBayState: 'starting', identityBayLabel: '识别舱启动中' });
     this.showHud('协议同步中', 'info', false);
     try {
       let finalAvatarUrl = avatarUrl;
@@ -541,9 +562,11 @@ Page({
         _lastSavedAvatar: finalAvatarUrl || ''
       });
       this.updateAvatar();
-      this.showHud('呼号已同步', 'info');
+      this.setData({ identityBayState: 'online', identityBayLabel: '识别舱已接入' });
+      this.showHud('本舰呼号已同步', 'info');
     } catch (e) {
       console.error('自动保存失败', e);
+      this.setData({ identityBayState: 'online', identityBayLabel: '识别舱已接入' });
       this.showHud('同步失败，点击重试', 'error', false);
     }
   },
@@ -589,7 +612,7 @@ Page({
     wx.navigateTo({ url: '/pages/level-archive/level-archive' });
   },
 
-  // ========== 退出登录 ==========
+  // ========== 断开终端 ==========
 
   async onLogout() {
     const { confirm } = await wx.showModal({
@@ -608,6 +631,9 @@ Page({
     this.flushSave();
     this.flushSaveSettings();
     this.hideHud();
+    if (this.data.nicknameDrawerVisible) {
+      this.closeNicknameDrawer();
+    }
   },
 
   onUnload() {

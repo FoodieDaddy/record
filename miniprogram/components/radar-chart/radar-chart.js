@@ -1,7 +1,7 @@
 /**
- * 五维战力雷达图 — Persona Terminal 风格
- * 锁定态：蓝色线框 + 扫描动画 + DATA COLLECTING
- * 解锁态：发光数据线 + 脉冲顶点
+ * 全息扫描图 — 星图式轨道圈风格
+ * 锁定态：轨道圈 + 扫描动画 + 轨道节点
+ * 解锁态：弧线连接 + 节点旅行 + 脉冲投影
  */
 
 const LINE_COLOR = '#00AFFF';
@@ -53,18 +53,11 @@ Component({
 
   observers: {
     'dimensions, locked'() {
-      if (!this._width) {
-        this._initCanvas();
-      } else {
-        this._stopAnimation();
-        if (this.data.locked) {
-          this._startAnimation('locked');
-        } else if (this.data.reduceMotion) {
-          this._drawFull(1, 0, 0);
-        } else {
-          this._startAnimation('unlocked');
-        }
-      }
+      this._redraw();
+    },
+    locked(val) {
+      console.log('[radar-chart] locked changed:', val);
+      this._redraw();
     }
   },
 
@@ -91,6 +84,21 @@ Component({
   },
 
   methods: {
+    _redraw() {
+      if (!this._width) {
+        this._initCanvas();
+      } else {
+        this._stopAnimation();
+        if (this.data.locked) {
+          this._startAnimation('locked');
+        } else if (this.data.reduceMotion) {
+          this._drawFull(1, 0, 0);
+        } else {
+          this._startAnimation('unlocked');
+        }
+      }
+    },
+
     _initCanvas() {
       if (this._initing) return;
       this._initing = true;
@@ -230,6 +238,7 @@ Component({
       ctx.clearRect(0, 0, w, h);
 
       this._drawStarField(ctx, w, h);
+      this._drawStarPoints(ctx, cx, cy, radius, 12);
 
       // 背景
       ctx.beginPath();
@@ -237,27 +246,10 @@ Component({
       ctx.fillStyle = BG_COLOR;
       ctx.fill();
 
-      // 网格 + 轴线
-      this._drawGrid(ctx, cx, cy, radius, LOCKED_LINE, GRID_COLOR);
+      // 同心轨道圈
+      this._drawOrbitalRings(ctx, cx, cy, radius, 'rgba(0,200,255,0.12)', 'rgba(0,200,255,0.05)');
 
-      // 锁定五角星骨架
-      ctx.beginPath();
-      for (var i = 0; i < SIDES; i++) {
-        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        var val = 0.55;
-        var x = cx + Math.cos(angle) * radius * val;
-        var y = cy + Math.sin(angle) * radius * val;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = LOCKED_FILL;
-      ctx.fill();
-      ctx.strokeStyle = LOCKED_LINE;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
+      // 轨道节点
       for (var j = 0; j < SIDES; j++) {
         var a = START_ANGLE + (Math.PI * 2 / SIDES) * j;
         var vx = cx + Math.cos(a) * radius * 0.55;
@@ -268,17 +260,14 @@ Component({
         ctx.fill();
       }
 
-      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE);
+      // 维度标签
+      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE, true);
 
-      // 中心文字
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = 'bold 11px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.50)';
-      ctx.fillText('数据采集中', cx, cy - 8);
-      ctx.font = '10px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.30)';
-      ctx.fillText('DATA COLLECTING', cx, cy + 10);
+      // 中心投影点
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.40)';
+      ctx.fill();
     },
 
     // ---- 绘制：锁定态（动画） ----
@@ -293,6 +282,7 @@ Component({
       ctx.clearRect(0, 0, w, h);
 
       this._drawStarField(ctx, w, h);
+      this._drawStarPoints(ctx, cx, cy, radius, 12);
 
       // 背景
       ctx.beginPath();
@@ -308,8 +298,8 @@ Component({
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // 网格 + 轴线
-      this._drawGrid(ctx, cx, cy, radius, LOCKED_LINE, GRID_COLOR);
+      // 同心轨道圈
+      this._drawOrbitalRings(ctx, cx, cy, radius, 'rgba(0,200,255,0.12)', 'rgba(0,200,255,0.05)');
 
       // 扫描扇形
       var sweepAngle = Math.PI * 0.6;
@@ -320,25 +310,7 @@ Component({
       ctx.fillStyle = SCAN_COLOR;
       ctx.fill();
 
-      // 锁定五角星骨架
-      ctx.beginPath();
-      for (var i = 0; i < SIDES; i++) {
-        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        var val = 0.55;
-        var x = cx + Math.cos(angle) * radius * val;
-        var y = cy + Math.sin(angle) * radius * val;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.fillStyle = LOCKED_FILL;
-      ctx.fill();
-      ctx.strokeStyle = LOCKED_LINE;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // 锁定顶点
+      // 轨道节点
       for (var j = 0; j < SIDES; j++) {
         var a = START_ANGLE + (Math.PI * 2 / SIDES) * j;
         var vx = cx + Math.cos(a) * radius * 0.55;
@@ -349,20 +321,17 @@ Component({
         ctx.fill();
       }
 
-      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE);
+      // 维度标签
+      this._drawLabels(ctx, cx, cy, radius, 1, LOCKED_LABEL, LOCKED_VALUE, true);
 
-      // 中心文字
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = 'bold 11px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.50)';
-      ctx.fillText('数据采集中', cx, cy - 8);
-      ctx.font = '10px -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(0, 200, 255, 0.30)';
-      ctx.fillText('DATA COLLECTING', cx, cy + 10);
+      // 中心投影点
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 200, 255, 0.40)';
+      ctx.fill();
     },
 
-    // ---- 绘制：完整态（轴线点亮 + 节点旅行 + 五角星展开 + 扫描环 + 脉冲） ----
+    // ---- 绘制：完整态（轨道圈 + 弧线连接 + 节点旅行 + 脉冲） ----
     _drawFull(progress, sweep, time) {
       var ctx = this._ctx;
       var dims = this.data.dimensions;
@@ -393,52 +362,12 @@ Component({
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // 网格
-      this._drawGrid(ctx, cx, cy, radius, GRID_COLOR_STRONG, GRID_COLOR);
+      // 同心轨道圈
+      this._drawOrbitalRings(ctx, cx, cy, radius, GRID_COLOR_STRONG, GRID_COLOR);
 
-      // 轴线点亮（逐条从中心向外）
-      var axisProgress = Math.min(progress * 2, 1);
-      for (var a = 0; a < SIDES; a++) {
-        var perAxis = Math.min(Math.max(axisProgress * SIDES - a, 0), 1);
-        if (perAxis <= 0) continue;
-        var angle = START_ANGLE + (Math.PI * 2 / SIDES) * a;
-        var endX = cx + Math.cos(angle) * radius * perAxis;
-        var endY = cy + Math.sin(angle) * radius * perAxis;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = 'rgba(0, 200, 255, ' + (0.30 * perAxis) + ')';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // 数据区域
+      // 数据进度
       var faceProgress = Math.max(0, Math.min((progress - 0.2) / 0.8, 1));
       var faceEased = 1 - Math.pow(1 - faceProgress, 2);
-
-      ctx.beginPath();
-      for (var i = 0; i < SIDES; i++) {
-        var fa = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-        var val = (dims[i].value / 100) * progress * faceEased;
-        var fx = cx + Math.cos(fa) * radius * val;
-        var fy = cy + Math.sin(fa) * radius * val;
-        if (i === 0) ctx.moveTo(fx, fy); else ctx.lineTo(fx, fy);
-      }
-      ctx.closePath();
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 200, 255, 0.30)';
-      ctx.shadowBlur = 12;
-      ctx.fillStyle = FILL_COLOR;
-      ctx.fill();
-      ctx.strokeStyle = LINE_COLOR;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.strokeStyle = FILL_GLOW;
-      ctx.lineWidth = 1;
-      ctx.stroke();
 
       // 数据顶点（从中心旅行到目标位置）
       var nodeProgress = Math.max(0, Math.min((progress - 0.3) / 0.7, 1));
@@ -521,25 +450,37 @@ Component({
       }
     },
 
-    _drawGrid(ctx, cx, cy, radius, axisColor, gridColor) {
-      var gridLevels = [0.33, 0.66, 1.0];
-      for (var g = 0; g < gridLevels.length; g++) {
-        var level = gridLevels[g];
+    _drawOrbitalRings(ctx, cx, cy, radius, outerColor, innerColor) {
+      var levels = [0.33, 0.66, 1.0];
+      for (var i = 0; i < levels.length; i++) {
         ctx.beginPath();
-        for (var i = 0; i < SIDES; i++) {
-          var angle = START_ANGLE + (Math.PI * 2 / SIDES) * i;
-          var gx = cx + Math.cos(angle) * radius * level;
-          var gy = cy + Math.sin(angle) * radius * level;
-          if (i === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = level === 1.0 ? axisColor : gridColor;
+        ctx.arc(cx, cy, radius * levels[i], 0, Math.PI * 2);
+        ctx.strokeStyle = i === 2 ? outerColor : innerColor;
         ctx.lineWidth = 1;
         ctx.stroke();
       }
     },
 
-    _drawLabels(ctx, cx, cy, radius, progress, labelColor, valueColor) {
+    _drawStarPoints(ctx, cx, cy, radius, count) {
+      var seed = (cx * 7 + cy * 13) | 0;
+      if (seed === 0) seed = 12345;
+      for (var i = 0; i < count; i++) {
+        seed = (seed * 16807 + 7) % 2147483647;
+        var rx = (seed % 1000) / 1000;
+        seed = (seed * 16807 + 7) % 2147483647;
+        var ry = (seed % 1000) / 1000;
+        seed = (seed * 16807 + 7) % 2147483647;
+        var rb = 0.3 + (seed % 1000) / 1000 * 0.7;
+        var dx = cx + (rx - 0.5) * radius * 2.2;
+        var dy = cy + (ry - 0.5) * radius * 2.2;
+        ctx.beginPath();
+        ctx.arc(dx, dy, 0.5 + rb * 0.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(200, 220, 255, ' + (0.04 + rb * 0.06) + ')';
+        ctx.fill();
+      }
+    },
+
+    _drawLabels(ctx, cx, cy, radius, progress, labelColor, valueColor, locked) {
       var dims = this.data.dimensions;
       if (!dims || dims.length === 0) return;
       ctx.textAlign = 'center';
@@ -554,7 +495,8 @@ Component({
         ctx.fillText(dims[i].label, lx, ly - 8);
         ctx.font = 'bold 14px -apple-system, sans-serif';
         ctx.fillStyle = valueColor;
-        ctx.fillText(String(Math.round(dims[i].value * progress)), lx, ly + 10);
+        var valueText = locked ? '--' : String(Math.round(dims[i].value * progress));
+        ctx.fillText(valueText, lx, ly + 10);
       }
     },
 

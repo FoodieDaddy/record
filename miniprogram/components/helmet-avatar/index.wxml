@@ -3,8 +3,9 @@
   <view class="ha__shell">
     <image
       class="ha__img"
-      src="{{src || defaultAvatar}}"
+      src="{{imgSrc || defaultAvatar}}"
       mode="aspectFill"
+      binderror="onImgError"
     />
     <view class="ha__visor"></view>
     <view class="ha__reflection"></view>

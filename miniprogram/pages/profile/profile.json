@@ -1,5 +1,5 @@
 {
-  "navigationBarTitleText": "身份终端",
+  "navigationBarTitleText": "识别舱",
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {

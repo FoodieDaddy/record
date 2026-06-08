@@ -47,7 +47,17 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             Map.entry("压" + "制者", "控场者"),
             Map.entry("压" + "制", "控场"),
             Map.entry("爆" + "发型", "波动响应型"),
-            Map.entry("冒" + "险型", "边界试探型")
+            Map.entry("冒" + "险型", "边界试探型"),
+            Map.entry("高风险", "偏高"),
+            Map.entry("风险", "边界"),
+            Map.entry("进攻性", "推进倾向"),
+            Map.entry("参局率", "接入频率"),
+            Map.entry("回撤控制", "回稳能力"),
+            Map.entry("打法", "行为模式"),
+            Map.entry("战绩人格", "行为镜像"),
+            Map.entry("亏损", "负反馈"),
+            Map.entry("盈利", "正反馈"),
+            Map.entry("收益", "数值反馈")
     );
 
     /** MBTI 认知特征标签 */
@@ -153,15 +163,22 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
         PersonaMatchInfo personaMatch = computePersonaMatch(
                 mbtiTypeStr, battlePersona, personaResult.dimensions());
 
-        // 计算人格可信度
+        // 计算协议一致率
+        // MBTI 校准质量 30 + 黑匣子样本数量 30 + 行为镜像生成质量 25 + 最近更新时间 15
         boolean mbtiCalibrated = mbti != null && mbti.isCalibrated();
         boolean personaGenerated = battlePersona != null && battlePersona.isGenerated();
         int sampleSize = battlePersona != null ? battlePersona.getSampleSize() : 0;
-        int personaConfidence = (mbtiCalibrated ? 25 : 0)
-                + Math.min(sampleSize * 8, 25)
-                + (personaGenerated ? 25 : 0)
-                + (mbtiCalibrated ? 25 : 0);
-        personaConfidence = Math.min(personaConfidence, 100);
+        int mbtiScore = mbtiCalibrated ? 30 : 0;
+        int sampleScore = Math.min(sampleSize * 10, 30);
+        int personaScore = personaGenerated ? 25 : 0;
+        // 最近更新时间：7天内满分，30天衰减到0
+        int recencyScore = 15;
+        if (profile != null && profile.getUpdatedAt() != null) {
+            long daysSinceUpdate = java.time.Duration.between(
+                    profile.getUpdatedAt(), LocalDateTime.now()).toDays();
+            recencyScore = (int) Math.max(0, 15 - daysSinceUpdate * 15.0 / 30.0);
+        }
+        int personaConfidence = Math.min(mbtiScore + sampleScore + personaScore + recencyScore, 100);
 
         MirrorProfileResp resp = MirrorProfileResp.builder()
                 .mbti(mbti)
@@ -402,12 +419,17 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
             p.setPersonaCalculatedAt(LocalDateTime.now());
             profileMapper.insert(p);
         } else {
-            existing.setBattlePersonaTag(persona.getTag());
-            existing.setBattlePersonaTitle(persona.getTitle());
-            existing.setBattlePersonaSummary(persona.getSummary());
-            existing.setSampleSize(persona.getSampleSize());
-            existing.setPersonaCalculatedAt(LocalDateTime.now());
-            profileMapper.updateById(existing);
+            // 避免无变化 UPDATE：仅当 tag 或 sampleSize 变化时才写库
+            boolean tagChanged = !Objects.equals(existing.getBattlePersonaTag(), persona.getTag());
+            boolean sampleChanged = !Objects.equals(existing.getSampleSize(), persona.getSampleSize());
+            if (tagChanged || sampleChanged) {
+                existing.setBattlePersonaTag(persona.getTag());
+                existing.setBattlePersonaTitle(persona.getTitle());
+                existing.setBattlePersonaSummary(persona.getSummary());
+                existing.setSampleSize(persona.getSampleSize());
+                existing.setPersonaCalculatedAt(LocalDateTime.now());
+                profileMapper.updateById(existing);
+            }
         }
     }
 

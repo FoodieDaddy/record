@@ -1,0 +1,24 @@
+.pulse-flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.pulse-flight-dot {
+  position: absolute;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(.96);
+  will-change: transform, opacity;
+}
+
+.pulse-flight-dot.is-playing {
+  animation: pulseFlightMove 680ms cubic-bezier(.18,.82,.22,1) forwards;
+}
+
+@keyframes pulseFlightMove {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(.88); }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx), var(--dy), 0) scale(1.08); }
+}

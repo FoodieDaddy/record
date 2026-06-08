@@ -10,21 +10,21 @@
 
   <!-- 终端标题 -->
   <view class="terminal-header">
-    <text class="terminal-kicker">BLACKBOX REPLAY</text>
-    <text class="terminal-title">黑匣子回放</text>
+    <text class="terminal-kicker">TRACK REPLAY</text>
+    <text class="terminal-title">航迹回放</text>
     <view class="terminal-line"></view>
   </view>
 
   <!-- 加载中 -->
   <view class="loading-state" wx:if="{{loading && records.length === 0}}">
     <view class="loading-spinner"></view>
-    <text class="loading-text">正在读取黑匣子索引</text>
+    <text class="loading-text">正在读取航迹索引</text>
   </view>
 
   <!-- 加载失败 -->
   <view class="error-state" wx:elif="{{loadError}}">
     <text class="error-kicker">ERROR</text>
-    <text class="error-text">黑匣子索引读取失败</text>
+    <text class="error-text">航迹索引读取失败</text>
     <view class="error-retry" bindtap="loadSamples">
       <text class="error-retry-text">重新读取</text>
     </view>
@@ -35,7 +35,7 @@
     <view class="empty-box">
       <view class="empty-box-inner"></view>
     </view>
-    <text class="empty-text">黑匣子尚未写入样本</text>
+    <text class="empty-text">航迹档案尚未写入样本</text>
     <text class="empty-hint">完成一次航程封存后，回放索引将自动点亮</text>
   </view>
 

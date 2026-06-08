@@ -1,5 +1,5 @@
 /**
- * 格式化金额（无正负号，用于积分记录）
+ * 格式化金额（无正负号，用于脉冲记录）
  */
 function formatAmount(score) {
   if (score === 0) return '0';

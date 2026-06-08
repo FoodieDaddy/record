@@ -48,7 +48,9 @@ public class FortuneServiceImpl implements FortuneService {
 
     /** 每日策略 Redis 缓存 key */
     private static final String FORTUNE_CACHE_KEY = "sr:fortune:";
+    private static final String FORTUNE_LOCK_KEY = "sr:fortune:lock:";
     private static final long CACHE_TTL_HOURS = 4;
+    private static final long LOCK_TTL_SECONDS = 12;
     private static final List<String> SENSITIVE_WORDS = List.of(
             "\u68cb\u724c", "\u8d4c\u535a", "\u8d4c", "\u4e0b\u6ce8", "\u62bc\u6ce8", "\u7b79\u7801",
             "\u724c\u5c40", "\u724c\u684c", "\u6253\u724c", "\u9ebb\u5c06", "\u6251\u514b", "\u5fb7\u5dde",
@@ -194,34 +196,58 @@ public class FortuneServiceImpl implements FortuneService {
         // 0. 检查 Redis 缓存（每日策略 4 小时内复用，force 时跳过）
         String cacheKey = FORTUNE_CACHE_KEY + userId + ":" + getDateKey();
         if (!force) {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
-            if (cached != null) {
-                log.debug("命中每日策略缓存: userId={}", userId);
-                FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
-                if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
-                // 缓存命中时补充策略原型（缓存中可能没有）
-                if (resp.getTitle() == null) {
-                    UserTag cachedTag = resp.getUserTag() != null ? UserTag.valueOf(resp.getUserTag()) : UserTag.STABLE;
-                    Archetype cachedArchetype = pickArchetype(cachedTag);
-                    resp.setTitle(cachedArchetype.title);
-                    resp.setSubtitle(cachedArchetype.subtitle);
-                    resp.setTags(cachedArchetype.keywords);
-                }
-                // 补充 nextRefreshAt
-                try {
-                    Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
-                    if (ttl != null && ttl > 0) {
-                        java.time.LocalTime refreshTime = java.time.LocalTime.now().plusSeconds(ttl);
-                        resp.setNextRefreshAt(refreshTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+            try {
+                String cached = redisTemplate.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    log.debug("命中每日策略缓存: userId={}", userId);
+                    FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
+                    if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
+                    if (resp.getTitle() == null) {
+                        UserTag cachedTag = resp.getUserTag() != null ? UserTag.valueOf(resp.getUserTag()) : UserTag.STABLE;
+                        Archetype cachedArchetype = pickArchetype(cachedTag);
+                        resp.setTitle(cachedArchetype.title);
+                        resp.setSubtitle(cachedArchetype.subtitle);
+                        resp.setTags(cachedArchetype.keywords);
                     }
-                } catch (Exception e) {
-                    log.warn("缓存命中时计算 nextRefreshAt 失败", e);
+                    fillNextRefreshAt(resp, cacheKey);
+                    return resp;
                 }
-                return resp;
+            } catch (Exception e) {
+                log.warn("读取策略缓存失败: userId={}", userId, e);
             }
         } else {
             log.info("强制刷新策略: userId={}", userId);
-            redisTemplate.delete(cacheKey);
+            try { redisTemplate.delete(cacheKey); } catch (Exception e) { log.warn("删除策略缓存失败", e); }
+        }
+
+        // 0.5 并发短锁：防止同一天同一用户重复生成
+        String lockKey = FORTUNE_LOCK_KEY + userId + ":" + getDateKey();
+        boolean locked = false;
+        try {
+            locked = Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(lockKey, "1", LOCK_TTL_SECONDS, TimeUnit.SECONDS));
+        } catch (Exception e) {
+            log.warn("获取策略生成锁失败: userId={}", userId, e);
+        }
+        if (!locked && !force) {
+            // 拿不到锁，尝试再读一次缓存（可能其他线程刚写入）
+            try {
+                String cached = redisTemplate.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
+                    if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
+                    fillNextRefreshAt(resp, cacheKey);
+                    return resp;
+                }
+            } catch (Exception e) {
+                log.warn("二次读取策略缓存失败: userId={}", userId, e);
+            }
+            // 仍然无缓存，返回本地兜底
+            log.info("策略生成锁冲突且无缓存，返回本地兜底: userId={}", userId);
+            List<Integer> fallbackScores = getRecentScoreDeltas(userId, 10);
+            UserTag fallbackTag = computeUserTag(fallbackScores);
+            FortuneResp fallback = fallbackFortune(fallbackTag);
+            fillTimeWindowFields(fallback);
+            return fallback;
         }
 
         // 1. 计算用户画像标签（从 room.all_record JSON 提取 per-batch score delta）
@@ -238,10 +264,10 @@ public class FortuneServiceImpl implements FortuneService {
             try {
                 FortuneResp llmResult = CompletableFuture
                         .supplyAsync(() -> callLlm(userTag, netScore, recentScores, llmCtx), asyncExecutor)
-                        .orTimeout(8000, TimeUnit.MILLISECONDS)
+                        .orTimeout(30000, TimeUnit.MILLISECONDS)
                         .exceptionally(ex -> {
                             log.warn("LLM 调用超时/异常，降级到兜底: {}", ex.getMessage());
-                            llmCtx.durationMs = 8000;
+                            llmCtx.durationMs = 30000;
                             llmCtx.rawResponse = "异常: " + ex.getMessage();
                             return fallbackFortune(userTag);
                         })
@@ -268,7 +294,7 @@ public class FortuneServiceImpl implements FortuneService {
         // 3. 填充航段式时间窗口字段
         fillTimeWindowFields(result);
 
-        // 4. 写入缓存
+        // 4. 写入缓存 + 释放锁
         result.setUserTag(userTag.name());
         if (!fromLlm) {
             result.setSource("fallback");
@@ -278,17 +304,11 @@ public class FortuneServiceImpl implements FortuneService {
         } catch (Exception e) {
             log.warn("缓存策略失败: userId={}", userId, e);
         }
+        // 释放并发锁
+        try { redisTemplate.delete(lockKey); } catch (Exception e) { log.warn("释放策略生成锁失败", e); }
 
         // 4.5 计算下次可刷新时间
-        try {
-            Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
-            if (ttl != null && ttl > 0) {
-                java.time.LocalTime refreshTime = java.time.LocalTime.now().plusSeconds(ttl);
-                result.setNextRefreshAt(refreshTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
-            }
-        } catch (Exception e) {
-            log.warn("计算 nextRefreshAt 失败", e);
-        }
+        fillNextRefreshAt(result, cacheKey);
 
         // 5. 异步写入策略生成日志
         FortuneLog flog = new FortuneLog();
@@ -428,7 +448,7 @@ public class FortuneServiceImpl implements FortuneService {
                 .header(Header.AUTHORIZATION, "Bearer " + apiKey)
                 .header(Header.CONTENT_TYPE, "application/json")
                 .body(requestBody.toString())
-                .timeout(7000)
+                .timeout(25000)
                 .execute();
         ctx.durationMs = System.currentTimeMillis() - start;
 
@@ -649,6 +669,23 @@ public class FortuneServiceImpl implements FortuneService {
             log.warn("计算时间窗口失败", e);
             resp.setLunarDate("");
             resp.setSolarTerm("");
+        }
+    }
+
+    /**
+     * 填充 nextRefreshAt 和 nextRefreshAtEpochMs
+     */
+    private void fillNextRefreshAt(FortuneResp resp, String cacheKey) {
+        try {
+            Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
+            if (ttl != null && ttl > 0) {
+                long epochMs = System.currentTimeMillis() + ttl * 1000;
+                resp.setNextRefreshAtEpochMs(epochMs);
+                java.time.LocalTime refreshTime = java.time.LocalTime.now().plusSeconds(ttl);
+                resp.setNextRefreshAt(refreshTime.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+            }
+        } catch (Exception e) {
+            log.warn("计算 nextRefreshAt 失败", e);
         }
     }
 

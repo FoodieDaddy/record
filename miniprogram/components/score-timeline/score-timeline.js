@@ -1,5 +1,5 @@
 /**
- * 积分-时间折线图组件
+ * 脉冲-时间折线图组件
  * Canvas 2D 绘制，Neon 发光效果，贝塞尔曲线，渐变填充
  * 支持触摸游标交互和入场动画
  */
@@ -15,7 +15,7 @@ Component({
   properties: {
     /** 时间戳数组（毫秒） */
     timestamps: { type: Array, value: [] },
-    /** 积分数组（与 timestamps 一一对应） */
+    /** 脉冲数组（与 timestamps 一一对应） */
     scores: { type: Array, value: [] },
     /** 图表高度 rpx */
     canvasHeight: { type: Number, value: 400 },

@@ -1,6 +1,6 @@
 /**
- * 对角线积分矩阵表组件
- * 行列 = 玩家，对角线 = 总积分，非对角线 = 净积分差
+ * 对角线脉冲矩阵表组件
+ * 行列 = 玩家，对角线 = 总脉冲，非对角线 = 净脉冲差
  */
 Component({
   properties: {
@@ -42,7 +42,7 @@ Component({
         const row = [];
         for (let j = 0; j < n; j++) {
           if (i === j) {
-            // 对角线：该玩家总积分
+            // 对角线：该玩家总脉冲
             const score = players[i].finalScore;
             row.push({
               isDiagonal: true,
