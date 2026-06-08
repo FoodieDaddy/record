@@ -21,16 +21,16 @@
 
     <view class="terminal-divider">
       <view class="div-line"></view>
-      <text class="div-label">脉冲 · 镜像 · 策略 · 身份</text>
+      <text class="div-label">脉冲 · 编队 · 镜像 · 档案</text>
       <view class="div-line"></view>
     </view>
 
     <view class="terminal-tags">
-      <text class="tag-item">多人空间</text>
+      <text class="tag-item">多人编队</text>
       <text class="tag-sep">|</text>
       <text class="tag-item">人格镜像</text>
       <text class="tag-sep">|</text>
-      <text class="tag-item">策略终端</text>
+      <text class="tag-item">导航核心</text>
     </view>
   </view>
 
@@ -46,7 +46,7 @@
     <view class="status-grid">
       <view class="status-row">
         <view class="status-dot"></view>
-        <text class="status-module">空间模块</text>
+        <text class="status-module">编队模块</text>
         <text class="status-value">在线</text>
       </view>
       <view class="status-row">
@@ -56,7 +56,7 @@
       </view>
       <view class="status-row">
         <view class="status-dot"></view>
-        <text class="status-module">策略模块</text>
+        <text class="status-module">指令投影</text>
         <text class="status-value">在线</text>
       </view>
     </view>
@@ -83,7 +83,7 @@
       </view>
     </button>
 
-    <text class="auth-hint">首次接入后自动创建身份档案</text>
+    <text class="auth-hint">首次接入后自动创建识别档案</text>
   </view>
 
   <!-- 登录动画 -->

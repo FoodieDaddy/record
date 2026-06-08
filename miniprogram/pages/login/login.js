@@ -49,10 +49,10 @@ Page({
 
     return new Promise((resolve) => {
       const stepTexts = [
-        '同步身份档案',
+        '同步识别档案',
         '加载人格协议',
-        '初始化空间核心',
-        '同步策略引擎'
+        '初始化编队核心',
+        '同步导航引擎'
       ];
 
       const steps = stepTexts.map(text => ({ text, done: false }));

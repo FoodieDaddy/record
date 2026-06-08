@@ -1,27 +1,35 @@
 /**
  * 脉冲终端 — 全局术语常量
  * 所有页面展示文案统一引用此文件，减少硬编码
+ *
+ * 注：当前未被页面 import，仅作权威参考。
+ * 工程层 room / fortune / all_record / dimensions 等命名保留不动。
  */
 const TERMINOLOGY = {
   appName: '脉冲方舟',
   appEnglishName: 'PULSE ARK',
 
-  // 空间
-  space: '空间',
-  spaceCore: '空间核心',
-  activeSpace: '当前空间',
-  createSpace: '开启空间',
-  joinSpace: '接入空间',
-  leaveSpace: '断开空间',
-  closeSpace: '关闭空间',
-  accessCode: '接入码',
-  spaceAccessCode: '空间接入码',
-  scanSpace: '扫描接入',
-  roomCode: '空间识别码',
+  // 编队（原空间）
+  space: '编队',
+  spaceCore: '编队核心',
+  activeSpace: '当前编队',
+  createSpace: '创建编队',
+  joinSpace: '加入编队',
+  leaveSpace: '退出编队',
+  closeSpace: '解散编队',
+  accessCode: '编队码',
+  spaceAccessCode: '编队码',
+  beacon: '信标',
+  joinBeacon: '加入信标',
+  shareBeacon: '发送信标',
+  saveBeacon: '保存信标',
+  scanBeacon: '扫描信标',
+  scanSpace: '扫描加入',
+  roomCode: '编队码',
 
   // 角色
-  controller: '主控',
-  member: '舰员',
+  controller: '编队主控',
+  member: '成员',
   crew: '乘员',
   slot: '舱位',
   adjustSlot: '调整舱位',
@@ -62,18 +70,18 @@ const TERMINOLOGY = {
   recalibrate: '重新校准',
   taskMirror: '航程镜像',
 
-  // 策略
-  oracleCore: '策略核心',
-  strategyCard: '策略投影',
-  fieldStatus: '场域状态',
-  actionHint: '行动提醒',
-  riskNotice: '风险提醒',
-  actionAdvantage: '执行节奏',
-  regenerate: '重新点火',
+  // 指令（导航核心）
+  oracleCore: '导航核心',
+  strategyCard: '指令投影',
+  fieldStatus: '状态读数',
+  actionHint: '推进节奏',
+  riskNotice: '安全边界',
+  actionAdvantage: '推进节奏',
+  regenerate: '重新计算',
 
-  // 身份
-  identityCore: '身份核心',
-  identityDossier: '身份档案',
+  // 档案（身份）
+  identityCore: '档案核心',
+  identityDossier: '识别档案',
   systemControl: '系统控制',
   voiceProfile: '声音协议',
   voiceModule: '音色模块',
@@ -85,14 +93,14 @@ const TERMINOLOGY = {
 
   // 状态语言
   statusStandby: '等待接入',
-  statusOnline: '空间已开启',
+  statusOnline: '编队已开启',
   statusMissionActive: '航程进行中',
   statusSealPending: '航程待封存',
   statusSealed: '航程已封存',
-  statusClosed: '空间已关闭',
+  statusClosed: '编队已关闭',
 
-  // 黑匣子
-  blackBox: '黑匣子记录',
+  // 航迹档案（原黑匣子）
+  blackBox: '航迹档案',
 
   // 系统编号前缀
   spacePrefix: 'SP',

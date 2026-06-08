@@ -1,6 +1,8 @@
 const api = require('../../utils/mirror-api');
+const { get } = require('../../utils/request');
 const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
-const { sanitizeMirrorText, sanitizeMirrorObject } = require('../../utils/mirror-sanitize');
+const { sanitizeMirrorText, sanitizeMirrorObject, sanitizeCrewName, truncateCanvasText } = require('../../utils/mirror-sanitize');
+const { normalizeAvatarUrl } = require('../../utils/avatar');
 const app = getApp();
 
 var ZERO_DIMS = [
@@ -27,12 +29,42 @@ function resolveMbti(mbti) {
   return sanitizeMirrorObject(Object.assign({}, mbti, { mbtiType: info.type, mbtiTitle: info.title }));
 }
 
+/**
+ * 由 mirrorPhase 派生视图 boolean，WXML 中直接使用，避免复杂表达式。
+ */
+function deriveViewFlags(phase) {
+  return {
+    isInitialLoading: phase === 'initial_loading',
+    calibrationVisible: phase === 'calibration_entering' || phase === 'calibrating' || phase === 'submitting_calibration',
+    calibrationEntering: phase === 'calibration_entering',
+    calibrationSubmitting: phase === 'submitting_calibration',
+    mainDimmed: phase === 'calibration_entering' || phase === 'calibrating' || phase === 'submitting_calibration',
+    cardOverlayVisible: phase === 'card_scanning' || phase === 'card_preview',
+    isCardPreview: phase === 'card_preview',
+    isQuickSyncing: phase === 'quick_syncing',
+    isSilentSyncing: phase === 'silent_syncing',
+    mainVisible: phase === 'main' || phase === 'silent_syncing' || phase === 'quick_syncing' || phase === 'card_scanning' || phase === 'card_preview'
+  };
+}
+
 Page({
   data: {
-    loading: true,
-    loadedOnce: false,
+    // 核心阶段状态机
+    mirrorPhase: 'initial_loading',
+    // 派生视图标志
+    isInitialLoading: true,
+    calibrationVisible: false,
+    calibrationEntering: false,
+    calibrationSubmitting: false,
+    mainDimmed: false,
+    cardOverlayVisible: false,
+    isCardPreview: false,
+    isQuickSyncing: false,
+    isSilentSyncing: false,
+    mainVisible: false,
+
     reduceMotion: false,
-    viewMode: 'main', // 'main' | 'calibration'
+    loadedOnce: false,
 
     // 入场动画
     headerOpacity: 0,
@@ -59,7 +91,7 @@ Page({
       generated: false,
       sampleSize: 0,
       tag: 'INSUFFICIENT_DATA',
-      title: '黑匣子样本不足',
+      title: '航迹样本不足',
       summary: ''
     },
     radarDimensions: [
@@ -71,10 +103,10 @@ Page({
     ],
     radarLocked: true,
 
-    // 协议一致率（原人格可信度）
+    // 协议一致率
     personaConfidence: 0,
 
-    // 协议偏移（原人格偏差）
+    // 协议偏移
     personaMatch: {
       available: false,
       matchPercentage: 0,
@@ -108,14 +140,43 @@ Page({
 
     // 校准进度
     calibrationProgress: '01 / 20',
+    calibrationSubmitStep: 0,
+    calibrationSubmitStepViews: [
+      { text: '协议写入中', status: 'pending' },
+      { text: '读取航迹样本', status: 'pending' },
+      { text: '生成镜像投影', status: 'pending' },
+      { text: '镜像投影已稳定', status: 'pending' }
+    ],
+    calibrationError: '',
+
+    // 快速接入
+    pickerSyncState: 'idle',
+    pickerError: '',
+
+    // 舰员身份
+    crewProfile: {
+      userId: '',
+      nickname: '',
+      avatarUrl: '',
+      displayName: '未命名航船'
+    },
 
     // 生成镜像卡
-    showCardPreview: false,
-    generatingCard: false,
-    scanStep: 0,
+    cardError: '',
     cardTempPath: '',
+    cardScanStep: 0,
+    cardScanStepViews: [
+      { text: '读取人格协议', status: 'pending' },
+      { text: '接入识别徽标', status: 'pending' },
+      { text: '封装镜像档案', status: 'pending' }
+    ],
     showPermDialog: false,
-    generatedAt: ''
+    generatedAt: '',
+
+    // 航迹档案摘要
+    bbSampleCount: 0,
+    bbRecentRoom: '--',
+    bbRecentTime: '--'
   },
 
   onLoad() {
@@ -124,19 +185,44 @@ Page({
       app.globalData.reduceMotion === true;
     this.setData({ reduceMotion: reduceMotion });
     this._toastRef = null;
-    this._scanTimers = [];
     this._entryTimers = [];
+    this._calibrationTimers = [];
+    this._cardTimers = [];
+    this._profileRunId = 0;
+    this._calibrationRunId = 0;
+    this._cardRunId = 0;
+    this._unloaded = false;
+    this._lastProfileLoadAt = 0;
     this._generatedAt = this._formatDate();
-    this.loadProfile();
+    this._loadProfile({ initial: true, reason: 'onLoad' });
+    this._loadCrewProfile();
   },
 
   onUnload() {
-    this._clearScanTimers();
-    this._clearEntryTimers();
+    this._unloaded = true;
+    this._cardRunId++;
+    this._profileRunId++;
+    this._clearAllTimers();
+  },
+
+  onHide() {
+    this._clearAllTimers();
   },
 
   onReady() {
     this._toastRef = this.selectComponent('#srToast');
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 })
+    }
+    getApp().globalData.activeTabKey = 'holo'
+    if (!this.data.loadedOnce) return;
+    // 距离上次刷新 < 30s 不刷新
+    var now = Date.now();
+    if (now - this._lastProfileLoadAt < 30000) return;
+    this._loadProfile({ silent: true, reason: 'onShow' });
   },
 
   _showToast(text, type, duration) {
@@ -145,31 +231,35 @@ Page({
     }
   },
 
-  _clearScanTimers() {
-    for (var i = 0; i < this._scanTimers.length; i++) {
-      clearTimeout(this._scanTimers[i]);
-    }
-    this._scanTimers = [];
+  _clearAllTimers() {
+    this._clearTimerGroup(this._entryTimers);
+    this._clearTimerGroup(this._calibrationTimers);
+    this._clearTimerGroup(this._cardTimers);
   },
 
-  _clearEntryTimers() {
-    for (var i = 0; i < this._entryTimers.length; i++) {
-      clearTimeout(this._entryTimers[i]);
+  _clearTimerGroup(timers) {
+    if (!timers) return;
+    for (var i = 0; i < timers.length; i++) {
+      clearTimeout(timers[i]);
     }
-    this._entryTimers = [];
+    timers.length = 0;
+  },
+
+  _isMotionEnabled() {
+    return app.globalData.animationEnabled !== false && this.data.reduceMotion !== true;
   },
 
   _playEntryAnimation() {
-    if (this.data.reduceMotion) {
+    if (!this._isMotionEnabled()) {
       this.setData({ headerOpacity: 1, heroOpacity: 1, sectionsOpacity: 1 });
       return;
     }
     var self = this;
-    this._clearEntryTimers();
+    this._clearTimerGroup(this._entryTimers);
     var t1 = setTimeout(function () { self.setData({ headerOpacity: 1 }); }, 120);
     var t2 = setTimeout(function () { self.setData({ heroOpacity: 1 }); }, 240);
     var t3 = setTimeout(function () { self.setData({ sectionsOpacity: 1 }); }, 600);
-    this._entryTimers = [t1, t2, t3];
+    this._entryTimers.push(t1, t2, t3);
   },
 
   _formatDate() {
@@ -181,86 +271,144 @@ Page({
 
   noop() {},
 
-  onShow() {
-    if (this.data.loadedOnce) {
-      this.loadProfile(true);
-    }
-  },
+  // ==================== 数据加载 ====================
 
-  async loadProfile(force) {
-    if (this.data.loading && !force && this.data.loadedOnce) return;
-    this.setData({ loading: true });
+  /**
+   * 统一加载入口。options: { initial, silent, reason }
+   * initial: 首次进入，显示 skeleton
+   * silent: 后台刷新，不闪烁
+   */
+  async _loadProfile(options) {
+    var opts = options || {};
+    var initial = opts.initial === true;
+    var silent = opts.silent === true;
+
+    if (initial) {
+      this.setData({
+        mirrorPhase: 'initial_loading',
+        ...deriveViewFlags('initial_loading')
+      });
+    } else if (!silent) {
+      // 非静默非首次：轻量状态
+      this.setData({ isSilentSyncing: true });
+    }
+
+    var runId = ++this._profileRunId;
 
     try {
-      var res = await api.getMirrorProfile();
+      var results = await Promise.allSettled([
+        this._fetchMirrorBundle(),
+        this._fetchCrewProfile(),
+        this._fetchBlackboxSummary()
+      ]);
 
-      var mbti = resolveMbti(res.mbti) || this.data.mbti;
-      if (mbti.calibratedAt && mbti.calibratedAt.length > 10) {
-        mbti = Object.assign({}, mbti, {
-          updatedAtShort: mbti.calibratedAt.substring(11)
+      var viewState = results[0].status === 'fulfilled' ? results[0].value : null;
+      if (!viewState) throw new Error('mirror bundle failed');
+
+      var crewState = results[1].status === 'fulfilled' ? results[1].value : null;
+      var bbState = results[2].status === 'fulfilled' ? results[2].value : null;
+
+      if (runId !== this._profileRunId || this._unloaded) return;
+
+      this._lastProfileLoadAt = Date.now();
+
+      var crewData = crewState ? { crewProfile: crewState } : {};
+      var bbData = bbState || {};
+
+      if (initial) {
+        this.setData({
+          ...viewState,
+          ...crewData,
+          ...bbData,
+          mirrorPhase: 'main',
+          ...deriveViewFlags('main'),
+          loadedOnce: true
+        });
+        this._playEntryAnimation();
+      } else {
+        this.setData({
+          ...viewState,
+          ...crewData,
+          ...bbData,
+          loadedOnce: true
         });
       }
-
-      var traits = (res.traits && res.traits.length > 0)
-        ? res.traits
-        : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
-      traits = traits.map(sanitizeMirrorText);
-
-      // 历史缓存可能残留旧画像词，进入页面状态前统一净化。
-      var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
-
-      // 协议一致率
-      var personaConfidence = res.personaConfidence || 0;
-
-      // 结构化判读（兼容旧格式）
-      var reading = sanitizeMirrorObject(res.reading || this.data.reading);
-      if (reading.available && !reading.observation && reading.text) {
-        reading = Object.assign({}, reading, { observation: reading.text });
-      }
-
-      // 人格信号：关键词标签
-      var signals = this._calcSignalTags(battle, traits);
-
-      // 演化轨迹
-      var evolution = res.evolution || [];
-
-      var baySubtitle = '镜像舱在线';
-      if (!mbti.calibrated) {
-        baySubtitle = '接入人格协议以启动镜像';
-      } else if (battle.sampleSize < 3) {
-        baySubtitle = '黑匣子样本读取中';
-      }
-
-      this.setData({
-        mbti: mbti,
-        traits: traits,
-        syncActive: mbti.calibrated,
-        battlePersona: battle,
-        personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
-        reading: reading,
-        personaConfidence: personaConfidence,
-        personaSignals: signals,
-        evolution: evolution,
-        generatedAt: this._generatedAt,
-        baySubtitle: baySubtitle,
-        loading: false,
-        loadedOnce: true,
-        needRefresh: false
-      });
-
-      this._playEntryAnimation();
-      this.loadStats();
     } catch (e) {
-      this.setData({ loading: false, loadedOnce: true });
+      if (runId !== this._profileRunId || this._unloaded) return;
+      if (initial) {
+        this.setData({
+          mirrorPhase: 'main',
+          ...deriveViewFlags('main'),
+          loadedOnce: true
+        });
+      }
       this._showToast('镜像投影加载失败', 'dot-error');
     }
   },
 
-  async loadStats() {
-    try {
-      var res = await api.getMirrorStats();
-      var sampleSize = this.data.battlePersona.sampleSize || 0;
-      var dims = sampleSize >= 3 ? (res.dimensions || []) : [];
+  /**
+   * 并行获取 profile + stats，一次整理成完整 viewState。
+   */
+  async _fetchMirrorBundle() {
+    var results = await Promise.allSettled([
+      api.getMirrorProfile(),
+      api.getMirrorStats()
+    ]);
+
+    var profileResult = results[0];
+    var statsResult = results[1];
+
+    return this._buildMirrorViewState(profileResult, statsResult);
+  },
+
+  /**
+   * 将 profile 和 stats 结果整理为一次 setData 的 viewState。
+   */
+  _buildMirrorViewState(profileResult, statsResult) {
+    // profile 必须成功
+    if (profileResult.status === 'rejected') {
+      throw profileResult.reason || new Error('profile failed');
+    }
+
+    var res = profileResult.value;
+    var mbti = resolveMbti(res.mbti) || this.data.mbti;
+    if (mbti.calibratedAt && mbti.calibratedAt.length > 10) {
+      mbti = Object.assign({}, mbti, {
+        updatedAtShort: mbti.calibratedAt.substring(11)
+      });
+    }
+
+    var traits = (res.traits && res.traits.length > 0)
+      ? res.traits
+      : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
+    traits = traits.map(sanitizeMirrorText);
+
+    var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
+    var personaConfidence = res.personaConfidence || 0;
+
+    var reading = sanitizeMirrorObject(res.reading || this.data.reading);
+    if (reading.available && !reading.observation && reading.text) {
+      reading = Object.assign({}, reading, { observation: reading.text });
+    }
+
+    var signals = this._calcSignalTags(battle, traits);
+    var evolution = res.evolution || [];
+
+    var baySubtitle = '镜像舱在线';
+    if (!mbti.calibrated) {
+      baySubtitle = '接入人格协议以启动镜像';
+    } else if (battle.sampleSize < 3) {
+      baySubtitle = '航迹样本读取中';
+    }
+
+    // stats 可能失败，降级处理
+    var radarDimensions = this.data.radarDimensions;
+    var radarLocked = true;
+    var sampleSize = battle.sampleSize || 0;
+
+    if (statsResult.status === 'fulfilled' && statsResult.value) {
+      var statsRes = statsResult.value;
+      var dims = sampleSize >= 3 ? (statsRes.dimensions || []) : [];
       var labelMap = {
         aggression: '推进倾向',
         stability: '舰体稳定',
@@ -273,13 +421,29 @@ Page({
           label: labelMap[item.key] || item.label
         });
       });
-      this.setData({
-        radarDimensions: normalized.length > 0 ? normalized : this.data.radarDimensions,
-        radarLocked: sampleSize < 3
-      });
-    } catch (e) {
-      // 雷达图加载失败不影响主流程
+      if (normalized.length > 0) {
+        radarDimensions = normalized;
+      }
+      radarLocked = sampleSize < 3;
     }
+
+    return {
+      mbti: mbti,
+      traits: traits,
+      syncActive: mbti.calibrated,
+      battlePersona: battle,
+      personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
+      reading: reading,
+      personaConfidence: personaConfidence,
+      personaSignals: signals,
+      evolution: evolution,
+      generatedAt: this._generatedAt,
+      baySubtitle: baySubtitle,
+      radarDimensions: radarDimensions,
+      radarLocked: radarLocked,
+      needRefresh: false,
+      isSilentSyncing: false
+    };
   },
 
   // 计算信号关键词标签
@@ -289,7 +453,6 @@ Page({
     }
     var tag = battle.tag || 'STABLE_CONTROL';
     var signalTags = PERSONA_SIGNAL_MAP[tag] || [];
-    // 合并：信号关键词 + 认知特征标签，去重取前5
     var all = signalTags.concat(traits || []);
     var unique = [];
     var seen = {};
@@ -303,97 +466,520 @@ Page({
     return unique.slice(0, 5);
   },
 
-  // 同步人格
+  // ==================== 舰员身份 ====================
+
+  async _loadCrewProfile() {
+    try {
+      var crew = await this._fetchCrewProfile();
+      if (this._unloaded) return;
+      this.setData({ crewProfile: crew });
+    } catch (e) {
+      // 静默失败，使用默认值
+    }
+  },
+
+  async _fetchCrewProfile() {
+    // 多来源读取用户信息，确保和身份页一致
+    var nickname = '';
+    var avatarUrl = '';
+    var userId = app.globalData.userId || '';
+
+    // 来源 1: globalData.userInfo
+    var cached = app.globalData.userInfo;
+    if (cached) {
+      nickname = cached.nickname || cached.nickName || '';
+      avatarUrl = cached.avatarUrl || cached.avatar || '';
+    }
+
+    // 来源 2: storage（可能比 globalData 更新）
+    if (!nickname || !avatarUrl) {
+      try {
+        var stored = wx.getStorageSync('userInfo') || wx.getStorageSync('user_info') || wx.getStorageSync('profile');
+        if (stored) {
+          nickname = nickname || stored.nickname || stored.nickName || stored.displayName || '';
+          avatarUrl = avatarUrl || stored.avatarUrl || stored.avatar || stored.headUrl || '';
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // 来源 3: API（兜底）
+    if (!nickname || !avatarUrl) {
+      try {
+        var user = await api.getCurrentUser();
+        if (user) {
+          nickname = nickname || user.nickname || user.nickName || '';
+          var rawAvatar = user.avatarUrl || user.avatar || user.headUrl || '';
+          avatarUrl = avatarUrl || rawAvatar;
+          userId = userId || String(user.userId || user.id || '');
+          // 回写缓存
+          app.updateUserInfo({ nickname: nickname, avatarUrl: rawAvatar });
+        }
+      } catch (e) {
+        // API 失败，使用已有缓存
+      }
+    }
+
+    avatarUrl = normalizeAvatarUrl(avatarUrl);
+    var displayName = sanitizeCrewName(nickname);
+
+    return {
+      userId: userId,
+      nickname: nickname,
+      avatarUrl: avatarUrl,
+      displayName: displayName
+    };
+  },
+
+  async _ensureCrewProfile() {
+    var crew = this.data.crewProfile;
+    // displayName 有值即可用，userId 可能为空（缓存中未存）
+    if (crew && crew.displayName && crew.displayName !== '未命名航船') return crew;
+    try {
+      var fresh = await this._fetchCrewProfile();
+      if (this._unloaded) return crew;
+      this.setData({ crewProfile: fresh });
+      return fresh;
+    } catch (e) {
+      return crew;
+    }
+  },
+
+  // ==================== 航迹档案摘要 ====================
+
+  async _fetchBlackboxSummary() {
+    try {
+      var resp = await get('/score/yield-log');
+      if (!resp) return null;
+      var records = resp.records || [];
+      var sampleCount = Number(resp.sampleCount) || 0;
+      var recentRoom = '--';
+      var recentTime = '--';
+      if (records.length > 0) {
+        var latest = records[0];
+        recentRoom = latest.roomNo || latest.roomId || '--';
+        if (typeof recentRoom === 'number') recentRoom = String(recentRoom);
+        var dateSrc = latest.settledAt || latest.createdAt;
+        if (dateSrc) {
+          var t = new Date(dateSrc);
+          if (!isNaN(t.getTime())) {
+            var m = t.getMonth() + 1;
+            var d = t.getDate();
+            var hh = String(t.getHours()).padStart(2, '0');
+            var mm = String(t.getMinutes()).padStart(2, '0');
+            recentTime = m + '/' + d + ' ' + hh + ':' + mm;
+          }
+        }
+      }
+      return { bbSampleCount: sampleCount, bbRecentRoom: recentRoom, bbRecentTime: recentTime };
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // ==================== 同步人格 ====================
+
   async refreshProfile() {
+    var runId = ++this._profileRunId;
+    this.setData({ isSilentSyncing: true });
     wx.showLoading({ title: '同步中' });
     try {
       var res = await api.refreshMirrorProfile();
+      if (runId !== this._profileRunId || this._unloaded) return;
 
-      var mbti = resolveMbti(res.mbti) || this.data.mbti;
-      if (mbti.calibratedAt && mbti.calibratedAt.length > 10) {
-        mbti = Object.assign({}, mbti, {
-          updatedAtShort: mbti.calibratedAt.substring(11)
-        });
-      }
-
-      var traits = (res.traits && res.traits.length > 0)
-        ? res.traits
-        : (mbti.mbtiType ? (MBTI_TRAITS[mbti.mbtiType] || []) : []);
-      traits = traits.map(sanitizeMirrorText);
-
-      var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
-      var signals = this._calcSignalTags(battle, traits);
-
-      this.setData({
-        mbti: mbti,
-        traits: traits,
-        syncActive: mbti.calibrated,
-        battlePersona: battle,
-        personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
-        reading: sanitizeMirrorObject(res.reading || this.data.reading),
-        personaConfidence: res.personaConfidence || 0,
-        personaSignals: signals
-      });
-      this.loadStats();
-      this._showToast('[SYNC] 协议参数已写入镜像', 'dot-sync');
+      var viewState = this._buildMirrorViewState(
+        { status: 'fulfilled', value: res },
+        { status: 'rejected', reason: null }
+      );
+      this.setData({ ...viewState, isSilentSyncing: false });
+      this._showToast('协议参数已写入镜像', 'dot-sync');
     } catch (e) {
+      if (runId !== this._profileRunId || this._unloaded) return;
+      this.setData({ isSilentSyncing: false });
       this._showToast('协议同步失败，请重试', 'dot-error');
     } finally {
       wx.hideLoading();
     }
   },
 
-  // ---- 人格复制 ----
+  // ==================== 校准流程 ====================
+
+  startFullCalibration() {
+    if (this._isMotionEnabled()) {
+      // 进入过渡：主页面暗化，校准层从核心展开
+      this.setData({
+        mirrorPhase: 'calibration_entering',
+        ...deriveViewFlags('calibration_entering')
+      });
+      var self = this;
+      var t = setTimeout(function () {
+        self.setData({
+          mirrorPhase: 'calibrating',
+          ...deriveViewFlags('calibrating')
+        });
+      }, 220);
+      this._calibrationTimers.push(t);
+    } else {
+      this.setData({
+        mirrorPhase: 'calibrating',
+        ...deriveViewFlags('calibrating')
+      });
+    }
+  },
+
+  closeMbtiTest() {
+    this.setData({ showExitConfirm: true });
+  },
+
+  onExitConfirm() {
+    this._exitCalibration();
+  },
+
+  onExitCancel() {
+    this.setData({ showExitConfirm: false });
+  },
+
+  _exitCalibration() {
+    this.setData({ showExitConfirm: false });
+    if (this._isMotionEnabled()) {
+      // 校准层淡出
+      this.setData({
+        mirrorPhase: 'calibration_entering',
+        ...deriveViewFlags('calibration_entering')
+      });
+      var self = this;
+      var t = setTimeout(function () {
+        self.setData({
+          mirrorPhase: 'main',
+          ...deriveViewFlags('main'),
+          calibrationError: ''
+        });
+      }, 200);
+      this._calibrationTimers.push(t);
+    } else {
+      this.setData({
+        mirrorPhase: 'main',
+        ...deriveViewFlags('main'),
+        calibrationError: ''
+      });
+    }
+  },
+
+  async handleMbtiComplete(e) {
+    var detail = e.detail;
+    var runId = ++this._calibrationRunId;
+    var self = this;
+
+    this.setData({
+      mirrorPhase: 'submitting_calibration',
+      ...deriveViewFlags('submitting_calibration'),
+      calibrationSubmitStep: 1,
+      calibrationSubmitStepViews: this._buildCalibrationSubmitSteps(1),
+      calibrationError: ''
+    });
+
+    try {
+      await api.submitMbtiTest({ testVersion: detail.testVersion, answers: detail.answers });
+
+      if (runId !== this._calibrationRunId || self._unloaded) return;
+      this.setData({
+        calibrationSubmitStep: 2,
+        calibrationSubmitStepViews: this._buildCalibrationSubmitSteps(2)
+      });
+
+      // 并行拉取 profile + stats
+      var viewState = await this._fetchMirrorBundle();
+
+      if (runId !== this._calibrationRunId || self._unloaded) return;
+      this.setData({
+        calibrationSubmitStep: 3,
+        calibrationSubmitStepViews: this._buildCalibrationSubmitSteps(3)
+      });
+
+      // 短暂展示"生成镜像投影"步骤后切到稳定态
+      await new Promise(function (r) { setTimeout(r, self._isMotionEnabled() ? 600 : 0); });
+
+      if (runId !== this._calibrationRunId || self._unloaded) return;
+      this.setData({
+        calibrationSubmitStep: 4,
+        calibrationSubmitStepViews: this._buildCalibrationSubmitSteps(4)
+      });
+
+      // 短暂展示"已稳定"后回到主页面
+      await new Promise(function (r) { setTimeout(r, self._isMotionEnabled() ? 500 : 0); });
+
+      if (runId !== this._calibrationRunId || self._unloaded) return;
+      this.setData({
+        ...viewState,
+        mirrorPhase: 'main',
+        ...deriveViewFlags('main'),
+        calibrationError: ''
+      });
+      this._showToast('协议已同步', 'dot-sync');
+    } catch (err) {
+      if (runId !== this._calibrationRunId || self._unloaded) return;
+      this.setData({
+        mirrorPhase: 'calibrating',
+        ...deriveViewFlags('calibrating'),
+        calibrationError: '协议写入失败，请重试'
+      });
+    }
+  },
+
+  _buildCalibrationSubmitSteps(step) {
+    var steps = [
+      { text: '协议写入中', key: 'write' },
+      { text: '读取航迹样本', key: 'read' },
+      { text: '生成镜像投影', key: 'generate' },
+      { text: '镜像投影已稳定', key: 'stable' }
+    ];
+    return steps.map(function (s, i) {
+      var status = 'pending';
+      if (step > i + 1) status = 'done';
+      else if (step === i + 1) status = 'active';
+      return { text: s.text, status: status };
+    });
+  },
+
+  // ==================== 快速接入 ====================
+
+  openMbtiPicker() {
+    this.setData({ showMbtiPicker: true, pickerSyncState: 'idle', pickerError: '' });
+  },
+
+  closeMbtiPicker() {
+    this.setData({ showMbtiPicker: false, pickerSyncState: 'idle', pickerError: '' });
+  },
+
+  async handleMbtiDirectInput(e) {
+    var runId = ++this._profileRunId;
+
+    this.setData({
+      pickerSyncState: 'syncing',
+      pickerError: '',
+      mirrorPhase: 'quick_syncing'
+    });
+
+    try {
+      await api.submitMbtiDirect({ mbtiCode: e.detail.mbtiCode });
+
+      if (runId !== this._profileRunId || this._unloaded) return;
+
+      // 并行拉取 profile + stats
+      var viewState = await this._fetchMirrorBundle();
+
+      if (runId !== this._profileRunId || this._unloaded) return;
+
+      this.setData({
+        ...viewState,
+        pickerSyncState: 'success',
+        mirrorPhase: 'main',
+        ...deriveViewFlags('main')
+      });
+
+      // 300ms 后关闭弹窗
+      var self = this;
+      var t = setTimeout(function () {
+        if (self._unloaded) return;
+        self.setData({ showMbtiPicker: false, pickerSyncState: 'idle' });
+      }, 300);
+      this._entryTimers.push(t);
+
+      this._showToast('协议已同步', 'dot-sync');
+    } catch (err) {
+      if (runId !== this._profileRunId || this._unloaded) return;
+      this.setData({
+        pickerSyncState: 'error',
+        pickerError: '同步失败，请重试',
+        mirrorPhase: 'main',
+        ...deriveViewFlags('main')
+      });
+    }
+  },
+
+  // ==================== 镜像卡生成 ====================
+
+  _buildScanStepViews(step) {
+    var steps = [
+      { text: '读取人格协议', key: 'protocol' },
+      { text: '接入识别徽标', key: 'helmet' },
+      { text: '封装镜像档案', key: 'package' }
+    ];
+    return steps.map(function (s, i) {
+      var status = 'pending';
+      if (step > i + 1) status = 'done';
+      else if (step === i + 1) status = 'active';
+      return { text: s.text, status: status };
+    });
+  },
+
   generateDossier() {
-    if (this.data.generatingCard) return;
-    this._clearScanTimers();
-    this.setData({ generatingCard: true, scanStep: 0 });
+    if (this.data.mirrorPhase === 'card_scanning' || this.data.mirrorPhase === 'card_preview') return;
+    this._clearTimerGroup(this._cardTimers);
+
+    var runId = ++this._cardRunId;
+
+    this.setData({
+      mirrorPhase: 'card_scanning',
+      ...deriveViewFlags('card_scanning'),
+      cardScanStep: 0,
+      cardScanStepViews: this._buildScanStepViews(0),
+      cardError: ''
+    });
 
     var self = this;
-    var reduceMotion = this.data.reduceMotion;
 
-    if (reduceMotion) {
-      this.setData({ scanStep: 3 });
-      this._doDrawCard();
+    if (!this._isMotionEnabled()) {
+      this.setData({ cardScanStep: 3, cardScanStepViews: this._buildScanStepViews(3) });
+      this._doDrawCard(runId);
       return;
     }
 
-    var t1 = setTimeout(function () { self.setData({ scanStep: 1 }); }, 400);
-    var t2 = setTimeout(function () { self.setData({ scanStep: 2 }); }, 900);
+    var t1 = setTimeout(function () {
+      if (runId !== self._cardRunId || self._unloaded) return;
+      self.setData({ cardScanStep: 1, cardScanStepViews: self._buildScanStepViews(1) });
+    }, 400);
+    var t2 = setTimeout(function () {
+      if (runId !== self._cardRunId || self._unloaded) return;
+      self.setData({ cardScanStep: 2, cardScanStepViews: self._buildScanStepViews(2) });
+    }, 900);
     var t3 = setTimeout(function () {
-      self.setData({ scanStep: 3 });
-      self._doDrawCard();
+      if (runId !== self._cardRunId || self._unloaded) return;
+      self.setData({ cardScanStep: 3, cardScanStepViews: self._buildScanStepViews(3) });
+      self._doDrawCard(runId);
     }, 1500);
-    this._scanTimers = [t1, t2, t3];
+    this._cardTimers.push(t1, t2, t3);
   },
 
-  async _doDrawCard() {
+  async _doDrawCard(runId) {
     try {
-      var path = await this._drawPersonaCard();
+      var crew = await this._ensureCrewProfile();
+      console.log('[mirror-card] _doDrawCard crew:', JSON.stringify({
+        userId: crew.userId,
+        nickname: crew.nickname,
+        displayName: crew.displayName,
+        avatarUrl: crew.avatarUrl ? crew.avatarUrl.substring(0, 80) : ''
+      }));
+      if (runId !== this._cardRunId || this._unloaded) return;
+
+      var avatarTempPath = await this._prepareAvatarForCanvas(crew.avatarUrl);
+      console.log('[mirror-card] avatarTempPath:', avatarTempPath ? avatarTempPath.substring(0, 80) : '(empty)');
+      if (runId !== this._cardRunId || this._unloaded) return;
+
+      var path = await this._drawPersonaCard({
+        crewProfile: {
+          userId: crew.userId,
+          nickname: crew.nickname,
+          avatarUrl: crew.avatarUrl,
+          avatarTempPath: avatarTempPath,
+          displayName: crew.displayName
+        }
+      });
+      if (runId !== this._cardRunId || this._unloaded) return;
       this.setData({
         cardTempPath: path,
-        generatingCard: false,
-        scanStep: 0,
-        showCardPreview: true
+        mirrorPhase: 'card_preview',
+        ...deriveViewFlags('card_preview')
       });
     } catch (e) {
-      this.setData({ generatingCard: false, scanStep: 0 });
+      if (runId !== this._cardRunId || this._unloaded) return;
+      this.setData({
+        mirrorPhase: 'main',
+        ...deriveViewFlags('main'),
+        cardError: '镜像卡生成失败'
+      });
       this._showToast('投影生成失败，请稍后重试', 'dot-error');
     }
   },
 
-  closeCardPreview() {
-    this.setData({ showCardPreview: false, cardTempPath: '' });
+  retryCard() {
+    this.generateDossier();
   },
 
-  // ---- Canvas 绘制 ----
-  _drawPersonaCard() {
+  closeCardPreview() {
+    this.setData({
+      cardTempPath: '',
+      mirrorPhase: 'main',
+      ...deriveViewFlags('main')
+    });
+  },
+
+  closeCardError() {
+    this.setData({
+      cardError: '',
+      mirrorPhase: 'main',
+      ...deriveViewFlags('main')
+    });
+  },
+
+  // ==================== Canvas 绘制 ====================
+
+  _prepareAvatarForCanvas(avatarUrl) {
+    return new Promise(function (resolve) {
+      var url = normalizeAvatarUrl(avatarUrl);
+      if (!url) {
+        resolve('');
+        return;
+      }
+      // base64 不支持 Canvas 绘制
+      if (url.indexOf('data:image') === 0) {
+        resolve('');
+        return;
+      }
+      // 本地临时文件直接使用
+      if (url.indexOf('wxfile://') === 0 || url.indexOf('http://tmp/') === 0 || url[0] === '/') {
+        resolve(url);
+        return;
+      }
+      // 远程 URL：优先 getImageInfo（返回本地路径），失败后 downloadFile 兜底
+      wx.getImageInfo({
+        src: url,
+        success: function (info) {
+          if (info && info.path) {
+            resolve(info.path);
+          } else {
+            resolve('');
+          }
+        },
+        fail: function () {
+          wx.downloadFile({
+            url: url,
+            success: function (res) {
+              if (res.statusCode === 200 && res.tempFilePath) {
+                resolve(res.tempFilePath);
+              } else {
+                resolve('');
+              }
+            },
+            fail: function () {
+              resolve('');
+            }
+          });
+        }
+      });
+    });
+  },
+
+  _loadCanvasImage(canvas, src) {
+    return new Promise(function (resolve) {
+      if (!src) {
+        resolve(null);
+        return;
+      }
+      var img = canvas.createImage();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { resolve(null); };
+      img.src = src;
+    });
+  },
+
+  async _drawPersonaCard(options) {
+    var opts = options || {};
     var self = this;
     return new Promise(function (resolve, reject) {
       var query = wx.createSelectorQuery().in(self);
       query.select('#personaCardCanvas')
         .fields({ node: true, size: true })
-        .exec(function (res) {
+        .exec(async function (res) {
           if (!res || !res[0]) {
             reject(new Error('canvas not found'));
             return;
@@ -409,7 +995,20 @@ Page({
           canvas.height = H * dpr;
           ctx.scale(dpr, dpr);
 
+          // 预加载头像图片
+          var crew = opts.crewProfile || {};
+          console.log('[mirror-card] crew profile:', JSON.stringify({
+            userId: crew.userId,
+            nickname: crew.nickname,
+            displayName: crew.displayName,
+            avatarUrl: crew.avatarUrl ? crew.avatarUrl.substring(0, 60) : '',
+            avatarTempPath: crew.avatarTempPath ? crew.avatarTempPath.substring(0, 60) : ''
+          }));
+          var avatarImg = await self._loadCanvasImage(canvas, crew.avatarTempPath);
+          console.log('[mirror-card] avatarImg loaded:', !!avatarImg);
+
           self._drawBg(ctx, W, H);
+          self._drawCrewIdentity(ctx, W, H, crew, avatarImg);
           self._drawContent(ctx, W, H);
 
           wx.canvasToTempFilePath({
@@ -433,7 +1032,6 @@ Page({
     ctx.fillStyle = '#0A0A0A';
     ctx.fillRect(0, 0, W, H);
 
-    // 径向光
     var grad = ctx.createRadialGradient(W / 2, 200, 0, W / 2, 200, 480);
     grad.addColorStop(0, 'rgba(0,200,255,0.10)');
     grad.addColorStop(0.6, 'rgba(10,132,255,0.06)');
@@ -441,7 +1039,6 @@ Page({
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // 星场
     var seed = W * 7 + H * 13;
     for (var i = 0; i < 30; i++) {
       seed = (seed * 16807 + 7) % 2147483647;
@@ -456,26 +1053,19 @@ Page({
       ctx.fill();
     }
 
-    // 边框
     ctx.strokeStyle = 'rgba(10,132,255,0.28)';
     ctx.lineWidth = 2;
     this._roundRect(ctx, 44, 44, W - 88, H - 88, 28);
     ctx.stroke();
 
-    // HUD 角标
     var cornerLen = 24;
     ctx.strokeStyle = 'rgba(0,200,255,0.18)';
     ctx.lineWidth = 1;
-    // 左上
     ctx.beginPath(); ctx.moveTo(44, 44 + cornerLen); ctx.lineTo(44, 44); ctx.lineTo(44 + cornerLen, 44); ctx.stroke();
-    // 右上
     ctx.beginPath(); ctx.moveTo(W - 44 - cornerLen, 44); ctx.lineTo(W - 44, 44); ctx.lineTo(W - 44, 44 + cornerLen); ctx.stroke();
-    // 左下
     ctx.beginPath(); ctx.moveTo(44, H - 44 - cornerLen); ctx.lineTo(44, H - 44); ctx.lineTo(44 + cornerLen, H - 44); ctx.stroke();
-    // 右下
     ctx.beginPath(); ctx.moveTo(W - 44 - cornerLen, H - 44); ctx.lineTo(W - 44, H - 44); ctx.lineTo(W - 44, H - 44 - cornerLen); ctx.stroke();
 
-    // 极弱扫描线
     ctx.strokeStyle = 'rgba(0,200,255,0.02)';
     ctx.lineWidth = 1;
     for (var y = 76; y < H - 76; y += 4) {
@@ -486,144 +1076,179 @@ Page({
     }
   },
 
+  _drawCrewIdentity(ctx, W, H, crew, avatarImg) {
+    var displayName = sanitizeCrewName(crew.displayName || crew.nickname) || '未命名航船';
+    var avatarSize = 72;
+    var padL = 72;
+    var x = padL;
+    var y = 112;
+    var barW = W - padL * 2;
+    var barH = avatarSize + 28;
+    var barX = x - 14;
+    var barY = y - 14;
+
+    console.log('[mirror-card] drawing identity:', displayName, 'avatar:', !!avatarImg);
+
+    // 身份条背景 — 使用 fillRect 确保可见
+    ctx.fillStyle = 'rgba(3,10,18,0.72)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(0,200,255,0.24)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    // 头像
+    if (avatarImg) {
+      this._drawCircularAvatar(ctx, avatarImg, x, y, avatarSize);
+    } else {
+      this._drawAvatarFallback(ctx, x, y, avatarSize, displayName);
+    }
+
+    // 舰员代号
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = 'bold 30px sans-serif';
+    var nameX = x + avatarSize + 24;
+    var maxNameW = W - padL - nameX - 40;
+    ctx.fillText(truncateCanvasText(ctx, displayName, maxNameW), nameX, y + 30);
+
+    // 副标 IDENTITY
+    ctx.fillStyle = 'rgba(0,200,255,0.58)';
+    ctx.font = '16px sans-serif';
+    this._fillLetterSpaced(ctx, 'IDENTITY', nameX, y + 58);
+
+    // 状态点
+    ctx.beginPath();
+    ctx.arc(W - padL - 20, y + avatarSize / 2, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#30D158';
+    ctx.fill();
+  },
+
+  _drawCircularAvatar(ctx, img, x, y, size) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, x, y, size, size);
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,200,255,0.42)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  },
+
+  _drawAvatarFallback(ctx, x, y, size, displayName) {
+    var initial = (displayName || '舰').slice(0, 1);
+
+    // 渐变圆背景
+    ctx.beginPath();
+    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+    var grad = ctx.createRadialGradient(
+      x + size / 2, y + size / 2, 0,
+      x + size / 2, y + size / 2, size / 2
+    );
+    grad.addColorStop(0, 'rgba(0,200,255,0.28)');
+    grad.addColorStop(1, 'rgba(10,132,255,0.08)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,200,255,0.42)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 首字占位
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.font = 'bold 30px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(initial, x + size / 2, y + size / 2 + 1);
+    // 重置为 left/alphabetic，避免影响后续绘制
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  },
+
   _drawContent(ctx, W, H) {
     var d = this.data;
     var mbti = d.mbti || {};
     var battle = d.battlePersona || {};
     var reading = d.reading || {};
-    var signals = d.personaSignals || [];
     var padL = 72;
     var contentW = W - padL * 2;
+    var sampleSize = battle.sampleSize || 0;
+    var radarLocked = d.radarLocked !== false && sampleSize < 3;
 
-    // ---- 顶部：弱装饰区 ----
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    // 重置文本状态，避免受 _drawCrewIdentity 影响
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    // 顶部标识
+    ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '16px sans-serif';
     this._fillLetterSpaced(ctx, 'SMART RECORD', padL, 72);
     this._fillLetterSpacedRight(ctx, 'MIRROR PROJECTION', W - padL, 72);
 
-    // ---- 中央核心：MBTI 类型 ----
+    // MBTI 核心
     var coreY = 280;
     ctx.fillStyle = '#00C8FF';
     ctx.font = 'bold 72px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(mbti.mbtiType || '----', W / 2, coreY);
 
-    // 类型名
     ctx.fillStyle = 'rgba(255,255,255,0.92)';
     ctx.font = '32px sans-serif';
     ctx.fillText(sanitizeMirrorText(mbti.mbtiTitle || ''), W / 2, coreY + 52);
     ctx.textAlign = 'left';
 
-    // 五维扫描雷达
+    // 五维扫描区域
     var scanCenterX = W / 2;
-    var scanCenterY = coreY + 150;
+    var scanCenterY = coreY + 170;
     var scanRadius = 100;
     var dims = d.radarDimensions || [];
-    if (dims.length > 0 && battle.generated) {
-      var sides = 5;
-      var startAngle = -Math.PI / 2;
 
-      // 五角星网格
-      var gridLevels = [0.33, 0.66, 1.0];
-      for (var gi = 0; gi < gridLevels.length; gi++) {
-        var gl = gridLevels[gi];
-        ctx.beginPath();
-        for (var si = 0; si < sides; si++) {
-          var ga = startAngle + (Math.PI * 2 / sides) * si;
-          var gx = scanCenterX + Math.cos(ga) * scanRadius * gl;
-          var gy = scanCenterY + Math.sin(ga) * scanRadius * gl;
-          if (si === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = gi === 2 ? 'rgba(0,200,255,0.18)' : 'rgba(0,200,255,0.08)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // 轴线
-      for (var ai = 0; ai < sides; ai++) {
-        var aa = startAngle + (Math.PI * 2 / sides) * ai;
-        ctx.beginPath();
-        ctx.moveTo(scanCenterX, scanCenterY);
-        ctx.lineTo(scanCenterX + Math.cos(aa) * scanRadius, scanCenterY + Math.sin(aa) * scanRadius);
-        ctx.strokeStyle = 'rgba(0,200,255,0.12)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // 数据面
-      ctx.beginPath();
-      for (var di = 0; di < sides; di++) {
-        var da = startAngle + (Math.PI * 2 / sides) * di;
-        var dv = (dims[di] ? dims[di].value : 0) / 100;
-        var dx = scanCenterX + Math.cos(da) * scanRadius * dv;
-        var dy = scanCenterY + Math.sin(da) * scanRadius * dv;
-        if (di === 0) ctx.moveTo(dx, dy); else ctx.lineTo(dx, dy);
-      }
-      ctx.closePath();
-      ctx.fillStyle = 'rgba(0,200,255,0.10)';
-      ctx.fill();
-      ctx.strokeStyle = '#00C8FF';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // 数据节点
-      for (var ni = 0; ni < sides; ni++) {
-        var na = startAngle + (Math.PI * 2 / sides) * ni;
-        var nv = (dims[ni] ? dims[ni].value : 0) / 100;
-        var nx = scanCenterX + Math.cos(na) * scanRadius * nv;
-        var ny = scanCenterY + Math.sin(na) * scanRadius * nv;
-        ctx.beginPath();
-        ctx.arc(nx, ny, 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#00C8FF';
-        ctx.fill();
-      }
-
-      // 中心点
-      ctx.beginPath();
-      ctx.arc(scanCenterX, scanCenterY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,200,255,0.60)';
-      ctx.fill();
+    if (radarLocked) {
+      // 样本不足：幽灵五边形 + 采集中提示
+      this._drawRadarCollecting(ctx, scanCenterX, scanCenterY, scanRadius, sampleSize, 3);
+    } else if (dims.length > 0) {
+      // 样本充足：绘制完整雷达
+      this._drawRadarFull(ctx, scanCenterX, scanCenterY, scanRadius, dims);
     }
 
-    // ---- 信息区 ----
-    var infoY = scanCenterY + scanRadius + 48;
+    // 信息盒子
+    var infoY = scanCenterY + scanRadius + 56;
     var infoBoxW = (contentW - 20) / 2;
     var infoBoxH = 72;
 
-    // 左：协议一致率
     this._roundRect(ctx, padL, infoY, infoBoxW, infoBoxH, 12);
     ctx.strokeStyle = 'rgba(10,132,255,0.18)';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
     ctx.font = '18px sans-serif';
     ctx.fillText('协议一致率', padL + 16, infoY + 28);
     ctx.fillStyle = '#00C8FF';
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText((mbti.confidence || 0) + '%', padL + 16, infoY + 58);
 
-    // 右：黑匣子样本
     var infoRX = padL + infoBoxW + 20;
     this._roundRect(ctx, infoRX, infoY, infoBoxW, infoBoxH, 12);
     ctx.strokeStyle = 'rgba(10,132,255,0.18)';
     ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
     ctx.font = '18px sans-serif';
-    ctx.fillText('黑匣子样本', infoRX + 16, infoY + 28);
+    ctx.fillText('航迹样本', infoRX + 16, infoY + 28);
     ctx.fillStyle = '#00C8FF';
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(battle.sampleSize + ' / 3', infoRX + 16, infoY + 58);
+    ctx.fillText(sampleSize + ' / 3', infoRX + 16, infoY + 58);
 
-    // ---- 判读区 ----
-    var readY = infoY + infoBoxH + 40;
+    // 判读文字
+    var readY = infoY + infoBoxH + 36;
     var readingText = this._buildReadingText(reading);
-    ctx.fillStyle = 'rgba(255,255,255,0.56)';
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
     ctx.font = '26px sans-serif';
     this._drawWrappedText(ctx, readingText, padL, readY, contentW, 38, 3);
 
-    // ---- 底部标识区 ----
-    // 细线
+    // 底部
     ctx.strokeStyle = 'rgba(10,132,255,0.15)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -631,15 +1256,163 @@ Page({
     ctx.lineTo(W - padL, H - 120);
     ctx.stroke();
 
-    // 时间戳
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '18px sans-serif';
     ctx.fillText(d.generatedAt || '', padL, H - 80);
 
-    // 底部品牌
-    ctx.fillStyle = 'rgba(10,132,255,0.35)';
+    ctx.fillStyle = 'rgba(10,132,255,0.42)';
     ctx.font = '16px sans-serif';
     this._fillLetterSpaced(ctx, 'SMART RECORD · MIRROR PROJECTION', padL, H - 50);
+  },
+
+  /**
+   * 样本不足时绘制幽灵雷达 + 采集中提示
+   */
+  _drawRadarCollecting(ctx, cx, cy, radius, sampleSize, required) {
+    var sides = 5;
+    var startAngle = -Math.PI / 2;
+    var remain = Math.max(0, required - sampleSize);
+
+    // 幽灵网格
+    var gridLevels = [0.33, 0.66, 1.0];
+    for (var gi = 0; gi < gridLevels.length; gi++) {
+      var gl = gridLevels[gi];
+      ctx.beginPath();
+      for (var si = 0; si < sides; si++) {
+        var ga = startAngle + (Math.PI * 2 / sides) * si;
+        var gx = cx + Math.cos(ga) * radius * gl;
+        var gy = cy + Math.sin(ga) * radius * gl;
+        if (si === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = gi === 2 ? 'rgba(0,200,255,0.12)' : 'rgba(0,200,255,0.05)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // 轴线
+    for (var ai = 0; ai < sides; ai++) {
+      var aa = startAngle + (Math.PI * 2 / sides) * ai;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(aa) * radius, cy + Math.sin(aa) * radius);
+      ctx.strokeStyle = 'rgba(0,200,255,0.06)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // 幽灵五边形（虚线）
+    ctx.beginPath();
+    for (var di = 0; di < sides; di++) {
+      var da = startAngle + (Math.PI * 2 / sides) * di;
+      var dv = 0.45;
+      var dx = cx + Math.cos(da) * radius * dv;
+      var dy = cy + Math.sin(da) * radius * dv;
+      if (di === 0) ctx.moveTo(dx, dy); else ctx.lineTo(dx, dy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,200,255,0.03)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,200,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 维度标签（幽灵态）
+    var labelMap = ['推进倾向', '舰体稳定', '接入频率', '回稳能力', '场域控制'];
+    for (var li = 0; li < sides; li++) {
+      var la = startAngle + (Math.PI * 2 / sides) * li;
+      var lr = radius + 32;
+      var lx = cx + Math.cos(la) * lr;
+      var ly = cy + Math.sin(la) * lr;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = 'rgba(0,200,255,0.28)';
+      ctx.fillText(labelMap[li], lx, ly - 8);
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillStyle = 'rgba(0,200,255,0.22)';
+      ctx.fillText('--', lx, ly + 10);
+    }
+
+    // 中心文字
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = 'rgba(0,200,255,0.62)';
+    ctx.fillText('全息扫描采集中', cx, cy - 10);
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = 'rgba(0,200,255,0.42)';
+    ctx.fillText('航迹样本 ' + sampleSize + ' / ' + required, cx, cy + 10);
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.32)';
+    ctx.fillText('还需 ' + remain + ' 次封存解锁完整扫描', cx, cy + 30);
+  },
+
+  /**
+   * 样本充足时绘制完整雷达
+   */
+  _drawRadarFull(ctx, cx, cy, radius, dims) {
+    var sides = 5;
+    var startAngle = -Math.PI / 2;
+
+    var gridLevels = [0.33, 0.66, 1.0];
+    for (var gi = 0; gi < gridLevels.length; gi++) {
+      var gl = gridLevels[gi];
+      ctx.beginPath();
+      for (var si = 0; si < sides; si++) {
+        var ga = startAngle + (Math.PI * 2 / sides) * si;
+        var gx = cx + Math.cos(ga) * radius * gl;
+        var gy = cy + Math.sin(ga) * radius * gl;
+        if (si === 0) ctx.moveTo(gx, gy); else ctx.lineTo(gx, gy);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = gi === 2 ? 'rgba(0,200,255,0.18)' : 'rgba(0,200,255,0.08)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    for (var ai = 0; ai < sides; ai++) {
+      var aa = startAngle + (Math.PI * 2 / sides) * ai;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(aa) * radius, cy + Math.sin(aa) * radius);
+      ctx.strokeStyle = 'rgba(0,200,255,0.12)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    for (var di = 0; di < sides; di++) {
+      var da = startAngle + (Math.PI * 2 / sides) * di;
+      var dv = (dims[di] ? dims[di].value : 0) / 100;
+      var dx = cx + Math.cos(da) * radius * dv;
+      var dy = cy + Math.sin(da) * radius * dv;
+      if (di === 0) ctx.moveTo(dx, dy); else ctx.lineTo(dx, dy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,200,255,0.10)';
+    ctx.fill();
+    ctx.strokeStyle = '#00C8FF';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    for (var ni = 0; ni < sides; ni++) {
+      var na = startAngle + (Math.PI * 2 / sides) * ni;
+      var nv = (dims[ni] ? dims[ni].value : 0) / 100;
+      var nx = cx + Math.cos(na) * radius * nv;
+      var ny = cy + Math.sin(na) * radius * nv;
+      ctx.beginPath();
+      ctx.arc(nx, ny, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#00C8FF';
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,200,255,0.60)';
+    ctx.fill();
   },
 
   _buildReadingText(reading) {
@@ -733,7 +1506,8 @@ Page({
     }
   },
 
-  // ---- 保存到相册 ----
+  // ==================== 保存到相册 ====================
+
   saveCard() {
     var path = this.data.cardTempPath;
     if (!path) {
@@ -766,66 +1540,22 @@ Page({
     wx.openSetting();
   },
 
-  // ---- 分享 ----
+  // ==================== 航迹回放 ====================
+
+  goScoreRecords() {
+    wx.navigateTo({ url: '/pages/score-records/score-records' });
+  },
+
+  // ==================== 分享 ====================
+
   onShareAppMessage() {
     var mbti = this.data.mbti || {};
+    var crew = this.data.crewProfile || {};
+    var name = sanitizeCrewName(crew.displayName || crew.nickname);
     return {
-      title: '我的镜像档案：' + (mbti.mbtiType || '--') + ' ' + sanitizeMirrorText(mbti.mbtiTitle || ''),
+      title: sanitizeMirrorText(name + '的镜像档案 · ' + (mbti.mbtiType || '--')),
       path: '/pages/mirror/index',
       imageUrl: this.data.cardTempPath || ''
     };
-  },
-
-  // MBTI 测试
-  startFullCalibration() {
-    this.setData({ viewMode: 'calibration' });
-  },
-
-  closeMbtiTest() {
-    this.setData({ showExitConfirm: true });
-  },
-
-  onExitConfirm() {
-    this.setData({ showExitConfirm: false, viewMode: 'main' });
-  },
-
-  onExitCancel() {
-    this.setData({ showExitConfirm: false });
-  },
-
-  openMbtiPicker() {
-    this.setData({ showMbtiPicker: true });
-  },
-
-  closeMbtiPicker() {
-    this.setData({ showMbtiPicker: false });
-  },
-
-  async handleMbtiComplete(e) {
-    var detail = e.detail;
-    try {
-      await api.submitMbtiTest({ testVersion: detail.testVersion, answers: detail.answers });
-      this.setData({ viewMode: 'main' });
-      this._showToast('协议已同步', 'dot-sync');
-      this.loadProfile(true);
-    } catch (err) {
-      this._showToast('提交失败，请重试', 'dot-error');
-    }
-  },
-
-  async handleMbtiDirectInput(e) {
-    try {
-      await api.submitMbtiDirect({ mbtiCode: e.detail.mbtiCode });
-      this.setData({ showMbtiPicker: false, viewMode: 'main' });
-      this._showToast('协议已同步', 'dot-sync');
-      this.loadProfile(true);
-    } catch (err) {
-      var picker = this.selectComponent('#mbtiPicker');
-      if (picker && picker.showError) {
-        picker.showError('同步失败，请重试');
-      } else {
-        this._showToast('协议同步失败，请重试', 'dot-error');
-      }
-    }
   }
 });

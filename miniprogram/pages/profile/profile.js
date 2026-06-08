@@ -62,11 +62,6 @@ Page({
     drawerNickname: '',
     drawerNicknameOverflow: false,
 
-    // 积分统计
-    totalScore: 0,
-    winRate: 0,
-    matchCount: 0,
-
     // 身份等级
     level: 1,
     levelTitle: '新人观察员',
@@ -78,11 +73,6 @@ Page({
     levelProgress: 0,
     nextLevelTitle: '',
     stability: null,
-
-    // 黑匣子摘要
-    bbSampleCount: 0,
-    bbRecentRoom: '--',
-    bbRecentTime: '--',
 
     // 动画开关
     animationEnabled: true,
@@ -104,6 +94,10 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 3 })
+    }
+    app.globalData.activeTabKey = 'identity'
     const loggedIn = !!app.globalData.token;
     this.setData({
       isLoggedIn: loggedIn,
@@ -130,11 +124,9 @@ Page({
     }
 
     // 并行加载数据
-    this.loadScoreStats();
     this.loadIdentityLevel();
     this.loadMbtiStatus();
     this.loadSettings();
-    this.loadBlackboxSummary();
   },
 
   async onPullDownRefresh() {
@@ -145,7 +137,6 @@ Page({
     try {
       await Promise.all([
         this.loadUserInfo(),
-        this.loadScoreStats(),
         this.loadIdentityLevel()
       ]);
     } finally {
@@ -273,53 +264,30 @@ Page({
     }
   },
 
-  async loadScoreStats() {
-    try {
-      const resp = await get('/score/trend?limit=50');
-      const points = (resp && resp.points) || [];
-      const totalScore = points.reduce((sum, p) => sum + (p.netScore || 0), 0);
-      const wins = points.filter(p => p.netScore > 0).length;
-      const matchCount = points.length;
-      const winRate = matchCount > 0 ? Math.round((wins / matchCount) * 100) : 0;
-
-      let winStreak = 0;
-      let maxWinStreak = 0;
-      for (const p of points) {
-        if (p.netScore > 0) {
-          winStreak++;
-          maxWinStreak = Math.max(maxWinStreak, winStreak);
-        } else {
-          winStreak = 0;
-        }
-      }
-
-      this.setData({ totalScore, winRate, matchCount, maxWinStreak });
-    } catch (e) {
-      console.error('加载积分数据失败', e);
-    }
-  },
-
   async loadIdentityLevel() {
     try {
       const res = await get('/user/identity-level');
       if (!res) return;
-      const levelExp = Math.max(0, res.currentLevelExp || 0);
-      const levelExpRange = Math.max(0, res.requiredExpInLevel || 0);
+      const levelExp = Math.max(0, Number(res.currentLevelExp) || 0);
+      const levelExpRange = Math.max(0, Number(res.requiredExpInLevel) || 0);
       const levelExpDisplay = levelExpRange > 0 ? Math.min(levelExp, levelExpRange) : levelExp;
       const levelRemainingExp = Math.max(0, levelExpRange - levelExp);
-      const levelProgress = Math.max(0, Math.min(100, res.progress || 0));
-      const nextLevel = (res.level || 1) + 1;
+      const levelProgress = Math.max(0, Math.min(100, Number(res.progress) || 0));
+      const nextLevel = (Number(res.level) || 1) + 1;
+      const stabilityVal = res.stability;
+      const stability = (stabilityVal !== null && stabilityVal !== undefined && Number.isFinite(Number(stabilityVal)))
+        ? Number(stabilityVal) : null;
       this.setData({
-        level: res.level || 1,
+        level: Number(res.level) || 1,
         levelTitle: res.title || '观察员',
         nextLevelTitle: LEVEL_TITLES[nextLevel] || '',
         levelExp,
         levelExpDisplay,
         levelExpRange,
         levelRemainingExp,
-        nextLevelExp: res.nextLevelExp || 100,
+        nextLevelExp: Number(res.nextLevelExp) || 100,
         levelProgress,
-        stability: res.stability
+        stability
       });
     } catch (e) {
       console.error('加载身份等级失败', e);
@@ -334,32 +302,6 @@ Page({
       }
     } catch (e) {
       // 镜像数据加载失败不影响主流程
-    }
-  },
-
-  async loadBlackboxSummary() {
-    try {
-      const resp = await get('/score/yield-log');
-      if (!resp) return;
-      const records = resp.records || [];
-      const sampleCount = resp.sampleCount || 0;
-      let recentRoom = '--';
-      let recentTime = '--';
-      if (records.length > 0) {
-        const latest = records[0];
-        recentRoom = latest.roomNo || latest.roomId || '--';
-        if (latest.settledAt || latest.createdAt) {
-          const t = new Date(latest.settledAt || latest.createdAt);
-          const m = t.getMonth() + 1;
-          const d = t.getDate();
-          const hh = String(t.getHours()).padStart(2, '0');
-          const mm = String(t.getMinutes()).padStart(2, '0');
-          recentTime = m + '/' + d + ' ' + hh + ':' + mm;
-        }
-      }
-      this.setData({ bbSampleCount: sampleCount, bbRecentRoom: recentRoom, bbRecentTime: recentTime });
-    } catch (e) {
-      // 黑匣子摘要加载失败不影响主流程
     }
   },
 
@@ -526,15 +468,15 @@ Page({
     const tempPath = e.detail.avatarUrl;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
-    this.showHud('头盔识别上传中', 'info', false);
+    this.showHud('识别徽标上传中', 'info', false);
     _uploadingAvatar = true;
     try {
       const ossUrl = await this.uploadToOSS(tempPath);
       this.setData({ avatarUrl: ossUrl });
-      this.showHud('头盔识别已更新', 'info');
+      this.showHud('识别徽标已更新', 'info');
     } catch (err) {
       console.error('头像上传失败', err);
-      this.showHud('头盔识别上传失败', 'error');
+      this.showHud('识别徽标上传失败', 'error');
     } finally {
       _uploadingAvatar = false;
     }
@@ -599,7 +541,7 @@ Page({
         _lastSavedAvatar: finalAvatarUrl || ''
       });
       this.updateAvatar();
-      this.showHud('舰员代号已同步', 'info');
+      this.showHud('呼号已同步', 'info');
     } catch (e) {
       console.error('自动保存失败', e);
       this.showHud('同步失败，点击重试', 'error', false);
@@ -643,10 +585,6 @@ Page({
     wx.navigateTo({ url: '/pages/login/login' });
   },
 
-  goScoreRecords() {
-    wx.navigateTo({ url: '/pages/score-records/score-records' });
-  },
-
   goLevelArchive() {
     wx.navigateTo({ url: '/pages/level-archive/level-archive' });
   },
@@ -655,7 +593,7 @@ Page({
 
   async onLogout() {
     const { confirm } = await wx.showModal({
-      title: '断开身份终端？',
+      title: '断开识别舱？',
       content: '当前本地接入状态将被清除。',
       confirmText: '断开终端',
       confirmColor: '#FF4D4F',

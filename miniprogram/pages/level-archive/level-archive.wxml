@@ -3,7 +3,7 @@
 
   <!-- 页面标题 -->
   <view class="page-title-block">
-    <text class="page-main-title">身份档案</text>
+    <text class="page-main-title">识别档案</text>
     <text class="page-main-kicker">IDENTITY ARCHIVE</text>
   </view>
 
@@ -15,7 +15,7 @@
         <text class="archive-summary__value">Lv.{{level}} · {{levelTitle}}</text>
       </view>
       <view class="archive-summary__item">
-        <text class="archive-summary__label">身份经验</text>
+        <text class="archive-summary__label">航行经验</text>
         <text class="archive-summary__value">{{levelExpDisplay}} / {{levelExpRange}}</text>
       </view>
     </view>

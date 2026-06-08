@@ -5,7 +5,7 @@
       <view class="svg-icon svg-icon--lock"></view>
     </view>
     <text class="empty-state__title">终端未接入</text>
-    <text class="empty-state__desc">接入终端后可管理舰员档案</text>
+    <text class="empty-state__desc">接入终端后可管理本舰档案</text>
     <view class="btn-clip" style="width:320rpx;" bindtap="goLogin">
       <text>接入终端</text>
     </view>
@@ -24,15 +24,15 @@
     <!-- 0. SYSTEM STATUS -->
     <view class="status-bar">
       <view class="status-bar__dot {{isLoggedIn ? 'status-bar__dot--online' : ''}}"></view>
-      <text class="status-bar__label">身份终端已接入</text>
+      <text class="status-bar__label">识别舱已接入</text>
       <text class="status-bar__value">{{isLoggedIn ? 'ONLINE' : 'OFFLINE'}}</text>
     </view>
 
     <!-- 1. 舰员铭牌 -->
     <view class="profile-hud">
       <view class="profile-hud__kicker">
-        <text class="profile-hud__kicker-zh">舰员档案</text>
-        <text class="profile-hud__kicker-en">CREW PROFILE</text>
+        <text class="profile-hud__kicker-zh">本舰档案</text>
+        <text class="profile-hud__kicker-en">SHIP PROFILE</text>
       </view>
 
       <!-- 铭牌主体：头像 + 名字 + 等级 + 最强成就 -->
@@ -52,7 +52,7 @@
         <view class="profile-hud__right">
           <text class="profile-hud__code">{{playerCode}}</text>
           <view class="profile-hud__name-wrap">
-            <text class="profile-hud__name {{isLongCrewName ? 'profile-hud__name--long' : ''}}">{{nickname || '未命名舰员'}}</text>
+            <text class="profile-hud__name {{isLongCrewName ? 'profile-hud__name--long' : ''}}">{{nickname || '未命名航船'}}</text>
           </view>
           <view class="profile-hud__level-row">
             <text class="profile-hud__level">Lv.{{level}}</text>
@@ -64,76 +64,35 @@
       <!-- 操作按钮 -->
       <view class="profile-hud__actions">
         <view class="btn-clip btn-clip--sm" bindtap="openNicknameDrawer">
-          <text>校准代号</text>
+          <text>校准呼号</text>
         </view>
         <view class="profile-hud__link" bindtap="goLevelArchive">
-          <text class="profile-hud__link-text">身份档案</text>
+          <text class="profile-hud__link-text">授权档案</text>
           <view class="svg-icon svg-icon--arrow"></view>
         </view>
       </view>
     </view>
 
-    <!-- 3. 数据矩阵 -->
-    <view class="term-card term-card--stats">
-      <text class="term-kicker">数据矩阵</text>
-      <text class="term-kicker-sub">DATA MATRIX</text>
-      <view class="stats-grid-quad">
-        <view class="stats-cell">
-          <text class="stats-cell__label">净脉冲</text>
-          <text class="stats-cell__value {{totalScore > 0 ? 'stats-cell__value--positive' : totalScore < 0 ? 'stats-cell__value--offset' : 'stats-cell__value--zero'}}">{{totalScore}}</text>
-          <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill {{totalScore > 0 ? 'bar-positive' : totalScore < 0 ? 'bar-offset' : 'bar-zero'}}" style="width:{{totalScore > 0 ? Math.min(totalScore / 10, 100) : totalScore < 0 ? Math.min(-totalScore / 10, 100) : 2}}%;"></view>
+    <!-- 3. 本舰状态 -->
+    <view class="term-card term-card--ship-status">
+      <text class="term-kicker">本舰状态</text>
+      <text class="term-kicker-sub">SHIP STATUS</text>
+      <view class="ship-status__row">
+        <view class="ship-status__item">
+          <text class="ship-status__label">航行经验</text>
+          <text class="ship-status__value ship-status__value--blue">{{levelExp}}</text>
+          <view class="ship-status__bar">
+            <view class="ship-status__bar-fill bar-blue" style="width:{{levelProgress}}%;"></view>
           </view>
         </view>
-        <view class="stats-cell">
-          <text class="stats-cell__label">样本舱数</text>
-          <text class="stats-cell__value stats-cell__value--cyan">{{matchCount}}</text>
-          <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill bar-cyan" style="width:{{matchCount > 0 ? Math.min(matchCount * 2, 100) : 2}}%;"></view>
+        <view class="ship-status__sep"></view>
+        <view class="ship-status__item">
+          <text class="ship-status__label">稳定读数</text>
+          <text class="ship-status__value ship-status__value--purple">{{stability !== null ? stability : '--'}}</text>
+          <view class="ship-status__bar">
+            <view class="ship-status__bar-fill bar-purple" style="width:{{stability !== null ? stability : 2}}%;"></view>
           </view>
         </view>
-        <view class="stats-cell">
-          <text class="stats-cell__label">稳定读数</text>
-          <text class="stats-cell__value stats-cell__value--purple">{{stability !== null ? stability : '--'}}</text>
-          <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill bar-purple" style="width:{{stability !== null ? stability : 2}}%;"></view>
-          </view>
-        </view>
-        <view class="stats-cell">
-          <text class="stats-cell__label">身份经验</text>
-          <text class="stats-cell__value stats-cell__value--blue">{{levelExp}}</text>
-          <view class="stats-cell__bar">
-            <view class="stats-cell__bar-fill bar-blue" style="width:{{levelProgress}}%;"></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 3.5 黑匣子摘要 -->
-    <view class="term-card term-card--blackbox" bindtap="goScoreRecords">
-      <view class="blackbox__header">
-        <text class="term-kicker">黑匣子摘要</text>
-        <text class="term-kicker-sub">BLACKBOX</text>
-      </view>
-      <view class="blackbox__body">
-        <view class="blackbox__stat">
-          <text class="blackbox__stat-val">{{bbSampleCount}}</text>
-          <text class="blackbox__stat-label">已写入样本</text>
-        </view>
-        <view class="blackbox__sep"></view>
-        <view class="blackbox__stat">
-          <text class="blackbox__stat-val">{{bbRecentRoom}}</text>
-          <text class="blackbox__stat-label">最近航程</text>
-        </view>
-        <view class="blackbox__sep"></view>
-        <view class="blackbox__stat">
-          <text class="blackbox__stat-val">{{bbRecentTime}}</text>
-          <text class="blackbox__stat-label">封存时间</text>
-        </view>
-      </view>
-      <view class="blackbox__footer">
-        <text class="blackbox__footer-text">进入黑匣子回放</text>
-        <view class="svg-icon svg-icon--arrow"></view>
       </view>
     </view>
 
@@ -196,22 +155,22 @@
   <view wx:if="{{nicknameDrawerVisible}}" class="drawer-mask" bindtap="closeNicknameDrawer"></view>
   <view wx:if="{{nicknameDrawerVisible}}" class="nickname-drawer">
     <view class="nickname-drawer__header">
-      <text class="nickname-drawer__kicker">CREW NAME</text>
-      <text class="nickname-drawer__title">舰员代号校准</text>
+      <text class="nickname-drawer__kicker">SHIP NAME</text>
+      <text class="nickname-drawer__title">本舰呼号校准</text>
     </view>
     <view class="nickname-drawer__body">
       <view class="nickname-drawer__field">
-        <text class="nickname-drawer__label">当前代号</text>
-        <text class="nickname-drawer__current">{{nickname || '未命名舰员'}}</text>
+        <text class="nickname-drawer__label">当前呼号</text>
+        <text class="nickname-drawer__current">{{nickname || '未命名航船'}}</text>
       </view>
       <view class="nickname-drawer__field">
-        <text class="nickname-drawer__label">新代号</text>
+        <text class="nickname-drawer__label">新呼号</text>
         <view class="nickname-drawer__input-row">
           <input
             class="nickname-drawer__input"
             type="nickname"
             value="{{drawerNickname}}"
-            placeholder="输入新舰员代号"
+            placeholder="输入新呼号"
             focus="{{nicknameDrawerVisible}}"
             bindinput="onDrawerNicknameInput"
           />
@@ -219,7 +178,7 @@
             <view class="svg-icon svg-icon--dice"></view>
           </view>
         </view>
-        <text class="nickname-drawer__hint {{drawerNicknameOverflow ? 'nickname-drawer__hint--warn' : ''}}">{{drawerNicknameOverflow ? '舰员代号过长，建议 6 个汉字以内' : '最多 6 个汉字'}}</text>
+        <text class="nickname-drawer__hint {{drawerNicknameOverflow ? 'nickname-drawer__hint--warn' : ''}}">{{drawerNicknameOverflow ? '呼号过长，建议 6 个汉字以内' : '最多 6 个汉字'}}</text>
       </view>
     </view>
     <view class="nickname-drawer__footer">
