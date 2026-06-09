@@ -1,32 +1,32 @@
-# 本地开发配置
+# 本地开发配置 — 密钥通过环境变量注入，参考 .env.example
 spring:
   datasource:
-    url: jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root123
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
   data:
     redis:
-      host: localhost
-      port: 16379
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:16379}
 
 app:
   jwt:
-    secret: your-256-bit-secret-key-here-change-in-production
+    secret: ${JWT_SECRET:}
   oss:
-    endpoint: oss-cn-guangzhou.aliyuncs.com
-    access-key-id: LTAI5t8gKSckJYZjUqivuhPi
-    access-key-secret: GfCTwLAUSFerci7Ov5NKGGYS5w8YoE
-    bucket-name: smartrecord
+    endpoint: ${OSS_ENDPOINT:}
+    access-key-id: ${OSS_ACCESS_KEY_ID:}
+    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+    bucket-name: ${OSS_BUCKET_NAME:}
   llm:
-    api-url: https://token-plan-cn.xiaomimimo.com/v1/chat/completions
-    api-key: tp-cl8s6teu6pdyb2iquraslrka4zfpoc5an6e87isdffejcmnp
-    model: mimo-v2.5
+    api-url: ${LLM_API_URL:}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:}
   tts:
-    mimo-voice: 冰糖
+    mimo-voice: ${TTS_MIMO_VOICE:冰糖}
 
 wechat:
-  appid: wx9d93ece2b67f812b
-  secret: 5bcbb76c58c59b466acc90a86e4864c6
+  appid: ${WECHAT_APPID:}
+  secret: ${WECHAT_SECRET:}
 
 tts:
-  edge-tts-cmd: /Users/happy/.local/bin/edge-tts
+  edge-tts-cmd: ${TTS_EDGE_TTS_CMD:edge-tts}

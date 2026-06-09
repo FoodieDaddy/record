@@ -4,7 +4,7 @@ import com.smartrecord.dto.storage.PresignUrlResp;
 
 public interface StorageService {
 
-    PresignUrlResp generatePresignUrl(String contentType);
+    PresignUrlResp generatePresignUrl(String contentType, Long contentLength);
 
     /**
      * 异步删除 OSS 文件

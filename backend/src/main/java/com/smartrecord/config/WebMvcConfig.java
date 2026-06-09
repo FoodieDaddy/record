@@ -19,7 +19,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/user/login",
-                        "/storage/presign",
                         "/tts/**",
                         "/voice/**",
                         "/voices/**",

@@ -59,7 +59,6 @@
 .reduce-motion .strategy-actions,
 .reduce-motion .poster-gen-dot,
 .reduce-motion .poster-gen-text,
-.reduce-motion .strategy-reset-dot,
 .reduce-motion .nav-core-beam,
 .reduce-motion .projection-line,
 .reduce-motion .sync-chip,
@@ -343,41 +342,6 @@
   font-size: 18rpx;
   color: rgba(126, 156, 180, 0.12);
   margin-top: 4rpx;
-}
-
-/* 复位状态条 */
-.strategy-reset-bar {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 16rpx 32rpx;
-  background: rgba(0,175,255,0.04);
-  border: 1rpx solid rgba(0,175,255,0.12);
-  border-radius: 8rpx;
-  margin-bottom: 40rpx;
-  opacity: 0;
-  animation: fadeIn 0.4s ease 0.2s forwards;
-}
-
-.strategy-reset-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: #00C8FF;
-  box-shadow: 0 0 8rpx rgba(0,200,255,0.5);
-  animation: resetPulse 2s ease-in-out infinite;
-}
-
-@keyframes resetPulse {
-  0%, 100% { opacity: 0.5; }
-  50%      { opacity: 1; }
-}
-
-.strategy-reset-text {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 20rpx;
-  color: rgba(0,200,255,0.6);
-  letter-spacing: 2rpx;
 }
 
 /* --- 共享航行核心 --- */

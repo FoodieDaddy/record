@@ -6,6 +6,7 @@ import com.smartrecord.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,9 +24,17 @@ public class StorageController {
     )
     @GetMapping("/presign")
     public Result<PresignUrlResp> getPresignUrl(
+            HttpServletRequest request,
             @Parameter(description = "文件 Content-Type", example = "image/jpeg")
-            @RequestParam String contentType) {
-        return Result.ok(storageService.generatePresignUrl(contentType));
+            @RequestParam String contentType,
+            @Parameter(description = "文件大小，单位 byte", example = "524288")
+            @RequestParam(required = false) Long contentLength) {
+        // 需要登录才能获取上传凭证
+        Long userId = (Long) request.getAttribute("currentUserId");
+        if (userId == null) {
+            return Result.fail(401, "请先登录");
+        }
+        return Result.ok(storageService.generatePresignUrl(contentType, contentLength));
     }
 
 }

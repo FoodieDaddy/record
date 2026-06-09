@@ -31,12 +31,6 @@
       <text class="flight-deck-date">{{currentDate}}</text>
     </view>
 
-    <!-- 复位状态条（仅 relaunchReady） -->
-    <view class="strategy-reset-bar" wx:if="{{pageMode === 'relaunchReady' && flightStage === 'idle'}}">
-      <view class="strategy-reset-dot"></view>
-      <text class="strategy-reset-text">导航舱待机 · 点击开始计算</text>
-    </view>
-
     <!-- 共享导航核心（唯一 DOM，贯穿 idle -> done） -->
     <view class="nav-core-stage {{firstEnter === false ? 'nav-core-stage--entered' : ''}} {{coreCompact ? 'nav-core-stage--compact' : ''}}">
       <view class="scan-ring scan-ring--{{flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'gen' : 'idle'}}"></view>

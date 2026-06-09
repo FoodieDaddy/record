@@ -1626,6 +1626,80 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* CSS 驱动的粒子飞行动画 */
+.transfer-anim-particle.is-flying {
+  animation: particleFlight 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.transfer-anim-trail.is-flying {
+  animation: particleTrail 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.transfer-anim-trail.is-flying.trail-1 {
+  animation-delay: 80ms;
+}
+
+.transfer-anim-trail.is-flying.trail-2 {
+  animation-delay: 160ms;
+}
+
+.transfer-anim-flash.is-active {
+  animation: particleFlash 120ms ease-out forwards;
+}
+
+@keyframes particleFlight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  11% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(calc(var(--dx, 0px) * 0.7), calc(var(--dy, 0px) * 0.7 + var(--arc, -80px) * 0.4), 0) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.6);
+  }
+}
+
+@keyframes particleTrail {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4);
+  }
+  15% {
+    opacity: 0.6;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  70% {
+    opacity: 0.4;
+    transform: translate3d(calc(var(--dx, 0px) * 0.65), calc(var(--dy, 0px) * 0.65 + var(--arc, -80px) * 0.5), 0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.3);
+  }
+}
+
+@keyframes particleFlash {
+  0% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+.reduce-motion .transfer-anim-particle.is-flying,
+.reduce-motion .transfer-anim-trail.is-flying,
+.reduce-motion .transfer-anim-flash.is-active {
+  animation: none !important;
+}
+
+.reduce-motion .ship-craft.motion-score-impact {
+  animation: none !important;
+}
+
 /* ===== 脉冲记录面板（终端浮动记录器） ===== */
 .transfer-overlay {
   position: fixed;
@@ -6538,6 +6612,16 @@
 
 .ship-craft:active {
   transform: translate(-50%, -50%) scale(0.94);
+}
+
+.ship-craft.motion-score-impact {
+  animation: shipCraftImpact 220ms var(--sr-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+@keyframes shipCraftImpact {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  45% { transform: translate(-50%, -50%) scale(1.12); }
+  100% { transform: translate(-50%, -50%) scale(1); }
 }
 
 .ship-craft.is-offline {

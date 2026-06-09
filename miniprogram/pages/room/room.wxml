@@ -202,7 +202,7 @@
               wx:for="{{cockpitView.externalShips}}"
               wx:key="userId"
               id="seat-{{item.userId}}"
-              class="ship-craft {{item.sizeClass}} {{item.online ? 'is-online' : 'is-offline'}} {{item.isNew ? 'is-new' : ''}}"
+              class="ship-craft {{item.sizeClass}} {{item.online ? 'is-online' : 'is-offline'}} {{item.isNew ? 'is-new' : ''}} {{impactCrewId == item.userId ? 'motion-score-impact' : ''}}"
               style="left: {{item.x}}%; top: {{item.y}}%;"
               bindtap="handleTapShip"
               data-user-id="{{item.userId}}"
@@ -426,26 +426,29 @@
       room-id="{{currentRoom.roomId}}"
       member-grid="{{memberGrid}}"
       score-records="{{scoreRecords}}"
+      relation-map="{{relationMap}}"
+      chart-data="{{matrixChartData}}"
       my-user-id="{{myUserId}}"
       bind:close="onMatrixClose"
     />
 
-    <!-- 记录动画层 -->
+    <!-- 记录动画层（CSS 驱动） -->
     <view class="transfer-anim-overlay" wx:if="{{animActive}}">
       <!-- 屏幕闪烁 -->
-      <view class="transfer-anim-flash" style="opacity:{{animFlashOpacity}};"></view>
+      <view class="transfer-anim-flash {{animFlying ? 'is-active' : ''}}"></view>
       <!-- 拖尾粒子 -->
-      <view class="transfer-anim-trail"
-            style="left:{{animTrail1X}}px;top:{{animTrail1Y}}px;opacity:{{animTrail1Opacity}};transform:scale({{animTrail1Scale}});">
+      <view class="transfer-anim-trail trail-1 {{animFlying ? 'is-flying' : ''}}"
+            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;">
         <view class="transfer-anim-dot-trail"></view>
       </view>
-      <view class="transfer-anim-trail"
-            style="left:{{animTrail2X}}px;top:{{animTrail2Y}}px;opacity:{{animTrail2Opacity}};transform:scale({{animTrail2Scale}});">
+      <view class="transfer-anim-trail trail-2 {{animFlying ? 'is-flying' : ''}}"
+            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;">
         <view class="transfer-anim-dot-trail dot-trail-2"></view>
       </view>
       <!-- 主粒子 -->
-      <view class="transfer-anim-particle"
-            style="left:{{animCurX}}px;top:{{animCurY}}px;opacity:{{animCurOpacity}};transform:scale({{animCurScale}});">
+      <view class="transfer-anim-particle {{animFlying ? 'is-flying' : ''}}"
+            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;"
+            bindanimationend="onParticleAnimEnd">
         <view class="transfer-anim-dot"></view>
         <text class="transfer-anim-amount">{{animAmount}}</text>
       </view>

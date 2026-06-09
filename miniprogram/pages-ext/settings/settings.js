@@ -1,4 +1,4 @@
-const { put } = require('../../utils/request');
+const profileService = require('../../services/profile-service');
 const { getSettings, saveSettings, syncFromServer } = require('../../utils/voice');
 const { vibrateShort } = require('../../utils/haptic');
 const config = require('../../config');
@@ -172,7 +172,7 @@ Page({
     if (Object.keys(_pendingSettings).length === 0) return;
     const payload = { ..._pendingSettings };
     _pendingSettings = {};
-    put('/user/detail', payload).catch(() => {});
+    profileService.saveUserSettings(payload).catch(() => {});
   },
 
   onHide() {

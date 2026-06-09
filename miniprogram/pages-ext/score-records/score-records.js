@@ -32,7 +32,7 @@ Page({
     const { roomId } = e.currentTarget.dataset;
     if (!roomId) return;
     wx.navigateTo({
-      url: '/pages/settle/settle?roomId=' + roomId,
+      url: '/pages-ext/settle/settle?roomId=' + roomId,
       fail: () => {
         wx.showToast({ title: '航程回放加载失败', icon: 'none' });
       }

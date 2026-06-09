@@ -2,6 +2,33 @@
 
 ## 未发布
 
+### 安全
+
+- WebSocket 连接新增 roomId 成员校验，非房间成员无法订阅实时广播。
+- 房间读端点（详情、排行榜、折线图、关系网络、洞察、最近记录、总览、流水）全部要求成员身份。
+- `/storage/presign` 端点不再允许匿名访问，需要登录才能获取上传凭证。
+- WebSocket CORS 从 `*` 收紧为具体域名白名单。
+- 后端新增 `RequestIdFilter`，每个请求携带唯一追踪 ID。
+- 后端新增 `RoomAccessGuard` 组件，统一编队访问校验。
+- `application-local.yml` 中硬编码密钥全部改为环境变量注入。
+- `.gitignore` 新增 `application-local.yml`，防止密钥再次提交。
+- 新建 `.env.example` 提供环境变量模板。
+- `deploy.sh` 中服务器地址和密钥路径改为环境变量。
+
+### 优化
+
+- `room.js` 的 `buildMemberGrid` + `rebuildPulseStats` 合并为一次 setData 写入，减少渲染压力。
+- 新增 `room-patch-scheduler` 批处理调度器，支持高频 setData 合并。
+- `request.js` 新增 GET 请求去重和 X-Request-Id 追踪头。
+- 新建 `services/room-service.js`、`services/score-service.js` 和 `services/round-service.js`，封装全部房间、记分和轮次 API。
+- `room.js` 全量迁移到 services 层，移除直接 `get`/`post`/`del` 调用。
+- 子包拆分：主包保留 5 页（登录/驾驶舱/指令/镜像/身份），子包 `pages-ext` 包含 5 页（设置/语音/航程档案/航迹回放/识别档案）。
+- 新建 `styles/motion.wxss` 动效协议 token，`app.wxss` 全局引入。
+- 粒子飞行动画从 16ms setData 逐帧循环改为 CSS `@keyframes` 驱动，setData 从每帧 20+ 次降到 2 次。
+- `flashTargetSeat` impact 反馈改用 CSS `motion-score-impact` class，ship-craft 有独立 impact 动画。
+- `score-ws.js` 新增 25s 心跳检测，40s 无消息自动重连。
+- 驾驶舱前后台切换恢复策略：<30s 静默、30s-5min 刷新数据、>5min 强制重连。
+
 ### 新增
 
 - 创建编队后的 active 态背景改为全局星空背景，编队码、成员数、外部航船、本舰脉冲、实时脉冲、轨迹和航程控制继续作为 WXML 动态覆盖层实时更新。

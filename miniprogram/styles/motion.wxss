@@ -1,0 +1,87 @@
+/**
+ * 动效协议 token — 全站统一的动画时长、缓动和层级。
+ * 在 app.wxss 中 @import './styles/motion.wxss' 引入。
+ */
+
+:root {
+  /* 时长 */
+  --sr-duration-fast: 120ms;
+  --sr-duration-normal: 240ms;
+  --sr-duration-slow: 400ms;
+  --sr-duration-pulse: 680ms;
+
+  /* 缓动 */
+  --sr-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --sr-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --sr-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 层级 */
+  --sr-z-overlay: 100;
+  --sr-z-modal: 200;
+  --sr-z-toast: 300;
+  --sr-z-motion: 60;
+}
+
+/* 通用入场 */
+.motion-fade-in {
+  animation: motionFadeIn var(--sr-duration-normal) var(--sr-ease-out) both;
+}
+
+.motion-slide-up {
+  animation: motionSlideUp var(--sr-duration-normal) var(--sr-ease-out) both;
+}
+
+/* 分数冲击反馈 */
+.motion-score-impact {
+  animation: scoreImpact 220ms var(--sr-spring) both;
+}
+
+/* 脉冲飞线 */
+.pulse-flight-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--sr-z-motion);
+}
+
+.pulse-flight-dot {
+  position: absolute;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.96);
+  will-change: transform, opacity;
+}
+
+.pulse-flight-dot.is-playing {
+  animation: pulseFlightMove var(--sr-duration-pulse) var(--sr-ease-out) forwards;
+}
+
+/* reduce-motion 兜底 */
+.reduce-motion .motion-fade-in,
+.reduce-motion .motion-slide-up,
+.reduce-motion .motion-score-impact,
+.reduce-motion .pulse-flight-dot.is-playing {
+  animation: none !important;
+}
+
+@keyframes motionFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes motionSlideUp {
+  from { opacity: 0; transform: translate3d(0, 24rpx, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes scoreImpact {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pulseFlightMove {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.88); }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--dx, 0), var(--dy, 0), 0) scale(1.08); }
+}

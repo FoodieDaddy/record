@@ -15,8 +15,8 @@ CONFIG_FILE="$(dirname "$0")/miniprogram/config.js"
 
 if [ -z "$ENV" ]; then
   echo "用法: ./switch-env.sh <local|dev>"
-  echo "  local — 本地开发（localhost:18080, MySQL 8.0, IDE 启动后端）"
-  echo "  dev   — 云服务器（8.148.245.54:18080, MySQL 5.7, Docker 启动后端）"
+  echo "  local — 本地开发（localhost:18080）"
+  echo "  dev   — 云服务器（需在 miniprogram/config.js 中配置 dev 地址）"
   exit 1
 fi
 
@@ -30,7 +30,7 @@ case "$ENV" in
   dev)
     # 切换小程序指向服务器
     sed -i '' "s/const currentEnv = '.*'/const currentEnv = 'dev'/" "$CONFIG_FILE"
-    info "小程序已切换到云服务器 (8.148.245.54:18080)"
+    info "小程序已切换到云服务器环境"
     warn "如需部署后端: ./deploy.sh"
     ;;
   *)

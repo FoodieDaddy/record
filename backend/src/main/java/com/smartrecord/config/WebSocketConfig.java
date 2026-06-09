@@ -24,7 +24,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(scoreWebSocket, "/ws/score")
                 .setHandshakeHandler(accessTokenHandshakeHandler())
-                .setAllowedOrigins("*");
+                .setAllowedOrigins(
+                        "https://servicewechat.com",
+                        "http://localhost:18080"
+                );
     }
 
     private DefaultHandshakeHandler accessTokenHandshakeHandler() {

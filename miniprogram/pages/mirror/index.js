@@ -1,5 +1,5 @@
 const api = require('../../utils/mirror-api');
-const { get } = require('../../utils/request');
+const scoreService = require('../../services/score-service');
 const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
 const { sanitizeMirrorText, sanitizeMirrorObject, sanitizeCrewName, truncateCanvasText } = require('../../utils/mirror-sanitize');
 const { normalizeAvatarUrl } = require('../../utils/avatar');
@@ -566,7 +566,7 @@ Page({
 
   async _fetchBlackboxSummary() {
     try {
-      var resp = await get('/score/yield-log');
+      var resp = await scoreService.getYieldLog();
       if (!resp) return null;
       var records = resp.records || [];
       var sampleCount = Number(resp.sampleCount) || 0;
@@ -1563,7 +1563,7 @@ Page({
   // ==================== 航迹回放 ====================
 
   goScoreRecords() {
-    wx.navigateTo({ url: '/pages/score-records/score-records' });
+    wx.navigateTo({ url: '/pages-ext/score-records/score-records' });
   },
 
   // ==================== 分享 ====================

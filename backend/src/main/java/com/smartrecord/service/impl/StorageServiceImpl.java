@@ -3,6 +3,7 @@ package com.smartrecord.service.impl;
 import com.aliyun.oss.HttpMethod;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.GeneratePresignedUrlRequest;
+import com.smartrecord.common.BizException;
 import com.smartrecord.config.OssConfig;
 import com.smartrecord.dto.storage.PresignUrlResp;
 import com.smartrecord.service.StorageService;
@@ -20,13 +21,18 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class StorageServiceImpl implements StorageService {
 
+    private static final long MAX_UPLOAD_BYTES = 2L * 1024 * 1024;
+    private static final String OBJECT_PREFIX = "avatars/";
+
     private final OSS ossClient;
     private final OssConfig ossConfig;
     private final SnowflakeIdGenerator idGenerator;
 
     @Override
-    public PresignUrlResp generatePresignUrl(String contentType) {
-        String objectKey = buildObjectKey(contentType);
+    public PresignUrlResp generatePresignUrl(String contentType, Long contentLength) {
+        String normalizedContentType = normalizeContentType(contentType);
+        validateContentLength(contentLength);
+        String objectKey = buildObjectKey(normalizedContentType);
         String accessUrl = buildAccessUrl(objectKey);
 
         try {
@@ -35,7 +41,8 @@ public class StorageServiceImpl implements StorageService {
             // 10 分钟有效期
             request.setExpiration(new Date(System.currentTimeMillis() + 10 * 60 * 1000));
             // 约束 Content-Type，防止前端传错
-            request.setContentType(contentType);
+            request.setContentType(normalizedContentType);
+            request.addHeader("Content-Length", String.valueOf(contentLength));
 
             String uploadUrl = ossClient.generatePresignedUrl(request).toString();
             // 确保使用 HTTPS 协议
@@ -56,7 +63,7 @@ public class StorageServiceImpl implements StorageService {
 
     private String buildAccessUrl(String objectKey) {
         // 前端直传使用 uploadUrl，后续存储到数据库用 objectUrl
-        String objectUrl = "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint().replace("https://", "") + "/" + objectKey;
+        String objectUrl = "https://" + ossConfig.getBucketName() + "." + normalizeEndpoint() + "/" + objectKey;
         return objectUrl;
     }
 
@@ -75,7 +82,7 @@ public class StorageServiceImpl implements StorageService {
     public String buildFullUrl(String objectKey) {
         if (objectKey == null || objectKey.isEmpty()) return "";
         if (objectKey.startsWith("http")) return objectKey;
-        return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
+        return "https://" + ossConfig.getBucketName() + "." + normalizeEndpoint() + "/" + objectKey;
     }
 
     private static final Map<String, String> MIME_TO_EXT = Map.of(
@@ -86,7 +93,33 @@ public class StorageServiceImpl implements StorageService {
     );
 
     private String buildObjectKey(String contentType) {
-        String ext = MIME_TO_EXT.getOrDefault(contentType.toLowerCase(), ".jpg");
-        return "images/" + idGenerator.nextId() + ext;
+        String ext = MIME_TO_EXT.get(contentType);
+        return OBJECT_PREFIX + idGenerator.nextId() + ext;
+    }
+
+    private String normalizeContentType(String contentType) {
+        if (contentType == null) {
+            throw new BizException(400, "不支持的文件类型");
+        }
+        String normalized = contentType.trim().toLowerCase();
+        if (!MIME_TO_EXT.containsKey(normalized)) {
+            throw new BizException(400, "不支持的文件类型");
+        }
+        return normalized;
+    }
+
+    private void validateContentLength(Long contentLength) {
+        if (contentLength == null || contentLength <= 0) {
+            throw new BizException(400, "缺少文件大小");
+        }
+        if (contentLength > MAX_UPLOAD_BYTES) {
+            throw new BizException(400, "文件不能超过 2MB");
+        }
+    }
+
+    private String normalizeEndpoint() {
+        return ossConfig.getEndpoint()
+                .replace("https://", "")
+                .replace("http://", "");
     }
 }

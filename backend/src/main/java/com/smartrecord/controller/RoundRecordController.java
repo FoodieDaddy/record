@@ -1,6 +1,7 @@
 package com.smartrecord.controller;
 
 import com.smartrecord.common.Result;
+import com.smartrecord.common.RoomAccessGuard;
 import com.smartrecord.dto.round.ConfirmRoundReq;
 import com.smartrecord.dto.round.RoundRecordResp;
 import com.smartrecord.dto.round.StartRoundReq;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class RoundRecordController {
 
     private final RoundRecordService roundRecordService;
+    private final RoomAccessGuard roomAccessGuard;
 
     @Operation(summary = "发起本局录", description = "仅房主可操作，根据房间配置进入对应流程")
     @PostMapping("/start")
@@ -62,7 +64,10 @@ public class RoundRecordController {
     @Operation(summary = "获取待处理本局录", description = "获取当前房间的待处理本局录")
     @GetMapping("/pending")
     public Result<RoundRecordResp> getPending(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @RequestParam Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(roundRecordService.getPending(roomId));
     }
 }

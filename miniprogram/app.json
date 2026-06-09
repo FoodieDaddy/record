@@ -4,12 +4,19 @@
     "pages/room/room",
     "pages/fortune/fortune",
     "pages/mirror/index",
-    "pages/profile/profile",
-    "pages/settings/settings",
-    "pages/voice-select/voice-select",
-    "pages/settle/settle",
-    "pages/score-records/score-records",
-    "pages/level-archive/level-archive"
+    "pages/profile/profile"
+  ],
+  "subpackages": [
+    {
+      "root": "pages-ext",
+      "pages": [
+        "settings/settings",
+        "voice-select/voice-select",
+        "settle/settle",
+        "score-records/score-records",
+        "level-archive/level-archive"
+      ]
+    }
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",

@@ -1,3 +1,6 @@
+/* 动效协议 token */
+@import './styles/motion.wxss';
+
 /* ===== 全局主题：冷蓝终端色阶 ===== */
 page {
   /* — 背景 — */

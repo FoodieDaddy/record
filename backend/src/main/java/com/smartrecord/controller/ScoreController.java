@@ -2,6 +2,7 @@ package com.smartrecord.controller;
 
 import com.smartrecord.common.PageResult;
 import com.smartrecord.common.Result;
+import com.smartrecord.common.RoomAccessGuard;
 import com.smartrecord.dto.score.*;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.ScoreService;
@@ -23,6 +24,7 @@ public class ScoreController {
 
     private final ScoreService scoreService;
     private final OverviewService overviewService;
+    private final RoomAccessGuard roomAccessGuard;
 
     @Operation(summary = "提交记分", description = "一次提交包含多个玩家得分。使用 Redisson 分布式锁防并发")
     @PostMapping
@@ -36,29 +38,41 @@ public class ScoreController {
     @Operation(summary = "获取房间折线图数据", description = "返回各成员的累计积分变化序列")
     @GetMapping("/room/{roomId}/chart")
     public Result<ChartDataResp> getChartData(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getChartData(roomId));
     }
 
     @Operation(summary = "获取房间总览缓存", description = "优先读取缓存，miss 时同步计算")
     @GetMapping("/room/{roomId}/overview")
     public Result<String> getRoomOverview(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(overviewService.getCachedOverview(roomId));
     }
 
     @Operation(summary = "获取房间排行榜")
     @GetMapping("/room/{roomId}/ranking")
     public Result<List<ScoreBatchResp.PlayerScoreVO>> getRoomRanking(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomRanking(roomId));
     }
 
     @Operation(summary = "获取房间最近记分记录")
     @GetMapping("/room/{roomId}/recent")
     public Result<List<ScoreBatchResp>> getRoomRecentScores(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId,
             @Parameter(description = "获取最近 N 条") @RequestParam(defaultValue = "10") Integer count) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomRecentScores(roomId, count));
     }
 
@@ -74,9 +88,12 @@ public class ScoreController {
     @Operation(summary = "房间计分流水（分页）")
     @GetMapping("/transfer/room/{roomId}")
     public Result<PageResult<TransferScoreResp>> getRoomTransfers(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") Integer page,
             @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") Integer size) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomTransfers(roomId, page, size));
     }
 
@@ -86,6 +103,7 @@ public class ScoreController {
             HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
         Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getTransferAmountSuggestions(userId, roomId));
     }
 
@@ -117,14 +135,20 @@ public class ScoreController {
     @Operation(summary = "战局洞察", description = "返回总流转量、最大流转、最活跃用户、互动密度等")
     @GetMapping("/room/{roomId}/insight")
     public Result<RoomInsightResp> getRoomInsight(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomInsight(roomId));
     }
 
     @Operation(summary = "积分关系网络", description = "返回节点（含当前积分）和连线（含净流转额）")
     @GetMapping("/room/{roomId}/network")
     public Result<RoomNetworkResp> getRoomNetwork(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomNetwork(roomId));
     }
 }

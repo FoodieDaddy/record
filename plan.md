@@ -6,14 +6,67 @@
 - 编队页 active 首屏已改为 `cockpit-shell-v2` 一屏驾驶舱，舷窗、驾驶台、终端屏和航程控制压缩到一个首屏主壳内。
 - 后端编译通过，前端语法检查通过。
 - 已修复两个用户反馈问题：中途退出成员黑匣子缺失、旧封存空间影响新房间创建/加入。
+- Phase 1 安全修复已完成：WebSocket roomId 校验、读端点鉴权、presign 鉴权、密钥清理、请求追踪。
 
 ## 下一轮目标
 
-全局产品语言重构进行中。
+rebuild_plan Phase 1-5 已完成，Phase 6 条件不满足暂缓，Phase 7-10 按需执行。
 
 ```text
-编译验证 -> 关键词搜索确认旧词清除 -> 底部 Dock 渲染验证 -> 真机安全区适配
+Phase 1 (安全) ✅ -> Phase 2 (性能) + Phase 5 (API) ✅ -> Phase 3 (动画) + Phase 4 (状态) ✅ -> Phase 7-10 (按需)
 ```
+
+Phase 6 子包拆分完成：主包 5 页（login/room/fortune/mirror/profile），子包 `pages-ext` 5 页（settings/voice-select/settle/score-records/level-archive）。
+
+## Phase 1 安全修复（2026-06-09） ✅
+
+- ✅ `application-local.yml` 密钥全部改为环境变量注入。
+- ✅ `.gitignore` 新增 `application-local.yml` 防止密钥再提交。
+- ✅ `.env.example` 创建环境变量模板。
+- ✅ `deploy.sh` 服务器地址改为环境变量。
+- ✅ `ScoreWebSocket` 新增 roomId 成员校验，非成员 4003 关闭。
+- ✅ `RoomAccessGuard` 创建，统一编队访问校验。
+- ✅ `RoomController.getRoomDetail` 加入成员校验。
+- ✅ `ScoreController` 7 个读端点全部加入成员校验。
+- ✅ `RoundRecordController.getPending` 加入成员校验。
+- ✅ `StorageController.getPresignUrl` 要求登录。
+- ✅ `WebMvcConfig` 移除 `/storage/presign` 免认证。
+- ✅ `WebSocketConfig` CORS 从 `*` 收紧。
+- ✅ `RequestIdFilter` 创建，请求追踪 ID。
+- ⬜ 真机 WebSocket 连接测试。
+- ⬜ 非成员 HTTP 读请求 403 测试。
+
+## Phase 2 + Phase 5 性能与 API 层（2026-06-09） ✅
+
+- ✅ `room-patch-scheduler.js` 创建，提供 scheduleRoomPatch/flushRoomPatch 批处理机制。
+- ✅ `room.js` 引入 patch scheduler，通过 Object.assign 合并到 Page 定义。
+- ✅ `buildMemberGrid` + `rebuildPulseStats` 合并为一次 setData 写入。
+- ✅ `_calcPulseStatsPatch` 抽取为纯函数，返回 patch 对象而非直接 setData。
+- ✅ `onUnload` 新增 `_destroyed` 标记和 `_roomPatchTimer` 清理。
+- ✅ `request.js` 重写：GET 请求去重（inflight Map）、X-Request-Id 头、保持向后兼容。
+- ✅ `services/room-service.js` 创建，封装 7 个房间 API。
+- ✅ `services/score-service.js` 创建，封装 11 个记分 API。
+- ✅ `room.js` 全量迁移到 service 层，25+ 处直接 API 调用替换为 `roomService`/`scoreService`/`roundService`。
+- ⬜ 真机性能验证 setData 次数下降。
+
+## Phase 3 动画系统重写（2026-06-09） ✅
+
+- ✅ `motion.wxss` 创建，定义动效 token（时长/缓动/层级）和通用动画类。
+- ✅ `app.wxss` 接入 `@import './styles/motion.wxss'`。
+- ✅ 粒子动画 `_runParticleWithRects` 从 16ms setData 逐帧循环改为 CSS `@keyframes` + class toggle，setData 从每帧 20+ 次降到 2 次。
+- ✅ `onParticleAnimEnd` 回调处理 `animationend` 事件，触发分数滚动动画。
+- ✅ `flashTargetSeat` 接入 `motion-score-impact` CSS class，ship-craft 有独立 impact keyframe（保留 translate 居中）。
+- ✅ WXML 粒子模板改为 CSS 自定义属性驱动（`--dx`/`--dy`/`--arc`），`bindanimationend` 回调。
+- ✅ 所有新动画均有 `.reduce-motion` 兜底。
+- ⬜ 微信开发者工具编译验证。
+- ⬜ 真机验证粒子飞行流畅度和 impact 反馈。
+
+## Phase 4 WebSocket 治理（2026-06-09） ✅
+
+- ✅ `score-ws.js` 新增心跳检测：25s 间隔检查，40s 无消息判定断线并自动重连。
+- ✅ `_startHeartbeat`/`_stopHeartbeat` 生命周期管理：onOpen 启动、onClose/disconnect 停止。
+- ✅ `room.js` 前后台切换恢复策略：`onHide` 记录时间戳，`onShow` 按离线时长决定恢复（<30s 静默、30s-5min 刷新数据、>5min 强制重连）。
+- ⬜ room-store.js 状态管理（后续优化）。
 
 ## 编队页 active 首屏 v2 重构（2026-06-08） ✅
 

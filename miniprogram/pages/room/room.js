@@ -1,10 +1,13 @@
-const { get, post, del } = require('../../utils/request');
 const { retryWithBackoff } = require('../../utils/retry');
 const scoreWS = require('../../utils/score-ws');
+const roomService = require('../../services/room-service');
+const scoreService = require('../../services/score-service');
+const roundService = require('../../services/round-service');
 const { getColor, getFirstChar, getAvatarView, normalizeAvatarUrl } = require('../../utils/avatar');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
 const { vibrateShort } = require('../../utils/haptic');
+const { createPatchScheduler } = require('./room-patch-scheduler');
 const app = getApp();
 
 // 舷窗目标安全区：外部航船保持在驾驶台上方。
@@ -74,7 +77,7 @@ function pickLatestTrace(traces = []) {
   ), null);
 }
 
-Page({
+Page(Object.assign(createPatchScheduler(), {
   data: {
     isLoggedIn: false,
     currentRoom: null,
@@ -119,22 +122,15 @@ Page({
     numpadValue: 0,
     // 战局洞察
     roomInsight: null,
-    // 计分动画
+    // 计分动画（CSS 驱动）
     animActive: false,
-    animCurX: 0,
-    animCurY: 0,
-    animCurOpacity: 1,
-    animCurScale: 1,
+    animFlying: false,
+    animStartX: 0,
+    animStartY: 0,
+    animDx: 0,
+    animDy: 0,
+    animArc: -80,
     animAmount: 0,
-    animFlashOpacity: 0,
-    animTrail1X: 0,
-    animTrail1Y: 0,
-    animTrail1Opacity: 0,
-    animTrail1Scale: 0.6,
-    animTrail2X: 0,
-    animTrail2Y: 0,
-    animTrail2Opacity: 0,
-    animTrail2Scale: 0.4,
     // 脉冲记录
     scoreRecords: [],
     groupedRecords: [],
@@ -143,6 +139,9 @@ Page({
     noMore: false,
     // 脉冲总览弹窗
     showMatrixPanel: false,
+    relationMap: {},
+    matrixChartData: null,
+    matrixChartRoomId: '',
     // 结算弹层
     showSettleOverlay: false,
     settleTimestamps: [],
@@ -292,6 +291,19 @@ Page({
     scoreWS.on('open', this._onWsOpen);
     // 如果 WS 已经是断开状态，立即显示遮罩
     this.setData({ wsReconnecting: this.shouldShowWsReconnect() });
+    // 前后台切换恢复策略
+    if (this._hideTime && this.data.viewingRoom) {
+      const elapsed = Date.now() - this._hideTime;
+      if (elapsed > 300000) {
+        // >5min：强制重连
+        scoreWS.switchRoom(this.data.currentRoom?.roomId || this.data.currentRoom?.id);
+      } else if (elapsed > 30000) {
+        // 30s-5min：静默刷新数据
+        this.buildMemberGrid();
+      }
+      // <30s：无需处理，WS 保持连接
+    }
+    this._hideTime = 0;
     if (app.globalData.token && !this.data.viewingRoom) {
       this.loadMyRooms();
       this.loadRecentRooms();
@@ -309,6 +321,7 @@ Page({
   },
 
   onUnload() {
+    this._destroyed = true;
     // 仅取消订阅，不销毁全局连接
     if (this._onWsMessage) {
       scoreWS.off('message', this._onWsMessage);
@@ -316,6 +329,11 @@ Page({
     if (this._onWsClose) {
       scoreWS.off('close', this._onWsClose);
       scoreWS.off('open', this._onWsOpen);
+    }
+    // 清理 patch scheduler
+    if (this._roomPatchTimer) {
+      clearTimeout(this._roomPatchTimer);
+      this._roomPatchTimer = null;
     }
     // 清理定时器
     if (this._rollTimer) {
@@ -358,7 +376,9 @@ Page({
       wsReconnecting: false,
       toastMsg: '',
       animActive: false,
+      animFlying: false,
     });
+    this._hideTime = Date.now();
   },
 
   updateCockpitState(forceState) {
@@ -898,7 +918,7 @@ Page({
     this.startSealHeartbeat();
 
     try {
-      const settleResp = await post(`/score/room/${roomId}/settle`, null, { silent: true });
+      const settleResp = await scoreService.settleRoom(roomId);
       this._settling = true;
       this.suppressWsReconnect();
       app.disconnectWS();
@@ -923,6 +943,9 @@ Page({
           memberGrid: [],
           seatList: [],
           matrixData: [],
+          relationMap: {},
+          matrixChartData: null,
+          matrixChartRoomId: '',
           roundRecord: null,
           canSealRoom: false,
           showHostFill: false,
@@ -950,6 +973,9 @@ Page({
           memberGrid: [],
           seatList: [],
           matrixData: [],
+          relationMap: {},
+          matrixChartData: null,
+          matrixChartRoomId: '',
           roundRecord: null,
           canSealRoom: false,
           showHostFill: false,
@@ -1093,32 +1119,19 @@ Page({
     });
   },
 
-  /** 目标席位 impact 闪光 */
+  /** 目标席位 impact 闪光（CSS motion-score-impact 驱动） */
   flashTargetSeat(userId) {
     this.setData({ impactCrewId: String(userId) });
     this.refreshSeatLayoutWithImpact(userId);
     const timer = setTimeout(() => {
       this.setData({ impactCrewId: null });
-      const grid = this.data.memberGrid || [];
-      this.setData({
-        seatList: this.buildSeatList(grid),
-        seatLayoutMode: this.getSeatLayoutMode(grid.length)
-      });
-    }, 460);
+    }, 300);
     this.addPageTimer(timer);
   },
 
   /** 带 impact 标记的席位列表 */
   refreshSeatLayoutWithImpact(userId) {
-    const grid = this.data.memberGrid || [];
-    const seatList = this.buildSeatList(grid).map(item => ({
-      ...item,
-      impact: String(item.userId) === String(userId)
-    }));
-    this.setData({
-      seatList,
-      seatLayoutMode: this.getSeatLayoutMode(grid.length)
-    });
+    // cockpitView.externalShips 通过 impactCrewId 驱动 CSS class，无需额外 setData
   },
 
   goLogin() {
@@ -1151,7 +1164,7 @@ Page({
     if (this._showingSettle) return;
     this.setData({ loading: true });
     try {
-      const rooms = await get('/room/my');
+      const rooms = await roomService.getMyRooms();
       if (rooms && rooms.length > 0) {
         const room = rooms[0];
         this.setData({
@@ -1167,7 +1180,21 @@ Page({
           this.loadPendingRound(room.roomId);
         }
       } else {
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], selectedCrew: null, cockpitScrollTarget: '', pulseTraces: [], matrixData: [] });
+        this.setData({
+          currentRoom: null,
+          viewingRoom: false,
+          ranking: [],
+          scoreRecords: [],
+          relationMap: {},
+          matrixChartData: null,
+          matrixChartRoomId: '',
+          memberGrid: [],
+          seatList: [],
+          selectedCrew: null,
+          cockpitScrollTarget: '',
+          pulseTraces: [],
+          matrixData: []
+        });
         this.updateCockpitState();
       }
     } catch (e) {
@@ -1233,7 +1260,8 @@ Page({
       cockpitView.statusDot = 'online';
       cockpitView.isConnecting = false;
     }
-    this.setData({
+    // 先收集 patch，与 rebuildPulseStats 合并为一次写入
+    const memberPatch = {
       memberGrid: grid,
       seatList: this.buildSeatList(grid),
       seatLayoutMode: this.getSeatLayoutMode(grid.length),
@@ -1242,8 +1270,9 @@ Page({
       myPulseTone: myPulseValue > 0 ? 'positive' : myPulseValue < 0 ? 'negative' : 'zero',
       cockpitView,
       ...extraState
-    });
-    this.rebuildPulseStats(grid);
+    };
+    const pulsePatch = this._calcPulseStatsPatch(grid);
+    this.scheduleRoomPatch({ ...memberPatch, ...pulsePatch }, { immediate: true });
   },
 
   async loadRoomData(roomId) {
@@ -1257,7 +1286,7 @@ Page({
 
   async loadInsightData(roomId) {
     try {
-      const insight = await get(`/score/room/${roomId}/insight`);
+      const insight = await scoreService.getRoomInsight(roomId);
       this.setData({ roomInsight: insight });
     } catch (e) {
       // 静默失败，不影响主流程
@@ -1267,7 +1296,7 @@ Page({
   async loadTransferAmountSuggestions(roomId) {
     if (!roomId) return;
     try {
-      const resp = await get(`/score/room/${roomId}/transfer-amount-suggestions`);
+      const resp = await scoreService.getTransferAmountSuggestions(roomId);
       const items = (resp && resp.items || [])
         .map(item => ({
           amount: Number(item.amount || 0),
@@ -1284,7 +1313,7 @@ Page({
 
   async loadRanking(roomId) {
     try {
-      const ranking = await get(`/score/room/${roomId}/ranking`);
+      const ranking = await scoreService.getRoomRanking(roomId);
       if (!ranking) return;
 
       const maxScore = Math.max(...ranking.map(r => Math.abs(r.score || 0)), 1);
@@ -1378,7 +1407,7 @@ Page({
     }
     const page = this._transferPage || 1;
     try {
-      const res = await get(`/score/transfer/room/${roomId}?page=${page}&size=20`);
+      const res = await scoreService.getRoomTransfers(roomId, page, 20);
       if (!res) return;
 
       const myId = app.globalData.userId;
@@ -1412,13 +1441,29 @@ Page({
       }
       this._transferPage = page + 1;
 
-      this.setData({ scoreRecords: allRecords });
+      this.setData({
+        scoreRecords: allRecords,
+        relationMap: this.buildRelationMap(allRecords)
+      });
       this.rebuildGroupedRecords();
       this.rebuildPulseStats();
       this.updateCanSealRoom();
     } catch (e) {
       console.error('加载脉冲记录失败', e);
     }
+  },
+
+  buildRelationMap(records = []) {
+    const map = {};
+    records.forEach(record => {
+      const from = String(record.fromUserId || record.fromId || '');
+      const to = String(record.toUserId || record.toId || '');
+      const amount = Number(record.amount || record.score || 0);
+      if (!from || !to || Number.isNaN(amount)) return;
+      const key = `${from}->${to}`;
+      map[key] = (map[key] || 0) + amount;
+    });
+    return map;
   },
 
   /** 按分钟分组 + 过滤 */
@@ -1449,6 +1494,11 @@ Page({
   },
 
   rebuildPulseStats(memberGridOverride) {
+    const patch = this._calcPulseStatsPatch(memberGridOverride);
+    this.scheduleRoomPatch(patch, { immediate: true });
+  },
+
+  _calcPulseStatsPatch(memberGridOverride) {
     const records = this.data.scoreRecords || [];
     const members = memberGridOverride || this.data.memberGrid || [];
     const myId = String(this.data.myUserId || app.globalData.userId || '');
@@ -1520,7 +1570,6 @@ Page({
     const traceChartSeries = Object.values(seriesMap).filter(s => s.scores.length > 0);
     const traceChartVisibleUsers = traceChartSeries.map(s => String(s.userId)).slice(0, 8);
 
-    // 迷你轨迹预览：取本舰序列并压缩为 5-8 个点，归一化到 18%-82%。
     const selfSeries = traceChartSeries.find(s => String(s.userId) === myId) || traceChartSeries[0];
     let traceChartSparkline = [];
     if (selfSeries && selfSeries.scores.length > 1) {
@@ -1546,7 +1595,7 @@ Page({
       ? traceChartSparkline.slice(-8)
       : SPARKLINE_EMPTY_POINTS;
 
-    this.setData({
+    return {
       pulseTraces: traces,
       filteredPulseTraces,
       pulseStats: {
@@ -1565,7 +1614,7 @@ Page({
       'cockpitView.lastPulseAmount': lastTrace ? lastTrace.valueText : '',
       'cockpitView.sparklinePoints': sparklinePoints,
       'cockpitView.hasTrajectory': traceChartSparkline.length > 0
-    });
+    };
   },
 
   setTraceFilter(e) {
@@ -1642,19 +1691,63 @@ Page({
 
   // ========== 脉冲总览 ==========
 
-  async openMatrixPanel() {
+  openMatrixPanel() {
     const room = this.data.currentRoom;
     if (!room) return;
-    await this.updateAllData(room.roomId);
-    this.setData({ showMatrixPanel: true });
+    const sameRoomChart = String(this.data.matrixChartRoomId || '') === String(room.roomId);
+    this.setData({
+      showMatrixPanel: true,
+      matrixChartRoomId: room.roomId,
+      matrixChartData: sameRoomChart ? this.data.matrixChartData : null
+    });
+    if (!sameRoomChart || !this.data.matrixChartData) {
+      this.scheduleMatrixChartLoad(room.roomId);
+    }
   },
 
   closeMatrixPanel() {
+    if (this._matrixChartTimer) {
+      clearTimeout(this._matrixChartTimer);
+      this._matrixChartTimer = null;
+    }
     this.setData({ showMatrixPanel: false });
   },
 
   onMatrixClose() {
-    this.setData({ showMatrixPanel: false });
+    this.closeMatrixPanel();
+  },
+
+  scheduleMatrixChartLoad(roomId) {
+    if (!roomId) return;
+    if (this._matrixChartTimer) clearTimeout(this._matrixChartTimer);
+    this._matrixChartTimer = setTimeout(() => {
+      this._matrixChartTimer = null;
+      this.loadMatrixChart(roomId);
+    }, 260);
+    this.addPageTimer(this._matrixChartTimer);
+  },
+
+  async loadMatrixChart(roomId) {
+    if (!roomId) return;
+    try {
+      const data = await scoreService.getRoomChart(roomId);
+      const currentRoomId = this.data.currentRoom && this.data.currentRoom.roomId;
+      if (!this.data.showMatrixPanel || String(currentRoomId || '') !== String(roomId)) return;
+      const series = data && Array.isArray(data.series) ? data.series : [];
+      this.setData({
+        matrixChartRoomId: roomId,
+        matrixChartData: series.length > 0 ? {
+          timestamps: data.timestamps || [],
+          series,
+          visibleUsers: [String(this.data.myUserId || app.globalData.userId || '')].filter(Boolean)
+        } : null
+      });
+    } catch (e) {
+      console.error('加载数值总览图表失败', e);
+      if (this.data.showMatrixPanel) {
+        this.setData({ matrixChartRoomId: roomId, matrixChartData: null });
+      }
+    }
   },
 
   // ========== 历史场次 ==========
@@ -1899,7 +1992,7 @@ Page({
 
   async reloadRoomInfo(roomId) {
     try {
-      const rooms = await get('/room/my');
+      const rooms = await roomService.getMyRooms();
       if (rooms && rooms.length > 0) {
         const room = rooms[0];
         this.setData({
@@ -2056,7 +2149,7 @@ Page({
         payload.autoTimeoutSeconds = this.data.autoTimeoutSeconds;
         payload.autoTimeoutAction = this.data.autoTimeoutAction;
       }
-      const room = await post('/room', payload);
+      const room = await roomService.createRoom(payload);
       this.resetJoinState();
       this.setData({ currentRoom: room, viewingRoom: true, isOwner: true });
       await this.reloadRoomInfo(room.roomId);
@@ -2084,7 +2177,7 @@ Page({
 
   async joinByRoomNo(roomNo) {
     try {
-      const room = await post('/room/join', { roomNo });
+      const room = await roomService.joinRoom(roomNo);
       this.setData({
         currentRoom: room,
         viewingRoom: true,
@@ -2265,7 +2358,7 @@ Page({
 
     // API 请求并行执行
     try {
-      await post('/score/transfer', {
+      await scoreService.transferScore({
         roomId: room.roomId,
         toUserId: transferTo,
         amount
@@ -2297,7 +2390,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      const resp = await post('/round/start', { roomId: room.roomId });
+      const resp = await roundService.startRound(room.roomId);
       this.setRoundRecord(resp);
       // 根据输入方式打开对应弹窗
       const isOwner = this.data.isOwner;
@@ -2318,7 +2411,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      const resp = await post('/round/submit', { roomId: room.roomId, scores });
+      const resp = await roundService.submitRoundScores(room.roomId, scores);
       this.setRoundRecord(resp);
       this.setData({ showHostFill: false });
       // 信任模式关闭 → 打开确认弹窗
@@ -2336,10 +2429,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      const resp = await post('/round/submit', {
-        roomId: room.roomId,
-        scores: [{ userId: app.globalData.userId, score }]
-      });
+      const resp = await roundService.submitRoundScores(room.roomId, [{ userId: app.globalData.userId, score }]);
       this.setRoundRecord(resp);
       this.setData({ showMemberFill: false });
       if (room.trustMode === 0 && resp.status === 2) {
@@ -2354,7 +2444,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      const resp = await post('/round/confirm', { roomId: room.roomId, agree: true });
+      const resp = await roundService.confirmRound(room.roomId, true);
       this.setRoundRecord(resp);
       if (resp.status === 3 || resp.status === 4) {
         this.setData({ showRoundConfirm: false });
@@ -2368,7 +2458,7 @@ Page({
     const room = this.data.currentRoom;
     if (!room) return;
     try {
-      await post(`/round/cancel?roomId=${room.roomId}`);
+      await roundService.cancelRound(room.roomId);
       this.setData({ roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false });
     } catch (e) {
       wx.showToast({ title: e.message || '操作失败', icon: 'none' });
@@ -2425,7 +2515,7 @@ Page({
     if (!room) return;
     this.setData({ showRejectConfirm: false });
     try {
-      const resp = await post('/round/confirm', { roomId: room.roomId, agree: false });
+      const resp = await roundService.confirmRound(room.roomId, false);
       this.setRoundRecord(resp);
       if (resp.status === 4) {
         this.setData({ showRoundConfirm: false });
@@ -2437,7 +2527,7 @@ Page({
 
   async loadPendingRound(roomId) {
     try {
-      const resp = await get(`/round/pending?roomId=${roomId}`);
+      const resp = await roundService.getPendingRound(roomId);
       if (resp && resp.status !== 4) {
         this.setRoundRecord(resp);
       } else {
@@ -2497,7 +2587,7 @@ Page({
     }
 
     const fetchUrl = async () => {
-      const resp = await get(`/room/${roomId}`);
+      const resp = await roomService.getRoomDetail(roomId);
       return this.normalizeQrUrl(resp);
     };
 
@@ -2620,7 +2710,7 @@ Page({
         this._settling = true;
         wx.showLoading({ title: '正在封存航程...' });
         // 1. 先归档数据
-        const settleResp = await post(`/score/room/${roomId}/settle`, null, { silent: true });
+        const settleResp = await scoreService.settleRoom(roomId);
         wx.hideLoading();
         // 2. 断开 WS
         this.suppressWsReconnect();
@@ -2634,14 +2724,55 @@ Page({
         if (hasData) {
           this.showSettleFromResp(settleResp);
         } else {
-          this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], selectedCrew: null, cockpitScrollTarget: '', matrixData: [], roundRecord: null, canSealRoom: false, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false, wsReconnecting: false, wsConnected: false });
+          this.setData({
+            currentRoom: null,
+            viewingRoom: false,
+            ranking: [],
+            scoreRecords: [],
+            relationMap: {},
+            matrixChartData: null,
+            matrixChartRoomId: '',
+            memberGrid: [],
+            seatList: [],
+            selectedCrew: null,
+            cockpitScrollTarget: '',
+            matrixData: [],
+            roundRecord: null,
+            canSealRoom: false,
+            showHostFill: false,
+            showMemberFill: false,
+            showRoundConfirm: false,
+            showRejectConfirm: false,
+            wsReconnecting: false,
+            wsConnected: false
+          });
           wx.showToast({ title: '编队已关闭', icon: 'none', duration: 2000 });
         }
       } else {
-        await del(`/room/${roomId}/quit`);
+        await roomService.quitRoom(roomId);
         this.suppressWsReconnect();
         app.disconnectWS();
-        this.setData({ currentRoom: null, viewingRoom: false, ranking: [], scoreRecords: [], memberGrid: [], seatList: [], selectedCrew: null, cockpitScrollTarget: '', matrixData: [], roundRecord: null, showHostFill: false, showMemberFill: false, showRoundConfirm: false, showRejectConfirm: false, wsReconnecting: false, wsConnected: false });
+        this.setData({
+          currentRoom: null,
+          viewingRoom: false,
+          ranking: [],
+          scoreRecords: [],
+          relationMap: {},
+          matrixChartData: null,
+          matrixChartRoomId: '',
+          memberGrid: [],
+          seatList: [],
+          selectedCrew: null,
+          cockpitScrollTarget: '',
+          matrixData: [],
+          roundRecord: null,
+          showHostFill: false,
+          showMemberFill: false,
+          showRoundConfirm: false,
+          showRejectConfirm: false,
+          wsReconnecting: false,
+          wsConnected: false
+        });
         wx.showToast({ title: '已断开', icon: 'success' });
       }
     } catch (e) {
@@ -2658,6 +2789,9 @@ Page({
           memberGrid: [],
           seatList: [],
           matrixData: [],
+          relationMap: {},
+          matrixChartData: null,
+          matrixChartRoomId: '',
           roundRecord: null,
           canSealRoom: false,
           showHostFill: false,
@@ -2733,8 +2867,8 @@ Page({
     const roomId = resp.roomId || (this.data.currentRoom && this.data.currentRoom.roomId);
     if (roomId) {
       Promise.all([
-        get(`/score/room/${roomId}/insight`).catch(() => null),
-        get(`/score/room/${roomId}/network`).catch(() => null)
+        scoreService.getRoomInsight(roomId).catch(() => null),
+        scoreService.getRoomNetwork(roomId).catch(() => null)
       ]).then(([insightData, networkData]) => {
         const updates = {};
         if (insightData) {
@@ -2762,8 +2896,8 @@ Page({
   async fetchAndShowSettle(roomId) {
     try {
       const [chartData, roomData] = await Promise.all([
-        get(`/score/room/${roomId}/chart`),
-        get(`/room/${roomId}`)
+        scoreService.getRoomChart(roomId),
+        roomService.getRoomDetail(roomId)
       ]);
       const timestamps = chartData.timestamps || [];
       const series = chartData.series || [];
@@ -2832,6 +2966,9 @@ Page({
       memberGrid: [],
       seatList: [],
       matrixData: [],
+      relationMap: {},
+      matrixChartData: null,
+      matrixChartRoomId: '',
       roundRecord: null,
       showHostFill: false,
       showMemberFill: false,
@@ -2982,7 +3119,7 @@ Page({
     }
   },
 
-  /** 粒子动画核心逻辑（使用已获取的 DOM 位置信息） */
+  /** 粒子动画核心逻辑（CSS @keyframes 驱动，仅 2 次 setData） */
   _runParticleWithRects(fromUserId, toUserId, amount, rects, onParticleDone) {
     const members = this.data.memberGrid;
     const fromIdx = members.findIndex(m => String(m.userId) === String(fromUserId));
@@ -2998,154 +3135,61 @@ Page({
     const startY = fromRect.top + fromRect.height * 0.3;
     const endX = toRect.left + toRect.width / 2;
     const endY = toRect.top + toRect.height * 0.3;
+    const arc = Math.min(startY, endY) - 80 - (startY + endY) / 2;
 
-    const duration = 900;
-    const startTime = Date.now();
-    const midX = (startX + endX) / 2;
-    const midY = Math.min(startY, endY) - 80;
+    // 保存回调，由 animationend 触发
+    this._particleOnDone = onParticleDone;
 
-    const bezier = (p0, p1, p2, t) => {
-      const u = 1 - t;
-      return u * u * p0 + 2 * u * t * p1 + t * t * p2;
-    };
-
+    // 一次 setData 设置起始位置和 CSS 变量，然后 toggle class 触发动画
     this.setData({
       animActive: true,
-      animAmount: String(amount),
-      animFlashOpacity: 0.6,
-      animCurX: startX - 10,
-      animCurY: startY - 10,
-      animCurOpacity: 1,
-      animCurScale: 0.5,
-      animTrail1X: startX - 6,
-      animTrail1Y: startY - 6,
-      animTrail1Opacity: 0.7,
-      animTrail1Scale: 0.5,
-      animTrail2X: startX - 4,
-      animTrail2Y: startY - 4,
-      animTrail2Opacity: 0.5,
-      animTrail2Scale: 0.4
+      animFlying: false,
+      animStartX: startX - 10,
+      animStartY: startY - 10,
+      animDx: endX - startX,
+      animDy: endY - startY,
+      animArc: arc,
+      animAmount: String(amount)
     });
 
-    setTimeout(() => this.setData({ animFlashOpacity: 0 }), 120);
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-
-      const cx = bezier(startX, midX, endX, ease);
-      const cy = bezier(startY, midY, endY, ease);
-      const scale = 0.5 + 1.3 * Math.sin(t * Math.PI);
-      const opacity = t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2;
-
-      const t1 = Math.max(0, (elapsed - 80) / duration);
-      const ease1 = 1 - Math.pow(1 - Math.min(t1, 1), 3);
-      const t1x = bezier(startX, midX, endX, ease1);
-      const t1y = bezier(startY, midY, endY, ease1);
-
-      const t2 = Math.max(0, (elapsed - 160) / duration);
-      const ease2 = 1 - Math.pow(1 - Math.min(t2, 1), 3);
-      const t2x = bezier(startX, midX, endX, ease2);
-      const t2y = bezier(startY, midY, endY, ease2);
-
-      this.setData({
-        animCurX: cx - 10,
-        animCurY: cy - 10,
-        animCurOpacity: opacity,
-        animCurScale: scale,
-        animTrail1X: t1x - 6,
-        animTrail1Y: t1y - 6,
-        animTrail1Opacity: t1 < 1 ? Math.max(0, 0.6 - t1 * 0.5) : 0,
-        animTrail1Scale: 0.3 + 0.4 * Math.sin(Math.min(t1, 1) * Math.PI),
-        animTrail2X: t2x - 4,
-        animTrail2Y: t2y - 4,
-        animTrail2Opacity: t2 < 1 ? Math.max(0, 0.4 - t2 * 0.4) : 0,
-        animTrail2Scale: 0.2 + 0.3 * Math.sin(Math.min(t2, 1) * Math.PI)
-      });
-
-      if (t < 1) {
-        this._particleTimer = setTimeout(animate, 16);
-      } else {
-        this.setData({ animActive: false });
-        const afterUpdate = () => {
-          this.playScoreRollAnimation(this._rollFromUserId, this._rollToUserId, this._rollAmount);
-        };
-        if (onParticleDone) {
-          const result = onParticleDone();
-          if (result && typeof result.then === 'function') {
-            result.then(afterUpdate);
-          } else {
-            afterUpdate();
-          }
-        } else {
-          afterUpdate();
-        }
-      }
-    };
-
-    animate();
+    // 下一帧 toggle class，确保 WXML 先渲染初始位置
+    wx.nextTick(() => {
+      if (this._destroyed) return;
+      this.setData({ animFlying: true });
+    });
   },
 
-  /** 分数跳变动画：淡出 → 新值淡入 + scale */
-  playScoreRollAnimation(fromUserId, toUserId, amount) {
-    if (this._rollTimer) return;
-
-    const grid = this.data.memberGrid;
-    const fromIdx = grid.findIndex(m => String(m.userId) === String(fromUserId));
-    const toIdx = grid.findIndex(m => String(m.userId) === String(toUserId));
-    if (fromIdx < 0 || toIdx < 0) return;
-
-    const fromOld = this._rollOldFromScore;
-    const toOld = this._rollOldToScore;
-    const fromNew = grid[fromIdx].score;
-    const toNew = grid[toIdx].score;
-
-    if (fromOld === fromNew && toOld === toNew) {
-      this._animatingScores = {};
-      return;
-    }
-
-    if (!app.globalData.animationEnabled) {
-      const updates = {};
-      updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-      updates[`memberGrid[${toIdx}].displayScore`] = toNew;
-      this.setData(updates);
-      this._animatingScores = {};
-      return;
-    }
-
-    const duration = 300;
-    const startTime = Date.now();
-
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / duration, 1);
-
-      const updates = {};
-      // 前半段显示旧值，后半段显示新值
-      if (t < 0.5) {
-        updates[`memberGrid[${fromIdx}].displayScore`] = fromOld;
-        updates[`memberGrid[${toIdx}].displayScore`] = toOld;
-      } else {
-        updates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-        updates[`memberGrid[${toIdx}].displayScore`] = toNew;
-      }
-      this.setData(updates);
-
-      if (t < 1) {
-        this._rollTimer = setTimeout(animate, 16);
-      } else {
-        const finalUpdates = {};
-        finalUpdates[`memberGrid[${fromIdx}].displayScore`] = fromNew;
-        finalUpdates[`memberGrid[${toIdx}].displayScore`] = toNew;
-        this.setData(finalUpdates);
-        this._rollTimer = null;
-        this._animatingScores = {};
-      }
+  /** CSS animationend 回调 */
+  onParticleAnimEnd() {
+    if (this._destroyed) return;
+    this.setData({ animActive: false, animFlying: false });
+    const afterUpdate = () => {
+      this.playScoreRollAnimation(this._rollFromUserId, this._rollToUserId, this._rollAmount);
     };
+    const onDone = this._particleOnDone;
+    this._particleOnDone = null;
+    if (onDone) {
+      const result = onDone();
+      if (result && typeof result.then === 'function') {
+        result.then(afterUpdate);
+      } else {
+        afterUpdate();
+      }
+    } else {
+      afterUpdate();
+    }
+  },
 
-    this._rollTimer = setTimeout(animate, 16);
+  /** 分数落值：粒子动画后一次性刷新，避免 JS 逐帧 setData */
+  playScoreRollAnimation(fromUserId, toUserId, amount) {
+    if (this._rollTimer) {
+      clearTimeout(this._rollTimer);
+      this._rollTimer = null;
+    }
+    this._animatingScores = {};
+    this._rollOldFromScore = null;
+    this._rollOldToScore = null;
+    this.buildMemberGrid();
   },
 
   // ========== 识别徽标加载失败兜底 ==========
@@ -3201,4 +3245,4 @@ Page({
       path: `/pages/room/room?roomNo=${roomNo}`
     };
   }
-});
+}));

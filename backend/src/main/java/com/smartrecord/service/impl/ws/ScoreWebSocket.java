@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ScoreWebSocket extends TextWebSocketHandler {
 
     private static final String USER_ID_ATTR = "userId";
+    private static final String ROOM_PREFIX = "sr:room:";
 
     /** roomId -> set of sessions */
     private static final Map<String, Set<WebSocketSession>> ROOM_SESSIONS = new ConcurrentHashMap<>();
@@ -60,7 +61,14 @@ public class ScoreWebSocket extends TextWebSocketHandler {
             return;
         }
 
-        // 3. 关联 userId 到 session
+        // 3. 校验用户是否为该房间的活跃成员
+        if (!isActiveRoomMember(roomId, userId)) {
+            closeSession(session, 4003, "无权访问该编队");
+            log.warn("WebSocket 成员校验失败: roomId={}, userId={}", roomId, userId);
+            return;
+        }
+
+        // 4. 关联 userId 到 session
         session.getAttributes().put(USER_ID_ATTR, userId);
         ROOM_SESSIONS.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(session);
         log.info("WebSocket 连接建立: roomId={}, userId={}, sessionId={}", roomId, userId, session.getId());
@@ -253,5 +261,18 @@ public class ScoreWebSocket extends TextWebSocketHandler {
             }
         }
         return null;
+    }
+
+    /**
+     * 判断用户是否为房间活跃成员（Redis members:active hash）
+     */
+    private boolean isActiveRoomMember(String roomId, Long userId) {
+        String activeKey = ROOM_PREFIX + roomId + ":members:active";
+        if (Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(activeKey, String.valueOf(userId)))) {
+            return true;
+        }
+        // 兼容旧 meta 结构
+        String metaKey = ROOM_PREFIX + roomId + ":meta";
+        return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId));
     }
 }

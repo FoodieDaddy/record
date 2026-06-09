@@ -1,4 +1,4 @@
-const { get, put } = require('../../utils/request');
+const profileService = require('../../services/profile-service');
 const { getColor, getFirstChar } = require('../../utils/avatar');
 const { generateNickname } = require('../../utils/nickname');
 const { truncate, getWidth } = require('../../utils/nickname-width');
@@ -252,7 +252,7 @@ Page({
 
   async loadUserInfo() {
     try {
-      const user = await get('/user/me');
+      const user = await profileService.getCurrentUser();
       if (user) {
         const loadedNick = user.nickname || '';
         const rawAvatar = user.avatarUrl || '';
@@ -286,7 +286,7 @@ Page({
 
   async loadIdentityLevel() {
     try {
-      const res = await get('/user/identity-level');
+      const res = await profileService.getIdentityLevel();
       if (!res) return;
       const levelExp = Math.max(0, Number(res.currentLevelExp) || 0);
       const levelExpRange = Math.max(0, Number(res.requiredExpInLevel) || 0);
@@ -479,7 +479,7 @@ Page({
     if (Object.keys(_pendingSettings).length === 0) return;
     const payload = { ..._pendingSettings };
     _pendingSettings = {};
-    put('/user/detail', payload).catch(() => {});
+    profileService.saveUserSettings(payload).catch(() => {});
   },
 
   // ========== 头像 ==========
@@ -546,7 +546,7 @@ Page({
         }
       }
 
-      await put('/user/me', {
+      await profileService.saveProfile({
         nickname: truncate(nickname.trim()),
         avatarUrl: finalAvatarUrl || ''
       });
@@ -572,11 +572,6 @@ Page({
   },
 
   async uploadToOSS(filePath) {
-    const presignData = await get('/storage/presign?contentType=' + encodeURIComponent('image/jpeg'));
-    if (!presignData || !presignData.uploadUrl) {
-      throw new Error('获取预签名 URL 失败');
-    }
-
     const fileData = await new Promise((resolve, reject) => {
       wx.getFileSystemManager().readFile({
         filePath,
@@ -584,13 +579,22 @@ Page({
         fail: reject
       });
     });
+    const contentLength = fileData.byteLength || fileData.length || 0;
+    const contentType = 'image/jpeg';
+    const presignData = await profileService.getPresignUrl(contentType, contentLength);
+    if (!presignData || !presignData.uploadUrl) {
+      throw new Error('获取预签名 URL 失败');
+    }
 
     await new Promise((resolve, reject) => {
       wx.request({
         url: presignData.uploadUrl,
         method: 'PUT',
         data: fileData,
-        header: { 'Content-Type': 'image/jpeg' },
+        header: {
+          'Content-Type': contentType,
+          'Content-Length': String(contentLength)
+        },
         success(res) {
           if (res.statusCode === 200) resolve();
           else reject(new Error('上传失败: ' + res.statusCode));
@@ -609,7 +613,7 @@ Page({
   },
 
   goLevelArchive() {
-    wx.navigateTo({ url: '/pages/level-archive/level-archive' });
+    wx.navigateTo({ url: '/pages-ext/level-archive/level-archive' });
   },
 
   // ========== 断开终端 ==========

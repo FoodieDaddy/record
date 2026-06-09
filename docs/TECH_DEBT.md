@@ -15,3 +15,14 @@
 - [x] `miniprogram/pages/profile/profile.wxml` 中 `Math.min` 已移至 JS 计算，通过 `setData` 输出预计算值。
 - [x] 策略页穿帮词验收：代码级审查通过。`fortune.js` 中 `STRATEGY_TEXT_REPLACEMENTS` 覆盖全部禁词，所有用户可见字段均经过 `sanitizeStrategyText()` 处理，HUD 芯片标签有专用映射函数。运行时渲染仍建议人工抽检。
 - [x] 分享海报验收：策略页和镜像页 Canvas 海报均为独立排版（非页面截图），文字经过 sanitize，深色背景无白底，分享/保存按钮使用蓝/青色。运行时渲染仍建议人工抽检。
+
+## rebuild_plan 新增项
+
+- [x] `room.js` 全量迁移到 services 层，25+ 处直接 API 调用已替换为 `roomService`/`scoreService`/`roundService` 方法。
+- [x] room.js 粒子动画 `_runParticleWithRects` 已改为 CSS `@keyframes` 驱动，setData 从每帧 20+ 次降到 2 次。
+- [ ] room.js 尚未拆分子组件（cockpit-hud/seat-grid/numpad-overlay/blackbox-panel），Phase 6 待执行。
+- [x] 子包拆分完成：主包保留 5 页（login/room/fortune/mirror/profile），子包 `pages-ext` 包含 5 页（settings/voice-select/settle/score-records/level-archive）。
+- [ ] room-store.js 未创建，状态管理仍为扁平 data + 分散 setData（低优先级，当前方案可接受）。
+- [x] `score-ws.js` 已新增 25s 心跳检测，40s 无消息自动重连。
+- [ ] matrix-overview 组件可优化：关系预聚合、图表懒初始化（Phase 7 待执行）。
+- [ ] 后端无单元测试（Phase 10 待执行）。

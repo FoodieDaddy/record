@@ -1,5 +1,5 @@
-const { get } = require('../../utils/request')
 const { vibrateShort } = require('../../utils/haptic')
+const fortuneService = require('../../services/fortune-service')
 const app = getApp()
 
 const STRATEGY_TEXT_REPLACEMENTS = [
@@ -430,7 +430,7 @@ Page({
     }, 30000)
 
     // timeout 30s，配合后端 25s LLM 上限
-    get('/fortune/today', params, { timeout: 30000 }).then(data => {
+    fortuneService.getTodayFortune(params).then(data => {
       if (this._apiTimeoutTimer) { clearTimeout(this._apiTimeoutTimer); this._apiTimeoutTimer = null }
       if (runId !== this._runId || this._calcApiDone) return
       this._calcApiDone = true

@@ -25,6 +25,9 @@ class ScoreWS {
     this.isConnecting = false;
     this.manualClose = false;
     this.reconnectTimer = null;
+    // 心跳
+    this._heartbeatTimer = null;
+    this._lastMessageTime = 0;
     // 事件总线：事件名 → 回调集合
     this.events = new Map();
   }
@@ -72,10 +75,13 @@ class ScoreWS {
       debugLog('[WS] 已连接');
       this.isConnected = true;
       this.isConnecting = false;
+      this._lastMessageTime = Date.now();
+      this._startHeartbeat();
       this._emit('open');
     });
 
     this.socketTask.onMessage((res) => {
+      this._lastMessageTime = Date.now();
       try {
         const data = JSON.parse(res.data);
         this._emit('message', data);
@@ -89,6 +95,7 @@ class ScoreWS {
       this.isConnected = false;
       this.isConnecting = false;
       this.socketTask = null;
+      this._stopHeartbeat();
       // 被服务器踢出（封禁/注销）
       if (res && res.code === 4003) {
         this._emit('kicked', res);
@@ -192,6 +199,7 @@ class ScoreWS {
     this.roomId = null;
     this.isConnected = false;
     this.isConnecting = false;
+    this._stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -199,6 +207,33 @@ class ScoreWS {
     if (this.socketTask) {
       this.socketTask.close();
       this.socketTask = null;
+    }
+  }
+
+  /** 启动心跳检测（25s 间隔，40s 无消息判定断线） */
+  _startHeartbeat() {
+    this._stopHeartbeat();
+    this._heartbeatTimer = setInterval(() => {
+      if (!this.isConnected) return;
+      const silence = Date.now() - this._lastMessageTime;
+      if (silence > 40000) {
+        debugWarn('[WS] 心跳超时，重连');
+        this._stopHeartbeat();
+        this.isConnected = false;
+        if (this.socketTask) {
+          this.socketTask.close();
+          this.socketTask = null;
+        }
+        this._scheduleReconnect();
+      }
+    }, 25000);
+  }
+
+  /** 停止心跳检测 */
+  _stopHeartbeat() {
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
     }
   }
 

@@ -14,7 +14,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:root123}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
@@ -49,13 +49,13 @@ springdoc:
 # 自定义配置
 app:
   jwt:
-    secret: ${JWT_SECRET:your-256-bit-secret-key-here-change-in-production}
+    secret: ${JWT_SECRET:}
     expiration: 604800000  # 7 天
   oss:
-    endpoint: ${OSS_ENDPOINT:oss-cn-guangzhou.aliyuncs.com}
+    endpoint: ${OSS_ENDPOINT:}
     access-key-id: ${OSS_ACCESS_KEY_ID:}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
-    bucket-name: ${OSS_BUCKET_NAME:smartrecord}
+    bucket-name: ${OSS_BUCKET_NAME:}
   room:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     no-length: 6

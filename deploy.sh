@@ -4,11 +4,17 @@
 
 set -euo pipefail
 
-# ========== 配置 ==========
+# ========== 配置（通过环境变量或 .env 注入） ==========
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SERVER="root@8.148.245.54"
-PEM="/Users/happy/Documents/一些重要文件/smartrecord.pem"
-REMOTE_DIR="/opt/smartrecord"
+
+# 加载 .env（如果存在）
+if [ -f "$PROJECT_DIR/.env" ]; then
+  set -a; source "$PROJECT_DIR/.env"; set +a
+fi
+
+SERVER="${DEPLOY_SERVER:?请设置 DEPLOY_SERVER 环境变量，如 root@1.2.3.4}"
+PEM="${DEPLOY_PEM:?请设置 DEPLOY_PEM 环境变量，如 ~/.ssh/id_rsa}"
+REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/opt/smartrecord}"
 SSH_OPTS="-i $PEM -o StrictHostKeyChecking=no"
 
 # ========== 颜色输出 ==========

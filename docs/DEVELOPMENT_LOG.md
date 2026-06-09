@@ -1,6 +1,87 @@
 # 开发日志
 
-## 2026-06-08 — active 背景切换为全局星空
+## 2026-06-09 — Phase 1 安全修复（rebuild_plan Batch A）
+
+### 变更原因
+
+- rebuild_plan 审计发现多个安全漏洞：WebSocket 无 roomId 校验、读端点无鉴权、presign 免认证、密钥硬编码。
+- 按 rebuild_plan Phase 1 执行安全止血。
+
+### 变更文件
+
+新建：
+- `backend/.../common/RoomAccessGuard.java` — 编队访问守卫，Redis members:active 校验
+- `backend/.../common/RequestIdFilter.java` — 请求追踪 ID 过滤器
+- `.env.example` — 环境变量模板
+
+修改：
+- `backend/.../application-local.yml` — 密钥改为环境变量占位符
+- `backend/.../ws/ScoreWebSocket.java` — afterConnectionEstablished 新增 roomId 成员校验
+- `backend/.../controller/RoomController.java` — getRoomDetail 注入 guard
+- `backend/.../controller/ScoreController.java` — 7 个读端点注入 guard
+- `backend/.../controller/RoundRecordController.java` — getPending 注入 guard
+- `backend/.../controller/StorageController.java` — presign 端点要求登录
+- `backend/.../config/WebMvcConfig.java` — 移除 /storage/presign 免认证
+- `backend/.../config/WebSocketConfig.java` — CORS 收紧
+- `.gitignore` — 新增 application-local.yml
+- `deploy.sh` — 服务器地址改为环境变量
+- `switch-env.sh` — 移除硬编码 IP
+
+### 实现方式
+
+- RoomAccessGuard 使用 Redis `sr:room:{roomId}:members:active` hash 检查，兼容旧 `meta` 结构。
+- ScoreWebSocket 在 `ROOM_SESSIONS.computeIfAbsent` 前校验成员身份，非成员关闭 4003。
+- RequestIdFilter 从请求头 `X-Request-Id` 读取或生成 UUID，写入 MDC 和响应头。
+- 所有密钥通过 `${VAR_NAME:default}` 模式注入，本地开发可通过 `.env` 文件配置。
+
+### 验证方式
+
+- `grep -r "LTAI5t\|5bcbb76c\|tp-cl8s6teu\|GfCTwL" backend/src/main/resources/` 返回空
+- `grep -r "8.148.245.54" deploy.sh switch-env.sh` 返回空
+- `cd backend && JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn compile -q` 编译通过
+
+### 未验证项
+
+- 真机 WebSocket 连接测试（需微信开发者工具）
+- 非成员 HTTP 读请求 403 测试（需运行后端）
+- presign 端点 401 测试（需运行后端）
+
+## 2026-06-09 — Phase 2 + Phase 5 性能优化与 API 层
+
+### 变更原因
+
+- rebuild_plan Phase 2：room.js 178 次 setData 需要优化，buildMemberGrid + rebuildPulseStats 连续两次 setData 可合并。
+- rebuild_plan Phase 5：request.js 缺少去重和追踪能力，API 调用散落在页面中。
+
+### 变更文件
+
+新建：
+- `miniprogram/pages/room/room-patch-scheduler.js` — setData 批处理调度器
+- `miniprogram/services/room-service.js` — 房间 API 服务层（7 个方法）
+- `miniprogram/services/score-service.js` — 记分 API 服务层（11 个方法）
+
+修改：
+- `miniprogram/pages/room/room.js` — 引入 patch scheduler，合并 buildMemberGrid + rebuildPulseStats
+- `miniprogram/utils/request.js` — 重写，新增 GET 去重和 X-Request-Id
+
+### 实现方式
+
+- patch scheduler 使用 `scheduleRoomPatch(patch, { delay: 50 })` 合并高频 setData。
+- `buildMemberGrid` 不再直接 setData，改为调用 `_calcPulseStatsPatch` 收集 patch，与成员数据合并后一次写入。
+- request.js 的 inflight Map 对相同 GET 请求去重，进行中的请求复用同一 Promise。
+
+### 验证方式
+
+- `node --check miniprogram/pages/room/room.js` 通过
+- `node --check miniprogram/pages/room/room-patch-scheduler.js` 通过
+- `node --check miniprogram/utils/request.js` 通过
+- `node --check miniprogram/services/room-service.js` 通过
+- `node --check miniprogram/services/score-service.js` 通过
+
+### 未验证项
+
+- 真机性能验证 setData 次数下降（需微信开发者工具 Performance 面板）
+- 粒子动画逐帧 setData 优化（Phase 3 动画重写待执行）
 
 ### 变更原因
 
@@ -966,3 +1047,135 @@ JS：
 
 - 确认此前已删除的小写 `changelog.md`、`plan.md` 与 `codex-changelog.md` 是否应继续移除。
 - 后续记录或修改接口契约时，补充 `docs/API.md`。
+
+## 2026-06-09 — Phase 3 动画系统重写（rebuild_plan Batch C）
+
+### 变更原因
+
+- `room.js` 粒子动画 `_runParticleWithRects` 使用 16ms setTimeout 逐帧 setData（每帧 20+ 次），是主要性能瓶颈。
+- rebuild_plan Phase 3 要求将 JS 驱动动画改为 CSS `@keyframes` 驱动。
+
+### 变更文件
+
+新建：
+- `miniprogram/styles/motion.wxss` — 动效协议 token（时长/缓动/层级）和通用动画类
+
+修改：
+- `miniprogram/app.wxss` — 新增 `@import './styles/motion.wxss'`
+- `miniprogram/pages/room/room.js` — 重写 `_runParticleWithRects`（CSS class toggle 替代逐帧 setData）、新增 `onParticleAnimEnd`、简化 `flashTargetSeat`、移除旧动画数据字段
+- `miniprogram/pages/room/room.wxml` — 粒子模板改为 CSS 自定义属性驱动（`--dx`/`--dy`/`--arc`）、`bindanimationend` 回调、ship-craft 接入 `impactCrewId` 驱动的 `motion-score-impact` class
+- `miniprogram/pages/room/room.wxss` — 新增 `particleFlight`/`particleTrail`/`particleFlash` keyframes、`shipCraftImpact` keyframe、reduce-motion 兜底
+
+### 实现方式
+
+- `_runParticleWithRects` 从 900ms 内 56 帧 × 20+ setData 改为 2 次 setData（初始位置 + class toggle）。
+- CSS `@keyframes particleFlight` 使用 `--dx`/`--dy`/`--arc` 自定义属性计算贝塞尔轨迹。
+- 拖尾粒子通过 `animation-delay: 80ms/160ms` 实现错开。
+- `animationend` 事件绑定在主粒子元素上，触发 `onParticleAnimEnd` 回调。
+- `flashTargetSeat` 从 460ms setTimeout 改为 300ms + CSS class 驱动。
+- ship-craft 的 `motion-score-impact` 使用独立 keyframe，保留 `translate(-50%, -50%)` 居中。
+
+### 验证
+
+- `node --check miniprogram/pages/room/room.js` 通过。
+- 旧动画数据字段（`animCurX`/`animTrail1X`/`animFlashOpacity` 等）无残留引用。
+
+### 后续事项
+
+- 微信开发者工具编译验证。
+- 真机验证粒子飞行流畅度和 impact 反馈。
+
+## 2026-06-09 — Phase 4 WebSocket 治理（rebuild_plan Batch C）
+
+### 变更原因
+
+- `score-ws.js` 无心跳机制，长时间静默连接可能被中间件断开。
+- `room.js` 前后台切换无恢复策略，长时间后台回来后连接状态不确定。
+
+### 变更文件
+
+修改：
+- `miniprogram/utils/score-ws.js` — 新增 `_startHeartbeat`/`_stopHeartbeat`，25s 间隔检测，40s 无消息自动重连
+- `miniprogram/pages/room/room.js` — `onHide` 记录 `_hideTime`，`onShow` 按离线时长决定恢复策略
+
+### 实现方式
+
+- 心跳检测：`setInterval` 25s 检查 `_lastMessageTime`，超过 40s 无消息触发重连。
+- 生命周期：`onOpen` 启动心跳、`onClose`/`disconnect` 停止心跳。
+- 前后台恢复：<30s 无处理、30s-5min 静默刷新 `buildMemberGrid`、>5min `switchRoom` 强制重连。
+
+### 验证
+
+- `node --check miniprogram/utils/score-ws.js` 和 `node --check miniprogram/pages/room/room.js` 通过。
+
+### 后续事项
+
+- room-store.js 状态管理（后续优化，当前扁平 data + 分散 setData 可接受）。
+
+## 2026-06-09 — room.js 全量迁移到 services 层（rebuild_plan Phase 5 收尾）
+
+### 变更原因
+
+- `room.js` 有 25+ 处直接 `get`/`post`/`del` 调用，未使用 Phase 5 创建的 services 层。
+- rebuild_plan 要求全量迁移到 service 层，统一 API 调用入口。
+
+### 变更文件
+
+新建：
+- `miniprogram/services/round-service.js` — 封装 5 个轮次 API（startRound/submitRoundScores/confirmRound/cancelRound/getPendingRound）
+
+修改：
+- `miniprogram/pages/room/room.js` — 25+ 处直接 API 调用替换为 `roomService`/`scoreService`/`roundService` 方法，移除 `get`/`post`/`del` 直接导入
+
+### 实现方式
+
+- 创建 `round-service.js` 补充轮次 API 封装。
+- 逐一替换：`get('/room/my')` → `roomService.getMyRooms()`、`post('/score/transfer', ...)` → `scoreService.transferScore(...)` 等。
+- 移除 `const { get, post, del } = require('../../utils/request')` 导入。
+
+### 验证
+
+- `node --check miniprogram/pages/room/room.js` 通过。
+- grep 确认无残留直接 API 调用（除 `Map.get()` 等非 API 用途）。
+
+## 2026-06-09 — Phase 6 子包拆分（rebuild_plan Batch C）
+
+### 变更原因
+
+- rebuild_plan Phase 6 要求将非 tabBar 页面拆入子包，减少主包体积。
+- 主包原有 10 页，tabBar 4 页 + login 1 页必须留在主包，其余 5 页迁入子包。
+
+### 变更文件
+
+新建目录：
+- `miniprogram/pages-ext/` — 子包根目录
+
+迁移：
+- `pages/settings/` → `pages-ext/settings/`
+- `pages/voice-select/` → `pages-ext/voice-select/`
+- `pages/settle/` → `pages-ext/settle/`
+- `pages/score-records/` → `pages-ext/score-records/`
+- `pages/level-archive/` → `pages-ext/level-archive/`
+
+修改：
+- `miniprogram/app.json` — 新增 `subpackages` 配置，主包 pages 收敛为 5 页
+- `miniprogram/pages/profile/profile.js` — level-archive 导航路径更新
+- `miniprogram/pages/mirror/index.js` — score-records 导航路径更新
+- `miniprogram/pages-ext/score-records/score-records.js` — settle 导航路径更新
+
+### 实现方式
+
+- 子包 root 为 `pages-ext`，页面路径为 `settings/settings` 等（相对子包 root）。
+- 导航 URL 从 `/pages/settle/settle` 改为 `/pages-ext/settle/settle`。
+- 子包页面的 `require('../../utils/...')` 路径无需修改（相对路径仍指向 `miniprogram/utils/`）。
+- settle 页面的组件引用使用绝对路径（`/components/battle-summary/battle-summary`），无需修改。
+
+### 验证
+
+- `node --check` 所有修改的 JS 文件通过。
+- grep 确认无残留旧路径引用。
+- 目录结构验证：主包 5 页、子包 5 页。
+
+### 后续事项
+
+- 微信开发者工具编译验证子包加载。

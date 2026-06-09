@@ -1,6 +1,7 @@
 package com.smartrecord.controller;
 
 import com.smartrecord.common.Result;
+import com.smartrecord.common.RoomAccessGuard;
 import com.smartrecord.dto.room.CreateRoomReq;
 import com.smartrecord.dto.room.JoinRoomReq;
 import com.smartrecord.dto.room.RoomResp;
@@ -23,6 +24,7 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+    private final RoomAccessGuard roomAccessGuard;
 
     @Operation(summary = "创建房间", description = "房主建房，后端生成唯一房间号和专属小程序码")
     @PostMapping
@@ -45,7 +47,10 @@ public class RoomController {
     @Operation(summary = "获取房间详情", description = "包含成员列表、小程序码 URL")
     @GetMapping("/{roomId}")
     public Result<RoomResp> getRoomDetail(
+            HttpServletRequest request,
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        Long userId = (Long) request.getAttribute("currentUserId");
+        roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(roomService.getRoomDetail(roomId));
     }
 

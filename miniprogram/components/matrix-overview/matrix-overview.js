@@ -2,7 +2,6 @@
  * 脉冲总览组件 — 矩阵面板 + 折线图 + 脉冲明细弹窗
  * 两段式平滑卸载 · 列表懒加载
  */
-const { get } = require('../../utils/request');
 const { getAvatarView } = require('../../utils/avatar');
 
 const LIST_PAGE_SIZE = 30;
@@ -13,6 +12,8 @@ Component({
     roomId: { type: String, value: '' },
     memberGrid: { type: Array, value: [] },
     scoreRecords: { type: Array, value: [] },
+    relationMap: { type: Object, value: {} },
+    chartData: { type: Object, value: null },
     myUserId: { type: String, value: '' }
   },
 
@@ -43,15 +44,29 @@ Component({
     visible(val) {
       if (val) {
         const count = this.data.memberGrid ? this.data.memberGrid.length : 0;
-        this.setData({ active: true, chartHidden: false, playerCount: count });
-        this._scheduleBuild();
-        if (this.data.roomId) {
-          this.loadChartData(this.data.roomId);
+        if (this._closeTimer) {
+          clearTimeout(this._closeTimer);
+          this._closeTimer = null;
         }
+        this.setData({ active: true, chartHidden: true, playerCount: count, showMatrixDetail: false });
+        this._scheduleBuild();
+        this.applyChartData(this.data.chartData);
+        this._scheduleChartReveal();
       } else {
         // 两段式退场：1) 隐藏 canvas 2) 延迟销毁 DOM
-        this.setData({ showMatrixDetail: false, chartHidden: true });
+        this.setData({
+          showMatrixDetail: false,
+          chartHidden: true,
+          relationList: [],
+          relationListDisplay: [],
+          relationHasMore: false,
+          chartTimestamps: [],
+          chartSeries: [],
+          chartVisibleUsers: []
+        });
         if (this._closeTimer) clearTimeout(this._closeTimer);
+        if (this._buildTimer) clearTimeout(this._buildTimer);
+        if (this._chartTimer) clearTimeout(this._chartTimer);
         this._closeTimer = setTimeout(() => {
           this.setData({ active: false });
         }, 320);
@@ -68,6 +83,14 @@ Component({
         this.setData({ playerCount: count });
         this._scheduleBuild();
       }
+    },
+
+    relationMap() {
+      if (this.data.visible) this._scheduleBuild();
+    },
+
+    chartData(val) {
+      if (this.data.visible) this.applyChartData(val);
     }
   },
 
@@ -75,6 +98,7 @@ Component({
     detached() {
       if (this._closeTimer) clearTimeout(this._closeTimer);
       if (this._buildTimer) clearTimeout(this._buildTimer);
+      if (this._chartTimer) clearTimeout(this._chartTimer);
     }
   },
 
@@ -86,6 +110,16 @@ Component({
       this._buildTimer = setTimeout(() => this.buildRelationList(), 50);
     },
 
+    _scheduleChartReveal() {
+      if (this._chartTimer) clearTimeout(this._chartTimer);
+      this._chartTimer = setTimeout(() => {
+        this._chartTimer = null;
+        if (!this.data.visible) return;
+        this.setData({ chartHidden: false });
+        this.applyChartData(this.data.chartData);
+      }, 260);
+    },
+
     /** 构建一维关系列表 */
     buildRelationList() {
       const members = this.data.memberGrid;
@@ -95,6 +129,7 @@ Component({
       }
 
       const records = this.data.scoreRecords;
+      const relationMap = this.data.relationMap || {};
       const myId = this.data.myUserId;
       if (!myId) {
         this.setData({ relationList: [], relationListDisplay: [], relationHasMore: false });
@@ -103,49 +138,46 @@ Component({
 
       const isSessionData = records.length > 0 && String(records[0].fromUserId) === String(records[0].toUserId);
 
-      setTimeout(() => {
-        const list = [];
+      const list = [];
 
-        if (isSessionData) {
-          const scoreMap = {};
-          records.forEach(r => { scoreMap[String(r.fromUserId)] = r.amount; });
-          const myScore = scoreMap[String(myId)] || 0;
-          members.forEach(m => {
-            if (String(m.userId) === String(myId)) return;
-            const otherScore = scoreMap[String(m.userId)] || 0;
-            const diff = myScore - otherScore;
-            if (diff === 0) return;
-            list.push({
-              userId: m.userId, nickname: m.nickname,
-              ...getAvatarView(m.nickname, m.avatarUrl),
-              netScore: diff, display: this.formatScore(diff)
-            });
+      if (isSessionData) {
+        const scoreMap = {};
+        records.forEach(r => { scoreMap[String(r.fromUserId)] = Number(r.amount || 0); });
+        const myScore = scoreMap[String(myId)] || 0;
+        members.forEach(m => {
+          if (String(m.userId) === String(myId)) return;
+          const otherScore = scoreMap[String(m.userId)] || 0;
+          const diff = myScore - otherScore;
+          if (diff === 0) return;
+          list.push({
+            userId: m.userId, nickname: m.nickname,
+            ...getAvatarView(m.nickname, m.avatarUrl),
+            netScore: diff, display: this.formatScore(diff)
           });
-        } else {
-          members.forEach(m => {
-            if (String(m.userId) === String(myId)) return;
-            let net = 0;
-            records.forEach(r => {
-              if (String(r.fromUserId) === String(myId) && String(r.toUserId) === String(m.userId)) net -= r.amount;
-              if (String(r.fromUserId) === String(m.userId) && String(r.toUserId) === String(myId)) net += r.amount;
-            });
-            if (net === 0) return;
-            list.push({
-              userId: m.userId, nickname: m.nickname,
-              ...getAvatarView(m.nickname, m.avatarUrl),
-              netScore: net, display: this.formatScore(net)
-            });
-          });
-        }
-
-        list.sort((a, b) => Math.abs(b.netScore) - Math.abs(a.netScore));
-        const display = list.slice(0, LIST_PAGE_SIZE);
-        this.setData({
-          relationList: list,
-          relationListDisplay: display,
-          relationHasMore: list.length > LIST_PAGE_SIZE
         });
-      }, 0);
+      } else {
+        members.forEach(m => {
+          const otherId = String(m.userId);
+          if (otherId === String(myId)) return;
+          const sent = Number(relationMap[`${myId}->${otherId}`] || 0);
+          const received = Number(relationMap[`${otherId}->${myId}`] || 0);
+          const net = received - sent;
+          if (net === 0) return;
+          list.push({
+            userId: m.userId, nickname: m.nickname,
+            ...getAvatarView(m.nickname, m.avatarUrl),
+            netScore: net, display: this.formatScore(net)
+          });
+        });
+      }
+
+      list.sort((a, b) => Math.abs(b.netScore) - Math.abs(a.netScore));
+      const display = list.slice(0, LIST_PAGE_SIZE);
+      this.setData({
+        relationList: list,
+        relationListDisplay: display,
+        relationHasMore: list.length > LIST_PAGE_SIZE
+      });
     },
 
     /** 滚动到底部加载更多 */
@@ -171,25 +203,22 @@ Component({
 
     // ========== 图表 ==========
 
-    async loadChartData(roomId) {
-      try {
-        const data = await get(`/score/room/${roomId}/chart`);
-        if (data && data.series && data.series.length > 0) {
-          const timestamps = data.timestamps || [];
-          const myId = this.data.myUserId;
-          // 传入全部 series 用于 tooltip 解析对手昵称，visibleUsers 控制只画自己的线
-          this.setData({
-            chartTimestamps: timestamps,
-            chartSeries: data.series,
-            chartVisibleUsers: [String(myId)]
-          });
-        } else {
-          this.setData({ chartTimestamps: [], chartSeries: [], chartVisibleUsers: [] });
-        }
-      } catch (e) {
-        console.error('[matrix-overview] 加载图表数据失败', e);
+    applyChartData(chartData) {
+      const data = chartData || {};
+      const series = Array.isArray(data.series) ? data.series : [];
+      if (series.length === 0) {
         this.setData({ chartTimestamps: [], chartSeries: [], chartVisibleUsers: [] });
+        return;
       }
+      const myId = String(this.data.myUserId || '');
+      const visibleUsers = Array.isArray(data.visibleUsers) && data.visibleUsers.length > 0
+        ? data.visibleUsers.map(id => String(id)).filter(Boolean)
+        : (myId ? [myId] : []);
+      this.setData({
+        chartTimestamps: data.timestamps || [],
+        chartSeries: series,
+        chartVisibleUsers: visibleUsers
+      });
     },
 
   // ========== 脉冲明细 ==========
