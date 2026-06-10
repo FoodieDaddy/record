@@ -124,9 +124,10 @@ function onSearchBlur() {
   height: var(--topbar-height);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid var(--border-accent);
-  background: rgba(4,8,16,0.6);
+  border-bottom: 1px solid rgba(10,132,255,0.12);
+  background: linear-gradient(90deg, rgba(4,8,16,0.9), rgba(4,8,16,0.7));
   backdrop-filter: blur(8px);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
   position: sticky; top: 0; z-index: 90;
 }
 .top-bar__left { display: flex; flex-direction: column; gap: 2px; }
@@ -140,6 +141,10 @@ function onSearchBlur() {
 .top-bar__status {
   display: flex; align-items: center; gap: 6px;
   font-size: var(--text-sm); color: var(--text-secondary);
+  padding: 4px 10px;
+  background: rgba(10,132,255,0.04);
+  border: 1px solid rgba(10,132,255,0.08);
+  border-radius: 3px;
 }
 .top-bar__dot { width: 6px; height: 6px; border-radius: 50%; }
 .dot--ok { background: var(--color-green); }

@@ -72,8 +72,8 @@ function isActive(path: string): boolean {
 .nav-sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  background: var(--bg-elevated);
-  border-right: 1px solid var(--border-subtle);
+  background: linear-gradient(180deg, rgba(4,8,16,0.98), rgba(2,4,12,0.98));
+  border-right: 1px solid rgba(10,132,255,0.10);
   display: flex;
   flex-direction: column;
   transition: width .2s;
@@ -97,6 +97,8 @@ function isActive(path: string): boolean {
   gap: 12px;
   padding: 20px 16px;
   cursor: pointer;
+  border-bottom: 1px solid rgba(10,132,255,0.08);
+  background: rgba(10,132,255,0.02);
 }
 .nav-brand__icon svg { width: 32px; height: 32px; }
 .nav-brand__title { font-size: 14px; font-weight: 600; color: var(--text-main); }
@@ -144,7 +146,8 @@ function isActive(path: string): boolean {
 
 .nav-footer {
   padding: 12px 16px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid rgba(10,132,255,0.08);
+  background: rgba(10,132,255,0.02);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: var(--text-muted);
 }
