@@ -1,8 +1,7 @@
-/* BasePanel */
+/* 一级面板：页面主内容 */
 .base-panel {
   background: rgba(4, 8, 16, 0.6);
   border: 1px solid rgba(10,132,255,0.12);
-  backdrop-filter: blur(2px);
   clip-path: var(--clip-panel);
   position: relative;
 }
@@ -41,37 +40,14 @@
   bottom: -1px; right: -1px;
   border-width: 0 1px 1px 0;
 }
-.base-panel--hud .base-panel__body::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(0,200,255,0.15) 50%, transparent 100%);
-  animation: scan-line 4s linear infinite;
-  pointer-events: none;
-  opacity: 0.5;
-}
-
 /* StatCard */
 .stat-card {
-  background: rgba(4, 8, 16, 0.6);
-  border: 1px solid rgba(10,132,255,0.10);
+  background: rgba(4, 8, 16, 0.5);
+  border: 1px solid rgba(10,132,255,0.08);
   clip-path: var(--clip-panel);
   padding: 16px;
   position: relative;
   overflow: hidden;
-}
-/* 顶部扫描线装饰 */
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.3), transparent);
 }
 .stat-card__label {
   font-size: var(--text-sm);
@@ -104,10 +80,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
-  opacity: 0.3;
-  animation: pulse-glow 3s ease-in-out infinite;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.2), transparent);
 }
 .stat-card__value {
   animation: number-count .5s ease both;

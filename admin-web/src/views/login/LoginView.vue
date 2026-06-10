@@ -89,7 +89,7 @@ async function handleLogin() {
           :disabled="loading"
           @click="handleLogin"
         >
-          {{ loading ? '正在校验基地权限...' : '接入总控台' }}
+          {{ loading ? '正在校验基地权限...' : '接入基地总控台' }}
         </button>
       </div>
     </div>
@@ -150,7 +150,7 @@ async function handleLogin() {
   animation: fade-in .8s ease .5s both;
 }
 .login-orbit {
-  animation: orbit-rotate 60s linear infinite;
+  animation: orbit-rotate 120s linear infinite;
 }
 
 @keyframes orbit-rotate {

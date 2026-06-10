@@ -7,7 +7,7 @@ import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
-import HudChart from '@/components/chart/HudChart.vue'
+import ConfirmDangerModal from '@/components/modal/ConfirmDangerModal.vue'
 
 const router = useRouter()
 const api = useApi()
@@ -21,7 +21,7 @@ const search = ref('')
 const selectedIds = ref<(string | number)[]>([])
 const showBatchConfirm = ref(false)
 const batchAction = ref<'enable' | 'disable' | 'delete'>('disable')
-const chartOption = ref<any>(null)
+
 
 const columns = [
   { key: 'id', label: '用户 ID', width: '140px' },
@@ -52,52 +52,6 @@ async function loadUsers() {
   }
 }
 
-async function loadChart() {
-  try {
-    const trends: any = await api.get('/admin/dashboard/trends')
-    chartOption.value = {
-      xAxis: {
-        type: 'category',
-        data: trends.dates,
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
-        axisTick: { show: false },
-      },
-      yAxis: {
-        type: 'value',
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.04)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
-      },
-      series: [{
-        type: 'line',
-        data: trends.userGrowth,
-        smooth: true,
-        symbol: 'none',
-        lineStyle: { color: '#0A84FF', width: 2 },
-        areaStyle: {
-          color: {
-            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [
-              { offset: 0, color: 'rgba(10,132,255,0.25)' },
-              { offset: 1, color: 'rgba(10,132,255,0.02)' },
-            ],
-          },
-        },
-      }],
-      tooltip: { trigger: 'axis', backgroundColor: 'rgba(4,8,16,0.95)', borderColor: 'rgba(0,200,255,0.22)', textStyle: { color: '#fff', fontSize: 12 } },
-      grid: { left: 40, right: 16, top: 16, bottom: 24 },
-    }
-  } catch {}
-}
-
-const statusDistribution = computed(() => {
-  const active = users.value.filter(u => u.status === 1).length
-  const disabled = users.value.filter(u => u.status === 0).length
-  return [
-    { label: '正常', count: active, color: 'var(--color-green)' },
-    { label: '禁用', count: disabled, color: 'var(--color-red)' },
-  ]
-})
 
 async function toggleUserStatus(user: any) {
   const newStatus = user.status === 1 ? 0 : 1
@@ -128,28 +82,11 @@ async function executeBatch() {
   } catch {}
 }
 
-onMounted(() => { loadUsers(); loadChart() })
+onMounted(() => { loadUsers() })
 </script>
 
 <template>
   <div>
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
-      <HudChart title="用户增长趋势" kicker="近 30 天" :option="chartOption" style="min-height:200px;" />
-      <div class="base-panel" style="min-height:200px;">
-        <div class="base-panel__header">
-          <span class="base-panel__title">用户分布</span>
-          <span class="hud-label">STATUS</span>
-        </div>
-        <div class="base-panel__body">
-          <div v-for="(item, i) in statusDistribution" :key="i" style="display:flex;align-items:center;gap:12px;padding:8px 0;">
-            <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: item.color }" />
-            <span style="flex:1;font-size:12px;color:var(--text-secondary);">{{ item.label }}</span>
-            <span class="text-mono" style="font-size:13px;color:var(--text-main);">{{ item.count }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
@@ -227,33 +164,17 @@ onMounted(() => { loadUsers(); loadChart() })
     </div>
 
     <!-- 批量操作确认弹窗 -->
-    <Teleport to="body">
-      <div v-if="showBatchConfirm" class="modal-overlay" @click.self="showBatchConfirm = false">
-        <div class="batch-modal">
-          <div class="batch-modal__header">
-            <span style="font-size:16px;font-weight:600;color:var(--color-red);">
-              {{ batchAction === 'delete' ? '批量删除' : batchAction === 'enable' ? '批量启用' : '批量禁用' }}
-            </span>
-          </div>
-          <div class="batch-modal__body">
-            <p style="font-size:13px;color:var(--text-secondary);line-height:1.6;">
-              确认{{ batchAction === 'delete' ? '删除' : batchAction === 'enable' ? '启用' : '禁用' }}
-              <span style="color:var(--color-cyan);font-weight:600;">{{ selectionCount }}</span>
-              个用户？
-            </p>
-            <div v-if="batchAction === 'delete'" style="margin-top:12px;padding:12px;background:rgba(255,69,58,0.05);border:1px solid rgba(255,69,58,0.10);border-radius:4px;">
-              <div style="font-size:12px;color:var(--color-red);">此操作不可逆，用户数据将被永久删除。</div>
-            </div>
-          </div>
-          <div class="batch-modal__actions">
-            <CommandButton variant="secondary" @click="showBatchConfirm = false">取消</CommandButton>
-            <CommandButton :variant="batchAction === 'delete' ? 'danger' : 'primary'" @click="executeBatch">
-              确认{{ batchAction === 'delete' ? '删除' : batchAction === 'enable' ? '启用' : '禁用' }}
-            </CommandButton>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <ConfirmDangerModal
+      :visible="showBatchConfirm"
+      :title="batchAction === 'delete' ? '批量删除用户' : batchAction === 'enable' ? '批量启用用户' : '批量禁用用户'"
+      :description="`确认${batchAction === 'delete' ? '删除' : batchAction === 'enable' ? '启用' : '禁用'} ${selectionCount} 个用户？`"
+      :impact="batchAction === 'delete' ? '用户数据将被永久删除，此操作不可逆。' : undefined"
+      :confirm-text="batchAction === 'delete' ? '确认删除' : '确认'"
+      :require-confirm-word="batchAction === 'delete'"
+      confirm-word="DELETE"
+      @confirm="executeBatch"
+      @cancel="showBatchConfirm = false"
+    />
   </div>
 </template>
 
@@ -270,34 +191,5 @@ onMounted(() => { loadUsers(); loadChart() })
   gap: 8px;
   align-items: center;
   animation: fade-in .2s ease;
-}
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-.batch-modal {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-accent);
-  clip-path: var(--clip-panel);
-  width: 400px;
-}
-.batch-modal__header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.batch-modal__body {
-  padding: 20px;
-}
-.batch-modal__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--border-subtle);
 }
 </style>
