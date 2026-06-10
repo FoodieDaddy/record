@@ -24,6 +24,13 @@ const app = useAppStore()
         </div>
         <RightMonitor v-if="app.rightPanelOpen" />
       </div>
+      <button
+        v-if="!app.rightPanelOpen"
+        class="monitor-toggle"
+        @click="app.toggleRightPanel()"
+      >
+        &#8249;
+      </button>
       <BottomStatus />
     </div>
   </div>
@@ -47,4 +54,28 @@ const app = useAppStore()
 .app-main.sidebar-collapsed { margin-left: var(--sidebar-collapsed); }
 .app-content { display: flex; flex: 1; }
 .app-workspace { flex: 1; padding: 24px; min-width: 0; }
+.monitor-toggle {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 40px;
+  background: rgba(10,132,255,0.08);
+  border: 1px solid rgba(10,132,255,0.15);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  z-index: 50;
+  transition: background .15s;
+}
+.monitor-toggle:hover {
+  background: rgba(10,132,255,0.15);
+  color: var(--text-secondary);
+}
 </style>

@@ -2,64 +2,60 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { useAppStore } from '@/stores/app'
+import { useLocaleStore } from '@/stores/locale'
 
 const api = useApi()
 const app = useAppStore()
+const locale = useLocaleStore()
 const services = ref<any[]>([])
+const events = ref<any[]>([])
 let timer: number
 
-const fallbackServices = [
-  { name: 'API 服务', status: 'ok', latency: '-' },
-  { name: 'MySQL', status: 'ok', latency: '-' },
-  { name: 'Redis', status: 'ok', latency: '-' },
-  { name: 'WebSocket', status: 'ok', latency: '-' },
-  { name: 'TTS 主引擎', status: 'ok', latency: '-' },
-  { name: '导航主引擎', status: 'ok', latency: '-' },
-]
-
-async function loadHealth() {
+async function loadData() {
   try {
-    const data: any = await api.get('/admin/system/health')
-    if (Array.isArray(data)) services.value = data
+    const [health, eventData] = await Promise.all([
+      api.get('/admin/system/health'),
+      api.get('/admin/dashboard/events'),
+    ])
+    if (Array.isArray(health)) services.value = health.slice(0, 6)
+    if (Array.isArray(eventData)) events.value = eventData.slice(0, 5)
   } catch {}
 }
 
 onMounted(() => {
-  loadHealth()
-  timer = window.setInterval(loadHealth, 30000)
+  loadData()
+  timer = window.setInterval(loadData, 30000)
 })
-
-onUnmounted(() => clearInterval(timer))
-
-const events = ref([
-  { time: '14:32', desc: '张三 → 李四  脉冲 +50', color: 'cyan' },
-  { time: '14:31', desc: '创建编队 ABC123', color: 'blue' },
-  { time: '14:30', desc: '王五 接入编队', color: 'green' },
-  { time: '14:29', desc: '封存航程 DEF456', color: 'green' },
-])
+onUnmounted(() => window.clearInterval(timer))
 </script>
 
 <template>
   <aside class="right-monitor">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;">MONITOR</span>
-      <button class="cmd-btn cmd-btn--ghost" style="height:24px;padding:0 6px;font-size:11px;" @click="app.toggleRightPanel()">收起</button>
+    <div class="monitor-header">
+      <span class="monitor-header__title">MONITOR</span>
+      <button class="cmd-btn cmd-btn--ghost" style="height:22px;padding:0 6px;font-size:10px;" @click="app.toggleRightPanel()">
+        {{ locale.isZh ? '收起' : 'Collapse' }}
+      </button>
     </div>
+
     <div class="monitor-section">
-      <div class="monitor-section__title">系统健康</div>
-      <div v-for="s in (services.length ? services : fallbackServices)" :key="s.name" class="monitor-row">
+      <div class="monitor-section__title">{{ locale.t('dashboard.health') }}</div>
+      <div v-for="s in services" :key="s.name" class="monitor-row">
         <span class="monitor-dot" :class="`dot--${s.status}`" />
         <span class="monitor-name">{{ s.name }}</span>
         <span class="monitor-latency text-mono">{{ s.latency }}</span>
       </div>
+      <div v-if="services.length === 0" class="monitor-empty">{{ locale.t('common.loading') }}</div>
     </div>
+
     <div class="monitor-section">
-      <div class="monitor-section__title">实时事件</div>
-      <div v-for="e in events" :key="e.time + e.desc" class="event-row">
+      <div class="monitor-section__title">{{ locale.t('dashboard.events') }}</div>
+      <div v-for="(e, i) in events" :key="i" class="event-row">
         <span class="event-time text-mono">{{ e.time }}</span>
         <span class="event-dot" :class="`dot--${e.color}`" />
         <span class="event-desc">{{ e.desc }}</span>
       </div>
+      <div v-if="events.length === 0" class="monitor-empty">{{ locale.t('dashboard.noEvents') }}</div>
     </div>
   </aside>
 </template>
@@ -68,37 +64,66 @@ const events = ref([
 .right-monitor {
   width: var(--right-panel-width);
   border-left: 1px solid var(--border-subtle);
-  background: rgba(4,8,16,0.4);
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 24px;
-  overflow-y: auto; flex-shrink: 0;
+  background: rgba(4,8,16,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.monitor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.monitor-header__title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-disabled);
+  letter-spacing: 1px;
+}
+.monitor-section {
+  padding: 12px 16px;
+}
+.monitor-section + .monitor-section {
+  border-top: 1px solid rgba(255,255,255,0.03);
 }
 .monitor-section__title {
-  font-size: var(--text-sm); color: var(--text-muted);
-  letter-spacing: 0.5px; margin-bottom: 12px;
-  padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
 }
-.monitor-row, .event-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 0; font-size: var(--text-sm);
+.monitor-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 12px;
 }
-.event-row {
-  animation: slide-in-right .3s ease both;
-}
-.event-row:nth-child(1) { animation-delay: 0ms; }
-.event-row:nth-child(2) { animation-delay: 50ms; }
-.event-row:nth-child(3) { animation-delay: 100ms; }
-.event-row:nth-child(4) { animation-delay: 150ms; }
 .monitor-dot, .event-dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .dot--ok, .dot--green { background: var(--color-green); }
 .dot--warn { background: var(--color-orange); }
 .dot--error { background: var(--color-red); }
 .dot--blue { background: var(--color-primary); }
 .dot--cyan { background: var(--color-cyan); }
-.monitor-name { flex: 1; color: var(--text-secondary); }
-.monitor-latency { color: var(--text-muted); font-size: var(--text-xs); }
-.event-time { color: var(--text-muted); font-size: var(--text-xs); min-width: 40px; }
-.event-desc { color: var(--text-secondary); font-size: var(--text-xs); }
+.monitor-name { flex: 1; color: var(--text-secondary); font-size: 11px; }
+.monitor-latency { color: var(--text-muted); font-size: 10px; }
+.monitor-empty { font-size: 11px; color: var(--text-muted); padding: 8px 0; }
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.event-time { color: var(--text-muted); min-width: 36px; font-size: 10px; }
+.event-desc { color: var(--text-secondary); font-size: 11px; }
 </style>

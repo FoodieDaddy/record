@@ -221,7 +221,7 @@ onUnmounted(() => {
             <span class="hud-label">LIVE</span>
           </div>
           <div class="base-panel__body" style="padding:8px 16px;">
-            <div v-for="(e, i) in events" :key="i" class="event-row">
+            <div v-for="(e, i) in events" :key="i" class="event-row" :class="`event-row--${e.color}`">
               <span class="event-time text-mono">{{ e.time }}</span>
               <span class="event-dot" :class="`dot--${e.color}`" />
               <span class="event-text">{{ e.desc }}</span>
@@ -267,6 +267,9 @@ onUnmounted(() => {
 .health-latency { color: var(--text-muted); font-size: var(--text-xs); }
 
 .event-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: var(--text-xs); }
+.event-row--error { opacity: 1; }
+.event-row--warn { opacity: 0.9; }
+.event-row--green { opacity: 0.8; }
 .event-time { color: var(--text-muted); min-width: 40px; }
 .event-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .dot--cyan { background: var(--color-cyan); }

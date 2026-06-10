@@ -13,6 +13,7 @@ const api = useApi()
 const locale = useLocaleStore()
 const formation = ref<any>(null)
 const loading = ref(true)
+const dangerExpanded = ref(false)
 const dangerModal = ref({ visible: false, title: '', description: '', impact: '', action: '', confirmText: '' })
 
 onMounted(async () => {
@@ -29,8 +30,18 @@ onMounted(async () => {
 
 function openDanger(action: string) {
   const map: Record<string, any> = {
-    seal: { title: '强制封存航程', description: '将正常结束当前任务并写入航迹档案。所有运行期脉冲数据将被归档。', impact: '编队中所有成员的当前脉冲将被封存为最终读数。', confirmText: '确认封存' },
-    dissolve: { title: '强制解散编队', description: '将终止当前编队，所有运行期数据将丢失。此操作不可逆。', impact: '所有未封存的脉冲数据将丢失，成员将被移出编队。', confirmText: '确认解散' },
+    seal: {
+      title: locale.isZh ? '强制封存航程' : 'Force Seal Voyage',
+      description: locale.isZh ? '将正常结束当前任务并写入航迹档案。所有运行期脉冲数据将被归档。' : 'Will end current mission and write to trace archive. All runtime pulse data will be archived.',
+      impact: locale.isZh ? '编队中所有成员的当前脉冲将被封存为最终读数。' : 'All members\' current pulses will be sealed as final readings.',
+      confirmText: locale.isZh ? '确认封存' : 'Confirm Seal',
+    },
+    dissolve: {
+      title: locale.isZh ? '强制解散编队' : 'Force Dissolve Formation',
+      description: locale.isZh ? '将终止当前编队，所有运行期数据将丢失。此操作不可逆。' : 'Will terminate current formation, all runtime data will be lost. This action is irreversible.',
+      impact: locale.isZh ? '所有未封存的脉冲数据将丢失，成员将被移出编队。' : 'All unsealed pulse data will be lost, members will be removed.',
+      confirmText: locale.isZh ? '确认解散' : 'Confirm Dissolve',
+    },
   }
   dangerModal.value = { ...map[action], visible: true, action }
 }
@@ -65,13 +76,20 @@ async function handleConfirm() {
     </div>
   </div>
   <div v-else-if="formation">
+    <!-- 状态指示器 + 编队摘要 -->
+    <div class="formation-status-banner" :class="formation.status === '运行中' ? 'banner--running' : 'banner--sealed'">
+      <div class="banner-indicator" />
+      <span class="banner-status">{{ formation.status }}</span>
+      <span style="flex:1;" />
+      <StatusPill :status="formation.status === '运行中' ? 'running' : 'ok'" :label="formation.status" />
+    </div>
+
     <div class="base-panel" style="margin-bottom:16px;">
       <div class="base-panel__header">
         <span class="base-panel__title">{{ locale.t('formation.summary') }}</span>
-        <StatusPill :status="formation.status === '运行中' ? 'running' : 'ok'" :label="formation.status" />
       </div>
       <div class="base-panel__body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('nav.formations') }}码</div><div class="text-mono" style="font-size:18px;color:var(--color-cyan);">{{ formation.roomNo }}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('nav.formations') }}{{ locale.isZh ? '码' : ' Code' }}</div><div class="text-mono" style="font-size:18px;color:var(--color-cyan);">{{ formation.roomNo }}</div></div>
         <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.owner') }}</div><div>{{ formation.ownerName }}</div></div>
         <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.members') }}</div><div class="text-mono">{{ formation.memberCount }}/16</div></div>
         <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.protocol') }}</div><div>{{ formation.mode }}</div></div>
@@ -93,22 +111,26 @@ async function handleConfirm() {
                 <span class="member-time">{{ m.joinedAt ? m.joinedAt.substring(5, 16) : '-' }}</span>
               </div>
             </div>
-            <span class="member-status-dot" :class="m.quitTime ? 'dot--offline' : 'dot--online'" :title="m.quitTime ? '已退出' : '在线'" />
+            <span class="member-status-dot" :class="m.quitTime ? 'dot--offline' : 'dot--online'" :title="m.quitTime ? (locale.isZh ? '已退出' : 'Offline') : (locale.isZh ? '在线' : 'Online')" />
           </div>
           <div v-if="!formation.members?.length" style="text-align:center;padding:24px;color:var(--text-muted);font-size:12px;">
-            暂无成员数据
+            {{ locale.isZh ? '暂无成员数据' : 'No member data' }}
           </div>
         </div>
       </div>
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('formation.pulseChart') }}</span></div>
-        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text-muted);font-size:12px;">ECharts 折线图 — 接入后渲染</div>
+        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text-muted);font-size:12px;">{{ locale.isZh ? 'ECharts 折线图 -- 接入后渲染' : 'ECharts line chart -- render on connect' }}</div>
       </div>
     </div>
 
+    <!-- 危险操作（可折叠） -->
     <div class="base-panel">
-      <div class="base-panel__header"><span class="base-panel__title" style="color:var(--color-red);">{{ locale.t('formation.dangerZone') }}</span></div>
-      <div class="base-panel__body" style="display:flex;gap:12px;">
+      <div class="base-panel__header" style="cursor:pointer;" @click="dangerExpanded = !dangerExpanded">
+        <span class="base-panel__title" style="color:var(--color-red);">{{ locale.t('formation.dangerZone') }}</span>
+        <span style="font-size:11px;color:var(--text-muted);transition:transform .2s;" :style="{ transform: dangerExpanded ? 'rotate(90deg)' : 'rotate(0)' }">&#9654;</span>
+      </div>
+      <div v-if="dangerExpanded" class="base-panel__body" style="display:flex;gap:12px;padding-top:0;">
         <CommandButton variant="danger" @click="openDanger('seal')">{{ locale.t('formation.forceSeal') }}</CommandButton>
         <CommandButton variant="danger" @click="openDanger('dissolve')">{{ locale.t('formation.forceDissolve') }}</CommandButton>
       </div>
@@ -119,6 +141,41 @@ async function handleConfirm() {
 </template>
 
 <style scoped>
+.formation-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.banner--running {
+  background: rgba(48,209,88,0.06);
+  border-color: rgba(48,209,88,0.15);
+}
+.banner--sealed {
+  background: rgba(10,132,255,0.06);
+  border-color: rgba(10,132,255,0.15);
+}
+.banner-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.banner--running .banner-indicator {
+  background: var(--color-green);
+  box-shadow: 0 0 8px rgba(48,209,88,0.4);
+}
+.banner--sealed .banner-indicator {
+  background: var(--color-primary);
+}
+.banner-status {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
 .member-row {
   display: flex;
   align-items: center;
