@@ -1,5 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useApi } from '@/composables/useApi'
+
+const api = useApi()
+const services = ref<any[]>([])
+let timer: number
+
+const fallbackServices = [
+  { name: 'API 服务', status: 'ok', latency: '-' },
+  { name: 'MySQL', status: 'ok', latency: '-' },
+  { name: 'Redis', status: 'ok', latency: '-' },
+  { name: 'WebSocket', status: 'ok', latency: '-' },
+  { name: 'TTS 主引擎', status: 'ok', latency: '-' },
+  { name: '导航主引擎', status: 'ok', latency: '-' },
+]
+
+async function loadHealth() {
+  try {
+    const data: any = await api.get('/admin/system/health')
+    if (Array.isArray(data)) services.value = data
+  } catch {}
+}
+
+onMounted(() => {
+  loadHealth()
+  timer = window.setInterval(loadHealth, 30000)
+})
+
+onUnmounted(() => clearInterval(timer))
 
 const events = ref([
   { time: '14:32', desc: '张三 → 李四  脉冲 +50', color: 'cyan' },
@@ -7,22 +35,13 @@ const events = ref([
   { time: '14:30', desc: '王五 接入编队', color: 'green' },
   { time: '14:29', desc: '封存航程 DEF456', color: 'green' },
 ])
-
-const services = [
-  { name: 'API 服务', status: 'ok', latency: '12ms' },
-  { name: 'MySQL', status: 'ok', latency: '3ms' },
-  { name: 'Redis', status: 'ok', latency: '1ms' },
-  { name: 'WebSocket', status: 'ok', latency: '-' },
-  { name: 'TTS 主引擎', status: 'warn', latency: '890ms' },
-  { name: '导航主引擎', status: 'ok', latency: '2.1s' },
-]
 </script>
 
 <template>
   <aside class="right-monitor">
     <div class="monitor-section">
       <div class="monitor-section__title">系统健康</div>
-      <div v-for="s in services" :key="s.name" class="monitor-row">
+      <div v-for="s in (services.length ? services : fallbackServices)" :key="s.name" class="monitor-row">
         <span class="monitor-dot" :class="`dot--${s.status}`" />
         <span class="monitor-name">{{ s.name }}</span>
         <span class="monitor-latency text-mono">{{ s.latency }}</span>
@@ -69,6 +88,7 @@ const services = [
 }
 .dot--ok, .dot--green { background: var(--color-green); }
 .dot--warn { background: var(--color-orange); }
+.dot--error { background: var(--color-red); }
 .dot--blue { background: var(--color-primary); }
 .dot--cyan { background: var(--color-cyan); }
 .monitor-name { flex: 1; color: var(--text-secondary); }

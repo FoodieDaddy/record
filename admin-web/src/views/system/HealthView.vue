@@ -1,29 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 
 const api = useApi()
 const services = ref<any[]>([])
 const loading = ref(true)
+let timer: number
 
 const defaultServices = [
-  { name: 'API 服务', status: 'ok', latency: '12ms', detail: '200 QPS' },
-  { name: 'MySQL', status: 'ok', latency: '3ms', detail: '15 连接' },
-  { name: 'Redis', status: 'ok', latency: '1ms', detail: '12 连接' },
-  { name: 'WebSocket', status: 'ok', latency: '-', detail: '24 连接' },
-  { name: 'CloudBase 存储', status: 'ok', latency: '45ms', detail: '可用' },
-  { name: 'TTS 主引擎', status: 'warn', latency: '890ms', detail: 'Edge-TTS' },
-  { name: 'TTS 副引擎', status: 'ok', latency: '320ms', detail: 'MiMo' },
-  { name: '导航主引擎', status: 'ok', latency: '2.1s', detail: 'LLM' },
+  { name: 'API 服务', status: 'ok', latency: '-', detail: '运行中' },
+  { name: 'MySQL', status: 'ok', latency: '-', detail: '连接正常' },
+  { name: 'Redis', status: 'ok', latency: '-', detail: '连接正常' },
+  { name: 'WebSocket', status: 'ok', latency: '-', detail: '运行中' },
+  { name: 'CloudBase 存储', status: 'ok', latency: '-', detail: '可用' },
+  { name: 'TTS 主引擎', status: 'ok', latency: '-', detail: 'Edge-TTS' },
+  { name: 'TTS 副引擎', status: 'ok', latency: '-', detail: 'MiMo' },
+  { name: '导航主引擎', status: 'ok', latency: '-', detail: 'LLM' },
 ]
 
-onMounted(async () => {
+async function loadHealth() {
   try {
-    services.value = await api.get('/admin/system/health')
-  } catch {
-    services.value = defaultServices
-  } finally { loading.value = false }
+    const data: any = await api.get('/admin/system/health')
+    if (Array.isArray(data)) services.value = data
+  } catch {} finally { loading.value = false }
+}
+
+onMounted(() => {
+  loadHealth()
+  timer = window.setInterval(loadHealth, 30000)
 })
+
+onUnmounted(() => clearInterval(timer))
 </script>
 
 <template>
