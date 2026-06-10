@@ -149,6 +149,14 @@ async function handleLogin() {
 .login-graphic {
   animation: fade-in .8s ease .5s both;
 }
+.login-orbit {
+  animation: orbit-rotate 60s linear infinite;
+}
+
+@keyframes orbit-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .login-form__title {
   animation: fade-in-up .4s ease .3s both;
 }

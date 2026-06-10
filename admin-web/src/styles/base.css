@@ -98,3 +98,22 @@ input, textarea, select, button {
 .animate-slide-in-right {
   animation: slide-in-right .3s ease both;
 }
+
+/* 响应式 */
+@media (max-width: 1440px) {
+  .grid-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .grid-6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

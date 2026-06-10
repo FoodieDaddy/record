@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import EmptyState from '@/components/feedback/EmptyState.vue'
+
 defineProps<{
   columns: Array<{ key: string; label: string; width?: string }>
   data: Array<Record<string, any>>
@@ -23,8 +25,8 @@ defineProps<{
           </td>
         </tr>
         <tr v-else-if="data.length === 0">
-          <td :colspan="columns.length" style="text-align:center;padding:32px;color:var(--text-muted);">
-            暂无数据
+          <td :colspan="columns.length" style="padding:0;">
+            <EmptyState title="暂无数据" description="当前没有可显示的记录" icon="data" />
           </td>
         </tr>
         <tr v-for="(row, i) in data" :key="i">

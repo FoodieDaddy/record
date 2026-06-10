@@ -110,6 +110,9 @@ function isActive(path: string): boolean {
   display: flex; flex-direction: column; gap: 2px;
   overflow-y: auto;
 }
+.nav-list::-webkit-scrollbar { width: 4px; }
+.nav-list::-webkit-scrollbar-track { background: transparent; }
+.nav-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
 .nav-item {
   display: flex; align-items: center; gap: 12px;
@@ -123,6 +126,7 @@ function isActive(path: string): boolean {
   background: rgba(10,132,255,0.08);
   border-left-color: var(--color-cyan);
   color: var(--color-cyan);
+  box-shadow: inset 2px 0 8px rgba(0,200,255,0.06);
 }
 .nav-item__dot {
   width: 6px; height: 6px; border-radius: 50%;
