@@ -210,6 +210,12 @@ public class FortuneServiceImpl implements FortuneService {
                         resp.setTags(cachedArchetype.keywords);
                     }
                     fillNextRefreshAt(resp, cacheKey);
+                    // 缓存命中时也补充 portraitCache（缓存中不含此字段）
+                    if (resp.getPortraitCache() == null && resp.getUserTag() != null) {
+                        UserTag cachedTag = UserTag.valueOf(resp.getUserTag());
+                        List<Integer> scores = getRecentScoreDeltas(userId, 10);
+                        fillPortraitCache(resp, userId, cachedTag, scores.stream().mapToInt(Integer::intValue).sum(), scores);
+                    }
                     return resp;
                 }
             } catch (Exception e) {
@@ -330,6 +336,9 @@ public class FortuneServiceImpl implements FortuneService {
                 log.warn("写入策略日志失败: userId={}", userId, e);
             }
         });
+
+        // 4.5 填充 portraitCache（供前端 CloudBase AI 快路径使用）
+        fillPortraitCache(result, userId, userTag, netScore, recentScores);
 
         return result;
     }
@@ -654,6 +663,26 @@ public class FortuneServiceImpl implements FortuneService {
                 .glowColor(themeColor)
                 .tag(tag)
                 .build();
+    }
+
+    /**
+     * 填充 portraitCache 字段，供前端 CloudBase AI 快路径使用
+     */
+    private void fillPortraitCache(FortuneResp resp, Long userId, UserTag userTag, int netScore, List<Integer> recentScores) {
+        try {
+            resp.setPortraitCache(FortuneResp.PortraitCache.builder()
+                    .userTag(userTag.name())
+                    .netScore(netScore)
+                    .recentScores(recentScores)
+                    .sampleCount(recentScores.size())
+                    .source(resp.getSource() != null ? "backend-" + resp.getSource() : "backend-unknown")
+                    .expiresAt(System.currentTimeMillis() + CACHE_TTL_HOURS * 3600 * 1000L)
+                    .promptVersion("1")
+                    .userId(String.valueOf(userId))
+                    .build());
+        } catch (Exception e) {
+            log.warn("填充 portraitCache 失败: userId={}", userId, e);
+        }
     }
 
     /**

@@ -59,4 +59,39 @@ public class FortuneResp {
 
     @Schema(description = "下次可刷新时间戳（毫秒），前端优先使用此字段计算倒计时", example = "1717852243000")
     private Long nextRefreshAtEpochMs;
+
+    @Schema(description = "画像缓存（供前端 CloudBase AI 快路径使用）")
+    private PortraitCache portraitCache;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "用户画像缓存")
+    public static class PortraitCache {
+
+        @Schema(description = "用户画像标签", example = "STABLE")
+        private String userTag;
+
+        @Schema(description = "净积分", example = "120")
+        private Integer netScore;
+
+        @Schema(description = "近期积分走势", example = "[10, -5, 20]")
+        private List<Integer> recentScores;
+
+        @Schema(description = "样本数", example = "8")
+        private Integer sampleCount;
+
+        @Schema(description = "数据来源", example = "backend-llm")
+        private String source;
+
+        @Schema(description = "过期时间戳(ms)", example = "1717852243000")
+        private Long expiresAt;
+
+        @Schema(description = "prompt 版本号", example = "1")
+        private String promptVersion;
+
+        @Schema(description = "用户 ID", example = "1234567890")
+        private String userId;
+    }
 }

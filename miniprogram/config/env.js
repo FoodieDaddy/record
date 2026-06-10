@@ -44,6 +44,20 @@ const ENV = {
     provider: 'cloudbase',
     /** CloudBase 环境 ID（provider=cloudbase 时必填） */
     cloudbaseEnvId: ''
+  },
+
+  /** AI 代理配置 */
+  ai: {
+    /** AI 提供者: 'cloudbase-proxy' | 'backend' */
+    provider: 'cloudbase-proxy',
+    /** CloudBase 环境 ID（空则降级 backend） */
+    cloudEnvId: 'cloud1-d3g6oa11id960ba31',
+    /** CloudBase AI 子模型名 */
+    model: 'hy3-preview',
+    /** 云函数超时 ms */
+    timeout: 20000,
+    /** prompt 版本号，变更后自动使旧 portraitCache 失效 */
+    promptVersion: '1'
   }
 };
 

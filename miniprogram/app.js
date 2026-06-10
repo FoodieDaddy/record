@@ -17,11 +17,14 @@ App({
   },
 
   onLaunch() {
-    // CloudBase 初始化：anyservice 模式或 cloudbase 存储模式需要
-    const needCloudBase = config.mode === 'anyservice' || this.globalData.storageProvider === 'cloudbase';
+    // CloudBase 初始化：anyservice 模式 / cloudbase 存储 / AI 云函数代理 需要初始化
+    const needCloudBase = config.mode === 'anyservice'
+      || this.globalData.storageProvider === 'cloudbase'
+      || (config.ai && config.ai.provider === 'cloudbase-proxy');
     if (needCloudBase && wx.cloud) {
-      const cloudEnvId = (config.anyservice && config.anyservice.cloudEnvId) ||
-                         (config.storage && config.storage.cloudbaseEnvId) || '';
+      const cloudEnvId = (config.ai && config.ai.cloudEnvId)
+                         || (config.anyservice && config.anyservice.cloudEnvId)
+                         || (config.storage && config.storage.cloudbaseEnvId) || '';
       if (cloudEnvId) {
         try {
           wx.cloud.init({

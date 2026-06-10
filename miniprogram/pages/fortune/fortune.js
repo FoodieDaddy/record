@@ -109,6 +109,22 @@ function mapUserTagToLabel(userTag) {
   const map = {
     WINNING_STREAK: '连胜态',
     LOSING_STREAK: '连败态',
+
+/** 补充 CloudBase AI 来源缺失的 archetype 字段（title/subtitle/tags） */
+const ARCHETYPE_MAP = {
+  WINNING_STREAK: { title: '控场者', subtitle: 'THE CONTROLLER', tags: ['顺行', '连续', '控场'] },
+  LOSING_STREAK: { title: '校准者', subtitle: 'THE CALIBRATOR', tags: ['回稳', '校准', '观察'] },
+  HIGH_RISK: { title: '高波动体', subtitle: 'THE FLUCTUATOR', tags: ['波动', '高风险', '节奏'] },
+  STABLE: { title: '巡航者', subtitle: 'THE CRUISER', tags: ['稳健', '巡航', '节奏'] },
+}
+
+function _fillArchetypeIfMissing(strategy) {
+  if (strategy.title && strategy.subtitle && strategy.tags) return
+  const archetype = ARCHETYPE_MAP[strategy.userTag] || ARCHETYPE_MAP.STABLE
+  if (!strategy.title) strategy.title = archetype.title
+  if (!strategy.subtitle) strategy.subtitle = archetype.subtitle
+  if (!strategy.tags || strategy.tags.length === 0) strategy.tags = archetype.tags
+}
     HIGH_RISK: '偏高',
     STABLE: '稳健态',
   }
@@ -118,6 +134,7 @@ function mapUserTagToLabel(userTag) {
 /** source 映射中文 */
 function mapSourceToLabel(source) {
   if (source === 'llm') return '主引擎'
+  if (source === 'cloudbase-ai') return '主引擎'
   if (source === 'fallback') return '本地'
   return '待同步'
 }
@@ -590,6 +607,8 @@ Page({
 
   /** 构建完整结果 viewState */
   _buildStrategyViewState(strategy) {
+    // CloudBase AI 来源缺少 archetype 字段时，根据 userTag 补充
+    _fillArchetypeIfMissing(strategy)
     const themeColor = normalizeThemeColor(strategy)
     const meta = deriveStrategyMeta(strategy)
     return {

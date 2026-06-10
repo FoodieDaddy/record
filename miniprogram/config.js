@@ -80,6 +80,9 @@ config.anyservice = ENV.anyservice || {};
 config.storage = ENV.storage || {};
 config.storageProvider = ENV.storage ? ENV.storage.provider : 'cloudbase';
 
+/** AI 代理配置 */
+config.ai = ENV.ai || {};
+
 /**
  * 获取 WebSocket URL（供 score-ws.js 使用）
  * @param {string} roomId
