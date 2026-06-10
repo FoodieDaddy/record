@@ -276,4 +276,19 @@ onUnmounted(() => {
 .dot--green { background: var(--color-green); }
 .dot--blue { background: var(--color-primary); }
 .event-text { color: var(--text-secondary); }
+
+@media (max-width: 1440px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .dashboard__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard__row {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

@@ -27,7 +27,7 @@ async function handleLogin() {
     toast.success('权限接入完成')
     router.push('/dashboard')
   } catch (e: any) {
-    error.value = e.message || '接入失败，请检查凭证'
+    error.value = locale.t('login.error')
   } finally {
     loading.value = false
   }

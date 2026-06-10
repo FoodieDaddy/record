@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { useLocaleStore } from '@/stores/locale'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const api = useApi()
 const locale = useLocaleStore()
@@ -61,11 +62,15 @@ onUnmounted(() => clearInterval(timer))
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.slowRequests') }}</span></div>
-        <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;">接入后端 API 后渲染</div>
+        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <EmptyState :title="locale.isZh ? '暂无数据' : 'No data'" :description="locale.isZh ? '接入监控后端后显示' : 'Will display after monitoring backend connected'" icon="data" />
+        </div>
       </div>
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.errorRank') }}</span></div>
-        <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;">接入后端 API 后渲染</div>
+        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <EmptyState :title="locale.isZh ? '暂无数据' : 'No data'" :description="locale.isZh ? '接入监控后端后显示' : 'Will display after monitoring backend connected'" icon="data" />
+        </div>
       </div>
     </div>
     <div class="base-panel" style="margin-top:16px;">

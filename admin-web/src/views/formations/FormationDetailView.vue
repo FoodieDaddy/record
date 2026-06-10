@@ -7,6 +7,7 @@ import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
 import ConfirmDangerModal from '@/components/modal/ConfirmDangerModal.vue'
 import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
+import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const route = useRoute()
 const api = useApi()
@@ -120,7 +121,9 @@ async function handleConfirm() {
       </div>
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('formation.pulseChart') }}</span></div>
-        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text-muted);font-size:12px;">{{ locale.isZh ? 'ECharts 折线图 -- 接入后渲染' : 'ECharts line chart -- render on connect' }}</div>
+        <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:200px;">
+          <EmptyState :title="locale.isZh ? '暂无脉冲数据' : 'No pulse data'" :description="locale.isZh ? '封存航程后将生成脉冲轨迹' : 'Pulse trajectory will be generated after sealing'" icon="data" />
+        </div>
       </div>
     </div>
 

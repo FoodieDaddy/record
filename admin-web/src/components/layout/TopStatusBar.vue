@@ -37,12 +37,24 @@ async function checkSystemHealth() {
   } catch {}
 }
 
+function handleKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault()
+    const input = document.querySelector('.top-bar__center input') as HTMLInputElement
+    input?.focus()
+  }
+}
+
 onMounted(() => {
   updateTime()
   timer = window.setInterval(updateTime, 1000)
   checkSystemHealth()
+  document.addEventListener('keydown', handleKeydown)
 })
-onUnmounted(() => window.clearInterval(timer))
+onUnmounted(() => {
+  window.clearInterval(timer)
+  document.removeEventListener('keydown', handleKeydown)
+})
 
 const searchQuery = ref('')
 const searchResults = ref<Array<{ name: string; path: string }>>([])
@@ -94,7 +106,7 @@ function handleLogout() {
         v-model="searchQuery"
         class="input-field"
         style="width:100%;"
-        placeholder="搜索用户、编队、指令..."
+        placeholder="搜索用户、编队、指令... (⌘K)"
         @input="onSearchInput"
         @focus="onSearchInput"
         @blur="onSearchBlur"

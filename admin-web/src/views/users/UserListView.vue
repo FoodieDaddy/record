@@ -126,6 +126,10 @@ onMounted(() => { loadUsers() })
             {{ locale.t('batch.delete') }}
           </CommandButton>
         </div>
+        <div v-else style="display:flex;gap:12px;align-items:center;font-size:11px;color:var(--text-muted);">
+          <span><span style="color:var(--color-green);">●</span> {{ users.filter(u => u.status === 1).length }} {{ locale.isZh ? '正常' : 'Active' }}</span>
+          <span><span style="color:var(--color-red);">●</span> {{ users.filter(u => u.status === 0).length }} {{ locale.isZh ? '禁用' : 'Disabled' }}</span>
+        </div>
       </div>
 
       <div class="base-panel__body" style="padding-top:0;">
