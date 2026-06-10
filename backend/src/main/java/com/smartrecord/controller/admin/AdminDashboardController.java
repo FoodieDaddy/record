@@ -2,6 +2,7 @@ package com.smartrecord.controller.admin;
 
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.admin.DashboardOverviewResp;
+import com.smartrecord.dto.admin.TraceStatsResp;
 import com.smartrecord.dto.admin.TrendDataResp;
 import com.smartrecord.service.admin.AdminDashboardService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,5 +28,11 @@ public class AdminDashboardController {
     @GetMapping("/trends")
     public Result<TrendDataResp> trends() {
         return Result.ok(dashboardService.getTrends());
+    }
+
+    @Operation(summary = "航迹中心统计数据")
+    @GetMapping("/trace-stats")
+    public Result<TraceStatsResp> traceStats() {
+        return Result.ok(dashboardService.getTraceStats());
     }
 }

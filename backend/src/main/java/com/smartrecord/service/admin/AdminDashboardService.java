@@ -2,10 +2,13 @@ package com.smartrecord.service.admin;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartrecord.dto.admin.DashboardOverviewResp;
+import com.smartrecord.dto.admin.TraceStatsResp;
 import com.smartrecord.dto.admin.TrendDataResp;
 import com.smartrecord.entity.Room;
+import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMapper;
+import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +26,7 @@ public class AdminDashboardService {
 
     private final UserMapper userMapper;
     private final RoomMapper roomMapper;
+    private final RoomMemberMapper roomMemberMapper;
 
     public DashboardOverviewResp getOverview() {
         return DashboardOverviewResp.builder()
@@ -68,6 +74,113 @@ public class AdminDashboardService {
             .dates(dates)
             .userGrowth(userGrowth)
             .formationCreated(formationCreated)
+            .build();
+    }
+
+    /**
+     * 获取航迹中心统计数据：近 30 天封存趋势、高活跃用户、高活跃编队
+     */
+    public TraceStatsResp getTraceStats() {
+        // 近 30 天封存航程趋势
+        List<String> dates = new ArrayList<>();
+        List<Long> sealedCounts = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        for (int i = 29; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            dates.add(date.getMonthValue() + "/" + date.getDayOfMonth());
+
+            LocalDateTime dayStart = date.atStartOfDay();
+            LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+
+            Long sealed = roomMapper.selectCount(
+                new LambdaQueryWrapper<Room>()
+                    .eq(Room::getStatus, 1)
+                    .ge(Room::getCreatedAt, dayStart)
+                    .lt(Room::getCreatedAt, dayEnd)
+            );
+            sealedCounts.add(sealed);
+        }
+
+        // 高活跃用户：按参与封存航程数降序取 Top 10
+        // 先查所有已封存房间的成员记录
+        List<Room> sealedRooms = roomMapper.selectList(
+            new LambdaQueryWrapper<Room>().eq(Room::getStatus, 1)
+        );
+        List<Long> sealedRoomIds = sealedRooms.stream().map(Room::getId).collect(Collectors.toList());
+
+        // 统计每个用户参与的封存航程数和总脉冲
+        Map<Long, long[]> userStats = new java.util.HashMap<>();
+        if (!sealedRoomIds.isEmpty()) {
+            // 分批查询避免 IN 子句过大
+            int batchSize = 500;
+            for (int i = 0; i < sealedRoomIds.size(); i += batchSize) {
+                List<Long> batch = sealedRoomIds.subList(i, Math.min(i + batchSize, sealedRoomIds.size()));
+                List<RoomMember> members = roomMemberMapper.selectList(
+                    new LambdaQueryWrapper<RoomMember>()
+                        .in(RoomMember::getRoomId, batch)
+                        .isNotNull(RoomMember::getQuitTime)
+                );
+                for (RoomMember m : members) {
+                    long[] stat = userStats.computeIfAbsent(m.getUserId(), k -> new long[]{0, 0});
+                    stat[0]++; // 封存航程数
+                    if (m.getFinalScore() != null) {
+                        stat[1] += m.getFinalScore(); // 总脉冲
+                    }
+                }
+            }
+        }
+
+        // 取 Top 10 用户
+        List<Long> topUserIds = userStats.entrySet().stream()
+            .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
+            .limit(10)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toList());
+
+        // 批量查用户昵称
+        Map<Long, String> nicknameMap = new java.util.HashMap<>();
+        if (!topUserIds.isEmpty()) {
+            List<User> users = userMapper.selectBatchIds(topUserIds);
+            for (User u : users) {
+                nicknameMap.put(u.getId(), u.getNickname());
+            }
+        }
+
+        List<TraceStatsResp.UserRankItem> userRanks = topUserIds.stream()
+            .map(uid -> {
+                long[] stat = userStats.getOrDefault(uid, new long[]{0, 0});
+                return TraceStatsResp.UserRankItem.builder()
+                    .userId(uid)
+                    .nickname(nicknameMap.getOrDefault(uid, "未知"))
+                    .sealedCount(stat[0])
+                    .totalScore(stat[1])
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        // 高活跃编队：按成员数降序取 Top 10（仅已封存）
+        List<TraceStatsResp.FormationRankItem> formationRanks = sealedRooms.stream()
+            .sorted((a, b) -> Long.compare(b.getId(), a.getId()))
+            .limit(10)
+            .map(r -> {
+                Long memberCount = roomMemberMapper.selectCount(
+                    new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, r.getId())
+                );
+                return TraceStatsResp.FormationRankItem.builder()
+                    .roomId(r.getId())
+                    .roomNo(r.getRoomNo())
+                    .memberCount(memberCount != null ? memberCount.intValue() : 0)
+                    .scoreMode(r.getScoreMode())
+                    .build();
+            })
+            .collect(Collectors.toList());
+
+        return TraceStatsResp.builder()
+            .dates(dates)
+            .sealedCounts(sealedCounts)
+            .topUsers(userRanks)
+            .topFormations(formationRanks)
             .build();
     }
 }
