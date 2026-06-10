@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useAppStore } from '@/stores/app'
 
 const api = useApi()
+const app = useAppStore()
 const services = ref<any[]>([])
 let timer: number
 
@@ -39,6 +41,10 @@ const events = ref([
 
 <template>
   <aside class="right-monitor">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;">MONITOR</span>
+      <button class="cmd-btn cmd-btn--ghost" style="height:24px;padding:0 6px;font-size:11px;" @click="app.toggleRightPanel()">收起</button>
+    </div>
     <div class="monitor-section">
       <div class="monitor-section__title">系统健康</div>
       <div v-for="s in (services.length ? services : fallbackServices)" :key="s.name" class="monitor-row">

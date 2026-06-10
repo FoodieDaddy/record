@@ -6,16 +6,36 @@ const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
 
-const navItems = [
-  { name: '基地总览', kicker: 'OVERVIEW', path: '/dashboard' },
-  { name: '航船用户', kicker: 'USERS', path: '/users' },
-  { name: '任务编队', kicker: 'FORMATIONS', path: '/formations' },
-  { name: '航迹中心', kicker: 'TRACES', path: '/traces' },
-  { name: '指令日志', kicker: 'DIRECTIVES', path: '/directives/logs' },
-  { name: '镜像档案', kicker: 'MIRRORS', path: '/mirrors' },
-  { name: '系统监控', kicker: 'SYSTEM', path: '/system/health' },
-  { name: '管理员权限', kicker: 'ADMINS', path: '/admins' },
-  { name: '审计日志', kicker: 'AUDIT', path: '/audit' },
+const navGroups = [
+  {
+    title: 'OPERATIONS',
+    items: [
+      { name: '基地总览', path: '/dashboard' },
+      { name: '航船用户', path: '/users' },
+      { name: '任务编队', path: '/formations' },
+      { name: '航迹中心', path: '/traces' },
+    ]
+  },
+  {
+    title: 'DATA',
+    items: [
+      { name: '指令日志', path: '/directives/logs' },
+      { name: '镜像档案', path: '/mirrors' },
+    ]
+  },
+  {
+    title: 'SYSTEM',
+    items: [
+      { name: '系统监控', path: '/system/health' },
+    ]
+  },
+  {
+    title: 'ACCESS',
+    items: [
+      { name: '管理员权限', path: '/admins' },
+      { name: '审计日志', path: '/audit' },
+    ]
+  },
 ]
 
 function isActive(path: string): boolean {
@@ -40,17 +60,19 @@ function isActive(path: string): boolean {
     </div>
 
     <nav class="nav-list">
-      <div
-        v-for="item in navItems"
-        :key="item.path"
-        class="nav-item"
-        :class="{ active: isActive(item.path) }"
-        @click="router.push(item.path)"
-      >
-        <div class="nav-item__dot" />
-        <div v-if="!app.sidebarCollapsed" class="nav-item__text">
-          <div class="nav-item__name">{{ item.name }}</div>
-          <div class="nav-item__kicker">{{ item.kicker }}</div>
+      <div v-for="group in navGroups" :key="group.title" class="nav-group">
+        <div v-if="!app.sidebarCollapsed" class="nav-group__title">{{ group.title }}</div>
+        <div
+          v-for="item in group.items"
+          :key="item.path"
+          class="nav-item"
+          :class="{ active: isActive(item.path) }"
+          @click="router.push(item.path)"
+        >
+          <div class="nav-item__dot" />
+          <div v-if="!app.sidebarCollapsed" class="nav-item__text">
+            <div class="nav-item__name">{{ item.name }}</div>
+          </div>
         </div>
       </div>
     </nav>
@@ -108,17 +130,30 @@ function isActive(path: string): boolean {
 }
 
 .nav-list {
-  flex: 1; padding: 8px;
-  display: flex; flex-direction: column; gap: 2px;
+  flex: 1; padding: 8px 0;
+  display: flex; flex-direction: column;
   overflow-y: auto;
 }
 .nav-list::-webkit-scrollbar { width: 4px; }
 .nav-list::-webkit-scrollbar-track { background: transparent; }
 .nav-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
 
+.nav-group {
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+.nav-group__title {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-disabled);
+  letter-spacing: 1px;
+  padding: 12px 12px 6px;
+  text-transform: uppercase;
+}
+
 .nav-item {
   display: flex; align-items: center; gap: 12px;
-  padding: 10px 12px; border-radius: 6px;
+  padding: 9px 12px; border-radius: 4px;
   cursor: pointer; border-left: 2px solid transparent;
   transition: background-color .15s, border-color .15s;
   color: var(--text-muted);
@@ -139,10 +174,6 @@ function isActive(path: string): boolean {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 .nav-item__name { font-size: 13px; font-weight: 500; }
-.nav-item__kicker {
-  font-size: 10px; font-family: var(--font-mono);
-  letter-spacing: 0.5px; opacity: 0.6;
-}
 
 .nav-footer {
   padding: 12px 16px;

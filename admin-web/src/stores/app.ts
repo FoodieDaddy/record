@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export const useAppStore = defineStore('app', () => {
   const sidebarCollapsed = ref(false)
-  const rightPanelOpen = ref(true)
+  const rightPanelOpen = ref(false)
 
   function toggleSidebar() { sidebarCollapsed.value = !sidebarCollapsed.value }
   function toggleRightPanel() { rightPanelOpen.value = !rightPanelOpen.value }
