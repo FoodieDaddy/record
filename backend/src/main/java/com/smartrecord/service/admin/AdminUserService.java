@@ -51,6 +51,14 @@ public class AdminUserService {
     }
 
     /**
+     * 批量删除用户
+     */
+    public void batchDeleteUsers(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return;
+        userMapper.deleteBatchIds(userIds);
+    }
+
+    /**
      * 获取用户参与的编队列表（最近 20 条）
      */
     public List<Map<String, Object>> getUserFormations(Long userId) {

@@ -42,6 +42,22 @@ public class AdminUserController {
         return Result.ok();
     }
 
+    @Operation(summary = "批量修改用户状态")
+    @PutMapping("/batch-status")
+    public Result<Void> batchUpdateStatus(@RequestBody List<Long> userIds, @RequestParam Integer status) {
+        for (Long userId : userIds) {
+            userService.updateUserStatus(userId, status);
+        }
+        return Result.ok();
+    }
+
+    @Operation(summary = "批量删除用户")
+    @DeleteMapping("/batch")
+    public Result<Void> batchDelete(@RequestBody List<Long> userIds) {
+        userService.batchDeleteUsers(userIds);
+        return Result.ok();
+    }
+
     @Operation(summary = "用户参与的编队列表")
     @GetMapping("/{id}/formations")
     public Result<List<Map<String, Object>>> userFormations(@PathVariable Long id) {
