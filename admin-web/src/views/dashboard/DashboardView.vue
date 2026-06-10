@@ -3,9 +3,11 @@ import { ref, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import StatCard from '@/components/data/StatCard.vue'
 import HudChart from '@/components/chart/HudChart.vue'
+import { chartTheme } from '@/utils/chart-theme'
 
 const api = useApi()
 const loading = ref(true)
+const trendOption = ref<any>(null)
 
 const stats = ref([
   { label: '总航船用户', kicker: 'SPACE VESSELS', value: '-', trend: '', trendType: 'up' as const },
@@ -51,6 +53,55 @@ onMounted(async () => {
     const health: any = await api.get('/admin/system/health')
     if (Array.isArray(health)) {
       healthItems.value = health
+    }
+  } catch {}
+
+  try {
+    const trends: any = await api.get('/admin/dashboard/trends')
+    trendOption.value = {
+      ...chartTheme,
+      xAxis: {
+        type: 'category',
+        data: trends.dates,
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.04)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
+      },
+      series: [
+        {
+          name: '用户增长',
+          type: 'line',
+          data: trends.userGrowth,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { color: '#0A84FF', width: 2 },
+          areaStyle: {
+            color: {
+              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(10,132,255,0.25)' },
+                { offset: 1, color: 'rgba(10,132,255,0.02)' },
+              ],
+            },
+          },
+        },
+        {
+          name: '编队创建',
+          type: 'line',
+          data: trends.formationCreated,
+          smooth: true,
+          symbol: 'none',
+          lineStyle: { color: '#00C8FF', width: 2 },
+        },
+      ],
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(4,8,16,0.95)', borderColor: 'rgba(0,200,255,0.22)', textStyle: { color: '#fff', fontSize: 12 } },
+      legend: { data: ['用户增长', '编队创建'], textStyle: { color: 'rgba(255,255,255,0.56)', fontSize: 11 }, top: 0, right: 0 },
+      grid: { left: 40, right: 16, top: 32, bottom: 24 },
     }
   } catch {}
 })
@@ -120,7 +171,7 @@ onMounted(async () => {
     </div>
 
     <div class="dashboard__row" style="margin-top:16px;">
-      <HudChart title="脉冲记录趋势" kicker="近 30 天" style="min-height:280px;" />
+      <HudChart title="脉冲记录趋势" kicker="近 30 天" :option="trendOption" style="min-height:280px;" />
       <div class="base-panel dashboard__events">
         <div class="base-panel__header">
           <span class="base-panel__title">实时事件</span>
