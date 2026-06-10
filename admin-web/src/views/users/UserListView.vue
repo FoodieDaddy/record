@@ -7,6 +7,7 @@ import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
+import HudChart from '@/components/chart/HudChart.vue'
 
 const router = useRouter()
 const api = useApi()
@@ -20,6 +21,7 @@ const search = ref('')
 const selectedIds = ref<(string | number)[]>([])
 const showBatchConfirm = ref(false)
 const batchAction = ref<'enable' | 'disable' | 'delete'>('disable')
+const chartOption = ref<any>(null)
 
 const columns = [
   { key: 'id', label: '用户 ID', width: '140px' },
@@ -50,6 +52,53 @@ async function loadUsers() {
   }
 }
 
+async function loadChart() {
+  try {
+    const trends: any = await api.get('/admin/dashboard/trends')
+    chartOption.value = {
+      xAxis: {
+        type: 'category',
+        data: trends.dates,
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.04)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.38)', fontSize: 10 },
+      },
+      series: [{
+        type: 'line',
+        data: trends.userGrowth,
+        smooth: true,
+        symbol: 'none',
+        lineStyle: { color: '#0A84FF', width: 2 },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(10,132,255,0.25)' },
+              { offset: 1, color: 'rgba(10,132,255,0.02)' },
+            ],
+          },
+        },
+      }],
+      tooltip: { trigger: 'axis', backgroundColor: 'rgba(4,8,16,0.95)', borderColor: 'rgba(0,200,255,0.22)', textStyle: { color: '#fff', fontSize: 12 } },
+      grid: { left: 40, right: 16, top: 16, bottom: 24 },
+    }
+  } catch {}
+}
+
+const statusDistribution = computed(() => {
+  const active = users.value.filter(u => u.status === 1).length
+  const disabled = users.value.filter(u => u.status === 0).length
+  return [
+    { label: '正常', count: active, color: 'var(--color-green)' },
+    { label: '禁用', count: disabled, color: 'var(--color-red)' },
+  ]
+})
+
 async function toggleUserStatus(user: any) {
   const newStatus = user.status === 1 ? 0 : 1
   try {
@@ -79,11 +128,28 @@ async function executeBatch() {
   } catch {}
 }
 
-onMounted(loadUsers)
+onMounted(() => { loadUsers(); loadChart() })
 </script>
 
 <template>
   <div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
+      <HudChart title="用户增长趋势" kicker="近 30 天" :option="chartOption" style="min-height:200px;" />
+      <div class="base-panel" style="min-height:200px;">
+        <div class="base-panel__header">
+          <span class="base-panel__title">用户分布</span>
+          <span class="hud-label">STATUS</span>
+        </div>
+        <div class="base-panel__body">
+          <div v-for="(item, i) in statusDistribution" :key="i" style="display:flex;align-items:center;gap:12px;padding:8px 0;">
+            <span style="width:8px;height:8px;border-radius:50%;" :style="{ background: item.color }" />
+            <span style="flex:1;font-size:12px;color:var(--text-secondary);">{{ item.label }}</span>
+            <span class="text-mono" style="font-size:13px;color:var(--text-main);">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
