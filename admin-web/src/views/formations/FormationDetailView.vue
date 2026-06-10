@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
 import ConfirmDangerModal from '@/components/modal/ConfirmDangerModal.vue'
@@ -9,6 +10,7 @@ import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 
 const route = useRoute()
 const api = useApi()
+const locale = useLocaleStore()
 const formation = ref<any>(null)
 const loading = ref(true)
 const dangerModal = ref({ visible: false, title: '', description: '', impact: '', action: '', confirmText: '' })
@@ -65,20 +67,20 @@ async function handleConfirm() {
   <div v-else-if="formation">
     <div class="base-panel" style="margin-bottom:16px;">
       <div class="base-panel__header">
-        <span class="base-panel__title">编队摘要</span>
+        <span class="base-panel__title">{{ locale.t('formation.summary') }}</span>
         <StatusPill :status="formation.status === '运行中' ? 'running' : 'ok'" :label="formation.status" />
       </div>
       <div class="base-panel__body" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
-        <div><div style="font-size:11px;color:var(--text-muted);">编队码</div><div class="text-mono" style="font-size:18px;color:var(--color-cyan);">{{ formation.roomNo }}</div></div>
-        <div><div style="font-size:11px;color:var(--text-muted);">编队主控</div><div>{{ formation.ownerName }}</div></div>
-        <div><div style="font-size:11px;color:var(--text-muted);">成员数</div><div class="text-mono">{{ formation.memberCount }}/16</div></div>
-        <div><div style="font-size:11px;color:var(--text-muted);">记录协议</div><div>{{ formation.mode }}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('nav.formations') }}码</div><div class="text-mono" style="font-size:18px;color:var(--color-cyan);">{{ formation.roomNo }}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.owner') }}</div><div>{{ formation.ownerName }}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.members') }}</div><div class="text-mono">{{ formation.memberCount }}/16</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);">{{ locale.t('formations.protocol') }}</div><div>{{ formation.mode }}</div></div>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px;">
       <div class="base-panel">
-        <div class="base-panel__header"><span class="base-panel__title">成员席位</span></div>
+        <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('formation.memberSeats') }}</span></div>
         <div class="base-panel__body">
           <div v-for="m in formation.members || []" :key="m.userId" class="member-row">
             <div class="member-avatar">
@@ -99,16 +101,16 @@ async function handleConfirm() {
         </div>
       </div>
       <div class="base-panel">
-        <div class="base-panel__header"><span class="base-panel__title">脉冲轨迹</span></div>
+        <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('formation.pulseChart') }}</span></div>
         <div class="base-panel__body" style="display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text-muted);font-size:12px;">ECharts 折线图 — 接入后渲染</div>
       </div>
     </div>
 
     <div class="base-panel">
-      <div class="base-panel__header"><span class="base-panel__title" style="color:var(--color-red);">危险操作</span></div>
+      <div class="base-panel__header"><span class="base-panel__title" style="color:var(--color-red);">{{ locale.t('formation.dangerZone') }}</span></div>
       <div class="base-panel__body" style="display:flex;gap:12px;">
-        <CommandButton variant="danger" @click="openDanger('seal')">强制封存航程</CommandButton>
-        <CommandButton variant="danger" @click="openDanger('dissolve')">强制解散编队</CommandButton>
+        <CommandButton variant="danger" @click="openDanger('seal')">{{ locale.t('formation.forceSeal') }}</CommandButton>
+        <CommandButton variant="danger" @click="openDanger('dissolve')">{{ locale.t('formation.forceDissolve') }}</CommandButton>
       </div>
     </div>
 

@@ -2,6 +2,7 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { useToastStore } from '@/stores/toast'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
@@ -10,6 +11,7 @@ import HudChart from '@/components/chart/HudChart.vue'
 
 const api = useApi()
 const toast = useToastStore()
+const locale = useLocaleStore()
 const loading = ref(false)
 const admins = ref<any[]>([])
 const total = ref(0)
@@ -20,14 +22,14 @@ const showCreate = ref(false)
 const createForm = ref({ username: '', password: '', role: 'VIEWER' })
 const creating = ref(false)
 
-const columns = [
+const columns = computed(() => [
   { key: 'id', label: 'ID', width: '140px' },
-  { key: 'username', label: '用户名' },
-  { key: 'role', label: '角色', width: '140px' },
-  { key: 'status', label: '状态', width: '80px' },
-  { key: 'lastLoginAt', label: '最后登录', width: '160px' },
-  { key: 'actions', label: '操作', width: '160px' },
-]
+  { key: 'username', label: locale.t('admins.username') },
+  { key: 'role', label: locale.t('admins.role'), width: '140px' },
+  { key: 'status', label: locale.t('common.status'), width: '80px' },
+  { key: 'lastLoginAt', label: locale.t('formations.lastActive'), width: '160px' },
+  { key: 'actions', label: locale.t('common.actions'), width: '160px' },
+])
 
 async function load() {
   loading.value = true
@@ -83,7 +85,7 @@ onMounted(load)
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="base-panel">
         <div class="base-panel__header">
-          <span class="base-panel__title">角色分布</span>
+          <span class="base-panel__title">{{ locale.t('admins.roles') }}</span>
           <span class="hud-label">ROLES</span>
         </div>
         <div class="base-panel__body">
@@ -96,18 +98,18 @@ onMounted(load)
       </div>
       <div class="base-panel">
         <div class="base-panel__header">
-          <span class="base-panel__title">状态分布</span>
+          <span class="base-panel__title">{{ locale.t('admins.statusDist') }}</span>
           <span class="hud-label">STATUS</span>
         </div>
         <div class="base-panel__body">
           <div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
             <span style="width:8px;height:8px;border-radius:50;background:var(--color-green);" />
-            <span style="flex:1;font-size:12px;color:var(--text-secondary);">正常</span>
+            <span style="flex:1;font-size:12px;color:var(--text-secondary);">{{ locale.t('system.ok') }}</span>
             <span class="text-mono" style="font-size:13px;color:var(--text-main);">{{ admins.filter(a => a.status === 1).length }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px;padding:8px 0;">
             <span style="width:8px;height:8px;border-radius:50;background:var(--color-red);" />
-            <span style="flex:1;font-size:12px;color:var(--text-secondary);">禁用</span>
+            <span style="flex:1;font-size:12px;color:var(--text-secondary);">{{ locale.t('common.disable') }}</span>
             <span class="text-mono" style="font-size:13px;color:var(--text-main);">{{ admins.filter(a => a.status === 0).length }}</span>
           </div>
         </div>
@@ -117,10 +119,10 @@ onMounted(load)
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="base-panel__title">管理员</span>
+          <span class="base-panel__title">{{ locale.t('admins.title') }}</span>
           <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">ADMIN REGISTRY</span>
         </div>
-        <CommandButton variant="primary" style="height:28px;font-size:11px;" @click="showCreate = true">新增管理员</CommandButton>
+        <CommandButton variant="primary" style="height:28px;font-size:11px;" @click="showCreate = true">{{ locale.t('admins.create') }}</CommandButton>
       </div>
       <div class="base-panel__body">
         <DataTable :columns="columns" :data="admins" :loading="loading">
@@ -128,7 +130,7 @@ onMounted(load)
             <span class="text-mono" style="color:var(--color-purple);">{{ row.role }}</span>
           </template>
           <template #status="{ row }">
-            <StatusPill :status="row.status === 1 ? 'ok' : 'offline'" :label="row.status === 1 ? '正常' : '禁用'" />
+            <StatusPill :status="row.status === 1 ? 'ok' : 'offline'" :label="row.status === 1 ? locale.t('system.ok') : locale.t('common.disable')" />
           </template>
           <template #lastLoginAt="{ row }">
             <span style="font-size:12px;color:var(--text-muted);">{{ row.lastLoginAt || '从未登录' }}</span>
@@ -136,7 +138,7 @@ onMounted(load)
           <template #actions="{ row }">
             <div style="display:flex;gap:8px;">
               <CommandButton variant="ghost" style="height:28px;font-size:11px;" @click="toggleStatus(row)">
-                {{ row.status === 1 ? '禁用' : '启用' }}
+                {{ row.status === 1 ? locale.t('common.disable') : locale.t('common.enable') }}
               </CommandButton>
             </div>
           </template>
@@ -149,30 +151,30 @@ onMounted(load)
         <div v-if="showCreate" class="modal-overlay" @click.self="showCreate = false">
           <div class="create-modal">
             <div class="create-modal__header">
-              <span style="font-size:16px;font-weight:600;">新增管理员</span>
+              <span style="font-size:16px;font-weight:600;">{{ locale.t('admins.create') }}</span>
             </div>
             <div class="create-modal__body">
               <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">用户名</label>
-                <input v-model="createForm.username" class="input-field" style="width:100%;" placeholder="管理员用户名" />
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">{{ locale.t('admins.username') }}</label>
+                <input v-model="createForm.username" class="input-field" style="width:100%;" :placeholder="locale.t('admins.username')" />
               </div>
               <div style="margin-bottom:16px;">
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">密码</label>
-                <input v-model="createForm.password" class="input-field" type="password" style="width:100%;" placeholder="接入密钥" />
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">{{ locale.t('admins.password') }}</label>
+                <input v-model="createForm.password" class="input-field" type="password" style="width:100%;" :placeholder="locale.t('admins.password')" />
               </div>
               <div>
-                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">角色</label>
+                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;">{{ locale.t('admins.role') }}</label>
                 <select v-model="createForm.role" class="input-field" style="width:100%;">
-                  <option value="SUPER_ADMIN">超级管理员</option>
-                  <option value="OPERATOR">运营处理</option>
-                  <option value="VIEWER">只读观察</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  <option value="OPERATOR">OPERATOR</option>
+                  <option value="VIEWER">VIEWER</option>
                 </select>
               </div>
             </div>
             <div class="create-modal__actions">
-              <CommandButton variant="secondary" @click="showCreate = false">取消</CommandButton>
+              <CommandButton variant="secondary" @click="showCreate = false">{{ locale.t('common.cancel') }}</CommandButton>
               <CommandButton variant="primary" :disabled="creating" @click="handleCreate">
-                {{ creating ? '创建中...' : '确认创建' }}
+                {{ creating ? '...' : locale.t('common.confirm') }}
               </CommandButton>
             </div>
           </div>

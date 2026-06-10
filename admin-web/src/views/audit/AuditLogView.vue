@@ -1,25 +1,27 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(false)
 const logs = ref<any[]>([])
 const total = ref(0)
 const page = ref(1)
 
-const columns = [
+const columns = computed(() => [
   { key: 'id', label: 'ID', width: '120px' },
-  { key: 'adminName', label: '管理员' },
-  { key: 'actionType', label: '操作类型', width: '100px' },
-  { key: 'targetType', label: '目标类型', width: '100px' },
-  { key: 'targetId', label: '目标 ID', width: '140px' },
+  { key: 'adminName', label: locale.t('admins.title') },
+  { key: 'actionType', label: locale.t('audit.actionType'), width: '100px' },
+  { key: 'targetType', label: locale.t('audit.targetType'), width: '100px' },
+  { key: 'targetId', label: locale.t('audit.targetId'), width: '140px' },
   { key: 'ip', label: 'IP', width: '120px' },
-  { key: 'result', label: '结果', width: '80px' },
-  { key: 'createdAt', label: '时间', width: '160px' },
-]
+  { key: 'result', label: locale.t('audit.result'), width: '80px' },
+  { key: 'createdAt', label: locale.t('formations.createdAt'), width: '160px' },
+])
 
 async function load() {
   loading.value = true
@@ -48,7 +50,7 @@ onMounted(load)
     <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;">
       <div class="base-panel">
         <div class="base-panel__header">
-          <span class="base-panel__title">审计日志</span>
+          <span class="base-panel__title">{{ locale.t('audit.title') }}</span>
           <span class="hud-label">AUDIT TRAIL</span>
         </div>
         <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;padding:24px;">
@@ -57,7 +59,7 @@ onMounted(load)
       </div>
       <div class="base-panel">
         <div class="base-panel__header">
-          <span class="base-panel__title">操作类型分布</span>
+          <span class="base-panel__title">{{ locale.t('audit.actionDist') }}</span>
           <span class="hud-label">ACTIONS</span>
         </div>
         <div class="base-panel__body">

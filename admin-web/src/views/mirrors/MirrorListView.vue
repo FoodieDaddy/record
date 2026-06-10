@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
@@ -10,6 +11,7 @@ import HudChart from '@/components/chart/HudChart.vue'
 
 const router = useRouter()
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(false)
 const mirrors = ref<any[]>([])
 const total = ref(0)
@@ -17,15 +19,15 @@ const page = ref(1)
 const search = ref('')
 const chartOption = ref<any>(null)
 
-const columns = [
+const columns = computed(() => [
   { key: 'id', label: 'ID', width: '120px' },
-  { key: 'userId', label: '用户 ID', width: '140px' },
-  { key: 'mbtiType', label: '协议类型', width: '100px' },
-  { key: 'personaConfidence', label: '一致率', width: '90px' },
-  { key: 'sampleCount', label: '样本数', width: '80px' },
-  { key: 'updatedAt', label: '最近更新', width: '140px' },
-  { key: 'actions', label: '操作', width: '80px' },
-]
+  { key: 'userId', label: 'User ID', width: '140px' },
+  { key: 'mbtiType', label: locale.t('mirrors.mbti'), width: '100px' },
+  { key: 'personaConfidence', label: locale.t('mirrors.confidence'), width: '90px' },
+  { key: 'sampleCount', label: locale.t('mirrors.samples'), width: '80px' },
+  { key: 'updatedAt', label: locale.t('mirrors.updated'), width: '140px' },
+  { key: 'actions', label: locale.t('common.actions'), width: '80px' },
+])
 
 async function load() {
   loading.value = true
@@ -96,7 +98,7 @@ onMounted(() => { load(); loadChart() })
       <HudChart title="封存航程趋势" kicker="近 30 天" :option="chartOption" style="min-height:200px;" />
       <div class="base-panel" style="min-height:200px;">
         <div class="base-panel__header">
-          <span class="base-panel__title">协议分布</span>
+          <span class="base-panel__title">{{ locale.t('mirrors.mbti') }}</span>
           <span class="hud-label">MBTI</span>
         </div>
         <div class="base-panel__body">
@@ -113,13 +115,13 @@ onMounted(() => { load(); loadChart() })
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="base-panel__title">镜像档案</span>
+          <span class="base-panel__title">{{ locale.t('mirrors.title') }}</span>
           <span class="hud-label">MIRROR ARCHIVES</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);">
-        <input v-model="search" class="input-field" style="width:260px;" placeholder="搜索用户 ID" @keyup.enter="load" />
-        <CommandButton variant="secondary" @click="load">搜索</CommandButton>
+        <input v-model="search" class="input-field" style="width:260px;" :placeholder="locale.t('directives.search')" @keyup.enter="load" />
+        <CommandButton variant="secondary" @click="load">{{ locale.t('common.search') }}</CommandButton>
       </div>
       <div class="base-panel__body" style="padding-top:0;">
         <DataTable :columns="columns" :data="mirrors" :loading="loading">
@@ -133,7 +135,7 @@ onMounted(() => { load(); loadChart() })
             <span style="font-size:12px;color:var(--text-muted);">{{ value ? value.substring(0, 16) : '-' }}</span>
           </template>
           <template #actions="{ row }">
-            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/mirrors/${row.userId}`)">详情</CommandButton>
+            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/mirrors/${row.userId}`)">{{ locale.t('common.detail') }}</CommandButton>
           </template>
         </DataTable>
         <DataPagination v-model:page="page" :total="total" :page-size="20" @update:page="load" />

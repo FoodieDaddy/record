@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 
 const api = useApi()
+const locale = useLocaleStore()
 const services = ref<any[]>([])
 const loading = ref(true)
 const sentinelInfo = ref<any>(null)
@@ -40,7 +42,7 @@ onUnmounted(() => clearInterval(timer))
   <div>
     <div class="base-panel" style="margin-bottom:16px;">
       <div class="base-panel__header">
-        <span class="base-panel__title">系统健康</span>
+        <span class="base-panel__title">{{ locale.t('system.healthMatrix') }}</span>
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">HEALTH MATRIX</span>
       </div>
       <div class="base-panel__body">
@@ -58,17 +60,17 @@ onUnmounted(() => clearInterval(timer))
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div class="base-panel">
-        <div class="base-panel__header"><span class="base-panel__title">接口耗时排行</span></div>
+        <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.slowRequests') }}</span></div>
         <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;">接入后端 API 后渲染</div>
       </div>
       <div class="base-panel">
-        <div class="base-panel__header"><span class="base-panel__title">错误接口排行</span></div>
+        <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.errorRank') }}</span></div>
         <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;">接入后端 API 后渲染</div>
       </div>
     </div>
     <div class="base-panel" style="margin-top:16px;">
       <div class="base-panel__header">
-        <span class="base-panel__title">限流控制台</span>
+        <span class="base-panel__title">{{ locale.t('system.sentinel') }}</span>
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">SENTINEL</span>
       </div>
       <div class="base-panel__body" style="display:flex;align-items:center;gap:16px;">
@@ -83,7 +85,7 @@ onUnmounted(() => clearInterval(timer))
           class="cmd-btn cmd-btn--primary"
           style="text-decoration:none;height:32px;font-size:12px;"
         >
-          打开控制台
+          {{ locale.t('system.openConsole') }}
         </a>
       </div>
     </div>

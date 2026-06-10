@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
@@ -10,6 +11,7 @@ import HudChart from '@/components/chart/HudChart.vue'
 
 const router = useRouter()
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(false)
 const formations = ref<any[]>([])
 const total = ref(0)
@@ -17,16 +19,16 @@ const page = ref(1)
 const search = ref('')
 const chartOption = ref<any>(null)
 
-const columns = [
-  { key: 'id', label: '编队 ID', width: '140px' },
-  { key: 'roomNo', label: '编队码', width: '100px' },
-  { key: 'ownerId', label: '主控 ID', width: '140px' },
-  { key: 'scoreMode', label: '记录协议', width: '100px' },
-  { key: 'status', label: '状态', width: '80px' },
-  { key: 'createdAt', label: '创建时间', width: '140px' },
-  { key: 'lastActiveAt', label: '最后活动', width: '140px' },
-  { key: 'actions', label: '操作', width: '100px' },
-]
+const columns = computed(() => [
+  { key: 'id', label: 'ID', width: '140px' },
+  { key: 'roomNo', label: locale.t('nav.formations') + '码', width: '100px' },
+  { key: 'ownerId', label: locale.t('formations.owner') + ' ID', width: '140px' },
+  { key: 'scoreMode', label: locale.t('formations.protocol'), width: '100px' },
+  { key: 'status', label: locale.t('common.status'), width: '80px' },
+  { key: 'createdAt', label: locale.t('formations.createdAt'), width: '140px' },
+  { key: 'lastActiveAt', label: locale.t('formations.lastActive'), width: '140px' },
+  { key: 'actions', label: locale.t('common.actions'), width: '100px' },
+])
 
 async function load() {
   loading.value = true
@@ -78,8 +80,8 @@ const modeDistribution = computed(() => {
   const free = formations.value.filter(f => f.scoreMode === 1).length
   const round = formations.value.filter(f => f.scoreMode === 2).length
   return [
-    { label: '脉冲流向', count: free, color: 'var(--color-primary)' },
-    { label: '航段写入', count: round, color: 'var(--color-cyan)' },
+    { label: locale.t('formations.pulseFlow'), count: free, color: 'var(--color-primary)' },
+    { label: locale.t('formations.segmentWrite'), count: round, color: 'var(--color-cyan)' },
   ]
 })
 
@@ -92,7 +94,7 @@ onMounted(() => { load(); loadChart() })
       <HudChart title="编队创建趋势" kicker="近 30 天" :option="chartOption" style="min-height:200px;" />
       <div class="base-panel" style="min-height:200px;">
         <div class="base-panel__header">
-          <span class="base-panel__title">协议分布</span>
+          <span class="base-panel__title">{{ locale.t('mirrors.mbti') }}</span>
           <span class="hud-label">MODE</span>
         </div>
         <div class="base-panel__body">
@@ -108,13 +110,13 @@ onMounted(() => { load(); loadChart() })
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="base-panel__title">任务编队</span>
+          <span class="base-panel__title">{{ locale.t('formations.title') }}</span>
           <span class="hud-label">FLEET REGISTRY</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);">
-        <input v-model="search" class="input-field" style="width:260px;" placeholder="搜索编队码" @keyup.enter="load" />
-        <CommandButton variant="secondary" @click="load">搜索</CommandButton>
+        <input v-model="search" class="input-field" style="width:260px;" :placeholder="locale.t('formations.search')" @keyup.enter="load" />
+        <CommandButton variant="secondary" @click="load">{{ locale.t('common.search') }}</CommandButton>
       </div>
       <div class="base-panel__body" style="padding-top:0;">
         <DataTable :columns="columns" :data="formations" :loading="loading">
@@ -122,10 +124,10 @@ onMounted(() => { load(); loadChart() })
             <span class="text-mono" style="color:var(--color-cyan);">{{ row.roomNo }}</span>
           </template>
           <template #scoreMode="{ row }">
-            <span style="font-size:12px;">{{ row.scoreMode === 1 ? '脉冲流向' : '航段写入' }}</span>
+            <span style="font-size:12px;">{{ row.scoreMode === 1 ? locale.t('formations.pulseFlow') : locale.t('formations.segmentWrite') }}</span>
           </template>
           <template #status="{ row }">
-            <StatusPill :status="row.status === 0 ? 'running' : 'ok'" :label="row.status === 0 ? '运行中' : '已封存'" />
+            <StatusPill :status="row.status === 0 ? 'running' : 'ok'" :label="row.status === 0 ? locale.t('formations.running') : locale.t('formations.sealed')" />
           </template>
           <template #createdAt="{ value }">
             <span style="font-size:12px;color:var(--text-muted);">{{ value ? value.substring(0, 16) : '-' }}</span>
@@ -134,7 +136,7 @@ onMounted(() => { load(); loadChart() })
             <span style="font-size:12px;color:var(--text-muted);">{{ value ? value.substring(0, 16) : '-' }}</span>
           </template>
           <template #actions="{ row }">
-            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/formations/${row.id}`)">详情</CommandButton>
+            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/formations/${row.id}`)">{{ locale.t('common.detail') }}</CommandButton>
           </template>
         </DataTable>
         <DataPagination v-model:page="page" :total="total" :page-size="20" @update:page="load" />

@@ -11,7 +11,7 @@ const locale = useLocaleStore()
 
 const navGroups = computed(() => [
   {
-    title: 'OPERATIONS',
+    title: locale.t('group.operations'),
     items: [
       { name: locale.t('nav.overview'), path: '/dashboard' },
       { name: locale.t('nav.users'), path: '/users' },
@@ -20,20 +20,20 @@ const navGroups = computed(() => [
     ]
   },
   {
-    title: 'DATA',
+    title: locale.t('group.data'),
     items: [
       { name: locale.t('nav.directives'), path: '/directives/logs' },
       { name: locale.t('nav.mirrors'), path: '/mirrors' },
     ]
   },
   {
-    title: 'SYSTEM',
+    title: locale.t('group.system'),
     items: [
       { name: locale.t('nav.system'), path: '/system/health' },
     ]
   },
   {
-    title: 'ACCESS',
+    title: locale.t('group.access'),
     items: [
       { name: locale.t('nav.admins'), path: '/admins' },
       { name: locale.t('nav.audit'), path: '/audit' },

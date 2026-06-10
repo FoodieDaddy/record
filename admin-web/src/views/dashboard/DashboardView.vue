@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import StatCard from '@/components/data/StatCard.vue'
 import HudChart from '@/components/chart/HudChart.vue'
 import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 import { chartTheme } from '@/utils/chart-theme'
 
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(true)
 const lastSync = ref('')
 const nextSync = ref(30)
@@ -133,13 +135,13 @@ onUnmounted(() => {
       <div class="dashboard__status-bar">
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="health-dot" :class="healthItems.some(h => h.status === 'error') ? 'dot--error' : healthItems.some(h => h.status === 'warn') ? 'dot--warn' : 'dot--ok'" />
-          <span style="font-size:13px;color:var(--text-main);">基地运行{{ healthItems.some(h => h.status === 'error') ? '异常' : healthItems.some(h => h.status === 'warn') ? '注意' : '正常' }}</span>
+          <span style="font-size:13px;color:var(--text-main);">{{ healthItems.some(h => h.status === 'error') ? locale.t('dashboard.baseError') : healthItems.some(h => h.status === 'warn') ? locale.t('dashboard.baseWarn') : locale.t('dashboard.baseOk') }}</span>
         </div>
         <div style="display:flex;align-items:center;gap:16px;">
           <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">
-            上次同步 {{ lastSync }} · 下次同步 {{ nextSync }}s
+            {{ locale.t('dashboard.lastSync') }} {{ lastSync }} · {{ locale.t('dashboard.nextSync') }} {{ nextSync }}s
           </span>
-          <button class="cmd-btn cmd-btn--ghost" style="height:24px;padding:0 8px;font-size:11px;" @click="refreshAll">刷新</button>
+          <button class="cmd-btn cmd-btn--ghost" style="height:24px;padding:0 8px;font-size:11px;" @click="refreshAll">{{ locale.t('common.refresh') }}</button>
         </div>
       </div>
 
@@ -158,7 +160,7 @@ onUnmounted(() => {
       <div class="dashboard__row">
         <div class="base-panel base-panel--hud dashboard__situation">
           <div class="base-panel__header">
-            <span class="base-panel__title">基地态势</span>
+            <span class="base-panel__title">{{ locale.t('dashboard.situation') }}</span>
             <span class="hud-label">SITUATION</span>
           </div>
           <div class="base-panel__body dashboard__situation-body">
@@ -185,7 +187,7 @@ onUnmounted(() => {
 
         <div class="base-panel dashboard__health">
           <div class="base-panel__header">
-            <span class="base-panel__title">系统健康</span>
+            <span class="base-panel__title">{{ locale.t('dashboard.health') }}</span>
             <span class="hud-label">HEALTH</span>
           </div>
           <div class="base-panel__body">
@@ -193,7 +195,7 @@ onUnmounted(() => {
               <span class="health-dot" :class="`dot--${h.status}`" />
               <span class="health-name">{{ h.name }}</span>
               <span class="health-status" :class="`text--${h.status}`">
-                {{ h.status === 'ok' ? '正常' : h.status === 'warn' ? '注意' : '异常' }}
+                {{ h.status === 'ok' ? locale.t('system.ok') : h.status === 'warn' ? locale.t('system.warn') : locale.t('system.error') }}
               </span>
               <span class="health-latency text-mono">{{ h.latency }}</span>
             </div>
@@ -205,7 +207,7 @@ onUnmounted(() => {
       <div class="dashboard__row" style="margin-top:16px;">
         <div>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <span style="font-size:12px;color:var(--text-muted);">趋势分析</span>
+            <span style="font-size:12px;color:var(--text-muted);">{{ locale.t('dashboard.trends') }}</span>
             <button class="cmd-btn cmd-btn--ghost" style="height:22px;padding:0 6px;font-size:10px;" @click="trendsExpanded = !trendsExpanded">
               {{ trendsExpanded ? '收起' : '展开' }}
             </button>
@@ -215,7 +217,7 @@ onUnmounted(() => {
 
         <div class="base-panel dashboard__events">
           <div class="base-panel__header">
-            <span class="base-panel__title">实时事件</span>
+            <span class="base-panel__title">{{ locale.t('dashboard.events') }}</span>
             <span class="hud-label">LIVE</span>
           </div>
           <div class="base-panel__body" style="padding:8px 16px;">
@@ -225,7 +227,7 @@ onUnmounted(() => {
               <span class="event-text">{{ e.desc }}</span>
             </div>
             <div v-if="events.length === 0" style="text-align:center;padding:24px;color:var(--text-muted);font-size:12px;">
-              暂无近期事件
+              {{ locale.t('dashboard.noEvents') }}
             </div>
           </div>
         </div>

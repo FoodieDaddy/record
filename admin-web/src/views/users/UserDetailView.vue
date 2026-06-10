@@ -2,12 +2,14 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import StatCard from '@/components/data/StatCard.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
 import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 
 const route = useRoute()
 const api = useApi()
+const locale = useLocaleStore()
 const user = ref<any>(null)
 const loading = ref(true)
 const formations = ref<any[]>([])
@@ -49,22 +51,22 @@ onMounted(async () => {
           {{ (user.nickname || '?')[0] }}
         </div>
         <div>
-          <div style="font-size:18px;font-weight:600;">{{ user.nickname || '未命名航船' }}</div>
+          <div style="font-size:18px;font-weight:600;">{{ user.nickname || '-' }}</div>
           <div style="font-size:12px;color:var(--text-muted);font-family:var(--font-mono);">ID: {{ user.userId || user.id }}</div>
         </div>
-        <StatusPill :status="user.status === 1 || user.status === '正常' ? 'ok' : 'error'" :label="user.status === 1 || user.status === '正常' ? '正常' : '异常'" style="margin-left:auto;" />
+        <StatusPill :status="user.status === 1 || user.status === '正常' ? 'ok' : 'error'" :label="user.status === 1 || user.status === '正常' ? locale.t('system.ok') : locale.t('system.error')" style="margin-left:auto;" />
       </div>
     </div>
 
     <div class="grid-4" style="margin-bottom:16px;">
-      <StatCard label="身份等级" kicker="IDENTITY LEVEL" :value="user.identityLevel || '-'" />
-      <StatCard label="航行经验" kicker="EXPERIENCE" :value="user.experience || 0" />
-      <StatCard label="封存航程" kicker="SEALED" :value="user.sealedCount || 0" />
-      <StatCard label="注册时间" kicker="REGISTERED" :value="user.createdAt ? user.createdAt.substring(0, 10) : '-'" />
+      <StatCard :label="locale.t('user.identityLevel')" kicker="IDENTITY LEVEL" :value="user.identityLevel || '-'" />
+      <StatCard :label="locale.t('user.experience')" kicker="EXPERIENCE" :value="user.experience || 0" />
+      <StatCard :label="locale.t('user.sealed')" kicker="SEALED" :value="user.sealedCount || 0" />
+      <StatCard :label="locale.t('user.registered')" kicker="REGISTERED" :value="user.createdAt ? user.createdAt.substring(0, 10) : '-'" />
     </div>
 
     <div class="base-panel">
-      <div class="base-panel__header"><span class="base-panel__title">用户信息</span></div>
+      <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('user.techInfo') }}</span></div>
       <div class="base-panel__body">
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">
           <div>
@@ -79,14 +81,14 @@ onMounted(async () => {
       </div>
     </div>
     <div class="base-panel" style="margin-top:16px;">
-      <div class="base-panel__header"><span class="base-panel__title">参与的编队</span></div>
+      <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('user.formations') }}</span></div>
       <div class="base-panel__body">
-        <div v-if="formationsLoading" style="padding:16px;color:var(--text-muted);font-size:12px;">加载中...</div>
-        <div v-else-if="formations.length === 0" style="padding:16px;color:var(--text-muted);font-size:12px;">暂无编队记录</div>
+        <div v-if="formationsLoading" style="padding:16px;color:var(--text-muted);font-size:12px;">{{ locale.t('common.loading') }}</div>
+        <div v-else-if="formations.length === 0" style="padding:16px;color:var(--text-muted);font-size:12px;">{{ locale.t('common.noData') }}</div>
         <div v-else>
           <div v-for="f in formations" :key="f.roomId" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
             <span class="text-mono" style="color:var(--color-cyan);font-size:13px;">{{ f.roomNo }}</span>
-            <span style="font-size:11px;color:var(--text-muted);">{{ f.scoreMode === 1 ? '脉冲流向' : '航段写入' }}</span>
+            <span style="font-size:11px;color:var(--text-muted);">{{ f.scoreMode === 1 ? locale.t('formations.pulseFlow') : locale.t('formations.segmentWrite') }}</span>
             <span style="flex:1;" />
             <span class="text-mono" style="color:var(--color-primary);font-size:13px;">{{ f.finalScore || 0 }}</span>
             <span style="font-size:11px;color:var(--text-muted);">{{ f.joinedAt ? f.joinedAt.substring(0, 16) : '' }}</span>

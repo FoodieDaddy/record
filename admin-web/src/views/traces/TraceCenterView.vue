@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import HudChart from '@/components/chart/HudChart.vue'
 import DataTable from '@/components/data/DataTable.vue'
 
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(true)
 const stats = ref<any>(null)
 const sealedOption = ref<any>(null)
@@ -12,16 +14,16 @@ const rankOption = ref<any>(null)
 
 const userColumns = [
   { key: 'rank', label: '#', width: '40px' },
-  { key: 'nickname', label: '本舰呼号' },
-  { key: 'sealedCount', label: '封存航程', width: '90px' },
-  { key: 'totalScore', label: '总脉冲', width: '90px' },
+  { key: 'nickname', label: locale.t('users.search').split('/')[1]?.trim() || 'Callsign' },
+  { key: 'sealedCount', label: locale.t('user.sealed'), width: '90px' },
+  { key: 'totalScore', label: 'Total Pulse', width: '90px' },
 ]
 
 const formationColumns = [
   { key: 'rank', label: '#', width: '40px' },
-  { key: 'roomNo', label: '编队码', width: '100px' },
-  { key: 'memberCount', label: '成员数', width: '80px' },
-  { key: 'scoreMode', label: '协议', width: '100px' },
+  { key: 'roomNo', label: locale.t('nav.formations') + '码', width: '100px' },
+  { key: 'memberCount', label: locale.t('formations.members'), width: '80px' },
+  { key: 'scoreMode', label: locale.t('formations.protocol'), width: '100px' },
 ]
 
 onMounted(async () => {
@@ -103,14 +105,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div v-if="loading" style="text-align:center;padding:48px;color:var(--text-muted);">正在接入航迹数据...</div>
+  <div v-if="loading" style="text-align:center;padding:48px;color:var(--text-muted);">{{ locale.t('common.loading') }}</div>
   <div v-else>
     <div class="grid-3" style="margin-bottom:16px;">
-      <HudChart title="封存航程趋势" kicker="近 30 天" :option="sealedOption" style="min-height:300px;" />
-      <HudChart title="活跃排行" kicker="总脉冲 Top 10" :option="rankOption" style="min-height:300px;" />
+      <HudChart :title="locale.t('traces.sealedTrend')" kicker="近 30 天" :option="sealedOption" style="min-height:300px;" />
+      <HudChart :title="locale.t('traces.activeRank')" kicker="Total Pulse Top 10" :option="rankOption" style="min-height:300px;" />
       <div class="base-panel" style="min-height:300px;">
         <div class="base-panel__header">
-          <span class="base-panel__title">高活跃编队</span>
+          <span class="base-panel__title">{{ locale.t('traces.topFormations') }}</span>
           <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">TOP 10</span>
         </div>
         <div class="base-panel__body" style="padding:8px 12px;">
@@ -119,7 +121,7 @@ onMounted(async () => {
             <span class="text-mono" style="color:var(--color-cyan);font-size:12px;">{{ f.roomNo }}</span>
             <span style="flex:1;" />
             <span style="font-size:11px;color:var(--text-muted);">{{ f.memberCount }}人</span>
-            <span style="font-size:11px;color:var(--text-muted);">{{ f.scoreMode === 1 ? '脉冲流向' : '航段写入' }}</span>
+            <span style="font-size:11px;color:var(--text-muted);">{{ f.scoreMode === 1 ? locale.t('formations.pulseFlow') : locale.t('formations.segmentWrite') }}</span>
           </div>
         </div>
       </div>
@@ -127,7 +129,7 @@ onMounted(async () => {
 
     <div class="base-panel">
       <div class="base-panel__header">
-        <span class="base-panel__title">高活跃航船</span>
+        <span class="base-panel__title">{{ locale.t('traces.topUsers') }}</span>
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">TOP 10</span>
       </div>
       <div class="base-panel__body">

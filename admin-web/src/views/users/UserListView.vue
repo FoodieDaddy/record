@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useToastStore } from '@/stores/toast'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
@@ -12,6 +13,7 @@ import ConfirmDangerModal from '@/components/modal/ConfirmDangerModal.vue'
 const router = useRouter()
 const api = useApi()
 const toast = useToastStore()
+const locale = useLocaleStore()
 
 const loading = ref(false)
 const users = ref<any[]>([])
@@ -23,15 +25,15 @@ const showBatchConfirm = ref(false)
 const batchAction = ref<'enable' | 'disable' | 'delete'>('disable')
 
 
-const columns = [
-  { key: 'id', label: '用户 ID', width: '140px' },
-  { key: 'nickname', label: '本舰呼号' },
-  { key: 'identityLevel', label: '授权等级', width: '100px' },
-  { key: 'experience', label: '航行经验', width: '100px' },
-  { key: 'status', label: '状态', width: '80px' },
-  { key: 'createdAt', label: '注册时间', width: '140px' },
-  { key: 'actions', label: '操作', width: '160px' },
-]
+const columns = computed(() => [
+  { key: 'id', label: 'User ID', width: '140px' },
+  { key: 'nickname', label: locale.t('users.search').split('/')[1]?.trim() || 'Callsign' },
+  { key: 'identityLevel', label: locale.t('user.identityLevel'), width: '100px' },
+  { key: 'experience', label: locale.t('user.experience'), width: '100px' },
+  { key: 'status', label: locale.t('common.status'), width: '80px' },
+  { key: 'createdAt', label: locale.t('user.registered'), width: '140px' },
+  { key: 'actions', label: locale.t('common.actions'), width: '160px' },
+])
 
 const hasSelection = computed(() => selectedIds.value.length > 0)
 const selectionCount = computed(() => selectedIds.value.length)
@@ -90,12 +92,12 @@ onMounted(() => { loadUsers() })
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="base-panel__title">航船用户</span>
+          <span class="base-panel__title">{{ locale.t('users.title') }}</span>
           <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">VESSEL REGISTRY</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span v-if="hasSelection" style="font-size:12px;color:var(--color-cyan);">
-            已选 {{ selectionCount }} 项
+            {{ locale.t('common.selected') }} {{ selectionCount }}
           </span>
         </div>
       </div>
@@ -107,21 +109,21 @@ onMounted(() => { loadUsers() })
             v-model="search"
             class="input-field"
             style="width:260px;"
-            placeholder="搜索用户 ID / 本舰呼号"
+            :placeholder="locale.t('users.search')"
             @keyup.enter="loadUsers"
           />
-          <CommandButton variant="secondary" @click="loadUsers">搜索</CommandButton>
+          <CommandButton variant="secondary" @click="loadUsers">{{ locale.t('common.search') }}</CommandButton>
         </div>
 
         <div v-if="hasSelection" class="batch-actions">
           <CommandButton variant="secondary" style="height:30px;font-size:12px;" @click="openBatch('enable')">
-            批量启用
+            {{ locale.t('batch.enable') }}
           </CommandButton>
           <CommandButton variant="danger" style="height:30px;font-size:12px;" @click="openBatch('disable')">
-            批量禁用
+            {{ locale.t('batch.disable') }}
           </CommandButton>
           <CommandButton variant="danger" style="height:30px;font-size:12px;" @click="openBatch('delete')">
-            批量删除
+            {{ locale.t('batch.delete') }}
           </CommandButton>
         </div>
       </div>
@@ -137,7 +139,7 @@ onMounted(() => { loadUsers() })
           <template #status="{ row }">
             <StatusPill
               :status="row.status === 1 ? 'ok' : row.status === 0 ? 'offline' : 'error'"
-              :label="row.status === 1 ? '正常' : row.status === 0 ? '禁用' : '异常'"
+              :label="row.status === 1 ? locale.t('system.ok') : row.status === 0 ? locale.t('common.disable') : locale.t('system.error')"
             />
           </template>
           <template #createdAt="{ value }">
@@ -146,14 +148,14 @@ onMounted(() => { loadUsers() })
           <template #actions="{ row }">
             <div style="display:flex;gap:6px;">
               <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/users/${row.id || row.userId}`)">
-                详情
+                {{ locale.t('common.detail') }}
               </CommandButton>
               <CommandButton
                 :variant="row.status === 1 ? 'danger' : 'secondary'"
                 style="height:26px;font-size:11px;padding:0 10px;"
                 @click="toggleUserStatus(row)"
               >
-                {{ row.status === 1 ? '禁用' : '启用' }}
+                {{ row.status === 1 ? locale.t('common.disable') : locale.t('common.enable') }}
               </CommandButton>
             </div>
           </template>
@@ -166,10 +168,10 @@ onMounted(() => { loadUsers() })
     <!-- 批量操作确认弹窗 -->
     <ConfirmDangerModal
       :visible="showBatchConfirm"
-      :title="batchAction === 'delete' ? '批量删除用户' : batchAction === 'enable' ? '批量启用用户' : '批量禁用用户'"
-      :description="`确认${batchAction === 'delete' ? '删除' : batchAction === 'enable' ? '启用' : '禁用'} ${selectionCount} 个用户？`"
-      :impact="batchAction === 'delete' ? '用户数据将被永久删除，此操作不可逆。' : undefined"
-      :confirm-text="batchAction === 'delete' ? '确认删除' : '确认'"
+      :title="batchAction === 'delete' ? locale.t('batch.confirmDelete') : batchAction === 'enable' ? locale.t('batch.confirmEnable') : locale.t('batch.confirmDisable')"
+      :description="`${locale.t('common.confirm')} ${selectionCount} ?`"
+      :impact="batchAction === 'delete' ? locale.t('batch.irreversible') : undefined"
+      :confirm-text="locale.t('common.confirm')"
       :require-confirm-word="batchAction === 'delete'"
       confirm-word="DELETE"
       @confirm="executeBatch"

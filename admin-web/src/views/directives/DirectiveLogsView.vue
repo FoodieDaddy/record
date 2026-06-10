@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
+import { useLocaleStore } from '@/stores/locale'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
@@ -9,6 +10,7 @@ import HudChart from '@/components/chart/HudChart.vue'
 
 const router = useRouter()
 const api = useApi()
+const locale = useLocaleStore()
 const loading = ref(false)
 const logs = ref<any[]>([])
 const total = ref(0)
@@ -16,14 +18,14 @@ const page = ref(1)
 const search = ref('')
 const chartOption = ref<any>(null)
 
-const columns = [
-  { key: 'id', label: '日志 ID', width: '140px' },
-  { key: 'userId', label: '用户 ID', width: '140px' },
-  { key: 'source', label: '生成来源', width: '100px' },
-  { key: 'success', label: '状态', width: '80px' },
-  { key: 'createdAt', label: '创建时间', width: '160px' },
-  { key: 'actions', label: '操作', width: '80px' },
-]
+const columns = computed(() => [
+  { key: 'id', label: 'ID', width: '140px' },
+  { key: 'userId', label: 'User ID', width: '140px' },
+  { key: 'source', label: locale.t('directives.source'), width: '100px' },
+  { key: 'success', label: locale.t('common.status'), width: '80px' },
+  { key: 'createdAt', label: locale.t('formations.createdAt'), width: '160px' },
+  { key: 'actions', label: locale.t('common.actions'), width: '80px' },
+])
 
 async function load() {
   loading.value = true
@@ -75,8 +77,8 @@ const sourceDistribution = computed(() => {
   const success = logs.value.filter(l => l.success === 1).length
   const failed = logs.value.filter(l => l.success !== 1).length
   return [
-    { label: '成功', count: success, color: 'var(--color-green)' },
-    { label: '失败', count: failed, color: 'var(--color-red)' },
+    { label: locale.t('directives.success'), count: success, color: 'var(--color-green)' },
+    { label: locale.t('directives.failed'), count: failed, color: 'var(--color-red)' },
   ]
 })
 
@@ -89,7 +91,7 @@ onMounted(() => { load(); loadChart() })
       <HudChart title="脉冲数据概览" kicker="总量统计" :option="chartOption" style="min-height:200px;" />
       <div class="base-panel" style="min-height:200px;">
         <div class="base-panel__header">
-          <span class="base-panel__title">生成状态</span>
+          <span class="base-panel__title">{{ locale.t('directives.source') }}</span>
           <span class="hud-label">STATUS</span>
         </div>
         <div class="base-panel__body">
@@ -105,27 +107,27 @@ onMounted(() => { load(); loadChart() })
     <div class="base-panel">
       <div class="base-panel__header">
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="base-panel__title">指令日志</span>
+          <span class="base-panel__title">{{ locale.t('directives.title') }}</span>
           <span class="hud-label">DIRECTIVE LOGS</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.03);">
-        <input v-model="search" class="input-field" style="width:260px;" placeholder="搜索用户 ID" @keyup.enter="load" />
-        <CommandButton variant="secondary" @click="load">搜索</CommandButton>
+        <input v-model="search" class="input-field" style="width:260px;" :placeholder="locale.t('directives.search')" @keyup.enter="load" />
+        <CommandButton variant="secondary" @click="load">{{ locale.t('common.search') }}</CommandButton>
       </div>
       <div class="base-panel__body" style="padding-top:0;">
         <DataTable :columns="columns" :data="logs" :loading="loading">
           <template #source="{ row }">
-            <span :style="{ color: row.source === '主引擎' ? 'var(--color-primary)' : 'var(--text-muted)' }">{{ row.source || '主引擎' }}</span>
+            <span :style="{ color: row.source === '主引擎' ? 'var(--color-primary)' : 'var(--text-muted)' }">{{ row.source || locale.t('directives.mainEngine') }}</span>
           </template>
           <template #success="{ row }">
-            <span :style="{ color: row.success === 1 ? 'var(--color-green)' : 'var(--color-red)' }">{{ row.success === 1 ? '成功' : '失败' }}</span>
+            <span :style="{ color: row.success === 1 ? 'var(--color-green)' : 'var(--color-red)' }">{{ row.success === 1 ? locale.t('directives.success') : locale.t('directives.failed') }}</span>
           </template>
           <template #createdAt="{ value }">
             <span style="font-size:12px;color:var(--text-muted);">{{ value ? value.substring(0, 16) : '-' }}</span>
           </template>
           <template #actions="{ row }">
-            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/directives/logs/${row.id}`)">详情</CommandButton>
+            <CommandButton variant="ghost" style="height:26px;font-size:11px;padding:0 10px;" @click="router.push(`/directives/logs/${row.id}`)">{{ locale.t('common.detail') }}</CommandButton>
           </template>
         </DataTable>
         <DataPagination v-model:page="page" :total="total" :page-size="20" @update:page="load" />
