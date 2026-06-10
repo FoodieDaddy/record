@@ -14,7 +14,13 @@ const dangerModal = ref({ visible: false, title: '', description: '', impact: ''
 
 onMounted(async () => {
   try {
-    formation.value = await api.get(`/admin/formations/${route.params.id}`)
+    const data: any = await api.get(`/admin/formations/${route.params.id}`)
+    // Handle both response formats
+    if (data.formation) {
+      formation.value = { ...data.formation, members: data.members || [] }
+    } else {
+      formation.value = data
+    }
   } finally { loading.value = false }
 })
 
@@ -58,9 +64,12 @@ async function handleConfirm() {
         <div class="base-panel__header"><span class="base-panel__title">成员席位</span></div>
         <div class="base-panel__body">
           <div v-for="m in formation.members || []" :key="m.userId" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
-            <div style="width:28px;height:28px;border-radius:50%;background:rgba(10,132,255,0.10);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-primary);">{{ (m.nickname || '?')[0] }}</div>
-            <div style="flex:1;font-size:12px;">{{ m.nickname }}</div>
-            <div class="text-mono" style="font-size:12px;color:var(--color-cyan);">{{ m.score }}</div>
+            <div style="width:28px;height:28px;border-radius:50%;background:rgba(10,132,255,0.10);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-primary);">{{ String(m.userId || '?').slice(-2) }}</div>
+            <div style="flex:1;font-size:12px;">
+              <div>{{ m.nickname || m.userId }}</div>
+              <div style="font-size:10px;color:var(--text-muted);">加入: {{ m.joinedAt || '-' }}<template v-if="m.quitTime"> | 退出: {{ m.quitTime }}</template></div>
+            </div>
+            <div class="text-mono" style="font-size:12px;color:var(--color-cyan);">{{ m.finalScore ?? m.score ?? '-' }}</div>
           </div>
         </div>
       </div>

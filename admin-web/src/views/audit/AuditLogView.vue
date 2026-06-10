@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
@@ -11,14 +11,14 @@ const total = ref(0)
 const page = ref(1)
 
 const columns = [
-  { key: 'id', label: 'ID', width: '80px' },
+  { key: 'id', label: 'ID', width: '120px' },
   { key: 'adminName', label: '管理员' },
   { key: 'actionType', label: '操作类型', width: '100px' },
   { key: 'targetType', label: '目标类型', width: '100px' },
   { key: 'targetId', label: '目标 ID', width: '140px' },
   { key: 'ip', label: 'IP', width: '120px' },
   { key: 'result', label: '结果', width: '80px' },
-  { key: 'createdAt', label: '时间', width: '140px' },
+  { key: 'createdAt', label: '时间', width: '160px' },
 ]
 
 async function load() {
@@ -30,6 +30,7 @@ async function load() {
   } finally { loading.value = false }
 }
 
+watch(page, load)
 onMounted(load)
 </script>
 
@@ -40,6 +41,9 @@ onMounted(load)
       <DataTable :columns="columns" :data="logs" :loading="loading">
         <template #result="{ row }">
           <span :style="{ color: row.result === '成功' ? 'var(--color-green)' : 'var(--color-red)' }">{{ row.result }}</span>
+        </template>
+        <template #actionType="{ row }">
+          <span class="text-mono" style="font-size:11px;color:var(--color-cyan);">{{ row.actionType }}</span>
         </template>
       </DataTable>
       <DataPagination v-model:page="page" :total="total" :page-size="20" />
