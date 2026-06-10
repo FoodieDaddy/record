@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import Breadcrumb from './Breadcrumb.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -31,6 +32,41 @@ function handleLogout() {
   auth.logout()
   router.push('/login')
 }
+
+const searchQuery = ref('')
+const searchResults = ref<Array<{ name: string; path: string; icon: string }>>([])
+const showSearchResults = ref(false)
+
+const searchableItems = [
+  { name: '基地总览', path: '/dashboard', icon: '📊' },
+  { name: '航船用户', path: '/users', icon: '🚀' },
+  { name: '任务编队', path: '/formations', icon: '🔗' },
+  { name: '航迹中心', path: '/traces', icon: '📈' },
+  { name: '指令日志', path: '/directives/logs', icon: '📋' },
+  { name: '镜像档案', path: '/mirrors', icon: '🪞' },
+  { name: '系统监控', path: '/system/health', icon: '🖥' },
+  { name: '管理员', path: '/admins', icon: '👤' },
+  { name: '审计日志', path: '/audit', icon: '📝' },
+]
+
+function onSearchInput() {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) {
+    searchResults.value = []
+    showSearchResults.value = false
+    return
+  }
+  searchResults.value = searchableItems.filter(item =>
+    item.name.toLowerCase().includes(q)
+  )
+  showSearchResults.value = true
+}
+
+function navigateToResult(path: string) {
+  router.push(path)
+  searchQuery.value = ''
+  showSearchResults.value = false
+}
 </script>
 
 <template>
@@ -38,10 +74,30 @@ function handleLogout() {
     <div class="top-bar__left">
       <div class="top-bar__module">基地总控台</div>
       <div class="top-bar__kicker">COMMAND BASE ONLINE</div>
+      <Breadcrumb style="margin-top:4px;" />
     </div>
 
-    <div class="top-bar__center">
-      <input class="input-field" style="width:100%;" placeholder="全局搜索..." />
+    <div class="top-bar__center" style="position:relative;">
+      <input
+        v-model="searchQuery"
+        class="input-field"
+        style="width:100%;"
+        placeholder="搜索模块..."
+        @input="onSearchInput"
+        @focus="onSearchInput"
+        @blur="setTimeout(() => showSearchResults = false, 200)"
+      />
+      <div v-if="showSearchResults && searchResults.length" class="search-dropdown">
+        <div
+          v-for="r in searchResults"
+          :key="r.path"
+          class="search-item"
+          @mousedown="navigateToResult(r.path)"
+        >
+          <span class="search-item__icon">{{ r.icon }}</span>
+          <span>{{ r.name }}</span>
+        </div>
+      </div>
     </div>
 
     <div class="top-bar__right">
@@ -89,4 +145,36 @@ function handleLogout() {
 .top-bar__divider { width: 1px; height: 24px; background: var(--border-subtle); }
 .top-bar__time { font-size: var(--text-sm); color: var(--text-muted); }
 .top-bar__user { font-size: var(--text-sm); color: var(--text-secondary); }
+.search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background .15s;
+}
+.search-item:hover {
+  background: rgba(10,132,255,0.08);
+  color: var(--text-main);
+}
+.search-item__icon {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+}
 </style>
