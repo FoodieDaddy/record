@@ -2,9 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
 const { login } = useAuth()
+const toast = useToastStore()
 
 const username = ref('')
 const password = ref('')
@@ -20,6 +22,7 @@ async function handleLogin() {
   error.value = ''
   try {
     await login(username.value, password.value)
+    toast.success('权限接入完成')
     router.push('/dashboard')
   } catch (e: any) {
     error.value = e.message || '接入失败，请检查凭证'

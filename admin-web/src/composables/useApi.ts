@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import router from '@/router'
 
 const api = axios.create({
@@ -29,6 +30,11 @@ api.interceptors.response.use(
       auth.logout()
       router.push('/login')
     }
+    const message = err.response?.data?.message || err.message || '请求失败'
+    try {
+      const toast = useToastStore()
+      toast.error(message)
+    } catch {}
     return Promise.reject(err)
   }
 )
