@@ -5,6 +5,7 @@ import { useApi } from '@/composables/useApi'
 const api = useApi()
 const services = ref<any[]>([])
 const loading = ref(true)
+const sentinelInfo = ref<any>(null)
 let timer: number
 
 const defaultServices = [
@@ -28,6 +29,8 @@ async function loadHealth() {
 onMounted(() => {
   loadHealth()
   timer = window.setInterval(loadHealth, 30000)
+
+  api.get('/admin/system/sentinel').then((data: any) => { sentinelInfo.value = data }).catch(() => {})
 })
 
 onUnmounted(() => clearInterval(timer))
@@ -61,6 +64,27 @@ onUnmounted(() => clearInterval(timer))
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">错误接口排行</span></div>
         <div class="base-panel__body" style="color:var(--text-muted);font-size:12px;">接入后端 API 后渲染</div>
+      </div>
+    </div>
+    <div class="base-panel" style="margin-top:16px;">
+      <div class="base-panel__header">
+        <span class="base-panel__title">限流控制台</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">SENTINEL</span>
+      </div>
+      <div class="base-panel__body" style="display:flex;align-items:center;gap:16px;">
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Sentinel Dashboard</div>
+          <div class="text-mono" style="font-size:13px;color:var(--text-secondary);">{{ sentinelInfo?.dashboardUrl || 'http://localhost:18858' }}</div>
+        </div>
+        <a
+          :href="sentinelInfo?.dashboardUrl || 'http://localhost:18858'"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cmd-btn cmd-btn--primary"
+          style="text-decoration:none;height:32px;font-size:12px;"
+        >
+          打开控制台
+        </a>
       </div>
     </div>
   </div>

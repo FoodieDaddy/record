@@ -6,9 +6,11 @@ import DataTable from '@/components/data/DataTable.vue'
 import DataPagination from '@/components/data/DataPagination.vue'
 import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
 const api = useApi()
+const toast = useToastStore()
 
 const loading = ref(false)
 const users = ref<any[]>([])
@@ -42,6 +44,15 @@ async function loadUsers() {
   }
 }
 
+async function toggleUserStatus(user: any) {
+  const newStatus = user.status === 1 ? 0 : 1
+  try {
+    await api.put(`/admin/users/${user.userId || user.id}/status`, null, { params: { status: newStatus } })
+    toast.success(newStatus === 1 ? '已启用' : '已禁用')
+    loadUsers()
+  } catch {}
+}
+
 onMounted(loadUsers)
 </script>
 
@@ -73,8 +84,14 @@ onMounted(loadUsers)
           </template>
           <template #actions="{ row }">
             <div style="display:flex;gap:8px;">
-              <CommandButton variant="ghost" @click="router.push(`/users/${row.userId}`)">查看</CommandButton>
-              <CommandButton variant="danger" style="height:28px;font-size:11px;">禁用</CommandButton>
+              <CommandButton variant="ghost" @click="router.push(`/users/${row.userId || row.id}`)">查看</CommandButton>
+              <CommandButton
+                :variant="row.status === 1 ? 'danger' : 'secondary'"
+                style="height:28px;font-size:11px;"
+                @click="toggleUserStatus(row)"
+              >
+                {{ row.status === 1 ? '禁用' : '启用' }}
+              </CommandButton>
             </div>
           </template>
         </DataTable>

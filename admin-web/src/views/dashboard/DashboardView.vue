@@ -52,6 +52,14 @@ onMounted(async () => {
   }
 
   try {
+    const pulseStats: any = await api.get('/admin/dashboard/pulse-stats')
+    if (pulseStats) {
+      stats.value[4].value = formatNum(pulseStats.totalTransfers || 0)
+      stats.value[5].value = formatNum(pulseStats.totalRounds || 0)
+    }
+  } catch {}
+
+  try {
     const health: any = await api.get('/admin/system/health')
     if (Array.isArray(health)) {
       healthItems.value = health

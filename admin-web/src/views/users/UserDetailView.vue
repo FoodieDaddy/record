@@ -10,6 +10,8 @@ const route = useRoute()
 const api = useApi()
 const user = ref<any>(null)
 const loading = ref(true)
+const formations = ref<any[]>([])
+const formationsLoading = ref(true)
 
 onMounted(async () => {
   try {
@@ -19,6 +21,11 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  try {
+    const data: any = await api.get(`/admin/users/${route.params.id}/formations`)
+    formations.value = Array.isArray(data) ? data : []
+  } catch {} finally { formationsLoading.value = false }
 })
 </script>
 
@@ -67,6 +74,22 @@ onMounted(async () => {
           <div>
             <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">头像 URL</div>
             <div style="font-size:12px;color:var(--text-secondary);word-break:break-all;">{{ user.avatarUrl || '-' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="base-panel" style="margin-top:16px;">
+      <div class="base-panel__header"><span class="base-panel__title">参与的编队</span></div>
+      <div class="base-panel__body">
+        <div v-if="formationsLoading" style="padding:16px;color:var(--text-muted);font-size:12px;">加载中...</div>
+        <div v-else-if="formations.length === 0" style="padding:16px;color:var(--text-muted);font-size:12px;">暂无编队记录</div>
+        <div v-else>
+          <div v-for="f in formations" :key="f.roomId" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
+            <span class="text-mono" style="color:var(--color-cyan);font-size:13px;">{{ f.roomNo }}</span>
+            <span style="font-size:11px;color:var(--text-muted);">{{ f.scoreMode === 1 ? '脉冲流向' : '航段写入' }}</span>
+            <span style="flex:1;" />
+            <span class="text-mono" style="color:var(--color-primary);font-size:13px;">{{ f.finalScore || 0 }}</span>
+            <span style="font-size:11px;color:var(--text-muted);">{{ f.joinedAt ? f.joinedAt.substring(0, 16) : '' }}</span>
           </div>
         </div>
       </div>
