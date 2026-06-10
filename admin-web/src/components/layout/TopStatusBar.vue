@@ -4,12 +4,17 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useAppStore } from '@/stores/app'
+import { useLocaleStore } from '@/stores/locale'
+import { useThemeStore } from '@/stores/theme'
 import Breadcrumb from './Breadcrumb.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const api = useApi()
 const app = useAppStore()
+const locale = useLocaleStore()
+const theme = useThemeStore()
+const showSettings = ref(false)
 
 const currentTime = ref('')
 const systemStatus = ref<'ok' | 'warn' | 'error'>('ok')
@@ -121,6 +126,45 @@ function handleLogout() {
       <span class="top-bar__role hud-label">{{ auth.role || 'ADMIN' }}</span>
       <span class="top-bar__user">{{ auth.username || '管理员' }}</span>
       <span class="top-bar__time text-mono">{{ currentTime }}</span>
+      <div style="position:relative;">
+        <button class="cmd-btn cmd-btn--ghost" style="height:28px;font-size:12px;padding:0 8px;" @click="showSettings = !showSettings">
+          设置
+        </button>
+        <div v-if="showSettings" class="settings-dropdown" @click.self="showSettings = false">
+          <div class="settings-panel">
+            <div class="settings-row">
+              <span class="settings-label">{{ locale.t('settings.language') }}</span>
+              <div class="settings-toggle">
+                <button
+                  class="settings-btn"
+                  :class="{ active: locale.isZh }"
+                  @click="locale.setLocale('zh')"
+                >中文</button>
+                <button
+                  class="settings-btn"
+                  :class="{ active: !locale.isZh }"
+                  @click="locale.setLocale('en')"
+                >EN</button>
+              </div>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">{{ locale.t('settings.theme') }}</span>
+              <div class="settings-toggle">
+                <button
+                  class="settings-btn"
+                  :class="{ active: theme.theme === 'dark' }"
+                  @click="theme.setTheme('dark')"
+                >{{ locale.t('settings.dark') }}</button>
+                <button
+                  class="settings-btn"
+                  :class="{ active: theme.theme === 'light' }"
+                  @click="theme.setTheme('light')"
+                >{{ locale.t('settings.light') }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="cmd-btn cmd-btn--ghost" style="height:28px;font-size:12px;" @click="handleLogout">退出</button>
     </div>
   </header>
@@ -181,5 +225,56 @@ function handleLogout() {
 .search-item:hover {
   background: rgba(10,132,255,0.08);
   color: var(--text-main);
+}
+
+.settings-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  z-index: 300;
+}
+.settings-panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+}
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border-subtle);
+}
+.settings-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.settings-toggle {
+  display: flex;
+  gap: 4px;
+}
+.settings-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.settings-btn.active {
+  background: rgba(10,132,255,0.12);
+  border-color: rgba(10,132,255,0.25);
+  color: var(--color-primary);
+}
+.settings-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.04);
 }
 </style>

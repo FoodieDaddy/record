@@ -82,3 +82,192 @@
   --topbar-height: 80px;
   --right-panel-width: 280px;
 }
+
+/* 浅色主题 */
+.theme-light {
+  --bg-base: #F0F2F5;
+  --bg-panel: rgba(255,255,255,0.85);
+  --bg-panel-hover: rgba(255,255,255,0.95);
+  --bg-elevated: #FFFFFF;
+  --text-main: rgba(0,0,0,0.88);
+  --text-secondary: rgba(0,0,0,0.65);
+  --text-muted: rgba(0,0,0,0.45);
+  --text-disabled: rgba(0,0,0,0.25);
+  --border-subtle: rgba(0,0,0,0.06);
+  --border-medium: rgba(0,0,0,0.10);
+  --border-accent: rgba(10,132,255,0.18);
+  --border-cyan: rgba(0,200,255,0.22);
+}
+
+.theme-light body {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.04), transparent 32%),
+    #F0F2F5;
+}
+
+.theme-light .base-panel {
+  background: rgba(255,255,255,0.85);
+  border-color: rgba(0,0,0,0.08);
+}
+
+.theme-light .base-panel__header {
+  background: rgba(10,132,255,0.03);
+  border-bottom-color: rgba(0,0,0,0.06);
+}
+
+.theme-light .stat-card {
+  background: rgba(255,255,255,0.9);
+  border-color: rgba(0,0,0,0.06);
+}
+
+.theme-light .data-table th {
+  background: rgba(0,0,0,0.02);
+  border-bottom-color: rgba(0,0,0,0.08);
+  color: rgba(0,0,0,0.45);
+}
+
+.theme-light .data-table td {
+  border-bottom-color: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.88);
+}
+
+.theme-light .data-table tbody tr:hover td {
+  background: rgba(10,132,255,0.04);
+}
+
+.theme-light .input-field {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(0,0,0,0.12);
+  color: rgba(0,0,0,0.88);
+}
+
+.theme-light .input-field::placeholder {
+  color: rgba(0,0,0,0.25);
+}
+
+.theme-light .input-field:focus {
+  border-color: rgba(10,132,255,0.4);
+  box-shadow: 0 0 0 2px rgba(10,132,255,0.08);
+}
+
+.theme-light .cmd-btn--primary {
+  background: rgba(10,132,255,0.08);
+  border-color: rgba(10,132,255,0.20);
+}
+
+.theme-light .cmd-btn--secondary {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.10);
+  color: rgba(0,0,0,0.65);
+}
+
+.theme-light .cmd-btn--ghost {
+  color: rgba(0,0,0,0.45);
+}
+
+.theme-light .cmd-btn--danger {
+  border-color: rgba(255,69,58,0.30);
+  color: #FF453A;
+}
+
+.theme-light .status-pill--ok {
+  background: rgba(48,209,88,0.08);
+  border-color: rgba(48,209,88,0.15);
+}
+
+.theme-light .status-pill--error {
+  background: rgba(255,69,58,0.08);
+  border-color: rgba(255,69,58,0.15);
+}
+
+.theme-light .status-pill--running {
+  background: rgba(10,132,255,0.08);
+  border-color: rgba(10,132,255,0.15);
+}
+
+.theme-light .nav-sidebar {
+  background: #FFFFFF;
+  border-right-color: rgba(0,0,0,0.06);
+}
+
+.theme-light .nav-sidebar::before {
+  background: linear-gradient(180deg, rgba(10,132,255,0.06), transparent 50%, rgba(10,132,255,0.03));
+}
+
+.theme-light .nav-brand {
+  border-bottom-color: rgba(0,0,0,0.06);
+  background: rgba(10,132,255,0.02);
+}
+
+.theme-light .nav-item {
+  color: rgba(0,0,0,0.45);
+}
+
+.theme-light .nav-item:hover {
+  background: rgba(10,132,255,0.04);
+  color: rgba(0,0,0,0.65);
+}
+
+.theme-light .nav-item.active {
+  background: rgba(10,132,255,0.06);
+  color: #0A84FF;
+}
+
+.theme-light .nav-group__title {
+  color: rgba(0,0,0,0.25);
+}
+
+.theme-light .top-bar {
+  background: rgba(255,255,255,0.9);
+  border-bottom-color: rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.theme-light .search-dropdown {
+  background: #FFFFFF;
+  border-color: rgba(0,0,0,0.10);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.theme-light .search-item:hover {
+  background: rgba(10,132,255,0.06);
+}
+
+.theme-light .hud-label {
+  background: rgba(10,132,255,0.05);
+  border-color: rgba(10,132,255,0.10);
+  color: #0A84FF;
+}
+
+.theme-light .pagination__btn {
+  background: rgba(255,255,255,0.8);
+  border-color: rgba(0,0,0,0.10);
+  color: rgba(0,0,0,0.65);
+}
+
+.theme-light .bottom-status {
+  border-top-color: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.25);
+}
+
+.theme-light .toast-item {
+  background: #FFFFFF;
+  border-color: rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.theme-light body::after {
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.008) 2px,
+    rgba(0,0,0,0.008) 4px
+  );
+}
+
+.theme-light body::before {
+  background-image:
+    linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px);
+}

@@ -3,10 +3,12 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import { useToastStore } from '@/stores/toast'
+import { useLocaleStore } from '@/stores/locale'
 
 const router = useRouter()
 const { login } = useAuth()
 const toast = useToastStore()
+const locale = useLocaleStore()
 
 const username = ref('')
 const password = ref('')
@@ -58,10 +60,10 @@ async function handleLogin() {
 
     <div class="login-right">
       <div class="login-form">
-        <div class="login-form__title">管理员接入</div>
+        <div class="login-form__title">{{ locale.t('login.title') }}</div>
 
         <div class="login-field">
-          <label class="login-label">账号</label>
+          <label class="login-label">{{ locale.t('login.username') }}</label>
           <input
             v-model="username"
             class="input-field login-input"
@@ -72,7 +74,7 @@ async function handleLogin() {
         </div>
 
         <div class="login-field">
-          <label class="login-label">密码</label>
+          <label class="login-label">{{ locale.t('login.password') }}</label>
           <input
             v-model="password"
             class="input-field login-input"
@@ -89,7 +91,7 @@ async function handleLogin() {
           :disabled="loading"
           @click="handleLogin"
         >
-          {{ loading ? '正在校验基地权限...' : '接入基地总控台' }}
+          {{ loading ? locale.t('login.checking') : locale.t('login.submit') }}
         </button>
       </div>
     </div>

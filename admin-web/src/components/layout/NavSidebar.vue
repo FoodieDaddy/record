@@ -1,42 +1,45 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { useLocaleStore } from '@/stores/locale'
 
 const route = useRoute()
 const router = useRouter()
 const app = useAppStore()
+const locale = useLocaleStore()
 
-const navGroups = [
+const navGroups = computed(() => [
   {
     title: 'OPERATIONS',
     items: [
-      { name: '基地总览', path: '/dashboard' },
-      { name: '航船用户', path: '/users' },
-      { name: '任务编队', path: '/formations' },
-      { name: '航迹中心', path: '/traces' },
+      { name: locale.t('nav.overview'), path: '/dashboard' },
+      { name: locale.t('nav.users'), path: '/users' },
+      { name: locale.t('nav.formations'), path: '/formations' },
+      { name: locale.t('nav.traces'), path: '/traces' },
     ]
   },
   {
     title: 'DATA',
     items: [
-      { name: '指令日志', path: '/directives/logs' },
-      { name: '镜像档案', path: '/mirrors' },
+      { name: locale.t('nav.directives'), path: '/directives/logs' },
+      { name: locale.t('nav.mirrors'), path: '/mirrors' },
     ]
   },
   {
     title: 'SYSTEM',
     items: [
-      { name: '系统监控', path: '/system/health' },
+      { name: locale.t('nav.system'), path: '/system/health' },
     ]
   },
   {
     title: 'ACCESS',
     items: [
-      { name: '管理员权限', path: '/admins' },
-      { name: '审计日志', path: '/audit' },
+      { name: locale.t('nav.admins'), path: '/admins' },
+      { name: locale.t('nav.audit'), path: '/audit' },
     ]
   },
-]
+])
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
