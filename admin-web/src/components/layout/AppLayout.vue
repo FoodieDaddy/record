@@ -16,7 +16,11 @@ const app = useAppStore()
       <TopStatusBar />
       <div class="app-content">
         <div class="app-workspace">
-          <RouterView />
+          <RouterView v-slot="{ Component }">
+            <transition name="page-fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </RouterView>
         </div>
         <RightMonitor v-if="app.rightPanelOpen" />
       </div>
@@ -26,6 +30,14 @@ const app = useAppStore()
 </template>
 
 <style scoped>
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity .15s ease;
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
 .app-layout { min-height: 100vh; }
 .app-main {
   margin-left: var(--sidebar-width);

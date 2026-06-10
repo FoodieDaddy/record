@@ -58,6 +58,11 @@ onMounted(async () => {
 
 <template>
   <div class="dashboard">
+    <div v-if="loading" style="text-align:center;padding:48px;color:var(--text-muted);font-size:12px;">
+      正在接入基地数据...
+    </div>
+
+    <template v-else>
     <div class="dashboard__stats grid-6">
       <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
     </div>
@@ -124,6 +129,7 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+    </template>
   </div>
 </template>
 

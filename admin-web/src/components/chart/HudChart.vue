@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import { graphic } from 'echarts/core'
+
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 import { chartTheme } from '@/utils/chart-theme'
 
 const props = defineProps<{
@@ -33,7 +39,7 @@ const defaultOption: echarts.EChartsOption = {
     symbol: 'none',
     lineStyle: { color: '#0A84FF', width: 2 },
     areaStyle: {
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+      color: new graphic.LinearGradient(0, 0, 0, 1, [
         { offset: 0, color: 'rgba(10,132,255,0.25)' },
         { offset: 1, color: 'rgba(10,132,255,0.02)' },
       ]),
