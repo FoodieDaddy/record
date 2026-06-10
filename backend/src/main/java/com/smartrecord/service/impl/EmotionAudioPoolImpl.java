@@ -1,6 +1,6 @@
 package com.smartrecord.service.impl;
 
-import com.smartrecord.common.EmotionType;
+import com.smartrecord.enums.EmotionType;
 import com.smartrecord.service.EmotionAudioPool;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

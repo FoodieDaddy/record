@@ -1,7 +1,12 @@
 const { post } = require('../../utils/request');
+const { vibrateShort } = require('../../utils/haptic');
+const TimerManager = require('../../utils/timer-manager');
 const app = getApp();
 
-Page({
+// 创建 TimerManager 实例并 mixin 到页面对象
+const timerMgr = new TimerManager();
+
+Page(Object.assign(timerMgr, {
   data: {
     loading: false,
     connecting: false,
@@ -19,6 +24,7 @@ Page({
 
   async onLogin() {
     if (this.data.loading) return;
+    vibrateShort('light');
     this.setData({ loading: true });
 
     try {
@@ -33,12 +39,21 @@ Page({
 
       wx.switchTab({ url: '/pages/room/room' });
     } catch (err) {
-      console.error('登录失败', err);
+      console.error('终端接入失败', err);
       wx.showToast({ title: '接入失败', icon: 'none' });
       this.setData({ connecting: false });
     } finally {
       this.setData({ loading: false });
     }
+  },
+
+  onHide() {
+    this.clearAll();
+    this.setData({ connecting: false, accessGranted: false });
+  },
+
+  onUnload() {
+    this.clearAll();
   },
 
   playConnectingAnimation() {
@@ -50,9 +65,9 @@ Page({
     return new Promise((resolve) => {
       const stepTexts = [
         '同步识别档案',
-        '加载人格协议',
-        '初始化编队核心',
-        '同步导航引擎'
+        '加载协议参数',
+        '初始化编队链路',
+        '同步导航核心'
       ];
 
       const steps = stepTexts.map(text => ({ text, done: false }));
@@ -62,7 +77,10 @@ Page({
       const showNext = () => {
         if (i >= stepTexts.length) {
           setTimeout(() => {
-            this.setData({ accessGranted: true });
+            this.setData({
+              accessGranted: true,
+              connecting: false
+            });
             setTimeout(resolve, 800);
           }, 400);
           return;
@@ -78,4 +96,4 @@ Page({
       setTimeout(showNext, 500);
     });
   }
-});
+}));

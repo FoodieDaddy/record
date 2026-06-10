@@ -3,9 +3,12 @@ package com.smartrecord.service.impl;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.config.interceptor.JwtInterceptor;
 import com.smartrecord.dto.user.*;
 import com.smartrecord.entity.User;
@@ -64,6 +67,9 @@ public class UserServiceImpl implements UserService {
     private String appSecret;
 
     @Override
+    @SentinelResource(value = "wx-login",
+            blockHandler = "loginBlockHandler",
+            fallback = "loginFallback")
     public LoginResp login(LoginReq req) {
         // 1. 调用微信 code2session
         String url = String.format(
@@ -75,7 +81,7 @@ public class UserServiceImpl implements UserService {
         String openid = resp.getStr("openid");
         if (openid == null) {
             log.error("微信登录失败: {}", respStr);
-            throw new BizException("微信接入失败");
+            throw new BizException(ErrorCode.WX_LOGIN_FAILED);
         }
 
         // 2. 查找或创建用户
@@ -85,10 +91,10 @@ public class UserServiceImpl implements UserService {
         if (user != null) {
             // 检查账号状态
             if (user.getStatus() != null && user.getStatus() == 1) {
-                throw new BizException(4003, "账号已被封禁");
+                throw new BizException(ErrorCode.ACCOUNT_BANNED);
             }
             if (user.getStatus() != null && user.getStatus() == 2) {
-                throw new BizException(4003, "账号已注销");
+                throw new BizException(ErrorCode.ACCOUNT_LOGGED_OUT);
             }
         }
 
@@ -108,14 +114,17 @@ public class UserServiceImpl implements UserService {
             });
         }
 
-        // 3. 缓存用户信息到 Redis
-        String userKey = "sr:user:" + user.getId();
+        // 3. 缓存用户信息到 Redis Hash
+        String createdAtStr = user.getCreatedAt() != null
+                ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                : "";
         String userJson = JSONUtil.toJsonStr(Map.of(
                 "userId", user.getId(),
-                "nickname", user.getNickname(),
+                "nickname", user.getNickname() != null ? user.getNickname() : "",
                 "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
-                "status", user.getStatus() != null ? user.getStatus() : 0));
-        redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
+                "status", user.getStatus() != null ? user.getStatus() : 0,
+                "createdAt", createdAtStr));
+        redisTemplate.opsForHash().put("sr:user:" + user.getId(), "info", userJson);
 
         // 4. 签发 JWT
         String token = jwtUtil.generateToken(user.getId());
@@ -130,16 +139,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserInfoResp getUserInfo(Long userId) {
-        // 优先读 Redis 缓存，避免每次打开"我的"页面都查库
-        String cacheKey = "sr:user:info:" + userId;
-        String cached = redisTemplate.opsForValue().get(cacheKey);
+        String userKey = "sr:user:" + userId;
+        Object cached = redisTemplate.opsForHash().get(userKey, "info");
         if (cached != null) {
-            JSONObject obj = JSONUtil.parseObj(cached);
+            JSONObject obj = JSONUtil.parseObj((String) cached);
+            String rawAvatar = obj.getStr("avatarUrl", "");
             return UserInfoResp.builder()
                     .userId(obj.getLong("userId"))
                     .nickname(obj.getStr("nickname"))
-                    .avatarUrl(obj.getStr("avatarUrl"))
-                    .createdAt(obj.getStr("createdAt"))
+                    .avatarUrl(storageService.buildFullUrl(rawAvatar))
+                    .createdAt(obj.getStr("createdAt", ""))
                     .userDetail(getUserDetail(userId))
                     .build();
         }
@@ -147,44 +156,48 @@ public class UserServiceImpl implements UserService {
         // 缓存未命中，查库并回写
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BizException(4001, "身份未识别");
+            throw new BizException(ErrorCode.IDENTITY_NOT_RECOGNIZED);
         }
-        String fullAvatarUrl = storageService.buildFullUrl(user.getAvatarUrl());
-
-        // 写入缓存（24 小时 TTL）
         String createdAtStr = user.getCreatedAt() != null
                 ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                 : "";
         String json = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", user.getNickname() != null ? user.getNickname() : "",
-                "avatarUrl", fullAvatarUrl != null ? fullAvatarUrl : "",
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
+                "status", user.getStatus() != null ? user.getStatus() : 0,
                 "createdAt", createdAtStr));
-        redisTemplate.opsForValue().set(cacheKey, json, 24, TimeUnit.HOURS);
+        redisTemplate.opsForHash().put(userKey, "info", json);
 
         return UserInfoResp.builder()
                 .userId(user.getId())
                 .nickname(user.getNickname())
-                .avatarUrl(fullAvatarUrl)
+                .avatarUrl(storageService.buildFullUrl(user.getAvatarUrl()))
                 .createdAt(createdAtStr)
                 .userDetail(getUserDetail(userId))
                 .build();
     }
 
     @Override
-    public void updateUserInfo(Long userId, String nickname, String avatarUrl) {
+    public void updateUserInfo(Long userId, UpdateUserReq req) {
         // 从 Redis 缓存读取旧信息，避免 SELECT 查询
         String userKey = "sr:user:" + userId;
-        String cachedJson = redisTemplate.opsForValue().get(userKey);
+        Object cachedRaw = redisTemplate.opsForHash().get(userKey, "info");
+        String cachedJson = cachedRaw != null ? (String) cachedRaw : null;
         String oldAvatarUrl = null;
         String oldNickname = null;
         int oldStatus = 0;
+        String oldCreatedAt = "";
         if (cachedJson != null) {
             JSONObject obj = JSONUtil.parseObj(cachedJson);
             oldAvatarUrl = obj.getStr("avatarUrl", "");
             oldNickname = obj.getStr("nickname", "");
             oldStatus = obj.getInt("status", 0);
+            oldCreatedAt = obj.getStr("createdAt", "");
         }
+
+        String avatarUrl = req.getAvatarUrl();
+        String nickname = req.getNickname();
 
         // 头像变更时，异步删除旧的 OSS 文件
         String newAvatarUrl = avatarUrl != null ? avatarUrl : oldAvatarUrl;
@@ -195,7 +208,7 @@ public class UserServiceImpl implements UserService {
         // 静默截断：防止绕过前端直接调接口传超长昵称
         String newNickname = nickname != null ? truncateNickname(nickname) : oldNickname;
         if (newNickname == null) {
-            throw new BizException(4001, "身份未识别");
+            throw new BizException(ErrorCode.IDENTITY_NOT_RECOGNIZED);
         }
 
         // 使用 LambdaUpdateWrapper 直接更新，省掉 SELECT
@@ -206,16 +219,14 @@ public class UserServiceImpl implements UserService {
                 .set(User::getUpdatedAt, LocalDateTime.now());
         userMapper.update(null, wrapper);
 
-        // 更新 Redis 缓存
+        // 更新 Redis 缓存（统一单 key）
         String userJson = JSONUtil.toJsonStr(Map.of(
                 "userId", userId,
                 "nickname", newNickname,
                 "avatarUrl", newAvatarUrl != null ? newAvatarUrl : "",
-                "status", oldStatus));
-        redisTemplate.opsForValue().set(userKey, userJson, 24, TimeUnit.HOURS);
-
-        // 淘汰 getUserInfo 缓存，强制下次读取回源数据库
-        redisTemplate.delete("sr:user:info:" + userId);
+                "status", oldStatus,
+                "createdAt", oldCreatedAt));
+        redisTemplate.opsForHash().put(userKey, "info", userJson);
 
         // 仅在昵称变更时推送 MEMBER_UPDATE；纯头像更新跳过（避免新用户登录时的冗余 room_member 查询）
         if (nickname != null) {
@@ -243,8 +254,6 @@ public class UserServiceImpl implements UserService {
                 .set(req.getAnimEnabled() != null, UserDetail::getAnimEnabled, Boolean.TRUE.equals(req.getAnimEnabled()) ? 1 : 0)
                 .set(req.getVibrateEnabled() != null, UserDetail::getVibrateEnabled, Boolean.TRUE.equals(req.getVibrateEnabled()) ? 1 : 0);
         userDetailMapper.update(null, wrapper);
-        // 淘汰 getUserInfo 缓存（userDetail 嵌套在其中）
-        redisTemplate.delete("sr:user:info:" + userId);
     }
 
     /**
@@ -252,6 +261,8 @@ public class UserServiceImpl implements UserService {
      */
     private void deleteOldAvatarAsync(String objectKeyOrUrl) {
         if (objectKeyOrUrl == null || objectKeyOrUrl.isEmpty()) return;
+        // cloud:// fileID 由 CloudBase 管理，不走 OSS 删除
+        if (objectKeyOrUrl.startsWith("cloud://")) return;
         // 兼容完整 URL 和纯 objectKey 两种格式
         String key = objectKeyOrUrl;
         if (objectKeyOrUrl.startsWith("http")) {
@@ -262,7 +273,7 @@ public class UserServiceImpl implements UserService {
                 return;
             }
         }
-        if (key.startsWith("images/")) {
+        if (key.startsWith("images/") || key.startsWith("avatars/")) {
             storageService.deleteObjectAsync(key);
         }
     }
@@ -292,6 +303,19 @@ public class UserServiceImpl implements UserService {
             || (ch >= 0xFF00 && ch <= 0xFFEF)
             || (ch >= 0x3040 && ch <= 0x309F)
             || (ch >= 0x30A0 && ch <= 0x30FF);
+    }
+
+    /**
+     * Sentinel 限流降级 — 微信登录
+     */
+    public LoginResp loginBlockHandler(LoginReq req, BlockException ex) {
+        log.warn("微信登录被限流: {}", ex.getRule());
+        throw new BizException(ErrorCode.WX_LOGIN_FAILED.getCode(), "登录繁忙，请稍后重试");
+    }
+
+    public LoginResp loginFallback(LoginReq req, Throwable ex) {
+        log.error("微信登录降级", ex);
+        throw new BizException(ErrorCode.WX_LOGIN_FAILED.getCode(), "登录服务暂时不可用，请稍后重试");
     }
 
     /**

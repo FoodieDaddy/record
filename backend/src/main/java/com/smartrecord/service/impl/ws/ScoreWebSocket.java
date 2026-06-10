@@ -15,11 +15,18 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import org.springframework.web.socket.WebSocketHttpHeaders;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 心跳配置
+ */
+import org.springframework.web.socket.PingMessage;
+import java.nio.ByteBuffer;
 
 /**
  * WebSocket 推送记分实时同步
@@ -35,6 +42,12 @@ public class ScoreWebSocket extends TextWebSocketHandler {
 
     /** roomId -> set of sessions */
     private static final Map<String, Set<WebSocketSession>> ROOM_SESSIONS = new ConcurrentHashMap<>();
+
+    /** session id -> 最后活跃时间戳 */
+    private static final Map<String, Long> LAST_ACTIVE = new ConcurrentHashMap<>();
+
+    /** 心跳超时：60 秒无响应视为僵尸连接 */
+    private static final long HEARTBEAT_TIMEOUT_MS = 60_000;
 
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
@@ -71,12 +84,33 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         // 4. 关联 userId 到 session
         session.getAttributes().put(USER_ID_ATTR, userId);
         ROOM_SESSIONS.computeIfAbsent(roomId, k -> ConcurrentHashMap.newKeySet()).add(session);
+        LAST_ACTIVE.put(session.getId(), System.currentTimeMillis());
         log.info("WebSocket 连接建立: roomId={}, userId={}, sessionId={}", roomId, userId, session.getId());
         pushPresence(roomId);
     }
 
     @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        // 更新活跃时间，客户端发任何消息都视为心跳
+        LAST_ACTIVE.put(session.getId(), System.currentTimeMillis());
+
+        // 如果客户端发了文本 "PONG"，静默处理
+        String payload = message.getPayload();
+        if ("PONG".equals(payload)) {
+            return;
+        }
+        // 其他文本消息暂不处理（当前协议只有服务端推送）
+    }
+
+    @Override
+    protected void handlePongMessage(WebSocketSession session, org.springframework.web.socket.PongMessage message) {
+        // 原生 pong 帧响应
+        LAST_ACTIVE.put(session.getId(), System.currentTimeMillis());
+    }
+
+    @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        LAST_ACTIVE.remove(session.getId());
         String roomId = getRoomId(session);
         if (roomId != null) {
             Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
@@ -111,14 +145,18 @@ public class ScoreWebSocket extends TextWebSocketHandler {
 
     /**
      * 向房间内所有连接推送消息
+     * 自动为 Map 类型消息添加 messageId、serverTime、roomId 信封字段
      */
     public void pushToRoom(String roomId, Object message) {
         Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
         if (sessions == null || sessions.isEmpty()) return;
 
+        // 为消息添加统一信封字段
+        Object enrichedMessage = enrichMessage(message, roomId);
+
         String payload;
         try {
-            payload = objectMapper.writeValueAsString(message);
+            payload = objectMapper.writeValueAsString(enrichedMessage);
         } catch (Exception e) {
             log.warn("WebSocket 消息序列化失败", e);
             return;
@@ -133,6 +171,22 @@ public class ScoreWebSocket extends TextWebSocketHandler {
                 }
             }
         }
+    }
+
+    /**
+     * 为消息添加统一信封字段
+     * 仅对 Map 类型消息生效，使用 putIfAbsent 避免覆盖已有字段
+     */
+    @SuppressWarnings("unchecked")
+    private Object enrichMessage(Object message, String roomId) {
+        if (message instanceof Map) {
+            Map<String, Object> map = new LinkedHashMap<>((Map<String, Object>) message);
+            map.putIfAbsent("messageId", java.util.UUID.randomUUID().toString().replace("-", ""));
+            map.putIfAbsent("serverTime", System.currentTimeMillis());
+            map.putIfAbsent("roomId", roomId);
+            return map;
+        }
+        return message;
     }
 
     /**
@@ -179,10 +233,9 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         }
 
         // 检查用户状态
-        String userKey = "sr:user:" + userId;
-        String cachedJson = redisTemplate.opsForValue().get(userKey);
-        if (cachedJson != null) {
-            JSONObject obj = JSONUtil.parseObj(cachedJson);
+        Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
+        if (cached != null) {
+            JSONObject obj = JSONUtil.parseObj((String) cached);
             int status = obj.getInt("status", 0);
             if (status == 1) {
                 closeSession(session, 4003, "账号已被封禁");
@@ -231,6 +284,44 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     /**
+     * 定时心跳：每 25 秒向所有连接发送 PING
+     */
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 25_000)
+    public void sendHeartbeat() {
+        long now = System.currentTimeMillis();
+        int pinged = 0;
+        int closed = 0;
+
+        for (Map.Entry<String, Set<WebSocketSession>> entry : ROOM_SESSIONS.entrySet()) {
+            for (WebSocketSession session : entry.getValue()) {
+                if (!session.isOpen()) continue;
+
+                Long lastActive = LAST_ACTIVE.get(session.getId());
+                // 超过 60 秒无响应，关闭僵尸连接
+                if (lastActive != null && now - lastActive > HEARTBEAT_TIMEOUT_MS) {
+                    try {
+                        session.close(new CloseStatus(4001, "心跳超时"));
+                    } catch (Exception ignored) {}
+                    closed++;
+                    continue;
+                }
+
+                // 发送 PING
+                try {
+                    session.sendMessage(new PingMessage(ByteBuffer.wrap(new byte[0])));
+                    pinged++;
+                } catch (Exception e) {
+                    log.warn("WebSocket PING 发送失败: {}", session.getId());
+                }
+            }
+        }
+
+        if (closed > 0) {
+            log.info("WebSocket 心跳清理: 关闭 {} 个僵尸连接", closed);
+        }
+    }
+
+    /**
      * 定时清理空房间，防止僵尸房间占用内存
      * 每 5 分钟执行一次，移除没有活跃连接的房间
      */
@@ -240,7 +331,13 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         Iterator<Map.Entry<String, Set<WebSocketSession>>> it = ROOM_SESSIONS.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Set<WebSocketSession>> entry = it.next();
-            entry.getValue().removeIf(s -> !s.isOpen());
+            entry.getValue().removeIf(s -> {
+                if (!s.isOpen()) {
+                    LAST_ACTIVE.remove(s.getId());
+                    return true;
+                }
+                return false;
+            });
             if (entry.getValue().isEmpty()) {
                 it.remove();
                 removed++;
@@ -264,15 +361,10 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     /**
-     * 判断用户是否为房间活跃成员（Redis members:active hash）
+     * 判断用户是否为房间活跃成员（data Hash 的 a: 前缀字段）
      */
     private boolean isActiveRoomMember(String roomId, Long userId) {
-        String activeKey = ROOM_PREFIX + roomId + ":members:active";
-        if (Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(activeKey, String.valueOf(userId)))) {
-            return true;
-        }
-        // 兼容旧 meta 结构
-        String metaKey = ROOM_PREFIX + roomId + ":meta";
-        return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(metaKey, "m:" + userId));
+        String dataKey = ROOM_PREFIX + roomId + ":data";
+        return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(dataKey, "a:" + userId));
     }
 }

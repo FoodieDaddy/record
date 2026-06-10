@@ -15,7 +15,6 @@
   position: relative;
   padding: 24rpx;
   padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
-  min-height: 100vh;
   background: var(--bg);
 }
 

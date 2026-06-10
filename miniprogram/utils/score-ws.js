@@ -52,10 +52,10 @@ class ScoreWS {
     this._reconnectCount = 0;
 
     const app = getApp();
-    // 使用独立的 wsUrl 配置，避免从 baseUrl 拼接出错
     const config = require('../config');
     // token 通过 Sec-WebSocket-Protocol 头传输，不放入 URL，避免日志/工具泄露
-    const wsUrl = `${config.wsUrl}/ws/score?roomId=${roomId}`;
+    // AnyService WebSocket 接入需在真机环境中单独验证，当前走 config 统一配置
+    const wsUrl = config.getWsUrl(roomId);
     const token = app.globalData.token;
 
     debugLog('[score-ws] connecting roomId:', roomId);
@@ -78,6 +78,11 @@ class ScoreWS {
       this._lastMessageTime = Date.now();
       this._startHeartbeat();
       this._emit('open');
+      // 重连成功时触发 reconnected 事件，通知页面主动同步状态
+      if (this._reconnecting) {
+        this._reconnecting = false;
+        this._emit('reconnected');
+      }
     });
 
     this.socketTask.onMessage((res) => {
@@ -104,6 +109,7 @@ class ScoreWS {
       this._emit('close');
       // 自动重连（仅在非手动关闭时）
       if (!this.manualClose && this.roomId) {
+        this._reconnecting = true;
         this._scheduleReconnect();
       }
     });

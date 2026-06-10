@@ -1,5 +1,6 @@
 <scroll-view
   class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}"
+  style="height: {{pageHeight}}px;"
   scroll-y
   enhanced
   show-scrollbar="{{false}}"

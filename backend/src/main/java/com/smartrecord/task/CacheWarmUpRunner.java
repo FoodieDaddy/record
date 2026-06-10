@@ -61,23 +61,21 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                             new LambdaQueryWrapper<RoomMember>()
                                     .eq(RoomMember::getRoomId, roomId));
 
-                    String metaKey = "sr:room:" + roomId + ":meta";
-                    String activeKey = "sr:room:" + roomId + ":members:active";
-                    String archiveKey = "sr:room:" + roomId + ":members:archive";
+                    String dataKey = "sr:room:" + roomId + ":data";
 
                     // 写入房间信息字段
-                    redisTemplate.opsForHash().put(metaKey, "ownerId", String.valueOf(room.getOwnerId()));
-                    redisTemplate.opsForHash().put(metaKey, "status", "0");
+                    redisTemplate.opsForHash().put(dataKey, "ownerId", String.valueOf(room.getOwnerId()));
+                    redisTemplate.opsForHash().put(dataKey, "status", "0");
+                    redisTemplate.opsForHash().put(dataKey, "scoreMode", String.valueOf(room.getScoreMode() != null ? room.getScoreMode() : 1));
+                    redisTemplate.opsForHash().put(dataKey, "roomNo", room.getRoomNo());
 
-                    // 启动恢复时先清掉活跃/归档成员缓存，避免旧的活跃字段残留
-                    redisTemplate.delete(activeKey);
-                    redisTemplate.delete(archiveKey);
-                    Map<Object, Object> existingMetaFields = redisTemplate.opsForHash().entries(metaKey);
-                    if (existingMetaFields != null && !existingMetaFields.isEmpty()) {
-                        for (Object field : existingMetaFields.keySet()) {
-                            String key = String.valueOf(field);
-                            if (key.startsWith("m:")) {
-                                redisTemplate.opsForHash().delete(metaKey, key);
+                    // 启动恢复时先清掉旧成员字段，避免残留
+                    Map<Object, Object> existingFields = redisTemplate.opsForHash().entries(dataKey);
+                    if (existingFields != null) {
+                        for (Object field : existingFields.keySet()) {
+                            String key = (String) field;
+                            if (key.startsWith("a:") || key.startsWith("r:")) {
+                                redisTemplate.opsForHash().delete(dataKey, key);
                             }
                         }
                     }
@@ -114,22 +112,19 @@ public class CacheWarmUpRunner implements ApplicationRunner {
                                     "avatarUrl", avatarUrl,
                                     "firstJoinedAt", joinedAtMs,
                                     "lastSeenAt", lastSeenAtMs));
-                            redisTemplate.opsForHash().put(archiveKey, String.valueOf(m.getUserId()), archiveJson);
+                            redisTemplate.opsForHash().put(dataKey, "r:" + m.getUserId(), archiveJson);
 
                             if (m.getQuitTime() == null) {
-                                // 活跃成员写入 meta / active / user room mapping
-                                redisTemplate.opsForHash().put(metaKey, "m:" + m.getUserId(), memberJson);
-                                redisTemplate.opsForHash().put(activeKey, String.valueOf(m.getUserId()), memberJson);
+                                // 活跃成员写入 data Hash / user room mapping
+                                redisTemplate.opsForHash().put(dataKey, "a:" + m.getUserId(), memberJson);
                                 redisTemplate.opsForSet().add("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
                             } else {
                                 // 已离席成员只保留 archive，避免重启后被误识别成实时席位
                                 redisTemplate.opsForSet().remove("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
                             }
                         }
-                        redisTemplate.expire(activeKey, EXPIRE_HOURS, TimeUnit.HOURS);
-                        redisTemplate.expire(archiveKey, EXPIRE_HOURS, TimeUnit.HOURS);
                     }
-                    redisTemplate.expire(metaKey, EXPIRE_HOURS, TimeUnit.HOURS);
+                    redisTemplate.expire(dataKey, EXPIRE_HOURS, TimeUnit.HOURS);
 
                     // 恢复房间号映射
                     redisTemplate.opsForValue().set("sr:room_no:" + room.getRoomNo(),
@@ -225,17 +220,22 @@ public class CacheWarmUpRunner implements ApplicationRunner {
 
     private String loadUserJson(Long userId) {
         String key = "sr:user:" + userId;
-        String json = redisTemplate.opsForValue().get(key);
-        if (json != null) return json;
+        Object cached = redisTemplate.opsForHash().get(key, "info");
+        if (cached != null) return (String) cached;
 
         var user = userMapper.selectById(userId);
         if (user == null) return null;
 
-        json = JSONUtil.toJsonStr(Map.of(
+        String createdAtStr = user.getCreatedAt() != null
+                ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                : "";
+        String json = JSONUtil.toJsonStr(Map.of(
                 "userId", user.getId(),
                 "nickname", user.getNickname() != null ? user.getNickname() : "",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
-        redisTemplate.opsForValue().set(key, json, EXPIRE_HOURS, TimeUnit.HOURS);
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
+                "status", user.getStatus() != null ? user.getStatus() : 0,
+                "createdAt", createdAtStr));
+        redisTemplate.opsForHash().put(key, "info", json);
         return json;
     }
 }

@@ -1,6 +1,5 @@
-const app = getApp();
-
 function vibrateShort(type) {
+  const app = getApp();
   if (app.globalData.vibrateEnabled === false) return;
   try {
     wx.vibrateShort({ type: type || 'light' });

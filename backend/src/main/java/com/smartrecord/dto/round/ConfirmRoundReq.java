@@ -15,4 +15,7 @@ public class ConfirmRoundReq {
     @NotNull(message = "agree 不能为空")
     @Schema(description = "是否同意：true-同意 false-驳回", example = "true")
     private Boolean agree;
+
+    @Schema(description = "客户端请求 ID，用于幂等去重", example = "1718000000000-a3f8b2")
+    private String clientRequestId;
 }

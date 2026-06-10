@@ -1,3 +1,4 @@
+# 共享配置 — 不含敏感信息，各 profile 覆盖数据库/Redis/密钥等
 server:
   port: 18080
   servlet:
@@ -12,15 +13,7 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:13306/smartrecord?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  data:
-    redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: ${SPRING_REDIS_PORT:16379}
-      database: 0
   servlet:
     multipart:
       max-file-size: 10MB
@@ -46,27 +39,13 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
 
-# 自定义配置
 app:
-  jwt:
-    secret: ${JWT_SECRET:}
-    expiration: 604800000  # 7 天
-  oss:
-    endpoint: ${OSS_ENDPOINT:}
-    access-key-id: ${OSS_ACCESS_KEY_ID:}
-    access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
-    bucket-name: ${OSS_BUCKET_NAME:}
   room:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
     no-length: 6
     expire-hours: 24
 
-wechat:
-  appid: ${WECHAT_APPID:}
-  secret: ${WECHAT_SECRET:}
-
 tts:
-  edge-tts-cmd: ${TTS_EDGE_TTS_CMD:edge-tts}
   voice: zh-CN-XiaoxiaoNeural
 
 emotion:

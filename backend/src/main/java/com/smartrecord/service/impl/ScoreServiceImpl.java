@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.common.ErrorCode;
-import com.smartrecord.common.EmotionType;
+import com.smartrecord.enums.EmotionType;
 import com.smartrecord.common.PageResult;
 import com.smartrecord.dto.room.RoomResp;
 import com.smartrecord.dto.score.*;

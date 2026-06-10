@@ -4,39 +4,16 @@
     <view class="progress-bar" style="width: {{progressPercent}}%;"></view>
   </view>
 
-  <!-- 顶部栏 -->
-  <view class="swipe-top">
-    <view class="top-center">
-      <text class="swipe-kicker">CALIBRATION</text>
-      <text class="swipe-subtitle">协议校准</text>
-      <view class="top-progress-row">
-        <text class="swipe-progress">{{progress}}</text>
-        <view class="progress-segments">
-          <view class="seg {{index < currentIndex ? 'seg-done' : ''}}" wx:for="{{20}}" wx:key="index"></view>
-        </view>
-        <text class="progress-pct">{{progressPercent}}%</text>
-      </view>
-    </view>
-    <view class="swipe-close">
-      <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
-    </view>
-  </view>
-
   <!-- 双卡栈 -->
   <view class="swipe-card-area">
     <view class="card-stack {{promotingNext ? 'card-stack--promote' : ''}}">
       <!-- 下一题预览（在后方） -->
-      <view wx:if="{{nextQuestion}}" class="signal-card signal-card--next">
+      <view wx:if="{{nextQuestion && !reduceMotion}}" class="signal-card signal-card--next" aria-hidden="true">
         <view class="card-scan-line"></view>
-        <text class="signal-header">SIGNAL #{{signalIndex}}</text>
-        <text class="signal-label">行为判断</text>
-        <view class="question-divider-top"></view>
-        <text class="question-text">{{nextQuestion.text}}</text>
-        <view class="question-divider-bottom"></view>
       </view>
 
       <!-- 当前题 -->
-      <view class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
+      <view wx:if="{{currentQuestion}}" wx:key="{{currentQuestion.id}}" class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
         <view class="card-scan-line"></view>
         <text class="signal-header">SIGNAL #{{signalIndex}}</text>
         <text class="signal-label">行为判断</text>

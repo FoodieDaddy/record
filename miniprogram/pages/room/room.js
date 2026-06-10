@@ -4,82 +4,42 @@ const roomService = require('../../services/room-service');
 const scoreService = require('../../services/score-service');
 const roundService = require('../../services/round-service');
 const { getColor, getFirstChar, getAvatarView, normalizeAvatarUrl } = require('../../utils/avatar');
+const { resolveAvatarSrcBatch } = require('../../utils/avatar-storage');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
 const { vibrateShort } = require('../../utils/haptic');
 const { createPatchScheduler } = require('./room-patch-scheduler');
+const TimerManager = require('../../utils/timer-manager');
+const { debounce } = require('../../utils/throttle-debounce');
+const { withErrorHandling, showError } = require('../../utils/error-handler');
+const pulseHandler = require('./pulse-handler');
+const roomActionHandler = require('./room-action-handler');
+const {
+  SPARKLINE_EMPTY_POINTS,
+  pickLatestTrace,
+  buildCockpitView: buildCockpitViewModel,
+  deriveFormationShips: deriveFormationShipsModel,
+  deriveModeLabel: deriveModeLabelModel,
+  derivePhaseLabel: derivePhaseLabelModel,
+  deriveStageText: deriveStageTextModel,
+  deriveLinkLabel: deriveLinkLabelModel,
+  buildSeatList: buildSeatListModel,
+  getPresenceClass: getPresenceClassModel,
+  getPresenceLabel: getPresenceLabelModel,
+  getSeatLayoutMode: getSeatLayoutModeModel,
+  formatCrewName: formatCrewNameModel,
+  formatCallSign: formatCallSignModel,
+  formatPulseValue: formatPulseValueModel
+} = require('./room-view-model');
 const app = getApp();
 
-// 舷窗目标安全区：外部航船保持在驾驶台上方。
-const FORMATION_SAFE_ZONE = { minY: 18, maxY: 44, minX: 18, maxX: 82 };
-const SPARKLINE_EMPTY_POINTS = [
-  { x: 0, y: 35 },
-  { x: 25, y: 45 },
-  { x: 50, y: 38 },
-  { x: 75, y: 55 },
-  { x: 100, y: 42 }
-];
-const FORMATION_LAYOUTS = {
-  1: [{ x: 50, y: 34, sizeClass: 'ship-craft--solo' }],
-  2: [
-    { x: 34, y: 36, sizeClass: 'ship-craft--duo' },
-    { x: 68, y: 28, sizeClass: 'ship-craft--duo' }
-  ],
-  3: [
-    { x: 26, y: 38, sizeClass: 'ship-craft--normal' },
-    { x: 50, y: 26, sizeClass: 'ship-craft--normal' },
-    { x: 74, y: 36, sizeClass: 'ship-craft--normal' }
-  ],
-  4: [
-    { x: 24, y: 38, sizeClass: 'ship-craft--compact' },
-    { x: 44, y: 24, sizeClass: 'ship-craft--compact' },
-    { x: 64, y: 26, sizeClass: 'ship-craft--compact' },
-    { x: 82, y: 38, sizeClass: 'ship-craft--compact' }
-  ]
-};
-const FORMATION_POSITIONS = [
-  { x: 24, y: 38 },
-  { x: 44, y: 24 },
-  { x: 64, y: 26 },
-  { x: 82, y: 38 },
-  { x: 31, y: 36 },
-  { x: 54, y: 34 },
-  { x: 72, y: 40 },
-  { x: 20, y: 42 },
-  { x: 82, y: 24 },
-  { x: 38, y: 28 },
-  { x: 58, y: 26 },
-  { x: 69, y: 18 },
-  { x: 28, y: 20 },
-  { x: 48, y: 41 },
-  { x: 80, y: 41 }
-];
-
-/** 将编队坐标限制在舷窗安全区内 */
-function clampFormationPosition(pos) {
-  const z = FORMATION_SAFE_ZONE;
-  return {
-    x: Math.max(z.minX, Math.min(z.maxX, pos.x)),
-    y: Math.max(z.minY, Math.min(z.maxY, pos.y))
-  };
-}
-
-function getTraceSortValue(trace) {
-  if (!trace) return 0;
-  const time = new Date(trace.createdAt || '').getTime();
-  if (!Number.isNaN(time)) return time;
-  return Number(trace.id || 0);
-}
-
-function pickLatestTrace(traces = []) {
-  return traces.reduce((latest, trace) => (
-    getTraceSortValue(trace) >= getTraceSortValue(latest) ? trace : latest
-  ), null);
-}
-
-Page(Object.assign(createPatchScheduler(), {
+Page(Object.assign(createPatchScheduler(), new TimerManager(), pulseHandler, roomActionHandler, {
   data: {
     isLoggedIn: false,
+    pageVisible: false,
+    customNavTop: 44,
+    customNavBarHeight: 44,
+    customNavHeight: 88,
     currentRoom: null,
     viewingRoom: false,
     isOwner: false,
@@ -120,6 +80,7 @@ Page(Object.assign(createPatchScheduler(), {
     transferPreview: null,
     showNumpad: false,
     numpadValue: 0,
+    isInputOpen: false,
     // 战局洞察
     roomInsight: null,
     // 计分动画（CSS 驱动）
@@ -166,6 +127,8 @@ Page(Object.assign(createPatchScheduler(), {
     showShareSheet: false,
     qrLoading: false,
     qrFailed: false,
+    // 更多操作面板
+    showMorePanel: false,
     // 脉冲记录滚动高度（rpx）
     scoreRecordHeight: 400,
     // 本局录入
@@ -177,6 +140,44 @@ Page(Object.assign(createPatchScheduler(), {
     // 顶部提示
     toastMsg: '',
     toastType: 'success',
+    // 键盘布局数据（二维，用于嵌套渲染）
+    transferKeyRows: [
+      [
+        { type: 'number', value: 1, text: '1' },
+        { type: 'number', value: 2, text: '2' },
+        { type: 'number', value: 3, text: '3' }
+      ],
+      [
+        { type: 'number', value: 4, text: '4' },
+        { type: 'number', value: 5, text: '5' },
+        { type: 'number', value: 6, text: '6' }
+      ],
+      [
+        { type: 'number', value: 7, text: '7' },
+        { type: 'number', value: 8, text: '8' },
+        { type: 'number', value: 9, text: '9' }
+      ],
+      [
+        { type: 'close', text: '×' },
+        { type: 'number', value: 0, text: '0' },
+        { type: 'submit', text: '发射' }
+      ]
+    ],
+    // 扁平化键盘数据（一维，用于 CSS Grid 渲染）
+    flatKeyboardKeys: [
+      { type: 'number', value: 1, text: '1' },
+      { type: 'number', value: 2, text: '2' },
+      { type: 'number', value: 3, text: '3' },
+      { type: 'number', value: 4, text: '4' },
+      { type: 'number', value: 5, text: '5' },
+      { type: 'number', value: 6, text: '6' },
+      { type: 'number', value: 7, text: '7' },
+      { type: 'number', value: 8, text: '8' },
+      { type: 'number', value: 9, text: '9' },
+      { type: 'close', text: '×' },
+      { type: 'number', value: 0, text: '0' },
+      { type: 'submit', text: '发射' }
+    ],
     // ===== 驾驶舱视图 =====
     cockpitView: {
       hasFormation: false,
@@ -203,7 +204,8 @@ Page(Object.assign(createPatchScheduler(), {
       lastPulseText: '等待更多脉冲写入',
       lastPulseAmount: '',
       sparklinePoints: SPARKLINE_EMPTY_POINTS,
-      hasTrajectory: false
+      hasTrajectory: false,
+      terminalLogEntries: []
     },
     cockpitState: 'idle',       // 'idle' | 'connecting' | 'active' | 'sealing' | 'sealed'
     shipNewMap: {},
@@ -243,6 +245,7 @@ Page(Object.assign(createPatchScheduler(), {
     launchPhase: '',
     submittingPulse: false,
     sealConfirmVisible: false,
+    leaveConfirmVisible: false,
     sealing: false,
     canSealRoom: false,
     sealHeartbeatText: '脉冲轨迹封装中',
@@ -260,6 +263,7 @@ Page(Object.assign(createPatchScheduler(), {
     app.globalData.audioEnabled = audioEnabled;
     this.setData({
       isLoggedIn: !!app.globalData.token,
+      pageVisible: true,
       audioEnabled,
       animationEnabled: app.globalData.animationEnabled !== false,
       myUserId: String(app.globalData.userId || ''),
@@ -289,6 +293,13 @@ Page(Object.assign(createPatchScheduler(), {
     }
     scoreWS.on('close', this._onWsClose);
     scoreWS.on('open', this._onWsOpen);
+    // 重连成功后主动拉取最新状态
+    if (!this._onWsReconnected) {
+      this._onWsReconnected = () => {
+        this.refreshRoomState();
+      };
+    }
+    scoreWS.on('reconnected', this._onWsReconnected);
     // 如果 WS 已经是断开状态，立即显示遮罩
     this.setData({ wsReconnecting: this.shouldShowWsReconnect() });
     // 前后台切换恢复策略
@@ -304,20 +315,65 @@ Page(Object.assign(createPatchScheduler(), {
       // <30s：无需处理，WS 保持连接
     }
     this._hideTime = 0;
-    if (app.globalData.token && !this.data.viewingRoom) {
-      this.loadMyRooms();
-      this.loadRecentRooms();
+    // 修复：检查是否需要恢复房间状态
+    // 条件：已登录 且 (不在房间中 或 房间数据为空)
+    if (app.globalData.token && (!this.data.viewingRoom || !this.data.currentRoom)) {
+      // 尝试从本地存储恢复房间状态（重新编译后内存丢失的场景）
+      const savedRoomId = wx.getStorageSync('currentRoomId');
+      console.log('[room.onShow] 检查房间恢复', {
+        savedRoomId,
+        viewingRoom: this.data.viewingRoom,
+        hasCurrentRoom: !!this.data.currentRoom
+      });
+      if (savedRoomId) {
+        this.restoreRoom(savedRoomId);
+      } else {
+        // 如果没有保存的房间ID，尝试加载我的房间列表
+        this.loadMyRooms();
+        this.loadRecentRooms();
+      }
+    } else if (app.globalData.token && this.data.viewingRoom && this.data.currentRoom) {
+      // 已经在房间中，确保WebSocket连接正常
+      console.log('[room.onShow] 已在房间中，检查WebSocket连接', {
+        roomId: this.data.currentRoom.roomId,
+        wsConnected: scoreWS.isConnected
+      });
+      if (!scoreWS.isConnected && !scoreWS.isConnecting) {
+        // WebSocket未连接，尝试重连
+        this.connectWS(this.data.currentRoom.roomId);
+      }
     }
     this.updateCockpitState();
   },
 
   onLoad(options) {
+    this.initCustomNav();
     if (options.scene) {
       this.joinByRoomNo(decodeURIComponent(options.scene));
     }
     if (options.roomNo) {
       this.joinByRoomNo(options.roomNo);
     }
+  },
+
+  initCustomNav() {
+    let statusBarHeight = 44;
+    let navBarHeight = 44;
+    try {
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      statusBarHeight = windowInfo.statusBarHeight || statusBarHeight;
+      const menuRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+      if (menuRect && menuRect.height && menuRect.top > statusBarHeight) {
+        navBarHeight = (menuRect.top - statusBarHeight) * 2 + menuRect.height;
+      }
+    } catch (e) {
+      // 使用默认导航高度兜底。
+    }
+    this.setData({
+      customNavTop: statusBarHeight,
+      customNavBarHeight: navBarHeight,
+      customNavHeight: statusBarHeight + navBarHeight
+    });
   },
 
   onUnload() {
@@ -329,6 +385,9 @@ Page(Object.assign(createPatchScheduler(), {
     if (this._onWsClose) {
       scoreWS.off('close', this._onWsClose);
       scoreWS.off('open', this._onWsOpen);
+    }
+    if (this._onWsReconnected) {
+      scoreWS.off('reconnected', this._onWsReconnected);
     }
     // 清理 patch scheduler
     if (this._roomPatchTimer) {
@@ -354,31 +413,46 @@ Page(Object.assign(createPatchScheduler(), {
       this._particleTimer = null;
     }
     this._clearTransitionTimers();
-    this.clearPageTimers();
+    this.clearAll();
   },
 
   onHide() {
+    wx.hideLoading();
+    wx.hideToast();
     if (this._autoJoinTimer) {
       clearTimeout(this._autoJoinTimer);
       this._autoJoinTimer = null;
     }
     this.stopSealHeartbeat();
     this._clearTransitionTimers();
-    this.clearPageTimers();
+    this.clearAll();
     // 清理 fixed 叠加层，避免切 tab 时泄漏到其他页面
     this.setData({
       showShareSheet: false,
       showNumpad: false,
       joinPanelVisible: false,
-      sealConfirmVisible: false,
+      leaveConfirmVisible: false,
       showNameCollisionModal: false,
       showSettleOverlay: false,
+      pageVisible: false,
       wsReconnecting: false,
       toastMsg: '',
       animActive: false,
       animFlying: false,
+      loading: false,
     });
     this._hideTime = Date.now();
+    // 取消 WebSocket 监听，避免隐藏页面时回调触发 setData
+    if (this._onWsMessage) {
+      scoreWS.off('message', this._onWsMessage);
+    }
+    if (this._onWsClose) {
+      scoreWS.off('close', this._onWsClose);
+      scoreWS.off('open', this._onWsOpen);
+    }
+    if (this._onWsReconnected) {
+      scoreWS.off('reconnected', this._onWsReconnected);
+    }
   },
 
   updateCockpitState(forceState) {
@@ -399,80 +473,26 @@ Page(Object.assign(createPatchScheduler(), {
   },
 
   buildCockpitView(memberGridOverride, cockpitStateOverride) {
-    const room = this.data.currentRoom;
-    const state = cockpitStateOverride || this.data.cockpitState;
-    const grid = memberGridOverride || this.data.memberGrid || [];
-    const hasFormation = !!(room && this.data.viewingRoom);
-    const isConnecting = state === 'connecting';
-    const selfId = String(this.data.myUserId || app.globalData.userId || '');
-    const selfMember = grid.find(m => String(m.userId) === selfId) ||
-      (room && room.members || []).find(m => String(m.userId) === selfId) ||
-      {};
-    const rawPulse = selfMember.displayScore !== undefined ? selfMember.displayScore : selfMember.score;
-    const myPulse = Number(rawPulse || 0);
-    const formationCount = hasFormation
-      ? (grid.length || (room && room.members ? room.members.length : 0))
-      : 0;
-    const linkLabel = this.deriveLinkLabel(hasFormation, state);
-    const phaseLabel = this.derivePhaseLabel(hasFormation, state);
-    const externalShips = this.deriveFormationShips(grid, selfId);
-
-    let statusLabel, statusDot, statusSubtitle;
-    if (isConnecting || state === 'sealing') {
-      statusLabel = '驾驶舱启动中';
-      statusDot = 'connecting';
-      statusSubtitle = '';
-    } else if (hasFormation) {
-      statusLabel = '驾驶舱已接入';
-      statusSubtitle = externalShips.length > 0 ? '' : '暂无外部航船';
-      statusDot = 'online';
-    } else {
-      statusLabel = '驾驶舱待机中';
-      statusDot = 'idle';
-      statusSubtitle = '';
-    }
-
-    const stageText = this.deriveStageText(hasFormation, state);
-    const lastTrace = pickLatestTrace(this.data.pulseTraces || []);
-    const sparklineSrc = this.data.traceChartSparkline || [];
-    const sparklinePoints = sparklineSrc.length > 0
-      ? sparklineSrc.slice(-8)
-      : SPARKLINE_EMPTY_POINTS;
-
-    return {
-      hasFormation: hasFormation || isConnecting,
-      isConnecting,
-      statusLabel,
-      statusDot,
-      statusSubtitle,
-      formationCode: hasFormation && room ? room.roomNo : '--',
-      roomNo: hasFormation && room ? room.roomNo : '--',
-      formationCount,
-      memberCountText: `${formationCount}/16`,
-      maxMembers: 16,
-      modeLabel: this.deriveModeLabel(room),
-      modeText: this.deriveModeLabel(room),
-      phaseLabel,
-      stageText,
-      linkLabel,
-      linkText: this.deriveLinkLabel(hasFormation, state),
-      myPulse,
-      myPulseText: this.formatPulseValue(myPulse),
-      myPulseDisplay: this.formatPulseValue(myPulse),
-      selfPulseDisplay: this.formatPulseValue(myPulse),
-      myPulseTone: myPulse > 0 ? 'positive' : myPulse < 0 ? 'negative' : 'zero',
-      selfPulseClass: myPulse > 0 ? 'is-positive' : myPulse < 0 ? 'is-negative' : 'is-zero',
-      myCallSign: this.formatCallSign(selfMember.nickname || app.globalData.userInfo?.nickname || ''),
-      isOwner: !!this.data.isOwner,
-      roleLabel: this.data.isOwner ? '编队主控' : '编队成员',
-      externalShips,
-      transferCount: (this.data.scoreRecords || []).length,
-      totalPulse: this.data.pulseStats ? this.data.pulseStats.totalAmount : '0',
-      lastPulseText: lastTrace ? lastTrace.title : '等待更多脉冲写入',
-      lastPulseAmount: lastTrace ? lastTrace.valueText : '',
-      sparklinePoints,
-      hasTrajectory: sparklineSrc.length > 0
-    };
+    return buildCockpitViewModel({
+      currentRoom: this.data.currentRoom,
+      cockpitState: cockpitStateOverride || this.data.cockpitState,
+      memberGrid: memberGridOverride || this.data.memberGrid || [],
+      viewingRoom: this.data.viewingRoom,
+      myUserId: this.data.myUserId || app.globalData.userId || '',
+      userInfo: app.globalData.userInfo || {},
+      scoreMode: this.data.scoreMode,
+      isOwner: this.data.isOwner,
+      scoreRecords: this.data.scoreRecords || [],
+      pulseStats: this.data.pulseStats,
+      pulseTraces: this.data.pulseTraces || [],
+      traceChartSparkline: this.data.traceChartSparkline || [],
+      wsReconnecting: this.data.wsReconnecting,
+      wsConnected: this.data.wsConnected,
+      roundRecord: this.data.roundRecord,
+      shipNewMap: this.data.shipNewMap || {},
+      onlineUserMap: this.data.onlineUserMap || {},
+      hasPresenceSnapshot: !!this.data.hasPresenceSnapshot
+    });
   },
 
   syncCockpitView(memberGridOverride) {
@@ -482,78 +502,36 @@ Page(Object.assign(createPatchScheduler(), {
   },
 
   deriveFormationShips(members = [], selfId = '') {
-    const externalMembers = (members || [])
-      .filter(member => String(member.userId || member.id || '') !== String(selfId))
-      .slice(0, FORMATION_POSITIONS.length);
-    const count = externalMembers.length;
-    const layout = FORMATION_LAYOUTS[count] || FORMATION_POSITIONS.map(pos => ({
-      ...pos,
-      sizeClass: count <= 6 ? 'ship-craft--normal' : 'ship-craft--compact'
-    }));
-    const newMap = this.data.shipNewMap || {};
-    return externalMembers
-      .map((member, index) => {
-        const rawPos = layout[index] || { x: 50, y: 30, sizeClass: 'ship-craft--compact' };
-        const pos = clampFormationPosition(rawPos);
-        const rawPulse = member.displayScore !== undefined ? member.displayScore : member.score;
-        const pulse = Number(rawPulse || 0);
-        const uid = member.userId || member.id;
-        const presenceClass = member.presenceClass || this.getPresenceClass(uid, this.data.onlineUserMap || {}, !!this.data.hasPresenceSnapshot);
-        const callsign = this.formatCallSign(member.nickname);
-        const pulseClass = pulse > 0 ? 'is-positive' : pulse < 0 ? 'is-negative' : 'is-zero';
-        const pulseDisplay = this.formatPulseValue(pulse);
-        return {
-          userId: uid,
-          callSign: callsign,
-          callsign,
-          avatarUrl: member.avatarUrl || '',
-          avatarChar: getFirstChar(member.nickname || '?'),
-          pulse: pulseDisplay,
-          pulseDisplay,
-          pulseTone: pulse > 0 ? 'positive' : pulse < 0 ? 'negative' : 'zero',
-          pulseClass,
-          online: presenceClass !== 'offline',
-          presenceClass,
-          isNew: !!newMap[uid],
-          linkLabel: member.presenceLabel || this.getPresenceLabel(uid, this.data.onlineUserMap || {}, !!this.data.hasPresenceSnapshot),
-          roleLabel: member.isHost ? '主控' : '编队',
-          scaleClass: rawPos.sizeClass,
-          orbSizeClass: rawPos.sizeClass,
-          sizeClass: rawPos.sizeClass,
-          x: pos.x,
-          y: pos.y,
-          slotIndex: index + 1
-        };
-      });
+    return deriveFormationShipsModel(members, selfId, {
+      shipNewMap: this.data.shipNewMap || {},
+      onlineUserMap: this.data.onlineUserMap || {},
+      hasPresenceSnapshot: !!this.data.hasPresenceSnapshot,
+      myUserId: this.data.myUserId
+    });
   },
 
   deriveModeLabel(room) {
-    if (!room) return this.data.scoreMode === 2 ? '本局录入' : '自由流转';
-    return Number(room.scoreMode) === 2 ? '本局录入' : '自由流转';
+    return deriveModeLabelModel(room, this.data.scoreMode);
   },
 
   derivePhaseLabel(hasFormation, state) {
-    if (!hasFormation) return '待机';
-    if (state === 'sealing') return '封存中';
-    if (state === 'sealed') return '已封存';
-    return this.data.roundRecord ? '录入中' : '记录中';
+    return derivePhaseLabelModel(hasFormation, state, this.data.roundRecord);
   },
 
   deriveStageText(hasFormation, state) {
-    if (!hasFormation) return '编队记录中';
-    if (state === 'sealing' || state === 'sealed') return '航程已封存';
-    return '编队记录中';
+    return deriveStageTextModel(hasFormation, state);
   },
 
   deriveLinkLabel(hasFormation, state) {
-    if (!hasFormation) return '链路待接入';
-    if (this.data.wsReconnecting) return '通讯链路波动';
-    if (state === 'sealing') return '封存链路保持';
-    return this.data.wsConnected ? '通讯链路在线' : '通讯链路待接入';
+    return deriveLinkLabelModel(hasFormation, state, {
+      wsReconnecting: this.data.wsReconnecting,
+      wsConnected: this.data.wsConnected
+    });
   },
 
   shouldShowWsReconnect() {
     const room = this.data.currentRoom;
+    if (!this.data.pageVisible || app.globalData.activeTabKey !== 'cockpit') return false;
     if (!room || !this.data.viewingRoom) return false;
     if (this._suppressWsReconnect || this._settling || this.data.sealing) return false;
     if (this.data.cockpitState !== 'active') return false;
@@ -567,167 +545,38 @@ Page(Object.assign(createPatchScheduler(), {
   },
 
   buildSeatList(members = []) {
-    const onlineMap = this.data.onlineUserMap || {};
-    const hasPresenceSnapshot = !!this.data.hasPresenceSnapshot;
-    const safeMembers = (members || []).slice(0, 16).map(m => ({
-      userId: m.userId || m.id,
-      nickname: m.nickname,
-      avatarUrl: m.avatarUrl || '',
-      score: m.score || 0,
-      displayName: this.formatCrewName(m.nickname),
-      scoreText: this.formatPulseValue(m.displayScore !== undefined ? m.displayScore : m.score),
-      active: true,
-      seatKey: `crew-${m.userId || m.id}`,
-      isSelf: String(m.userId || m.id) === String(this.data.myUserId),
-      isHost: m.isHost || false,
-      presenceClass: this.getPresenceClass(m.userId || m.id, onlineMap, hasPresenceSnapshot),
-      presenceLabel: this.getPresenceLabel(m.userId || m.id, onlineMap, hasPresenceSnapshot)
-    }));
-    return safeMembers;
+    return buildSeatListModel(members, {
+      onlineUserMap: this.data.onlineUserMap || {},
+      hasPresenceSnapshot: !!this.data.hasPresenceSnapshot,
+      myUserId: this.data.myUserId
+    });
   },
 
   getPresenceClass(userId, onlineMap, hasPresenceSnapshot) {
-    const uid = String(userId || '');
-    if (!hasPresenceSnapshot) {
-      return uid === String(this.data.myUserId) ? 'online' : 'syncing';
-    }
-    return onlineMap[uid] ? 'online' : 'offline';
+    return getPresenceClassModel(userId, onlineMap, hasPresenceSnapshot, this.data.myUserId);
   },
 
   getPresenceLabel(userId, onlineMap, hasPresenceSnapshot) {
-    const uid = String(userId || '');
-    if (!hasPresenceSnapshot) {
-      return uid === String(this.data.myUserId) ? '链路在线' : '链路同步中';
-    }
-    return onlineMap[uid] ? '链路在线' : '链路离线';
+    return getPresenceLabelModel(userId, onlineMap, hasPresenceSnapshot, this.data.myUserId);
   },
 
   getSeatLayoutMode(count) {
-    if (count <= 1) return 'solo';
-    if (count === 2) return 'duo';
-    if (count <= 4) return 'compact';
-    if (count <= 8) return 'wide';
-    return 'matrix';
+    return getSeatLayoutModeModel(count);
   },
 
   formatCrewName(name = '') {
-    const text = String(name || '成员').trim();
-    return text.length > 6 ? text.slice(0, 6) : text;
+    return formatCrewNameModel(name);
   },
 
   formatCallSign(name = '') {
-    const text = String(name || '未命名').trim();
-    return text.length > 5 ? text.slice(0, 5) : text;
+    return formatCallSignModel(name);
   },
 
   formatPulseValue(value = 0) {
-    const num = Number(value || 0);
-    if (Math.abs(num) >= 100000) return `${(num / 10000).toFixed(1)}w`;
-    return `${num}`;
-  },
-
-  /** 校验当前是否可记录脉冲，返回 { ok, reason } */
-  canRecordPulse(targetUserId) {
-    const room = this.data.currentRoom;
-    if (!room) return { ok: false, reason: '编队链路已断开，请返回后重试' };
-    if (room.status === 2 || room.status === 'sealed') return { ok: false, reason: '航程已封存，无法继续记录' };
-    const selfId = String(this.data.myUserId || app.globalData.userId || '');
-    if (!targetUserId) return { ok: false, reason: '请选择目标航船' };
-    if (String(targetUserId) === selfId) return { ok: false, reason: '无需向自身流转脉冲' };
-    const target = this.data.memberGrid.find(m => String(m.userId) === String(targetUserId));
-    if (!target) return { ok: false, reason: '目标航船已断开' };
-    const ships = (this.data.cockpitView || {}).externalShips || [];
-    if (ships.length === 0) return { ok: false, reason: '暂无外部航船' };
-    return { ok: true };
-  },
-
-  /** 将后端错误映射为舰载终端文案 */
-  normalizeRoomActionError(err) {
-    const msg = (err && err.message) || '';
-    if (msg.includes('已封存') || msg.includes('已关闭') || msg.includes('不可重复')) return '航程已封存，无法继续记录';
-    if (msg.includes('不存在')) return '编队链路已断开，请返回后重试';
-    if (msg.includes('目标') && msg.includes('不存在')) return '目标航船已断开';
-    if (msg.includes('分值') || msg.includes('金额') || msg.includes('数值')) return '请输入脉冲数值';
-    if (msg.includes('网络') || msg.includes('timeout') || msg.includes('超时')) return '网络波动，请稍后重试';
-    return '记录失败，请稍后重试';
+    return formatPulseValueModel(value);
   },
 
   // ===== 驾驶舱交互 =====
-
-  handleStartSpace() {
-    if (this.data.launching) return;
-    vibrateShort('light');
-    this.setData({ launching: true, isLaunching: true, launchPhase: 'linking' });
-
-    // 启动过渡动画：linking → window → hud → 执行创建
-    const t1 = setTimeout(() => {
-      this.setData({ launchPhase: 'window' });
-    }, 400);
-    const t2 = setTimeout(() => {
-      this.setData({ launchPhase: 'hud' });
-    }, 800);
-    const t3 = setTimeout(() => {
-      this.updateCockpitState('connecting');
-      this.createRoom().then(() => {
-        this.setData({ launching: false, isLaunching: false, launchPhase: '' });
-        this.updateCockpitState('active');
-        this._markNewShips();
-      }).catch(() => {
-        this.setData({ launching: false, isLaunching: false, launchPhase: '' });
-        this.updateCockpitState('idle');
-      });
-    }, 1100);
-
-    this._transitionTimers = this._transitionTimers || [];
-    this._transitionTimers.push(t1, t2, t3);
-  },
-
-  openJoinPanel() {
-    this.setData({ joinPanelVisible: true, joinCode: '' });
-  },
-
-  closeJoinPanel() {
-    this.setData({ joinPanelVisible: false, joinCode: '' });
-  },
-
-  onJoinCodeInput(e) {
-    const value = String(e.detail.value || '')
-      .toUpperCase()
-      .replace(/[^A-Z0-9]/g, '')
-      .slice(0, 6);
-    this.setData({ joinCode: value });
-  },
-
-  async handleJoinSpace() {
-    const code = this.data.joinCode.trim();
-    if (!code || code.length < 6 || this.data.joining) return;
-    vibrateShort('light');
-    this.setData({ joining: true, isLaunching: true, launchPhase: 'linking' });
-
-    // 启动过渡动画
-    const t1 = setTimeout(() => {
-      this.setData({ launchPhase: 'window' });
-    }, 400);
-    const t2 = setTimeout(() => {
-      this.setData({ launchPhase: 'hud' });
-    }, 800);
-    const t3 = setTimeout(async () => {
-      this.closeJoinPanel();
-      this.updateCockpitState('connecting');
-      try {
-        await this.joinByRoomNo(code);
-        this.updateCockpitState('active');
-        this._markNewShips();
-      } catch (err) {
-        this.updateCockpitState('idle');
-      } finally {
-        this.setData({ joining: false, isLaunching: false, launchPhase: '' });
-      }
-    }, 1100);
-
-    this._transitionTimers = this._transitionTimers || [];
-    this._transitionTimers.push(t1, t2, t3);
-  },
 
   handleSelectCrew(e) {
     const userId = String(e.currentTarget.dataset.userId || '');
@@ -757,248 +606,18 @@ Page(Object.assign(createPatchScheduler(), {
     }, 600);
   },
 
-  focusFormationForPulse() {
-    const ships = this.data.cockpitView.externalShips || [];
-    if (!ships.length) {
-      this.showToast('暂无外部航船', 'error');
-      return;
-    }
-    if (ships.length === 1) {
-      this.openTransferPad(ships[0].userId);
-      return;
-    }
-    this.setData({ cockpitScrollTarget: 'formation-window' });
-    this.showToast('选择外部航船记录脉冲');
-  },
-
-  openPulseRecorder() {
-    const room = this.data.currentRoom;
-    if (room && Number(room.scoreMode) === 2) {
-      if (this.data.roundRecord) {
-        this.onRoundStatusTap();
-        return;
-      }
-      if (this.data.isOwner) {
-        this.startRound();
-        return;
-      }
-      this.showToast('等待主控录入');
-      return;
-    }
-    this.focusFormationForPulse();
-  },
-
   openBeacon() {
+    vibrateShort('light');
     this.openShareSheet();
-  },
-
-  handleSettle() {
-    if (this.data.isOwner) {
-      this.openSealConfirm();
-      return;
-    }
-    this.quitRoom();
   },
 
   goMirrorTrace() {
     wx.switchTab({ url: '/pages/mirror/index' });
   },
 
-  openTransferPad(userId) {
-    const targetId = String(userId || '');
-    if (!targetId) return;
-    const check = this.canRecordPulse(targetId);
-    if (!check.ok) {
-      this.showToast(check.reason, 'error');
-      return;
-    }
-    const info = this.data.memberGrid.find(m => String(m.userId) === targetId);
-    if (!info) return;
-    const fromInfo = this.data.memberGrid.find(m => String(m.userId) === String(app.globalData.userId));
+  goTrace() {
     vibrateShort('light');
-    this.setData({
-      selectedCrew: null,
-      cockpitScrollTarget: '',
-      pulseValue: '',
-      transferTo: targetId,
-      transferToInfo: info,
-      transferFromInfo: fromInfo || null,
-      showNumpad: true,
-      numpadValue: 0,
-      transferPreview: null
-    });
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (roomId) {
-      this.loadTransferAmountSuggestions(roomId);
-    }
-  },
-
-  onPulseValueInput(e) {
-    const value = String(e.detail.value || '').replace(/\D/g, '').slice(0, 7);
-    this.setData({ pulseValue: value });
-  },
-
-  tapPulsePreset(e) {
-    const value = Number(e.currentTarget.dataset.value || 0);
-    if (!value) return;
-    this.setData({ pulseValue: String(value) });
-    vibrateShort('light');
-  },
-
-  clearPulseValue() {
-    if (!this.data.pulseValue) return;
-    this.setData({ pulseValue: '' });
-    vibrateShort('light');
-  },
-
-  async handleSubmitPulse() {
-    if (!this.data.selectedCrew) {
-      this.showToast('请选择编队席位', 'error');
-      return;
-    }
-    const selfId = String(this.data.myUserId || app.globalData.userId || '');
-    const targetId = String(this.data.selectedCrew.userId || '');
-    if (targetId === selfId) {
-      wx.showToast({ title: '不能选择自身', icon: 'none' });
-      return;
-    }
-    const amount = parseInt(this.data.pulseValue, 10);
-    if (!amount || amount === 0) {
-      this.showToast('请输入脉冲值', 'error');
-      return;
-    }
-    if (this.data.submittingPulse) return;
-    this.setData({ submittingPulse: true, transferTo: targetId });
-    try {
-      await this.submitTransfer(amount);
-      const fromMember = this.data.memberGrid.find(m => String(m.userId) === selfId) || {};
-      this.addPulseTrace('我', this.data.selectedCrew.displayName, amount, {
-        fromAvatarUrl: fromMember.avatarUrl || '',
-        toAvatarUrl: this.data.selectedCrew.avatarUrl || ''
-      });
-      // 脉冲飞行动画
-      await this.playPulseFlightAnimation({
-        fromUserId: selfId,
-        toUserId: targetId,
-        value: amount
-      });
-      this.setData({ pulseValue: '' });
-    } catch (err) {
-      // submitTransfer 内部已有错误处理
-    } finally {
-      this.setData({ submittingPulse: false });
-    }
-  },
-
-  openSealConfirm() {
-    this.setData({ sealConfirmVisible: true });
-  },
-
-  closeSealConfirm() {
-    this.setData({ sealConfirmVisible: false });
-  },
-
-  async handleSealRoom() {
-    if (this.data.sealing) return;
-    this.closeSealConfirm();
-
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (!roomId) {
-      this.showToast('编队信息缺失', 'error');
-      return;
-    }
-
-    // 非房主不能封存，走退出流程
-    if (!this.data.isOwner) {
-      this.quitRoom();
-      return;
-    }
-
-    this.setData({ sealing: true, cockpitState: 'sealing' });
-    this.startSealHeartbeat();
-
-    try {
-      const settleResp = await scoreService.settleRoom(roomId);
-      this._settling = true;
-      this.suppressWsReconnect();
-      app.disconnectWS();
-      this._settling = false;
-
-      this.stopSealHeartbeat();
-      this.setData({ sealing: false, cockpitState: 'active' });
-
-      const hasData = settleResp && (
-        (settleResp.timestamps && settleResp.timestamps.length > 0) ||
-        (settleResp.series && settleResp.series.some(s => s.scores && s.scores.length > 0))
-      );
-
-      if (hasData) {
-        this.showSettleFromResp(settleResp);
-      } else {
-        this.setData({
-          currentRoom: null,
-          viewingRoom: false,
-          ranking: [],
-          scoreRecords: [],
-          memberGrid: [],
-          seatList: [],
-          matrixData: [],
-          relationMap: {},
-          matrixChartData: null,
-          matrixChartRoomId: '',
-          roundRecord: null,
-          canSealRoom: false,
-          showHostFill: false,
-          showMemberFill: false,
-          showRoundConfirm: false,
-          showRejectConfirm: false,
-          wsReconnecting: false,
-          wsConnected: false
-        });
-        this.updateCockpitState();
-        wx.showToast({ title: '编队已关闭', icon: 'none', duration: 2000 });
-      }
-
-    } catch (err) {
-      this.stopSealHeartbeat();
-      this.setData({ sealing: false, cockpitState: 'active' });
-      const msg = err.message || '封存失败，请重试';
-      // 编队已封存/已关闭时，清理本地状态回到待机
-      if (msg.includes('已封存') || msg.includes('已关闭') || msg.includes('不可重复') || msg.includes('不存在')) {
-        this.setData({
-          currentRoom: null,
-          viewingRoom: false,
-          ranking: [],
-          scoreRecords: [],
-          memberGrid: [],
-          seatList: [],
-          matrixData: [],
-          relationMap: {},
-          matrixChartData: null,
-          matrixChartRoomId: '',
-          roundRecord: null,
-          canSealRoom: false,
-          showHostFill: false,
-          showMemberFill: false,
-          showRoundConfirm: false,
-          showRejectConfirm: false,
-          wsReconnecting: false,
-          wsConnected: false
-        });
-        this.updateCockpitState();
-        wx.showToast({ title: '航程已封存', icon: 'none', duration: 2000 });
-      } else {
-        wx.showToast({ title: msg, icon: 'none' });
-      }
-    }
-  },
-
-  startSealHeartbeat() {
-    this.setData({ sealHeartbeatText: '航迹档案写入中' });
-  },
-
-  stopSealHeartbeat() {
-    this._sealHeartbeatTimer = null;
+    this.openMatrixPanel();
   },
 
   /** 添加脉冲轨迹，自动截断旧记录并设置 isNew 标记 */
@@ -1007,6 +626,9 @@ Page(Object.assign(createPatchScheduler(), {
     const traces = this.data.pulseTraces.slice();
     this._traceSeq = (this._traceSeq || 0) + 1;
     const id = this._traceSeq;
+    // 判断是否是当前用户发起的脉冲
+    const myId = String(app.globalData.userId || '');
+    const isMine = extra.fromUserId ? String(extra.fromUserId) === myId : fromName === '我';
     traces.push({
       id,
       title: `${fromName} → ${toName}`,
@@ -1019,6 +641,7 @@ Page(Object.assign(createPatchScheduler(), {
       timeFormatted: '刚刚',
       valueText: `${amount}`,
       valueClass: amount < 0 ? 'is-negative' : '',
+      isMine,
       isNew: true
     });
     if (traces.length > MAX_TRACES) traces.splice(0, traces.length - MAX_TRACES);
@@ -1028,13 +651,12 @@ Page(Object.assign(createPatchScheduler(), {
       filteredPulseTraces,
       traceAnchor: `trace-${id}`
     });
-    const clearNewTimer = setTimeout(() => {
+    setTimeout(() => {
       const current = this.data.pulseTraces.map(t =>
         t.id === id ? { ...t, isNew: false } : t
       );
       this.setData({ pulseTraces: current });
     }, 3000);
-    this.addPageTimer(clearNewTimer);
     this.updateCanSealRoom();
   },
 
@@ -1044,26 +666,6 @@ Page(Object.assign(createPatchScheduler(), {
     const hasRecords = this.data.scoreRecords.length > 0;
     const hasRound = this.data.roundRecord && this.data.roundRecord.status === 'applied';
     this.setData({ canSealRoom: hasTraces || hasRecords || hasRound });
-  },
-
-  /** 页面级定时器管理，onHide/onUnload 统一清理 */
-  addPageTimer(timer) {
-    if (!this._pageTimers) this._pageTimers = [];
-    this._pageTimers.push(timer);
-  },
-
-  clearPageTimers() {
-    if (this._pageTimers) {
-      this._pageTimers.forEach(t => clearTimeout(t));
-      this._pageTimers = [];
-    }
-  },
-
-  _clearTransitionTimers() {
-    if (this._transitionTimers) {
-      this._transitionTimers.forEach(t => clearTimeout(t));
-      this._transitionTimers = [];
-    }
   },
 
   /** 脉冲飞行动画：从自己席位飞向目标席位 */
@@ -1107,14 +709,13 @@ Page(Object.assign(createPatchScheduler(), {
             }
           });
 
-          const timer = setTimeout(() => {
+          setTimeout(() => {
             this.setData({
               pulseFlight: { visible: false, fromX: 0, fromY: 0, dx: 0, dy: 0, value: '' }
             });
             this.flashTargetSeat(toUserId);
             resolve();
           }, 760);
-          this.addPageTimer(timer);
         });
     });
   },
@@ -1123,10 +724,9 @@ Page(Object.assign(createPatchScheduler(), {
   flashTargetSeat(userId) {
     this.setData({ impactCrewId: String(userId) });
     this.refreshSeatLayoutWithImpact(userId);
-    const timer = setTimeout(() => {
+    setTimeout(() => {
       this.setData({ impactCrewId: null });
     }, 300);
-    this.addPageTimer(timer);
   },
 
   /** 带 impact 标记的席位列表 */
@@ -1159,14 +759,62 @@ Page(Object.assign(createPatchScheduler(), {
 
   // ========== 编队加载 ==========
 
+  /** 重新编译后从本地存储恢复房间状态 */
+  async restoreRoom(roomId) {
+    try {
+      const room = await roomService.getRoomDetail(roomId);
+      if (!room) {
+        wx.removeStorageSync('currentRoomId');
+        this.loadMyRooms();
+        this.loadRecentRooms();
+        return;
+      }
+      // 保存房间ID到本地存储
+      wx.setStorageSync('currentRoomId', room.roomId);
+      this.setData({
+        currentRoom: room,
+        viewingRoom: true,
+        isOwner: String(room.ownerId) === String(app.globalData.userId)
+      });
+      this.enrichMembers(room);
+      this.loadRoomData(room.roomId);
+      this.connectWS(room.roomId);
+      this.updateCockpitState();
+      if (room.scoreMode === 2) {
+        this.loadPendingRound(room.roomId);
+      }
+    } catch (e) {
+      console.error('[restoreRoom] 恢复房间失败', e);
+      // 检查是否是空间不存在错误
+      if (e && (e.message === '空间不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        this.handleRoomNotFoundError(e);
+      } else {
+        wx.removeStorageSync('currentRoomId');
+        this.loadMyRooms();
+        this.loadRecentRooms();
+      }
+    }
+  },
+
   async loadMyRooms() {
     // 结算弹层展示中，忽略编队列表刷新（避免覆盖结算状态）
     if (this._showingSettle) return;
     this.setData({ loading: true });
+
+    // 6s 超时保护：防止 loading 永久卡住
+    if (this._loadRoomsTimer) clearTimeout(this._loadRoomsTimer);
+    this._loadRoomsTimer = setTimeout(() => {
+      if (this.data.loading) {
+        this.setData({ loading: false });
+      }
+    }, 6000);
+
     try {
       const rooms = await roomService.getMyRooms();
       if (rooms && rooms.length > 0) {
         const room = rooms[0];
+        // 保存房间ID到本地存储
+        wx.setStorageSync('currentRoomId', room.roomId);
         this.setData({
           currentRoom: room,
           viewingRoom: true,
@@ -1180,6 +828,8 @@ Page(Object.assign(createPatchScheduler(), {
           this.loadPendingRound(room.roomId);
         }
       } else {
+        // 没有房间时，清理本地存储
+        wx.removeStorageSync('currentRoomId');
         this.setData({
           currentRoom: null,
           viewingRoom: false,
@@ -1199,7 +849,15 @@ Page(Object.assign(createPatchScheduler(), {
       }
     } catch (e) {
       console.error('加载编队失败', e);
+      // 检查是否是空间不存在错误
+      if (e && (e.message === '空间不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        this.handleRoomNotFoundError(e);
+      }
     } finally {
+      if (this._loadRoomsTimer) {
+        clearTimeout(this._loadRoomsTimer);
+        this._loadRoomsTimer = null;
+      }
       this.setData({ loading: false });
     }
   },
@@ -1213,6 +871,33 @@ Page(Object.assign(createPatchScheduler(), {
     this.setData({ currentRoom: room });
     this._cellRectsCache = null;
     this.buildMemberGrid();
+
+    // 异步解析 cloud:// 头像为 https 临时 URL
+    this._resolveCloudAvatars(room);
+  },
+
+  /** 批量解析 cloud:// 格式的成员头像 */
+  async _resolveCloudAvatars(room) {
+    if (!room || !room.members) return;
+    const cloudUrls = room.members
+      .map(m => m.avatarUrl)
+      .filter(u => u && u.startsWith('cloud://'));
+    if (cloudUrls.length === 0) return;
+
+    try {
+      const resolved = await resolveAvatarSrcBatch(cloudUrls);
+      const members = this.data.currentRoom.members.map(m => {
+        if (m.avatarUrl && resolved[m.avatarUrl]) {
+          return { ...m, avatarUrl: resolved[m.avatarUrl] };
+        }
+        return m;
+      });
+      this.setData({ 'currentRoom.members': members });
+      this._cellRectsCache = null;
+      this.buildMemberGrid();
+    } catch (e) {
+      // 解析失败不阻塞，回退为首字头像
+    }
   },
 
   buildMemberGrid() {
@@ -1284,6 +969,22 @@ Page(Object.assign(createPatchScheduler(), {
     this.loadTransferAmountSuggestions(roomId);
   },
 
+  /** 重连后主动拉取最新状态，恢复编队数据 */
+  async refreshRoomState() {
+    const room = this.data.currentRoom;
+    if (!room || !room.roomId) return;
+    try {
+      await this.loadRoomData(room.roomId);
+      this.buildMemberGrid();
+    } catch (e) {
+      // 检查是否是空间不存在错误
+      if (e && (e.message === '空间不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        this.handleRoomNotFoundError(e);
+      }
+      // 其他错误静默失败，WS 已重连，后续消息会继续同步
+    }
+  },
+
   async loadInsightData(roomId) {
     try {
       const insight = await scoreService.getRoomInsight(roomId);
@@ -1326,6 +1027,13 @@ Page(Object.assign(createPatchScheduler(), {
       this.buildMemberGrid();
     } catch (e) {
       console.error('加载排行榜失败', e);
+      // 检查是否是空间不存在错误
+      if (e && (e.message === '空间不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        this.handleRoomNotFoundError(e);
+        throw e; // 重新抛出错误，让调用者知道
+      } else {
+        showError('加载排行榜失败');
+      }
     }
   },
 
@@ -1450,6 +1158,13 @@ Page(Object.assign(createPatchScheduler(), {
       this.updateCanSealRoom();
     } catch (e) {
       console.error('加载脉冲记录失败', e);
+      // 检查是否是空间不存在错误
+      if (e && (e.message === '空间不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        this.handleRoomNotFoundError(e);
+        throw e; // 重新抛出错误，让调用者知道
+      } else {
+        showError('加载脉冲记录失败');
+      }
     }
   },
 
@@ -1636,6 +1351,7 @@ Page(Object.assign(createPatchScheduler(), {
   },
 
   goPulseTrajectory() {
+    vibrateShort('light');
     if (!this.data.scoreRecords.length) {
       this.showToast('等待更多脉冲写入');
       return;
@@ -1724,7 +1440,6 @@ Page(Object.assign(createPatchScheduler(), {
       this._matrixChartTimer = null;
       this.loadMatrixChart(roomId);
     }, 260);
-    this.addPageTimer(this._matrixChartTimer);
   },
 
   async loadMatrixChart(roomId) {
@@ -1931,6 +1646,7 @@ Page(Object.assign(createPatchScheduler(), {
         const toMember = (this.data.currentRoom.members || []).find(m => String(m.userId) === String(data.toUserId));
         if (fromMember && toMember) {
           this.addPulseTrace(this.formatCrewName(fromMember.nickname), this.formatCrewName(toMember.nickname), data.amount, {
+            fromUserId: data.fromUserId,
             fromAvatarUrl: fromMember.avatarUrl || '',
             toAvatarUrl: toMember.avatarUrl || ''
           });
@@ -2152,6 +1868,7 @@ Page(Object.assign(createPatchScheduler(), {
       const room = await roomService.createRoom(payload);
       this.resetJoinState();
       this.setData({ currentRoom: room, viewingRoom: true, isOwner: true });
+      wx.setStorageSync('currentRoomId', room.roomId);
       await this.reloadRoomInfo(room.roomId);
       this.loadRoomData(room.roomId);
       this.connectWS(room.roomId);
@@ -2184,6 +1901,7 @@ Page(Object.assign(createPatchScheduler(), {
         isOwner: String(room.ownerId) === String(app.globalData.userId)
       });
       this.resetJoinState();
+      wx.setStorageSync('currentRoomId', room.roomId);
       this.saveRecentRoom(roomNo, room.scoreMode);
       // 先加载排名数据（含成员信息），再构建成员网格，避免 0 分闪烁
       await this.loadRoomData(room.roomId);
@@ -2240,12 +1958,9 @@ Page(Object.assign(createPatchScheduler(), {
       transferFromInfo: fromInfo || null,
       showNumpad: true,
       numpadValue: 0,
-      transferPreview: null
+      transferPreview: null,
+      isInputOpen: true
     });
-    const roomId = this.data.currentRoom && this.data.currentRoom.roomId;
-    if (roomId) {
-      this.loadTransferAmountSuggestions(roomId);
-    }
   },
 
   buildTransferPreview(val) {
@@ -2268,19 +1983,10 @@ Page(Object.assign(createPatchScheduler(), {
     const key = e.currentTarget.dataset.key;
     let val = this.data.numpadValue;
     const str = String(val);
-
-    if (key === 'clear') {
-      val = 0;
-    } else if (key === 'del') {
-      const sliced = str.slice(0, -1);
-      val = parseInt(sliced) || 0;
-    } else {
-      const newVal = str === '0' ? key : str + key;
-      if (newVal.length > 8) return;
-      val = parseInt(newVal);
-      if (val > 99999999) val = 99999999;
-    }
-
+    const newVal = str === '0' ? key : str + key;
+    if (newVal.length > 8) return;
+    val = parseInt(newVal);
+    if (val > 99999999) val = 99999999;
     this.setData({ numpadValue: val, transferPreview: this.buildTransferPreview(val) });
   },
 
@@ -2308,8 +2014,23 @@ Page(Object.assign(createPatchScheduler(), {
       wx.showToast({ title: '请选择接收航船', icon: 'none' });
       return;
     }
-    this.setData({ showNumpad: false });
+    this.setData({ showNumpad: false, isInputOpen: false });
     this.submitTransfer(amount);
+  },
+
+  /** 键盘统一点击事件处理 */
+  onTransferKeyTap(e) {
+    const type = e.currentTarget.dataset.type;
+    const value = e.currentTarget.dataset.value;
+    
+    if (type === 'number') {
+      // 构造事件对象，调用现有的 onNumpadKey
+      this.onNumpadKey({ currentTarget: { dataset: { key: String(value) } } });
+    } else if (type === 'close') {
+      this.cancelTransfer();
+    } else if (type === 'submit') {
+      this.confirmNumpad();
+    }
   },
 
   closeNumpad() {
@@ -2325,7 +2046,8 @@ Page(Object.assign(createPatchScheduler(), {
       transferFromInfo: null,
       transferPreview: null,
       showNumpad: false,
-      numpadValue: 0
+      numpadValue: 0,
+      isInputOpen: false
     });
   },
 
@@ -2558,11 +2280,80 @@ Page(Object.assign(createPatchScheduler(), {
   // ========== 退出/解散 ==========
 
   copyRoomNo() {
+    vibrateShort('light');
     if (!this.data.currentRoom) return;
     wx.setClipboardData({
       data: this.data.currentRoom.roomNo,
       success: () => this.showToast('编队码已复制')
     });
+  },
+
+  confirmLeaveOrDisband() {
+    if (this.data.submitting) return;
+    const room = this.data.currentRoom;
+    if (!room) return;
+
+    this.setData({ submitting: true, leaveConfirmVisible: false });
+    const isOwner = this.data.isOwner;
+    
+    const doDisband = () => {
+      wx.showLoading({ title: '正在解散...' });
+      return roomService.disbandRoom(room.roomId).then(resp => {
+        wx.hideLoading();
+        this.onDisbandSuccess(resp);
+      }).catch(err => {
+        wx.hideLoading();
+        this.onDisbandFail(err);
+      }).finally(() => {
+        this.setData({ submitting: false });
+      });
+    };
+
+    const doLeave = () => {
+      return roomService.leaveRoom(room.roomId).then(() => {
+        this.onLeaveSuccess();
+      }).catch(err => {
+        this.onLeaveFail(err);
+      }).finally(() => {
+        this.setData({ submitting: false });
+      });
+    };
+
+    if (isOwner) {
+      doDisband();
+    } else {
+      doLeave();
+    }
+  },
+
+  onDisbandSuccess(resp) {
+    wx.removeStorageSync('currentRoomId');
+    wx.showToast({ title: '编队已解散', icon: 'success' });
+    this.setData({
+      currentRoom: null,
+      viewingRoom: false,
+      cockpitState: 'idle'
+    });
+    this.updateCockpitState();
+  },
+
+  onDisbandFail(err) {
+    wx.showToast({ title: err.message || '解散失败', icon: 'none' });
+  },
+
+  onLeaveSuccess() {
+    wx.removeStorageSync('currentRoomId');
+    wx.showToast({ title: '已撤离编队', icon: 'success' });
+    this.setData({
+      currentRoom: null,
+      viewingRoom: false,
+      cockpitState: 'idle'
+    });
+    this.updateCockpitState();
+  },
+
+  onLeaveFail(err) {
+    wx.showToast({ title: err.message || '撤离失败', icon: 'none' });
   },
 
   // ========== 分享面板 ==========
@@ -2699,11 +2490,6 @@ Page(Object.assign(createPatchScheduler(), {
 
   async quitRoom() {
     const isOwner = this.data.isOwner;
-    // 非房主退出需要确认（房主已通过 SYSTEM WARNING 弹窗确认）
-    if (!isOwner) {
-      const { confirm } = await wx.showModal({ title: '确认退出当前编队？', content: '' });
-      if (!confirm) return;
-    }
     const roomId = this.data.currentRoom.roomId;
     try {
       if (isOwner) {
@@ -2746,12 +2532,14 @@ Page(Object.assign(createPatchScheduler(), {
             wsReconnecting: false,
             wsConnected: false
           });
+          wx.removeStorageSync('currentRoomId');
           wx.showToast({ title: '编队已关闭', icon: 'none', duration: 2000 });
         }
       } else {
         await roomService.quitRoom(roomId);
         this.suppressWsReconnect();
         app.disconnectWS();
+        wx.removeStorageSync('currentRoomId');
         this.setData({
           currentRoom: null,
           viewingRoom: false,
@@ -2781,6 +2569,7 @@ Page(Object.assign(createPatchScheduler(), {
       const msg = e.message || '操作失败';
       // 编队已封存/已关闭时，清理本地状态回到待机
       if (msg.includes('已封存') || msg.includes('已关闭') || msg.includes('不可重复') || msg.includes('不存在')) {
+        wx.removeStorageSync('currentRoomId');
         this.setData({
           currentRoom: null,
           viewingRoom: false,
@@ -2934,6 +2723,55 @@ Page(Object.assign(createPatchScheduler(), {
     } catch (e) {
       console.error('加载结算数据失败', e);
     }
+  },
+
+  /** 处理空间不存在错误，自动退出房间 */
+  handleRoomNotFoundError(error) {
+    console.warn('[room] 空间不存在，自动退出', error);
+    // 清理本地存储
+    wx.removeStorageSync('currentRoomId');
+    // 断开WebSocket
+    this.suppressWsReconnect();
+    if (getApp()) {
+      getApp().disconnectWS();
+    }
+    // 清理房间状态
+    this.setData({
+      currentRoom: null,
+      viewingRoom: false,
+      isOwner: false,
+      ranking: [],
+      scoreRecords: [],
+      memberGrid: [],
+      seatList: [],
+      matrixData: [],
+      relationMap: {},
+      matrixChartData: null,
+      matrixChartRoomId: '',
+      roundRecord: null,
+      showHostFill: false,
+      showMemberFill: false,
+      showRoundConfirm: false,
+      showRejectConfirm: false,
+      wsReconnecting: false,
+      wsConnected: false,
+      cockpitState: 'idle',
+      selectedCrew: null,
+      cockpitScrollTarget: '',
+      pulseValue: '',
+      pulseTraces: [],
+      showSettleOverlay: false
+    });
+    this.updateCockpitState();
+    // 显示提示
+    wx.showToast({
+      title: '空间不存在，已自动退出',
+      icon: 'none',
+      duration: 2000
+    });
+    // 重新加载房间列表
+    this.loadMyRooms();
+    this.loadRecentRooms();
   },
 
   /** 关闭结算弹层，回到编队待机 */
@@ -3208,6 +3046,23 @@ Page(Object.assign(createPatchScheduler(), {
       return m;
     });
     this.setData({ memberGrid: grid });
+  },
+
+  onHudAvatarError(e) {
+    const userId = e.currentTarget.dataset.userId;
+    if (!userId) return;
+    // 更新 externalShips 中的 avatarUrl 为空，触发首字徽标
+    const ships = (this.data.cockpitView.externalShips || []).map(s => {
+      if (String(s.userId) === String(userId)) {
+        return { ...s, avatarUrl: '' };
+      }
+      return s;
+    });
+    if (ships.length) {
+      this.setData({ 'cockpitView.externalShips': ships });
+    }
+    // 同时更新 memberGrid 兜底
+    this.onAvatarError(e);
   },
 
   // ========== 工具函数 ==========

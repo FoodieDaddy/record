@@ -1,5 +1,6 @@
 package com.smartrecord.util;
 
+import com.smartrecord.config.SnowflakeProperties;
 import org.springframework.stereotype.Component;
 
 import java.net.InetAddress;
@@ -34,9 +35,20 @@ public class SnowflakeIdGenerator {
     private volatile long lastTimestamp = -1L;
     private final ReentrantLock lock = new ReentrantLock();
 
-    public SnowflakeIdGenerator() {
-        this.dataCenterId = getDataCenterId();
-        this.workerId = getWorkerId();
+    public SnowflakeIdGenerator(SnowflakeProperties properties) {
+        // 通过环境变量判断是否为 prod（@Value 在构造函数执行时还未注入）
+        String profile = System.getenv("SPRING_PROFILES_ACTIVE");
+        boolean isProd = "prod".equals(profile);
+
+        if (properties.getDataCenterId() != null && properties.getWorkerId() != null) {
+            this.dataCenterId = properties.getDataCenterId();
+            this.workerId = properties.getWorkerId();
+        } else if (isProd) {
+            throw new IllegalArgumentException("Prod环境必须显式配置app.snowflake.data-center-id和app.snowflake.worker-id");
+        } else {
+            this.dataCenterId = getDataCenterId();
+            this.workerId = getWorkerId();
+        }
     }
 
     public long nextId() {

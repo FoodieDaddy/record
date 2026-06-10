@@ -20,7 +20,7 @@
   ],
   "window": {
     "navigationBarBackgroundColor": "#0a0a0a",
-    "navigationBarTitleText": "脉冲终端",
+    "navigationBarTitleText": "太空记分器",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#0a0a0a",
     "backgroundTextStyle": "light"
@@ -34,19 +34,19 @@
     "list": [
       {
         "pagePath": "pages/room/room",
-        "text": "编队"
+        "text": ""
       },
       {
         "pagePath": "pages/fortune/fortune",
-        "text": "指令"
+        "text": ""
       },
       {
         "pagePath": "pages/mirror/index",
-        "text": "镜像"
+        "text": ""
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "身份"
+        "text": ""
       }
     ]
   },

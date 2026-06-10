@@ -3,6 +3,6 @@
   "enablePullDownRefresh": true,
   "backgroundTextStyle": "dark",
   "usingComponents": {
-    "helmet-avatar": "/components/helmet-avatar/index"
+    "helmet-avatar": "/components/helmet-avatar/helmet-avatar"
   }
 }

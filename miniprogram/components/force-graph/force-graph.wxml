@@ -1,4 +1,0 @@
-<canvas type="2d" id="forceGraphCanvas" class="force-graph-canvas"
-  style="width:{{width}}px;height:{{height}}px;"
-  bindtouchstart="onTouchStart">
-</canvas>

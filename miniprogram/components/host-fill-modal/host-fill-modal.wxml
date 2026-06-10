@@ -13,6 +13,7 @@
         <input
           class="score-input"
           type="number"
+          adjust-position="{{false}}"
           placeholder="0"
           value="{{scoreInputs[item.userId]}}"
           data-user-id="{{item.userId}}"

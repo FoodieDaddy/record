@@ -8,7 +8,7 @@ public interface UserService {
 
     UserInfoResp getUserInfo(Long userId);
 
-    void updateUserInfo(Long userId, String nickname, String avatarUrl);
+    void updateUserInfo(Long userId, UpdateUserReq req);
 
     UserDetailResp getUserDetail(Long userId);
 

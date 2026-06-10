@@ -2,11 +2,38 @@
 
 ## 当前理解
 
-- Redis 成员模型已从单一 `meta` Hash 拆分为 `members:active`（实时成员）+ `members:archive`（归档快照）双 Hash，兼容旧 `meta` 降级读取。
+- Redis key 已完成整合：编队从 13 key 收敛到 6（`data` Hash 含成员 `a:`/`r:` 前缀、轮次 `round:` 前缀、overview、qr 等字段；`scores`/`events` ZSet；`round:data` Hash；`transfer:amount` ZSet；`room_no` String），用户从 3 key 收敛到 1（`sr:user:{uid}` Hash 含 `info`/`mirror:profile`/`mirror:stats` 字段），总 key 模式从 22 种降到 13 种。
 - 编队页 active 首屏已改为 `cockpit-shell-v2` 一屏驾驶舱，舷窗、驾驶台、终端屏和航程控制压缩到一个首屏主壳内。
+- 驾驶舱控制台已重构为三层座舱结构（console-bridge + console-panel + console-danger-strip），按钮从 cockpit-switch 改为 flight-key 三层实体按键（slot 凹槽 + body 按键面 + side 厚度边），分组为信标控制（1.15fr/0.85fr 不等宽）和脉冲控制，封存航程改为安全锁条，HUD 舷窗有 cockpit-frame 舱体包围和 cockpit-canopy-arc 弧形玻璃，padding-bottom 320rpx 防遮挡。
 - 后端编译通过，前端语法检查通过。
 - 已修复两个用户反馈问题：中途退出成员黑匣子缺失、旧封存空间影响新房间创建/加入。
 - Phase 1 安全修复已完成：WebSocket roomId 校验、读端点鉴权、presign 鉴权、密钥清理、请求追踪。
+- 本轮前端集中修复已完成代码侧调整：统一底部安全区 token、登录接入文案、编队页页面级遮罩清理、全息舱校准覆盖层、识别舱底部抽屉/识别徽标入口和底部 Dock 避让。
+- 编队页拆分 Phase A/B 已完成：`room.wxss` 拆为同序 styles imports，`room-view-model.js` 抽出驾驶舱展示态和格式化纯逻辑。
+- 仍需微信开发者工具或真机复核：不同机型安全区、校准流程按钮可点性、音色抽屉覆盖、识别徽标微信授权入口和创建编队慢请求状态。
+- 世界观已从"多人积分记录工具"收敛为"深空任务航程记录系统"：脉冲是任务读数（不是战斗伤害或输赢），编队是临时航行单元（不是普通房间），脉冲记录协议分四类（脉冲流向和航段写入已实现，自航推进和主控同步未实现），封存航程与解散编队已明确区分。
+- 产品命名已定稿：太空记分器 / Space Scorekeeper（工程代号 smartrecord），世界观名为太空方舟。Smart Record 和脉冲终端不再作为用户可见主品牌。
+
+## Redis key 结构整合与 dissolveRoom 修复（2026-06-10） ✅
+
+- ✅ 编队 key 从 13 个收敛到 6 个：meta/members:active/members:archive/roundConfig/qr 合并到 dataKey Hash 字段，transfer:amount 的 user 和 all 合并到单 ZSet。
+- ✅ 用户 key 从 3 个收敛到 1 个：user info/mirror:profile/mirror:stats 合并到 `sr:user:{uid}` Hash。
+- ✅ 所有 Service/Task/WebSocket/Guard 适配新结构（RoomServiceImpl/ScoreServiceImpl/RoundRecordServiceImpl/OverviewServiceImpl/CacheWarmUpRunner/RoomAccessGuard/ScoreWebSocket/UserServiceImpl/AsyncTaskScheduler/MirrorProfileServiceImpl/MirrorStatsServiceImpl）。
+- ✅ `dissolveRoom` 新增成员记录更新：quit_time=now()、final_score=0。
+- ✅ 数据库回填 17 条归档房间成员记录。
+- ✅ 全量编译通过。
+- ✅ 文档同步更新（CHANGELOG / DEVELOPMENT_LOG / ARCHITECTURE / PLAN）。
+
+## 编队页 active 态 AR 悬浮按钮与脉冲写入面板重构（2026-06-10） ✅
+
+- ✅ HUD 下方「信标 / 航迹」按钮从实体 3D 按键重构为 AR 悬浮操作面板（`ar-action-row` / `ar-action-pad`）：半透明全息面板、青蓝切角描边、纯 CSS 图标、能量线、状态点。
+- ✅ 脉冲流向数字输入面板修复：宽度从固定 520rpx 改为 `calc(100vw - 96rpx)` / max 620rpx；遮罩从全屏死黑改为局部径向暗化 0.42；底部间距调整为 `calc(170rpx + env(safe-area-inset-bottom))`。
+- ✅ 脉冲面板新增扫描线和四角 HUD 装饰，改为深黑蓝半透明 AR 面板风格。
+- ✅ 移除推荐数值 API 调用（`loadTransferAmountSuggestions`），脉冲面板仅保留目标锁定条 + 数字键盘 + 关闭/发射按钮。
+- ✅ JS 语法检查通过、禁词扫描通过（均为注释或内部字段）、动效扫描通过（无 transition: all / setInterval / requestAnimationFrame）。
+- ✅ 文档同步更新（CHANGELOG / DEVELOPMENT_LOG / PLAN）。
+- ⬜ 微信开发者工具编译验证。
+- ⬜ 真机验证：AR 按钮悬浮感、脉冲面板完整显示、遮罩透明度、底部 Dock 不遮挡。
 
 ## 下一轮目标
 
@@ -17,6 +44,12 @@ Phase 1 (安全) ✅ -> Phase 2 (性能) + Phase 5 (API) ✅ -> Phase 3 (动画)
 ```
 
 Phase 6 子包拆分完成：主包 5 页（login/room/fortune/mirror/profile），子包 `pages-ext` 5 页（settings/voice-select/settle/score-records/level-archive）。
+
+下一步：
+
+- 继续统一运行时页面文案、登录页、分享卡、海报标识和小程序配置，把「房间」「转积分」「积分」「加分」「扣分」「结算」等旧词替换为「编队」「脉冲流向」「脉冲」「写入脉冲」「释放脉冲」「封存航程」等推荐表达。
+- 决定是否实现自航推进和主控同步的后端能力——当前代码未实现，不要在文档、注释或提交说明中写成已实现。
+- 不要把未实现能力写成已完成。
 
 ## Phase 1 安全修复（2026-06-09） ✅
 
@@ -318,6 +351,31 @@ Phase 6 子包拆分完成：主包 5 页（login/room/fortune/mirror/profile）
 - ✅ 雷达组件新增 `locked` 独立观察者和 `_redraw()` 方法，确保 `locked` 属性变更触发重绘。
 - ✅ 雷达组件 `_drawLabels` 新增 `locked=true` 日志。
 - ⬜ 微信开发者工具 / 真机验收：身份条可见性、头像 fallback、校准步骤进度、雷达锁定态 "--" 显示。
+
+## 可靠性改造（2026-06-09） ✅
+
+- ✅ P0: API 契约文档 code=200 与代码一致。
+- ✅ P1: Snowflake ID 生成器支持环境变量配置，prod 未配置时启动失败。
+- ✅ P1: 核心写接口幂等性 — `@Idempotent` 注解 + Redis SETNX + `clientRequestId` 去重。
+- ✅ P1: 异步任务持久化 — `async_task` 表 + 定时调度器 + 指数退避重试。
+- ✅ P2: Flyway 数据库迁移工具集成，V1 初始表 + V2 异步任务表。
+- ✅ P2: 生产配置 fail-fast，9 项关键配置启动校验。
+- ✅ P2: WebSocket 消息信封（messageId/serverTime）+ 重连状态恢复。
+- ✅ P2: 后端核心测试 10 个（Snowflake 5 + RoomService 2 + ScoreService 3）。
+
+## CloudBase / AnyService 接入（2026-06-09） 🔄
+
+- ✅ `config/env.js` 创建，支持 local/anyservice/prod 三种模式。
+- ✅ `config.js` 改造，集成 env.js 并保持向后兼容（baseUrl/wsUrl + mode/timeout/anyservice）。
+- ✅ `app.js` 按需初始化 CloudBase（仅 anyservice 模式）。
+- ✅ `request.js` 支持三种模式：local/prod 走 wx.request，anyservice 走 wx.cloud.callContainer。
+- ✅ `score-ws.js` 改用 config.getWsUrl()，支持环境切换。
+- ✅ `storage-client.js` 创建，默认 presign 链路，可选 cloudbase 开发模式。
+- ✅ `application-prod.yml` 后端生产配置（环境变量注入敏感信息）。
+- ✅ 文档同步更新。
+- ⬜ AnyService WebSocket 真机验证（当前保守方案：走 config 统一配置）。
+- ⬜ AnyService HTTP 真机验证。
+- ⬜ CloudBase 云存储开发模式验证。
 
 ## 后续事项
 

@@ -61,6 +61,18 @@ page {
   --spacing-lg: 48rpx;
   --spacing-xl: 64rpx;
 
+  /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
+  --sr-tabbar-height: 140rpx;
+  --sr-tabbar-safe-height: calc(140rpx + env(safe-area-inset-bottom));
+  --sr-page-bottom-safe: calc(240rpx + env(safe-area-inset-bottom));
+  --sr-page-bottom-safe-large: calc(360rpx + env(safe-area-inset-bottom));
+  /* 识别舱（profile）底部安全距离 */
+  --sr-page-bottom-safe-xl: calc(400rpx + env(safe-area-inset-bottom));
+  /* 全息舱（mirror）底部安全距离 */
+  --sr-page-bottom-safe-xxl: calc(420rpx + env(safe-area-inset-bottom));
+  --sr-action-dock-bottom: calc(156rpx + env(safe-area-inset-bottom));
+
+  min-height: 100vh;
   background:
     radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
     radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
@@ -69,7 +81,6 @@ page {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   font-size: 28rpx;
   line-height: 1.6;
-  min-height: 100vh;
 }
 
 /* ===== 舱位状态 Tab：四个主 tab 共用 ===== */

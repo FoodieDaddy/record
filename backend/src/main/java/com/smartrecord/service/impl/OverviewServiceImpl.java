@@ -3,6 +3,7 @@ package com.smartrecord.service.impl;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.dto.score.ChartDataResp;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.User;
@@ -29,9 +30,9 @@ public class OverviewServiceImpl implements OverviewService {
     private final UserMapper userMapper;
     private final StringRedisTemplate redisTemplate;
 
-    private static final String OVERVIEW_KEY_PREFIX = "sr:room:";
-    private static final String OVERVIEW_KEY_SUFFIX = ":overview";
     private static final String ROOM_PREFIX = "sr:room:";
+
+    private String dataKey(Long roomId) { return ROOM_PREFIX + roomId + ":data"; }
 
     @Override
     @Async("asyncExecutor")
@@ -39,8 +40,7 @@ public class OverviewServiceImpl implements OverviewService {
         try {
             ChartDataResp chartData = getChartData(roomId);
             String json = JSONUtil.toJsonStr(chartData);
-            String key = OVERVIEW_KEY_PREFIX + roomId + OVERVIEW_KEY_SUFFIX;
-            redisTemplate.opsForValue().set(key, json, 24, TimeUnit.HOURS);
+            redisTemplate.opsForHash().put(dataKey(roomId), "overview", json);
             log.info("异步计算房间 {} 总览数据完成", roomId);
         } catch (Exception e) {
             log.error("异步计算房间 {} 总览数据失败", roomId, e);
@@ -49,21 +49,20 @@ public class OverviewServiceImpl implements OverviewService {
 
     @Override
     public String getCachedOverview(Long roomId) {
-        String key = OVERVIEW_KEY_PREFIX + roomId + OVERVIEW_KEY_SUFFIX;
-        String cached = redisTemplate.opsForValue().get(key);
-        if (cached != null) return cached;
+        Object cached = redisTemplate.opsForHash().get(dataKey(roomId), "overview");
+        if (cached != null) return (String) cached;
 
         // 缓存 miss，同步计算
         ChartDataResp chartData = getChartData(roomId);
         String json = JSONUtil.toJsonStr(chartData);
-        redisTemplate.opsForValue().set(key, json, 24, TimeUnit.HOURS);
+        redisTemplate.opsForHash().put(dataKey(roomId), "overview", json);
         return json;
     }
 
     @Override
     public ChartDataResp getChartData(Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("空间不存在");
+        if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
 
         String roomPrefix = ROOM_PREFIX + roomId + ":";
 
@@ -82,65 +81,7 @@ public class OverviewServiceImpl implements OverviewService {
     // ===== 图表构建 =====
 
     private ChartDataResp buildChartFromRedis(Long roomId, String roomPrefix) {
-        List<String> batchTsList = redisTemplate.opsForList().range(roomPrefix + "batches", 0, -1);
-        if (batchTsList == null || batchTsList.isEmpty()) {
-            // batches 为空时，从 events（计分流水）降级构建图表
-            return buildChartFromEvents(roomPrefix);
-        }
-
-        Set<ZSetOperations.TypedTuple<String>> members =
-                redisTemplate.opsForZSet().rangeWithScores(roomPrefix + "scores", 0, -1);
-        if (members == null || members.isEmpty()) {
-            return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
-        }
-
-        List<Long> userIds = members.stream()
-                .map(ZSetOperations.TypedTuple::getValue)
-                .filter(v -> !"init".equals(v))
-                .map(Long::parseLong)
-                .collect(Collectors.toList());
-
-        Map<Long, String> nicknameMap = loadNicknameMap(userIds);
-
-        List<Long> timestamps = new ArrayList<>();
-        Map<Long, List<Integer>> userScores = new HashMap<>();
-        userIds.forEach(uid -> userScores.put(uid, new ArrayList<>()));
-
-        Map<Long, Integer> cumulative = new HashMap<>();
-        userIds.forEach(uid -> cumulative.put(uid, 0));
-
-        for (String tsStr : batchTsList) {
-            long ts = Long.parseLong(tsStr);
-            timestamps.add(ts);
-
-            String batchKey = roomPrefix + "batch:" + tsStr;
-            Map<Object, Object> batchEntries = redisTemplate.opsForHash().entries(batchKey);
-
-            for (Map.Entry<Object, Object> entry : batchEntries.entrySet()) {
-                String key = (String) entry.getKey();
-                if ("_created_by".equals(key)) continue;
-                long uid = Long.parseLong(key);
-                int score = Integer.parseInt((String) entry.getValue());
-                cumulative.merge(uid, score, Integer::sum);
-            }
-
-            for (Long uid : userIds) {
-                userScores.get(uid).add(cumulative.getOrDefault(uid, 0));
-            }
-        }
-
-        List<ChartDataResp.Series> seriesList = userIds.stream()
-                .map(uid -> ChartDataResp.Series.builder()
-                        .userId(uid)
-                        .nickname(nicknameMap.getOrDefault(uid, "玩家"))
-                        .scores(userScores.get(uid))
-                        .build())
-                .collect(Collectors.toList());
-
-        return ChartDataResp.builder()
-                .timestamps(timestamps)
-                .series(seriesList)
-                .build();
+        return buildChartFromEvents(roomPrefix);
     }
 
     private ChartDataResp buildChartFromAllRecord(Room room) {
@@ -203,8 +144,7 @@ public class OverviewServiceImpl implements OverviewService {
     }
 
     /**
-     * 从 events（计分流水）构建图表数据
-     * 当 batches 为空时的降级方案
+     * 从 events（计分流水 ZSet）构建图表数据
      */
     private ChartDataResp buildChartFromEvents(String roomPrefix) {
         String eventsKey = roomPrefix + "events";
@@ -294,20 +234,15 @@ public class OverviewServiceImpl implements OverviewService {
     private Map<Long, String> loadNicknameMap(List<Long> userIds) {
         if (userIds.isEmpty()) return Collections.emptyMap();
 
-        List<String> keys = userIds.stream()
-                .map(uid -> "sr:user:" + uid)
-                .collect(Collectors.toList());
-        List<String> cached = redisTemplate.opsForValue().multiGet(keys);
-
         Map<Long, String> map = new HashMap<>();
         List<Long> missedIds = new ArrayList<>();
-        for (int i = 0; i < userIds.size(); i++) {
-            String json = cached != null ? cached.get(i) : null;
-            if (json != null) {
-                JSONObject userObj = JSONUtil.parseObj(json);
-                map.put(userIds.get(i), userObj.getStr("nickname", "玩家"));
+        for (Long uid : userIds) {
+            Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
+            if (cached != null) {
+                JSONObject userObj = JSONUtil.parseObj((String) cached);
+                map.put(uid, userObj.getStr("nickname", "玩家"));
             } else {
-                missedIds.add(userIds.get(i));
+                missedIds.add(uid);
             }
         }
 
@@ -315,11 +250,16 @@ public class OverviewServiceImpl implements OverviewService {
             List<User> users = userMapper.selectBatchIds(missedIds);
             for (User user : users) {
                 map.put(user.getId(), user.getNickname());
+                String createdAtStr = user.getCreatedAt() != null
+                        ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        : "";
                 String json = JSONUtil.toJsonStr(Map.of(
                         "userId", user.getId(),
-                        "nickname", user.getNickname(),
-                        "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : ""));
-                redisTemplate.opsForValue().set("sr:user:" + user.getId(), json, 24, TimeUnit.HOURS);
+                        "nickname", user.getNickname() != null ? user.getNickname() : "",
+                        "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
+                        "status", user.getStatus() != null ? user.getStatus() : 0,
+                        "createdAt", createdAtStr));
+                redisTemplate.opsForHash().put("sr:user:" + user.getId(), "info", json);
             }
             for (Long uid : missedIds) {
                 map.putIfAbsent(uid, "玩家");

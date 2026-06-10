@@ -1,4 +1,4 @@
-<scroll-view class="strategy-page {{reduceMotion ? 'reduce-motion' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}">
+<scroll-view class="strategy-page {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px;">
 
   <!-- 跨 Tab 骨架屏 -->
   <view wx:if="{{!pageReady}}" class="page-skeleton">

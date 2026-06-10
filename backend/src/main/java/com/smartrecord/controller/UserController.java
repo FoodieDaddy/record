@@ -1,13 +1,12 @@
 package com.smartrecord.controller;
 
+import com.smartrecord.aop.CurrentUser;
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.user.*;
 import com.smartrecord.service.IdentityLevelService;
 import com.smartrecord.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -29,47 +28,37 @@ public class UserController {
 
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/me")
-    public Result<UserInfoResp> getCurrentUser(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+    public Result<UserInfoResp> getCurrentUser(@CurrentUser Long userId) {
         return Result.ok(userService.getUserInfo(userId));
     }
 
-    @Operation(summary = "更新用户信息", description = "支持 JSON body 和 query params 两种方式")
+    @Operation(summary = "更新用户信息")
     @PutMapping("/me")
     public Result<Void> updateCurrentUser(
-            HttpServletRequest request,
-            @Valid @RequestBody(required = false) UpdateUserReq body,
-            @Parameter(description = "昵称（query 方式）") @RequestParam(required = false) String nickname,
-            @Parameter(description = "头像 URL（query 方式）") @RequestParam(required = false) String avatarUrl) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        // JSON body 优先
-        String finalNickname = (body != null && body.getNickname() != null) ? body.getNickname() : nickname;
-        String finalAvatarUrl = (body != null && body.getAvatarUrl() != null) ? body.getAvatarUrl() : avatarUrl;
-        userService.updateUserInfo(userId, finalNickname, finalAvatarUrl);
+            @CurrentUser Long userId,
+            @Valid @RequestBody UpdateUserReq req) {
+        userService.updateUserInfo(userId, req);
         return Result.ok();
     }
 
     @Operation(summary = "获取用户设置")
     @GetMapping("/detail")
-    public Result<UserDetailResp> getUserDetail(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+    public Result<UserDetailResp> getUserDetail(@CurrentUser Long userId) {
         return Result.ok(userService.getUserDetail(userId));
     }
 
     @Operation(summary = "更新用户设置")
     @PutMapping("/detail")
     public Result<Void> updateUserDetail(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @RequestBody UpdateUserDetailReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         userService.updateUserDetail(userId, req);
         return Result.ok();
     }
 
     @Operation(summary = "获取身份等级")
     @GetMapping("/identity-level")
-    public Result<IdentityLevelResp> getIdentityLevel(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+    public Result<IdentityLevelResp> getIdentityLevel(@CurrentUser Long userId) {
         return Result.ok(identityLevelService.getIdentityLevel(userId));
     }
 }

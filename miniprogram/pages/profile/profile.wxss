@@ -47,9 +47,13 @@
 
   position: relative;
   padding: 24rpx;
-  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
-  min-height: 100vh;
+  /* 自定义 tabbar 140rpx + Home Indicator + 终端控制按钮滚动余量 */
+  padding-bottom: var(--sr-page-bottom-safe-xxl, calc(480rpx + env(safe-area-inset-bottom)));
   background: var(--bg);
+}
+
+.terminal-page--overlay-open {
+  overflow: hidden;
 }
 
 /* 背景光晕 */
@@ -750,8 +754,13 @@
   margin-top: 20rpx;
 }
 
+.terminal-bottom-spacer {
+  height: calc(280rpx + env(safe-area-inset-bottom));
+}
+
 .terminate-btn {
-  margin-top: 16rpx;
+  margin-top: 24rpx;
+  margin-bottom: 20rpx;
   padding: 28rpx 0;
   display: flex;
   flex-direction: column;
@@ -787,11 +796,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 1000;
+  z-index: 2600;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 48rpx;
+  padding: 48rpx 48rpx calc(48rpx + env(safe-area-inset-bottom));
   background: rgba(0, 0, 0, 0.72);
 }
 
@@ -807,7 +816,7 @@
 }
 
 .callsign-float.is-keyboard {
-  transform: translateY(-120rpx);
+  transform: translateY(-72rpx);
 }
 
 /* 状态行 */
@@ -963,7 +972,7 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.72);
-  z-index: 999;
+  z-index: 3090;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s, visibility 0.3s;
@@ -979,9 +988,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 70vh;
-  z-index: 1000;
-  background: var(--bg-secondary);
+  height: auto;
+  max-height: calc(82vh - env(safe-area-inset-top));
+  z-index: 3100;
+  background: linear-gradient(180deg, rgba(8, 18, 28, 0.99), rgba(2, 6, 12, 0.99));
   border: 1rpx solid rgba(0, 200, 255, 0.15);
   border-bottom: none;
   border-radius: 28rpx 28rpx 0 0;
@@ -989,6 +999,7 @@
   transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
 
 .voice-sheet--show {
@@ -996,8 +1007,36 @@
 }
 
 .voice-sheet__header {
-  padding: 28rpx 32rpx 16rpx;
+  padding: 34rpx 84rpx 16rpx 32rpx;
   flex-shrink: 0;
+}
+
+.voice-sheet__handle {
+  position: absolute;
+  top: 14rpx;
+  left: 50%;
+  width: 88rpx;
+  height: 6rpx;
+  transform: translateX(-50%);
+  border-radius: 999rpx;
+  background: rgba(0, 200, 255, 0.24);
+}
+
+.voice-sheet__close {
+  position: absolute;
+  top: 28rpx;
+  right: 28rpx;
+  z-index: 2;
+  height: 48rpx;
+  min-width: 76rpx;
+  padding: 0 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(126, 156, 180, 0.18);
+  color: rgba(176, 208, 235, 0.68);
+  font-size: 20rpx;
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
 }
 
 .voice-sheet__kicker {
@@ -1019,7 +1058,8 @@
   flex: 1;
   display: flex;
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom);
+  min-height: 0;
+  padding-bottom: 0;
 }
 
 .voice-sheet__cat-list {
@@ -1074,7 +1114,8 @@
 .voice-sheet__voice-list {
   width: 70%;
   height: 100%;
-  padding: 0 24rpx;
+  padding: 0 24rpx calc(120rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .voice-sheet__group-header {

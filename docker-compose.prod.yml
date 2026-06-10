@@ -5,20 +5,22 @@ services:
     ports:
       - "18080:18080"
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/smartrecord?useSSL=false&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true&characterEncoding=utf-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root123
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      SENTINEL_DASHBOARD: sentinel:8858
     restart: unless-stopped
 
   mysql:
-    image: mysql:5.7
-    platform: linux/amd64
+    image: mysql:8.0
     container_name: sr-mysql
     restart: unless-stopped
     ports:
@@ -32,8 +34,16 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      - --innodb-buffer-pool-size=128M
-      - --default-authentication-plugin=mysql_native_password
+      - --innodb-buffer-pool-size=256M
+      - --slow-query-log=1
+      - --slow-query-log-file=/var/lib/mysql/slow.log
+      - --long-query-time=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -43,7 +53,21 @@ services:
       - "16379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --maxmemory 64mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  sentinel:
+    image: bladex/sentinel-dashboard:1.8.8
+    container_name: sr-sentinel
+    restart: unless-stopped
+    ports:
+      - "18858:8858"
+    environment:
+      JAVA_OPT: "-Xms128m -Xmx256m"
 
 volumes:
   mysql_data:

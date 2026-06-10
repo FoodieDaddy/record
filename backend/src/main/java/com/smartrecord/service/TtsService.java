@@ -1,5 +1,7 @@
 package com.smartrecord.service;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
+import com.alibaba.csp.sentinel.slots.block.BlockException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,12 +21,15 @@ public class TtsService {
     @Value("${tts.edge-tts-cmd:edge-tts}")
     private String edgeTtsCmd;
 
-    @Value("${tts.voice:zh-CN-XiaoxiaoNeural}")
+    @Value("${tts.voice:zh-CN-YunyangNeural}")
     private String voice;
 
     /**
      * 合成语音，返回 MP3 字节数组（标准 44.1kHz 128kbps 格式）
      */
+    @SentinelResource(value = "tts-synthesize",
+            blockHandler = "synthesizeBlockHandler",
+            fallback = "synthesizeFallback")
     public byte[] synthesize(String text, String voiceOverride, String rate, String pitch) {
         String activeVoice = (voiceOverride != null && !voiceOverride.isBlank()) ? voiceOverride : voice;
         return doSynthesize(text, activeVoice, rate, pitch);
@@ -36,6 +41,19 @@ public class TtsService {
     public SynthResult synthesizeWithTiming(String text, String voiceOverride, String rate, String pitch) {
         String activeVoice = (voiceOverride != null && !voiceOverride.isBlank()) ? voiceOverride : voice;
         return doSynthesizeWithTiming(text, activeVoice, rate, pitch);
+    }
+
+    /**
+     * Sentinel 限流降级 — TTS 合成
+     */
+    public byte[] synthesizeBlockHandler(String text, String voiceOverride, String rate, String pitch, BlockException ex) {
+        log.warn("TTS 合成被限流: {}", ex.getRule());
+        return null;
+    }
+
+    public byte[] synthesizeFallback(String text, String voiceOverride, String rate, String pitch, Throwable ex) {
+        log.error("TTS 合成降级", ex);
+        return null;
     }
 
     public record SynthResult(byte[] audio, long edgeTtsMs, long ffmpegMs, long totalTimeMs) {}

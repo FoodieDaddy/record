@@ -1,7 +1,9 @@
 package com.smartrecord.controller;
 
+import com.smartrecord.aop.CurrentUser;
+import com.smartrecord.aop.Idempotent;
 import com.smartrecord.common.Result;
-import com.smartrecord.common.RoomAccessGuard;
+import com.smartrecord.service.RoomAccessGuard;
 import com.smartrecord.dto.round.ConfirmRoundReq;
 import com.smartrecord.dto.round.RoundRecordResp;
 import com.smartrecord.dto.round.StartRoundReq;
@@ -10,7 +12,6 @@ import com.smartrecord.service.RoundRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,36 +28,34 @@ public class RoundRecordController {
     @Operation(summary = "发起本局录", description = "仅房主可操作，根据房间配置进入对应流程")
     @PostMapping("/start")
     public Result<RoundRecordResp> startRound(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @Valid @RequestBody StartRoundReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(roundRecordService.startRound(userId, req.getRoomId()));
     }
 
+    @Idempotent(operation = "round_submit")
     @Operation(summary = "提交分数", description = "房主填写所有成员分数，或成员填写自己的分数")
     @PostMapping("/submit")
     public Result<RoundRecordResp> submitRound(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @Valid @RequestBody SubmitRoundReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(roundRecordService.submitRound(userId, req));
     }
 
+    @Idempotent(operation = "round_confirm")
     @Operation(summary = "确认/驳回", description = "全员确认阶段，同意或驳回本局录")
     @PostMapping("/confirm")
     public Result<RoundRecordResp> confirmRound(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @Valid @RequestBody ConfirmRoundReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         return Result.ok(roundRecordService.confirmRound(userId, req));
     }
 
     @Operation(summary = "取消本局录", description = "仅房主可操作，取消待处理的本局录")
     @PostMapping("/cancel")
     public Result<Void> cancelRound(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @Parameter(description = "房间 ID") @RequestParam Long roomId) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         roundRecordService.cancelRound(userId, roomId);
         return Result.ok();
     }
@@ -64,9 +63,8 @@ public class RoundRecordController {
     @Operation(summary = "获取待处理本局录", description = "获取当前房间的待处理本局录")
     @GetMapping("/pending")
     public Result<RoundRecordResp> getPending(
-            HttpServletRequest request,
+            @CurrentUser Long userId,
             @Parameter(description = "房间 ID") @RequestParam Long roomId) {
-        Long userId = (Long) request.getAttribute("currentUserId");
         roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(roundRecordService.getPending(roomId));
     }

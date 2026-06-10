@@ -1,0 +1,466 @@
+/* ===== 编队内容 ===== */
+.room-content {
+  height: 100vh;
+  overflow: hidden;
+  animation: fadeSlideUp 0.3s ease;
+}
+
+/* ===== ROOM TERMINAL 顶部终端栏 ===== */
+.room-terminal {
+  padding: 22rpx 24rpx;
+  border: 1rpx solid rgba(10,132,255,0.18);
+  border-radius: 28rpx;
+  background:
+    linear-gradient(180deg, rgba(10,132,255,0.035), transparent 62%),
+    rgba(255,255,255,0.028);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+}
+.room-terminal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(10, 132, 255,0.3), transparent);
+}
+.rt-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+.rt-kicker {
+  font-size: 18rpx;
+  color: rgba(0,200,255,0.66);
+  letter-spacing: 4rpx;
+  font-family: monospace;
+}
+.rt-status {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.rt-status-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8rpx rgba(54,255,116,0.6);
+}
+.rt-status-text {
+  font-size: 16rpx;
+  color: var(--success);
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+.rt-main-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18rpx;
+}
+.rt-info-grid {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1.18fr 1fr;
+  gap: 18rpx;
+}
+.rt-info-seg {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
+}
+.rt-info-label {
+  font-size: 16rpx;
+  color: var(--text-secondary);
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+.rt-info-value {
+  max-width: 100%;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rt-actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  flex-shrink: 0;
+}
+.rt-action {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(10,132,255,0.22);
+  background: rgba(10,132,255,0.045);
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  opacity: 0.86;
+  color: #00C8FF;
+}
+.rt-action:active {
+  opacity: 1;
+  transform: scale(0.9);
+  box-shadow: 0 0 12rpx rgba(10, 132, 255,0.3);
+}
+
+/* QR码 */
+.qr-section {
+  margin-top: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.qr-frame {
+  padding: 12rpx;
+  background: var(--bg-card);
+  border: 1rpx solid var(--glass-border);
+  border-radius: 16rpx;
+}
+
+.qr-image {
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 10rpx;
+  display: block;
+}
+
+/* ===== PLAYER NETWORK 成员网络 ===== */
+.player-network {
+  padding: 24rpx;
+  border: 1rpx solid rgba(10,132,255,0.18);
+  border-radius: 28rpx;
+  background:
+    linear-gradient(180deg, rgba(10,132,255,0.025), transparent 46%),
+    rgba(255,255,255,0.028);
+  margin-bottom: 16rpx;
+}
+.pn-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+.pn-title-group {
+  display: flex;
+  flex-direction: column;
+}
+.pn-cn {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #00C8FF;
+  letter-spacing: 2rpx;
+}
+.pn-en {
+  font-size: 18rpx;
+  color: rgba(126, 156, 180, 0.34);
+  letter-spacing: 4rpx;
+  font-family: monospace;
+  margin-top: 2rpx;
+}
+.pn-count {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pn-divider {
+  height: 1rpx;
+  background: var(--glass-bg);
+  margin: 16rpx 0;
+}
+
+/* 成员矩阵 */
+.member-grid-scroll {
+  max-height: 600rpx;
+}
+.member-matrix {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10rpx;
+  padding: 4rpx 0;
+}
+.mg-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6rpx;
+  min-width: 0;
+  min-height: 150rpx;
+  padding: 12rpx 4rpx 10rpx;
+  border: 1rpx solid transparent;
+  border-radius: 18rpx;
+  transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
+  position: relative;
+}
+.mg-cell:active {
+  transform: scale(0.92);
+}
+.mg-cell-selected {
+  border-color: rgba(10,132,255,0.22);
+  background: rgba(10,132,255,0.055);
+  transform: translateY(-4rpx);
+}
+
+/* 识别徽标容器 */
+.mg-avatar-wrap {
+  position: relative;
+  width: 66rpx;
+  height: 66rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* HOST 标签 */
+.mg-host-badge {
+  position: absolute;
+  top: -4rpx;
+  right: -4rpx;
+  font-size: 14rpx;
+  color: var(--color-cyan);
+  background: rgba(10, 132, 255,0.15);
+  border: 1rpx solid rgba(10, 132, 255,0.3);
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+  letter-spacing: 1rpx;
+  font-family: monospace;
+  pointer-events: none;
+}
+
+.mg-name {
+  font-size: 22rpx;
+  color: var(--text-secondary);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 116rpx;
+  min-height: 32rpx;
+  line-height: 32rpx;
+}
+.mg-score {
+  font-size: 28rpx;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 116rpx;
+  min-height: 36rpx;
+  line-height: 36rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "SF Mono", "Menlo", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* TARGET LOCKED */
+.mg-target-lock {
+  font-size: 14rpx;
+  color: var(--color-cyan);
+  letter-spacing: 2rpx;
+  font-family: monospace;
+  opacity: 0.8;
+  animation: targetPulse 1.5s ease-in-out infinite;
+}
+@keyframes targetPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.reduce-motion .ring-selected { animation: none; }
+.reduce-motion .mg-target-lock { animation: none; opacity: 0.8; }
+
+/* ===== 弹窗头部（共享） ===== */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.detail-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: var(--text-tertiary);
+  border-radius: 50%;
+}
+
+.detail-close:active {
+  background: var(--glass-bg-hover);
+}
+
+/* 弹窗头部内关闭图标：去除 fi 默认边框，保持轻量 */
+.detail-header .fi {
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+}
+
+/* ===== 计分动画 ===== */
+.transfer-anim-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.transfer-anim-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 40%, rgba(10, 132, 255, 0.15), transparent 70%);
+  transition: opacity 0.15s;
+}
+
+.transfer-anim-particle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  will-change: transform, left, top;
+}
+
+.transfer-anim-trail {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  will-change: transform, left, top;
+}
+
+.transfer-anim-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #6aabff, rgba(10, 132, 255, 0.5));
+  box-shadow: 0 0 16px 6px rgba(10, 132, 255, 0.7),
+              0 0 32px 12px rgba(10, 132, 255, 0.4),
+              0 0 48px 20px rgba(10, 132, 255, 0.2);
+}
+
+.transfer-anim-dot-trail {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(10, 132, 255, 0.6), rgba(10, 132, 255, 0.2));
+  box-shadow: 0 0 10px 4px rgba(10, 132, 255, 0.4);
+}
+
+.dot-trail-2 {
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle, rgba(120, 180, 255, 0.5), rgba(10, 132, 255, 0.1));
+  box-shadow: 0 0 8px 3px rgba(10, 132, 255, 0.3);
+}
+
+.transfer-anim-amount {
+  position: absolute;
+  top: -36px;
+  white-space: nowrap;
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: 0 0 12px rgba(10, 132, 255, 0.9),
+               0 0 24px rgba(10, 132, 255, 0.5),
+               0 2px 4px rgba(0, 0, 0, 0.3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* CSS 驱动的粒子飞行动画 */
+.transfer-anim-particle.is-flying {
+  animation: particleFlight 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.transfer-anim-trail.is-flying {
+  animation: particleTrail 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.transfer-anim-trail.is-flying.trail-1 {
+  animation-delay: 80ms;
+}
+
+.transfer-anim-trail.is-flying.trail-2 {
+  animation-delay: 160ms;
+}
+
+.transfer-anim-flash.is-active {
+  animation: particleFlash 120ms ease-out forwards;
+}
+
+@keyframes particleFlight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  11% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(calc(var(--dx, 0px) * 0.7), calc(var(--dy, 0px) * 0.7 + var(--arc, -80px) * 0.4), 0) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.6);
+  }
+}
+
+@keyframes particleTrail {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.4);
+  }
+  15% {
+    opacity: 0.6;
+    transform: translate3d(0, 0, 0) scale(0.5);
+  }
+  70% {
+    opacity: 0.4;
+    transform: translate3d(calc(var(--dx, 0px) * 0.65), calc(var(--dy, 0px) * 0.65 + var(--arc, -80px) * 0.5), 0) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.3);
+  }
+}
+
+@keyframes particleFlash {
+  0% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+.reduce-motion .transfer-anim-particle.is-flying,
+.reduce-motion .transfer-anim-trail.is-flying,
+.reduce-motion .transfer-anim-flash.is-active {
+  animation: none !important;
+}
+
+.reduce-motion .ship-craft.motion-score-impact {
+  animation: none !important;
+}

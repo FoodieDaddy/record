@@ -1,7 +1,5 @@
 /* ===== 1. 全局容器 ===== */
 .strategy-page {
-  height: 100vh;
-  min-height: 100vh;
   background:
     radial-gradient(circle at 20% 0%, rgba(0,175,255,0.08), transparent 32%),
     radial-gradient(circle at 90% 18%, rgba(94,92,230,0.05), transparent 30%),
@@ -11,6 +9,13 @@
   align-items: center;
   box-sizing: border-box;
   position: relative;
+  /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
+  padding: 24rpx;
+  padding-bottom: var(--sr-page-bottom-safe, calc(240rpx + env(safe-area-inset-bottom)));
+}
+
+.strategy-page--modal-open {
+  overflow: hidden;
 }
 
 /* ===== 0. 跨 Tab 骨架屏 ===== */
@@ -299,6 +304,13 @@
   padding: 80rpx 40rpx;
   box-sizing: border-box;
   position: relative;
+}
+
+.flight-deck > .bay-status-tab {
+  position: absolute;
+  top: 24rpx;
+  left: 28rpx;
+  margin-bottom: 0;
 }
 
 /* result 态：从顶部开始，减少顶部留白 */
@@ -971,20 +983,24 @@
 
 /* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
 .sync-bar {
+  position: absolute;
+  top: calc(50% + 118rpx);
+  left: 50%;
   width: 400rpx;
   margin-top: -4rpx;
   opacity: 0;
-  transform: translateY(-8rpx);
+  transform: translate(-50%, -8rpx);
   transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 4;
 }
 
 .sync-bar--visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
   pointer-events: auto;
 }
 
@@ -1431,7 +1447,7 @@
 
 .strategy-list-text {
   font-size: 26rpx;
-  color: rgba(255,255,255,0.72);
+  color: rgba(255,255,255,0.76);
   line-height: 1.55;
   letter-spacing: 1rpx;
 }
@@ -1739,7 +1755,10 @@ button.strategy-action-btn::after {
 
 /* ===== 19. 统一等待主文案 ===== */
 .generation-status {
-  margin: 18rpx auto 0;
+  position: absolute;
+  top: calc(50% + 260rpx);
+  left: 50%;
+  margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1750,7 +1769,9 @@ button.strategy-action-btn::after {
   letter-spacing: 1rpx;
   color: rgba(0,200,255,0.62);
   opacity: 0;
+  transform: translateX(-50%);
   animation: fadeIn 0.4s ease forwards;
+  z-index: 4;
 }
 
 .generation-status--deep {
@@ -1787,11 +1808,16 @@ button.strategy-action-btn::after {
 
 /* ===== 19b. 四段式进度条 ===== */
 .wait-steps {
+  position: absolute;
+  top: calc(50% + 308rpx);
+  left: 50%;
   width: 260rpx;
-  margin: 18rpx auto 0;
+  margin: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 8rpx;
+  transform: translateX(-50%);
+  z-index: 4;
 }
 
 .wait-step {

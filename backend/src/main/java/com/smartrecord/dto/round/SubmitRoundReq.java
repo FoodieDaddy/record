@@ -21,6 +21,9 @@ public class SubmitRoundReq {
     @Schema(description = "各玩家得分列表")
     private List<PlayerScore> scores;
 
+    @Schema(description = "客户端请求 ID，用于幂等去重", example = "1718000000000-a3f8b2")
+    private String clientRequestId;
+
     @Data
     @Schema(description = "单个玩家得分")
     public static class PlayerScore {

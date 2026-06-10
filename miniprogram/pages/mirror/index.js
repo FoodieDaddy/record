@@ -3,6 +3,7 @@ const scoreService = require('../../services/score-service');
 const { MBTI_MAP, MBTI_TRAITS } = require('../../utils/mbti-const');
 const { sanitizeMirrorText, sanitizeMirrorObject, sanitizeCrewName, truncateCanvasText } = require('../../utils/mirror-sanitize');
 const { normalizeAvatarUrl } = require('../../utils/avatar');
+const { vibrateShort } = require('../../utils/haptic');
 const app = getApp();
 
 var ZERO_DIMS = [
@@ -64,6 +65,7 @@ Page({
     mainVisible: false,
 
     reduceMotion: false,
+    animationEnabled: true,
     loadedOnce: false,
 
     // 入场动画
@@ -118,6 +120,8 @@ Page({
       inferredMbtiTitle: '',
       deviationPercent: 0
     },
+    personaMatchDisplay: '待计算',
+    personaMatchDisplayPending: true,
 
     // 系统判读
     reading: {
@@ -184,10 +188,8 @@ Page({
   },
 
   onLoad() {
-    var reduceMotion =
-      !app.globalData.animationEnabled ||
-      app.globalData.reduceMotion === true;
-    this.setData({ reduceMotion: reduceMotion });
+    var animEnabled = app.globalData.animationEnabled !== false;
+    this.setData({ animationEnabled: animEnabled, reduceMotion: !animEnabled });
     this._toastRef = null;
     this._entryTimers = [];
     this._calibrationTimers = [];
@@ -207,10 +209,14 @@ Page({
     this._cardRunId++;
     this._profileRunId++;
     this._clearAllTimers();
+    this._showCustomTabBar();
+    wx.hideLoading();
   },
 
   onHide() {
     this._clearAllTimers();
+    this._showCustomTabBar();
+    wx.hideLoading();
   },
 
   onReady() {
@@ -249,6 +255,16 @@ Page({
     timers.length = 0;
   },
 
+  _delayCalibration(ms) {
+    var self = this;
+    return new Promise(function (resolve) {
+      var t = setTimeout(function () {
+        resolve();
+      }, ms);
+      self._calibrationTimers.push(t);
+    });
+  },
+
   _isMotionEnabled() {
     return app.globalData.animationEnabled !== false && this.data.reduceMotion !== true;
   },
@@ -277,6 +293,20 @@ Page({
 
   toggleAnalysis() {
     this.setData({ analysisExpanded: !this.data.analysisExpanded });
+  },
+
+  _hideCustomTabBar() {
+    // 只使用自定义 tabbar 的方法，不要用 wx.hideTabBar
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: true });
+    }
+  },
+
+  _showCustomTabBar() {
+    // 只使用自定义 tabbar 的方法，不要用 wx.showTabBar
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 2 });
+    }
   },
 
   // ==================== 数据加载 ====================
@@ -399,10 +429,21 @@ Page({
 
     var battle = sanitizeMirrorObject(res.battlePersona || this.data.battlePersona);
     var personaConfidence = res.personaConfidence || 0;
+    var sampleSize = battle.sampleSize || 0;
 
     var reading = sanitizeMirrorObject(res.reading || this.data.reading);
     if (reading.available && !reading.observation && reading.text) {
       reading = Object.assign({}, reading, { observation: reading.text });
+    }
+    if (mbti.calibrated && sampleSize === 0) {
+      reading = {
+        available: true,
+        text: '协议已接入，航迹样本不足，等待后续封存写入。',
+        observation: '协议已接入，航迹样本不足，等待后续封存写入。',
+        deviation: '',
+        risk: '',
+        growthAdvice: ''
+      };
     }
 
     var signals = this._calcSignalTags(battle, traits);
@@ -421,7 +462,10 @@ Page({
     // stats 可能失败，降级处理
     var radarDimensions = this.data.radarDimensions;
     var radarLocked = true;
-    var sampleSize = battle.sampleSize || 0;
+    var personaMatch = sanitizeMirrorObject(res.personaMatch || this.data.personaMatch);
+    var personaMatchPending = sampleSize === 0 || !personaMatch.available;
+    var matchPct = personaMatch.matchPercentage || 0;
+    var personaMatchDisplay = (personaMatchPending || matchPct <= 0) ? '待计算' : (matchPct + '%');
 
     if (statsResult.status === 'fulfilled' && statsResult.value) {
       var statsRes = statsResult.value;
@@ -449,7 +493,9 @@ Page({
       traits: traits,
       syncActive: mbti.calibrated,
       battlePersona: battle,
-      personaMatch: sanitizeMirrorObject(res.personaMatch || this.data.personaMatch),
+      personaMatch: personaMatch,
+      personaMatchDisplay: personaMatchDisplay,
+      personaMatchDisplayPending: personaMatchPending,
       reading: reading,
       personaConfidence: personaConfidence,
       personaSignals: signals,
@@ -597,6 +643,7 @@ Page({
   // ==================== 同步人格 ====================
 
   async refreshProfile() {
+    vibrateShort('light');
     var runId = ++this._profileRunId;
     this.setData({ isSilentSyncing: true });
     wx.showLoading({ title: '同步中' });
@@ -622,6 +669,8 @@ Page({
   // ==================== 校准流程 ====================
 
   startFullCalibration() {
+    vibrateShort('light');
+    this._hideCustomTabBar();
     if (this._isMotionEnabled()) {
       // 进入过渡：主页面暗化，校准层从核心展开
       this.setData({
@@ -657,6 +706,7 @@ Page({
   },
 
   _exitCalibration() {
+    this._showCustomTabBar();
     this.setData({ showExitConfirm: false });
     if (this._isMotionEnabled()) {
       // 校准层淡出
@@ -714,7 +764,7 @@ Page({
       });
 
       // 短暂展示"生成镜像投影"步骤后切到稳定态
-      await new Promise(function (r) { setTimeout(r, self._isMotionEnabled() ? 600 : 0); });
+      await this._delayCalibration(self._isMotionEnabled() ? 600 : 0);
 
       if (runId !== this._calibrationRunId || self._unloaded) return;
       this.setData({
@@ -723,7 +773,7 @@ Page({
       });
 
       // 短暂展示"已稳定"后回到主页面
-      await new Promise(function (r) { setTimeout(r, self._isMotionEnabled() ? 500 : 0); });
+      await this._delayCalibration(self._isMotionEnabled() ? 500 : 0);
 
       if (runId !== this._calibrationRunId || self._unloaded) return;
       this.setData({
@@ -732,9 +782,11 @@ Page({
         ...deriveViewFlags('main'),
         calibrationError: ''
       });
+      this._showCustomTabBar();
       this._showToast('校准已完成', 'dot-sync');
     } catch (err) {
       if (runId !== this._calibrationRunId || self._unloaded) return;
+      this._showToast('校准失败，请稍后重试', 'dot-error');
       this.setData({
         mirrorPhase: 'calibrating',
         ...deriveViewFlags('calibrating'),
@@ -833,6 +885,7 @@ Page({
   },
 
   generateDossier() {
+    vibrateShort('light');
     if (this.data.mirrorPhase === 'card_scanning' || this.data.mirrorPhase === 'card_preview') return;
     this._clearTimerGroup(this._cardTimers);
 
@@ -1205,7 +1258,7 @@ Page({
     // 顶部标识
     ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'SMART RECORD', padL, 72);
+    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER', padL, 72);
     this._fillLetterSpacedRight(ctx, 'HOLO PROJECTION', W - padL, 72);
 
     // MBTI 核心
@@ -1282,7 +1335,7 @@ Page({
 
     ctx.fillStyle = 'rgba(10,132,255,0.42)';
     ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'SMART RECORD · HOLO BAY', padL, H - 50);
+    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER · HOLO BAY', padL, H - 50);
   },
 
   /**

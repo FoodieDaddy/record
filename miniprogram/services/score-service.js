@@ -1,7 +1,7 @@
 /**
  * 记分服务 — 封装记分相关 API
  */
-const { get, post } = require('../utils/request');
+const { get, post, createRequestId } = require('../utils/request');
 
 /** 获取房间排行榜 */
 function getRoomRanking(roomId) {
@@ -50,12 +50,12 @@ function submitScore(payload) {
 
 /** 发起转分 */
 function transferScore(payload) {
-  return post('/score/transfer', payload);
+  return post('/score/transfer', { ...payload, clientRequestId: createRequestId() });
 }
 
 /** 结束对局 */
 function settleRoom(roomId) {
-  return post(`/score/room/${roomId}/settle`, null, { silent: true });
+  return post(`/score/room/${roomId}/settle`, { clientRequestId: createRequestId() }, { silent: true });
 }
 
 /** 获取收益日志 */

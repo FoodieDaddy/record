@@ -3,6 +3,7 @@ package com.smartrecord.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.dto.mirror.MbtiTestReq;
 import com.smartrecord.dto.mirror.MirrorProfileResp;
 import com.smartrecord.dto.mirror.MirrorProfileResp.*;
@@ -33,7 +34,8 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    private static final String CACHE_KEY = "sr:mirror:profile:";
+    private static final String USER_KEY_PREFIX = "sr:user:";
+    private static final String CACHE_FIELD = "mirror:profile";
     private static final long CACHE_TTL_MINUTES = 30;
 
     /**
@@ -123,11 +125,12 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public MirrorProfileResp getFullProfile(Long userId) {
         // 尝试读缓存
-        String cacheKey = CACHE_KEY + userId;
+        String userKey = USER_KEY_PREFIX + userId;
         try {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
+            Object cached = redisTemplate.opsForHash().get(userKey, CACHE_FIELD);
             if (cached != null) {
-                MirrorProfileResp cachedResp = objectMapper.readValue(cached, MirrorProfileResp.class);
+                String cachedStr = (String) cached;
+                MirrorProfileResp cachedResp = objectMapper.readValue(cachedStr, MirrorProfileResp.class);
                 // 缓存命中后也执行净化，防止历史画像词进入展示层。
                 return sanitizeResponse(cachedResp);
             }
@@ -195,9 +198,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
 
         // 写缓存
         try {
-            redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(resp),
-                    CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+            redisTemplate.opsForHash().put(userKey, CACHE_FIELD, objectMapper.writeValueAsString(resp));
         } catch (JsonProcessingException e) {
             log.warn("序列化镜像缓存失败: userId={}", userId);
         } catch (Exception e) {
@@ -210,7 +211,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public ProfileInfo submitMbtiTest(Long userId, MbtiTestReq req) {
         if (req.getAnswers() == null || req.getAnswers().size() != 20) {
-            throw new BizException("协议校准需要完成20题");
+            throw new BizException(ErrorCode.MIRROR_MBTI_ANSWER_COUNT);
         }
 
         MbtiCalculator.Result result = MbtiCalculator.calculate(req.getAnswers());
@@ -233,7 +234,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public ProfileInfo submitMbtiDirect(Long userId, int mbtiCode) {
         if (!MbtiType.isValidCode(mbtiCode)) {
-            throw new BizException("协议类型无效: " + mbtiCode);
+            throw new BizException(ErrorCode.MIRROR_MBTI_INVALID_TYPE, "协议类型无效: " + mbtiCode);
         }
 
         UserMirrorProfile profile = new UserMirrorProfile();
@@ -262,7 +263,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     @Override
     public void clearProfileCache(Long userId) {
         try {
-            redisTemplate.delete(CACHE_KEY + userId);
+            redisTemplate.opsForHash().delete(USER_KEY_PREFIX + userId, CACHE_FIELD);
         } catch (Exception e) {
             log.warn("清除镜像缓存失败: userId={}", userId);
         }

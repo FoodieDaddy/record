@@ -1,5 +1,10 @@
-# 服务器部署配置 — 通过环境变量注入，Docker Compose 中配置
+# 服务器部署配置 — 敏感信息通过环境变量注入
+
 spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -12,15 +17,24 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET}
+    expiration: 604800000
   oss:
     endpoint: ${OSS_ENDPOINT}
     access-key-id: ${OSS_ACCESS_KEY_ID}
     access-key-secret: ${OSS_ACCESS_KEY_SECRET}
     bucket-name: ${OSS_BUCKET_NAME}
+  snowflake:
+    data-center-id: ${SNOWFLAKE_DATA_CENTER_ID:1}
+    worker-id: ${SNOWFLAKE_WORKER_ID:1}
 
 wechat:
   appid: ${WECHAT_APPID}
   secret: ${WECHAT_SECRET}
 
 tts:
-  edge-tts-cmd: edge-tts
+  edge-tts-cmd: /Users/happy/.local/bin/edge-tts
+
+storage:
+  provider: ${STORAGE_PROVIDER:aliyun}
+  cloudbase:
+    env-id: ${CLOUDBASE_ENV_ID:}

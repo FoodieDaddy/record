@@ -1,6 +1,6 @@
 package com.smartrecord.service;
 
-import com.smartrecord.common.EmotionType;
+import com.smartrecord.enums.EmotionType;
 
 /**
  * 情绪音频池 — 按情绪类型随机获取预置音频 URL

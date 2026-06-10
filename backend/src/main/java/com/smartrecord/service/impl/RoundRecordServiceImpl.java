@@ -5,7 +5,8 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
-import com.smartrecord.common.EmotionType;
+import com.smartrecord.common.ErrorCode;
+import com.smartrecord.enums.EmotionType;
 import com.smartrecord.dto.round.ConfirmRoundReq;
 import com.smartrecord.dto.round.RoundRecordResp;
 import com.smartrecord.dto.round.SubmitRoundReq;
@@ -65,32 +66,33 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
     private static final String ROOM_PREFIX = "sr:room:";
     private static final int ROOM_EXPIRE_HOURS = 24;
+    private static final String SCORE_PREFIX = "score:";
+    private static final String CONFIRM_PREFIX = "confirm:";
 
-    private String roundKey(Long roomId) { return ROOM_PREFIX + roomId + ":round"; }
-    private String detailsKey(Long roomId) { return ROOM_PREFIX + roomId + ":round:details"; }
-    private String membersKey(Long roomId) { return ROOM_PREFIX + roomId + ":round:members"; }
-    private String confirmsKey(Long roomId) { return ROOM_PREFIX + roomId + ":round:confirms"; }
-    private String configKey(Long roomId) { return ROOM_PREFIX + roomId + ":roundConfig"; }
+    /** 房间合并数据 Hash（meta + overview + round + roundConfig + qr） */
+    private String roomDataKey(Long roomId) { return ROOM_PREFIX + roomId + ":data"; }
+    /** 轮次得分/确认数据 Hash */
+    private String roundDataKey(Long roomId) { return ROOM_PREFIX + roomId + ":round:data"; }
 
     @Override
     public RoundRecordResp startRound(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
+        if (room == null || room.getStatus() != 0) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
         if (ScoreMode.ROUND_RECORD.getCode() != (room.getScoreMode() != null ? room.getScoreMode() : 1)) {
-            throw new BizException("自由流转空间不支持本局录");
+            throw new BizException(ErrorCode.ROUND_FREE_FLOW_NOT_SUPPORTED);
         }
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可发起本局录");
+        if (!room.getOwnerId().equals(userId)) throw new BizException(ErrorCode.NOT_OWNER_START_ROUND);
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
-                throw new BizException("系统繁忙，请稍后重试");
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
 
             // 检查是否有待处理录
-            if (Boolean.TRUE.equals(redisTemplate.hasKey(roundKey(roomId)))) {
-                throw new BizException(4101, "当前已有一笔本局录待处理");
+            if (redisTemplate.opsForHash().hasKey(roomDataKey(roomId), "round:id")) {
+                throw new BizException(ErrorCode.ROUND_ALREADY_PENDING);
             }
 
             int inputMethod = room.getRoundInputMethod() != null ? room.getRoundInputMethod() : 1;
@@ -100,40 +102,35 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             long roundId = idGenerator.nextId();
             int status;
             if (inputMethod == RoundInputMethod.HOST_FILL.getCode()) {
-                // 房主填写：信任开启直接等待提交后生效，信任关闭等待确认
                 status = trustMode == 1
-                        ? RoundRecordStatus.PENDING_CONFIRM.getCode()  // 信任开启：提交后直接生效，但先等房主填分数
-                        : RoundRecordStatus.PENDING_CONFIRM.getCode(); // 信任关闭：提交后等全员确认
+                        ? RoundRecordStatus.PENDING_CONFIRM.getCode()
+                        : RoundRecordStatus.PENDING_CONFIRM.getCode();
             } else {
-                // 成员自填
                 status = RoundRecordStatus.PENDING_MEMBER_INPUT.getCode();
             }
 
-            // 写入 round Hash
-            Map<String, String> roundData = new HashMap<>();
-            roundData.put("id", String.valueOf(roundId));
-            roundData.put("status", String.valueOf(status));
-            roundData.put("inputMethod", String.valueOf(inputMethod));
-            roundData.put("trustMode", String.valueOf(trustMode));
-            roundData.put("zeroSumRequired", String.valueOf(zeroSum));
-            roundData.put("createdBy", String.valueOf(userId));
-            roundData.put("totalScore", "0");
-            roundData.put("createdAt", String.valueOf(System.currentTimeMillis()));
+            // 写入 data Hash 的 round 字段
+            Map<String, String> roundFields = new HashMap<>();
+            roundFields.put("round:id", String.valueOf(roundId));
+            roundFields.put("round:status", String.valueOf(status));
+            roundFields.put("round:inputMethod", String.valueOf(inputMethod));
+            roundFields.put("round:trustMode", String.valueOf(trustMode));
+            roundFields.put("round:zeroSumRequired", String.valueOf(zeroSum));
+            roundFields.put("round:createdBy", String.valueOf(userId));
+            roundFields.put("round:totalScore", "0");
+            roundFields.put("round:createdAt", String.valueOf(System.currentTimeMillis()));
 
-            // 从 roundConfig 读取超时设置
-            String autoSeconds = (String) redisTemplate.opsForHash().get(configKey(roomId), "autoTimeoutSeconds");
-            String autoAction = (String) redisTemplate.opsForHash().get(configKey(roomId), "autoTimeoutAction");
-            roundData.put("autoTimeoutSeconds", autoSeconds != null ? autoSeconds : "30");
-            roundData.put("autoTimeoutAction", autoAction != null ? autoAction : "1");
+            // 从 data Hash 读取轮次配置
+            String autoSeconds = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "roundConfig:autoTimeoutSeconds");
+            String autoAction = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "roundConfig:autoTimeoutAction");
+            roundFields.put("round:autoTimeoutSeconds", autoSeconds != null ? autoSeconds : "30");
+            roundFields.put("round:autoTimeoutAction", autoAction != null ? autoAction : "1");
 
-            redisTemplate.opsForHash().putAll(roundKey(roomId), roundData);
-            redisTemplate.expire(roundKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+            redisTemplate.opsForHash().putAll(roomDataKey(roomId), roundFields);
+            redisTemplate.expire(roomDataKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
-            // 成员自填模式：初始化 members Hash
-            if (inputMethod == RoundInputMethod.MEMBER_FILL.getCode()) {
-                // 不预填，成员提交时写入
-                redisTemplate.expire(membersKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-            }
+            // 初始化 round:data Hash TTL
+            redisTemplate.expire(roundDataKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
             // 广播 ROUND_STARTED
             RoundRecordResp resp = buildRespFromRedis(roomId, room);
@@ -150,7 +147,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             return resp;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BizException("操作被中断");
+            throw new BizException(ErrorCode.OPERATION_INTERRUPTED);
         } finally {
             if (lock.isHeldByCurrentThread()) lock.unlock();
         }
@@ -160,52 +157,51 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     public RoundRecordResp submitRound(Long userId, SubmitRoundReq req) {
         Long roomId = req.getRoomId();
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
+        if (room == null || room.getStatus() != 0) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
-                throw new BizException("系统繁忙，请稍后重试");
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
 
             // 检查 round 存在
-            Map<Object, Object> roundData = redisTemplate.opsForHash().entries(roundKey(roomId));
-            if (roundData.isEmpty()) throw new BizException(4105, "该录已失效，请刷新空间");
+            String roundIdVal = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:id");
+            if (roundIdVal == null) throw new BizException(ErrorCode.ROUND_EXPIRED);
 
-            int status = Integer.parseInt((String) roundData.get("status"));
-            int inputMethod = Integer.parseInt((String) roundData.get("inputMethod"));
-            int trustMode = Integer.parseInt((String) roundData.get("trustMode"));
-            int zeroSum = Integer.parseInt((String) roundData.get("zeroSumRequired"));
-            long createdBy = Long.parseLong((String) roundData.get("createdBy"));
+            int status = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:status"));
+            int inputMethod = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:inputMethod"));
+            int trustMode = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:trustMode"));
+            int zeroSum = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:zeroSumRequired"));
+            long createdBy = Long.parseLong((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:createdBy"));
 
             if (inputMethod == RoundInputMethod.HOST_FILL.getCode()) {
                 // 房主填写
-                if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可填写");
+                if (!room.getOwnerId().equals(userId)) throw new BizException(ErrorCode.NOT_OWNER_FILL_SCORE);
                 if (status != RoundRecordStatus.PENDING_CONFIRM.getCode()) {
-                    throw new BizException("当前状态不允许填写");
+                    throw new BizException(ErrorCode.ROUND_INVALID_STATE);
                 }
 
-                // 写入 details
+                // 写入 round:data（score: 前缀）
                 int totalScore = 0;
-                Map<String, String> details = new HashMap<>();
+                Map<String, String> scoreFields = new HashMap<>();
                 for (SubmitRoundReq.PlayerScore ps : req.getScores()) {
-                    details.put(String.valueOf(ps.getUserId()), String.valueOf(ps.getScore()));
+                    scoreFields.put(SCORE_PREFIX + ps.getUserId(), String.valueOf(ps.getScore()));
                     totalScore += ps.getScore();
                 }
 
                 // 零和校验
                 if (zeroSum == 1 && totalScore != 0) {
-                    throw new BizException(4103, "积分变化总和必须为 0");
+                    throw new BizException(ErrorCode.ROUND_SCORE_ZERO_SUM);
                 }
 
-                redisTemplate.opsForHash().putAll(detailsKey(roomId), details);
-                redisTemplate.expire(detailsKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-                redisTemplate.opsForHash().put(roundKey(roomId), "totalScore", String.valueOf(totalScore));
+                redisTemplate.opsForHash().putAll(roundDataKey(roomId), scoreFields);
+                redisTemplate.opsForHash().put(roomDataKey(roomId), "round:totalScore", String.valueOf(totalScore));
 
                 if (trustMode == 1) {
                     // 信任开启：直接生效
-                    return applyRound(roomId, room, roundData);
+                    return applyRound(roomId, room);
                 } else {
                     // 信任关闭：广播等待确认
                     RoundRecordResp resp = buildRespFromRedis(roomId, room);
@@ -219,7 +215,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             } else {
                 // 成员自填
                 if (status != RoundRecordStatus.PENDING_MEMBER_INPUT.getCode()) {
-                    throw new BizException("当前状态不允许填写");
+                    throw new BizException(ErrorCode.ROUND_INVALID_STATE);
                 }
 
                 // 校验用户是房间成员
@@ -227,7 +223,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                         new LambdaQueryWrapper<RoomMember>()
                                 .eq(RoomMember::getRoomId, roomId)
                                 .eq(RoomMember::getUserId, userId)) > 0;
-                if (!isMember) throw new BizException("您不是该空间舰员");
+                if (!isMember) throw new BizException(ErrorCode.NOT_ROOM_MEMBER);
 
                 // 成员只填自己的分数
                 Integer myScore = null;
@@ -237,53 +233,49 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                         break;
                     }
                 }
-                if (myScore == null) throw new BizException("请填写自己的积分");
+                if (myScore == null) throw new BizException(ErrorCode.ROUND_INVALID_STATE);
 
-                // 写入 members Hash
-                redisTemplate.opsForHash().put(membersKey(roomId), String.valueOf(userId), String.valueOf(myScore));
+                // 写入 round:data（score: 前缀）
+                redisTemplate.opsForHash().put(roundDataKey(roomId), SCORE_PREFIX + userId, String.valueOf(myScore));
 
-                // 检查是否全员提交
+                // 检查是否全员提交（只统计 score: 前缀字段）
                 long memberCount = roomMemberMapper.selectCount(
                         new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
-                Map<Object, Object> submitted = redisTemplate.opsForHash().entries(membersKey(roomId));
+                long submittedCount = countScoreEntries(roomId);
 
                 // 广播进度
                 Map<String, Object> progressData = new HashMap<>();
                 progressData.put("type", "ROUND_MEMBER_SUBMITTED");
                 progressData.put("userId", String.valueOf(userId));
-                progressData.put("submitted", submitted.size());
+                progressData.put("submitted", submittedCount);
                 progressData.put("total", memberCount);
                 scoreWebSocket.pushToRoom(String.valueOf(roomId), progressData);
 
-                if (submitted.size() < memberCount) {
+                if (submittedCount < memberCount) {
                     // 还有人未提交
                     return buildRespFromRedis(roomId, room);
                 }
 
-                // 全员提交：汇总到 details
+                // 全员提交：从 round:data 读取所有 score: 字段汇总
+                Map<String, String> scoreEntries = getScoreEntries(roomId);
                 int totalScore = 0;
-                Map<String, String> details = new HashMap<>();
-                for (Map.Entry<Object, Object> entry : submitted.entrySet()) {
-                    int score = Integer.parseInt((String) entry.getValue());
-                    details.put((String) entry.getKey(), String.valueOf(score));
-                    totalScore += score;
+                for (String val : scoreEntries.values()) {
+                    totalScore += Integer.parseInt(val);
                 }
 
                 // 零和校验
                 if (zeroSum == 1 && totalScore != 0) {
-                    throw new BizException(4103, "积分变化总和必须为 0");
+                    throw new BizException(ErrorCode.ROUND_SCORE_ZERO_SUM);
                 }
 
-                redisTemplate.opsForHash().putAll(detailsKey(roomId), details);
-                redisTemplate.expire(detailsKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-                redisTemplate.opsForHash().put(roundKey(roomId), "totalScore", String.valueOf(totalScore));
+                redisTemplate.opsForHash().put(roomDataKey(roomId), "round:totalScore", String.valueOf(totalScore));
 
                 if (trustMode == 1) {
                     // 信任开启：直接生效
-                    return applyRound(roomId, room, roundData);
+                    return applyRound(roomId, room);
                 } else {
                     // 信任关闭：进入确认阶段
-                    redisTemplate.opsForHash().put(roundKey(roomId), "status",
+                    redisTemplate.opsForHash().put(roomDataKey(roomId), "round:status",
                             String.valueOf(RoundRecordStatus.PENDING_CONFIRM.getCode()));
                     RoundRecordResp resp = buildRespFromRedis(roomId, room);
                     Map<String, Object> pushData = new HashMap<>();
@@ -295,7 +287,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BizException("操作被中断");
+            throw new BizException(ErrorCode.OPERATION_INTERRUPTED);
         } finally {
             if (lock.isHeldByCurrentThread()) lock.unlock();
         }
@@ -305,21 +297,21 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     public RoundRecordResp confirmRound(Long userId, ConfirmRoundReq req) {
         Long roomId = req.getRoomId();
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) throw new BizException("空间不存在或已封存");
+        if (room == null || room.getStatus() != 0) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
-                throw new BizException("系统繁忙，请稍后重试");
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
 
-            Map<Object, Object> roundData = redisTemplate.opsForHash().entries(roundKey(roomId));
-            if (roundData.isEmpty()) throw new BizException(4105, "该录已失效");
+            String roundIdVal = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:id");
+            if (roundIdVal == null) throw new BizException(ErrorCode.ROUND_EXPIRED);
 
-            int status = Integer.parseInt((String) roundData.get("status"));
+            int status = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:status"));
             if (status != RoundRecordStatus.PENDING_CONFIRM.getCode()) {
-                throw new BizException("当前状态不允许确认");
+                throw new BizException(ErrorCode.ROUND_CONFIRM_INVALID_STATE);
             }
 
             // 校验用户是房间成员
@@ -327,18 +319,19 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                     new LambdaQueryWrapper<RoomMember>()
                             .eq(RoomMember::getRoomId, roomId)
                             .eq(RoomMember::getUserId, userId)) > 0;
-            if (!isMember) throw new BizException("您不是该空间舰员");
+            if (!isMember) throw new BizException(ErrorCode.NOT_ROOM_MEMBER);
 
             if (Boolean.FALSE.equals(req.getAgree())) {
                 // 驳回
-                redisTemplate.opsForHash().put(roundKey(roomId), "status",
-                        String.valueOf(RoundRecordStatus.REJECTED.getCode()));
-                redisTemplate.opsForHash().put(roundKey(roomId), "rejectedBy", String.valueOf(userId));
+                Map<String, String> rejectFields = new HashMap<>();
+                rejectFields.put("round:status", String.valueOf(RoundRecordStatus.REJECTED.getCode()));
+                rejectFields.put("round:rejectedBy", String.valueOf(userId));
+                redisTemplate.opsForHash().putAll(roomDataKey(roomId), rejectFields);
 
                 // 广播 ROUND_REJECTED
                 Map<String, Object> pushData = new HashMap<>();
                 pushData.put("type", "ROUND_REJECTED");
-                pushData.put("roundId", roundData.get("id"));
+                pushData.put("roundId", roundIdVal);
                 pushData.put("rejectedBy", String.valueOf(userId));
                 scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
 
@@ -347,32 +340,31 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                 return buildRespFromRedis(roomId, room);
             }
 
-            // 同意：记录确认
-            redisTemplate.opsForSet().add(confirmsKey(roomId), String.valueOf(userId));
-            redisTemplate.expire(confirmsKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+            // 同意：记录确认（confirm: 前缀写入 round:data）
+            redisTemplate.opsForHash().put(roundDataKey(roomId), CONFIRM_PREFIX + userId, "1");
 
             // 检查是否全员确认
             long memberCount = roomMemberMapper.selectCount(
                     new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
-            Long confirmCount = redisTemplate.opsForSet().size(confirmsKey(roomId));
+            long confirmCount = countConfirmEntries(roomId);
 
             // 广播确认进度
             Map<String, Object> progressData = new HashMap<>();
             progressData.put("type", "ROUND_CONFIRM_PROGRESS");
             progressData.put("userId", String.valueOf(userId));
-            progressData.put("confirmCount", confirmCount != null ? confirmCount : 0);
+            progressData.put("confirmCount", confirmCount);
             progressData.put("total", memberCount);
             scoreWebSocket.pushToRoom(String.valueOf(roomId), progressData);
 
-            if (confirmCount != null && confirmCount >= memberCount) {
+            if (confirmCount >= memberCount) {
                 // 全员确认：生效
-                return applyRound(roomId, room, roundData);
+                return applyRound(roomId, room);
             }
 
             return buildRespFromRedis(roomId, room);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BizException("操作被中断");
+            throw new BizException(ErrorCode.OPERATION_INTERRUPTED);
         } finally {
             if (lock.isHeldByCurrentThread()) lock.unlock();
         }
@@ -381,21 +373,20 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     @Override
     public void cancelRound(Long userId, Long roomId) {
         Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException("空间不存在");
-        if (!room.getOwnerId().equals(userId)) throw new BizException("仅主控可取消");
+        if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
+        if (!room.getOwnerId().equals(userId)) throw new BizException(ErrorCode.NOT_OWNER_CANCEL);
 
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
             if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
-                throw new BizException("系统繁忙，请稍后重试");
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
 
-            if (!Boolean.TRUE.equals(redisTemplate.hasKey(roundKey(roomId)))) {
-                throw new BizException(4105, "没有待处理的录入");
+            String roundId = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:id");
+            if (roundId == null) {
+                throw new BizException(ErrorCode.ROUND_NOT_FOUND);
             }
-
-            String roundId = (String) redisTemplate.opsForHash().get(roundKey(roomId), "id");
             deleteRoundKeys(roomId);
 
             Map<String, Object> pushData = new HashMap<>();
@@ -404,7 +395,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new BizException("操作被中断");
+            throw new BizException(ErrorCode.OPERATION_INTERRUPTED);
         } finally {
             if (lock.isHeldByCurrentThread()) lock.unlock();
         }
@@ -412,7 +403,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
     @Override
     public RoundRecordResp getPending(Long roomId) {
-        if (!Boolean.TRUE.equals(redisTemplate.hasKey(roundKey(roomId)))) {
+        if (!redisTemplate.opsForHash().hasKey(roomDataKey(roomId), "round:id")) {
             return null;
         }
         Room room = roomMapper.selectById(roomId);
@@ -422,17 +413,18 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
     // ===== 内部方法 =====
 
-    private RoundRecordResp applyRound(Long roomId, Room room, Map<Object, Object> roundData) {
-        long roundId = Long.parseLong((String) roundData.get("id"));
-        int inputMethod = Integer.parseInt((String) roundData.get("inputMethod"));
-        int trustMode = Integer.parseInt((String) roundData.get("trustMode"));
-        int zeroSum = Integer.parseInt((String) roundData.get("zeroSumRequired"));
-        long createdBy = Long.parseLong((String) roundData.get("createdBy"));
-        int totalScore = Integer.parseInt((String) roundData.get("totalScore"));
-        long createdAtMs = Long.parseLong((String) roundData.get("createdAt"));
+    private RoundRecordResp applyRound(Long roomId, Room room) {
+        String rdk = roomDataKey(roomId);
+        long roundId = Long.parseLong((String) redisTemplate.opsForHash().get(rdk, "round:id"));
+        int inputMethod = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:inputMethod"));
+        int trustMode = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:trustMode"));
+        int zeroSum = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:zeroSumRequired"));
+        long createdBy = Long.parseLong((String) redisTemplate.opsForHash().get(rdk, "round:createdBy"));
+        int totalScore = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:totalScore"));
+        long createdAtMs = Long.parseLong((String) redisTemplate.opsForHash().get(rdk, "round:createdAt"));
 
-        // 读取 details
-        Map<Object, Object> detailsMap = redisTemplate.opsForHash().entries(detailsKey(roomId));
+        // 读取 score: 字段
+        Map<String, String> scoreEntries = getScoreEntries(roomId);
 
         // 写入 MySQL
         RoundRecord record = new RoundRecord();
@@ -448,21 +440,21 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         record.setCreatedAt(LocalDateTime.ofInstant(Instant.ofEpochMilli(createdAtMs), ZoneId.systemDefault()));
         roundRecordMapper.insert(record);
 
-        for (Map.Entry<Object, Object> entry : detailsMap.entrySet()) {
+        for (Map.Entry<String, String> entry : scoreEntries.entrySet()) {
             RoundRecordDetail detail = new RoundRecordDetail();
             detail.setId(idGenerator.nextId());
             detail.setRoundRecordId(roundId);
-            detail.setUserId(Long.parseLong((String) entry.getKey()));
-            detail.setScore(Integer.parseInt((String) entry.getValue()));
+            detail.setUserId(Long.parseLong(entry.getKey()));
+            detail.setScore(Integer.parseInt(entry.getValue()));
             roundRecordDetailMapper.insert(detail);
         }
 
         // 更新 Redis 排行榜
         String scoresKey = ROOM_PREFIX + roomId + ":scores";
-        for (Map.Entry<Object, Object> entry : detailsMap.entrySet()) {
-            int score = Integer.parseInt((String) entry.getValue());
+        for (Map.Entry<String, String> entry : scoreEntries.entrySet()) {
+            int score = Integer.parseInt(entry.getValue());
             if (score != 0) {
-                redisTemplate.opsForZSet().incrementScore(scoresKey, (String) entry.getKey(), score);
+                redisTemplate.opsForZSet().incrementScore(scoresKey, entry.getKey(), score);
             }
         }
 
@@ -478,9 +470,9 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         // 生成情绪音频
         Map<String, Object> scoresWithEmotion = new HashMap<>();
         List<Map<String, Object>> scoreList = new ArrayList<>();
-        for (Map.Entry<Object, Object> entry : detailsMap.entrySet()) {
-            long uid = Long.parseLong((String) entry.getKey());
-            int score = Integer.parseInt((String) entry.getValue());
+        for (Map.Entry<String, String> entry : scoreEntries.entrySet()) {
+            long uid = Long.parseLong(entry.getKey());
+            int score = Integer.parseInt(entry.getValue());
             Map<String, Object> item = new HashMap<>();
             item.put("userId", uid);
             item.put("score", score);
@@ -502,7 +494,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         overviewService.computeOverview(roomId);
 
         // 刷新房间 TTL
-        redisTemplate.expire(ROOM_PREFIX + roomId + ":meta", ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
+        redisTemplate.expire(roomDataKey(roomId), ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
         redisTemplate.expire(ROOM_PREFIX + roomId + ":scores", ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
 
         return RoundRecordResp.builder()
@@ -519,12 +511,20 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     }
 
     private void deleteRoundKeys(Long roomId) {
-        List<String> keys = List.of(
-                roundKey(roomId),
-                detailsKey(roomId),
-                membersKey(roomId),
-                confirmsKey(roomId));
-        redisTemplate.delete(keys);
+        // 从 data Hash 中删除 round 相关字段
+        String rdk = roomDataKey(roomId);
+        Map<Object, Object> allFields = redisTemplate.opsForHash().entries(rdk);
+        List<String> roundFields = new ArrayList<>();
+        for (Object field : allFields.keySet()) {
+            if (((String) field).startsWith("round:")) {
+                roundFields.add((String) field);
+            }
+        }
+        if (!roundFields.isEmpty()) {
+            redisTemplate.opsForHash().delete(rdk, roundFields.toArray());
+        }
+        // 删除轮次得分/确认数据
+        redisTemplate.delete(roundDataKey(roomId));
     }
 
     private void scheduleRoundCleanup(Long roomId, int delaySeconds) {
@@ -532,7 +532,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             try {
                 Thread.sleep(delaySeconds * 1000L);
                 // 只清理 REJECTED 状态的，不清理已手动取消或已生效的
-                String status = (String) redisTemplate.opsForHash().get(roundKey(roomId), "status");
+                String status = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:status");
                 if (status != null && Integer.parseInt(status) == RoundRecordStatus.REJECTED.getCode()) {
                     deleteRoundKeys(roomId);
                 }
@@ -544,8 +544,8 @@ public class RoundRecordServiceImpl implements RoundRecordService {
 
     private void startTimeoutMonitor(Long roomId, long roundId, int expectedStatus) {
         // 读取超时设置
-        String secondsStr = (String) redisTemplate.opsForHash().get(roundKey(roomId), "autoTimeoutSeconds");
-        String actionStr = (String) redisTemplate.opsForHash().get(roundKey(roomId), "autoTimeoutAction");
+        String secondsStr = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:autoTimeoutSeconds");
+        String actionStr = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:autoTimeoutAction");
         int timeoutSeconds = secondsStr != null ? Integer.parseInt(secondsStr) : 30;
         int timeoutAction = actionStr != null ? Integer.parseInt(actionStr) : 1;
 
@@ -554,7 +554,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                 Thread.sleep(timeoutSeconds * 1000L);
 
                 // 原子检查状态
-                String currentStatus = (String) redisTemplate.opsForHash().get(roundKey(roomId), "status");
+                String currentStatus = (String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:status");
                 if (currentStatus == null) return; // 已被清理
                 int status = Integer.parseInt(currentStatus);
 
@@ -567,15 +567,14 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                 Room room = roomMapper.selectById(roomId);
                 if (room == null) return;
 
-                Map<Object, Object> roundData = redisTemplate.opsForHash().entries(roundKey(roomId));
-                if (roundData.isEmpty()) return;
+                if (!redisTemplate.opsForHash().hasKey(roomDataKey(roomId), "round:id")) return;
 
                 if (timeoutAction == 1) {
-                    // 自动同意：仅在 PENDING_CONFIRM 且有 details 时生效
+                    // 自动同意：仅在 PENDING_CONFIRM 且有 score 数据时生效
                     if (status == RoundRecordStatus.PENDING_CONFIRM.getCode()) {
-                        Map<Object, Object> details = redisTemplate.opsForHash().entries(detailsKey(roomId));
-                        if (!details.isEmpty()) {
-                            applyRound(roomId, room, roundData);
+                        long scoreCount = countScoreEntries(roomId);
+                        if (scoreCount > 0) {
+                            applyRound(roomId, room);
                             // 广播超时通知
                             Map<String, Object> pushData = new HashMap<>();
                             pushData.put("type", "ROUND_TIMEOUT");
@@ -601,25 +600,25 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     }
 
     private RoundRecordResp buildRespFromRedis(Long roomId, Room room) {
-        Map<Object, Object> roundData = redisTemplate.opsForHash().entries(roundKey(roomId));
-        if (roundData.isEmpty()) return null;
+        String rdk = roomDataKey(roomId);
+        String roundIdVal = (String) redisTemplate.opsForHash().get(rdk, "round:id");
+        if (roundIdVal == null) return null;
 
-        int status = Integer.parseInt((String) roundData.get("status"));
-        int inputMethod = Integer.parseInt((String) roundData.get("inputMethod"));
-        int trustMode = Integer.parseInt((String) roundData.get("trustMode"));
-        int zeroSum = Integer.parseInt((String) roundData.get("zeroSumRequired"));
-        long createdBy = Long.parseLong((String) roundData.get("createdBy"));
-        int totalScore = Integer.parseInt((String) roundData.getOrDefault("totalScore", "0"));
-        long createdAtMs = Long.parseLong((String) roundData.get("createdAt"));
+        int status = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:status"));
+        int inputMethod = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:inputMethod"));
+        int trustMode = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:trustMode"));
+        int zeroSum = Integer.parseInt((String) redisTemplate.opsForHash().get(rdk, "round:zeroSumRequired"));
+        long createdBy = Long.parseLong((String) redisTemplate.opsForHash().get(rdk, "round:createdBy"));
+        String totalScoreStr = (String) redisTemplate.opsForHash().get(rdk, "round:totalScore");
+        int totalScore = totalScoreStr != null ? Integer.parseInt(totalScoreStr) : 0;
+        long createdAtMs = Long.parseLong((String) redisTemplate.opsForHash().get(rdk, "round:createdAt"));
 
-        String rejectedByStr = (String) roundData.get("rejectedBy");
+        String rejectedByStr = (String) redisTemplate.opsForHash().get(rdk, "round:rejectedBy");
         Long rejectedBy = rejectedByStr != null ? Long.parseLong(rejectedByStr) : null;
 
-        // 构建 details
-        Map<Object, Object> detailsMap = redisTemplate.opsForHash().entries(detailsKey(roomId));
-        Map<Object, Object> membersMap = redisTemplate.opsForHash().entries(membersKey(roomId));
-        Set<String> confirmedSet = redisTemplate.opsForSet().members(confirmsKey(roomId));
-        if (confirmedSet == null) confirmedSet = Collections.emptySet();
+        // 从 round:data 读取 score: 和 confirm: 字段
+        Map<String, String> scoreEntries = getScoreEntries(roomId);
+        Set<String> confirmedUserIds = getConfirmedUserIds(roomId);
 
         // 获取房间所有成员
         List<RoomMember> allMembers = roomMemberMapper.selectList(
@@ -630,9 +629,9 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         Map<Long, String> nicknameMap = new HashMap<>();
         Map<Long, String> avatarUrlMap = new HashMap<>();
         for (Long uid : memberUserIds) {
-            String userJson = redisTemplate.opsForValue().get("sr:user:" + uid);
-            if (userJson != null) {
-                JSONObject userObj = JSONUtil.parseObj(userJson);
+            Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
+            if (cached != null) {
+                JSONObject userObj = JSONUtil.parseObj((String) cached);
                 nicknameMap.put(uid, userObj.getStr("nickname", ""));
                 avatarUrlMap.put(uid, userObj.getStr("avatarUrl", ""));
             } else {
@@ -645,51 +644,30 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         List<RoundRecordResp.DetailVO> detailVOs = new ArrayList<>();
         int memberSubmitted = 0;
 
-        if (inputMethod == RoundInputMethod.HOST_FILL.getCode()) {
-            // 房主填写：details 中有数据
-            for (Long uid : memberUserIds) {
-                String scoreStr = (String) detailsMap.get(String.valueOf(uid));
-                Integer score = scoreStr != null ? Integer.parseInt(scoreStr) : null;
-                Boolean confirmed = null;
-                if (status == RoundRecordStatus.PENDING_CONFIRM.getCode()) {
-                    confirmed = confirmedSet.contains(String.valueOf(uid));
-                }
-                detailVOs.add(RoundRecordResp.DetailVO.builder()
-                        .userId(uid)
-                        .nickname(nicknameMap.getOrDefault(uid, ""))
-                        .avatarUrl(avatarUrlMap.getOrDefault(uid, ""))
-                        .score(score)
-                        .submitted(score != null)
-                        .confirmed(confirmed)
-                        .build());
-            }
-        } else {
-            // 成员自填
-            for (Long uid : memberUserIds) {
-                String submittedScore = (String) membersMap.get(String.valueOf(uid));
-                if (submittedScore != null) memberSubmitted++;
+        for (Long uid : memberUserIds) {
+            String scoreStr = scoreEntries.get(String.valueOf(uid));
+            Integer score = scoreStr != null ? Integer.parseInt(scoreStr) : null;
+            boolean submitted = score != null;
+            if (submitted) memberSubmitted++;
 
-                String scoreStr = (String) detailsMap.get(String.valueOf(uid));
-                Integer score = scoreStr != null ? Integer.parseInt(scoreStr) : (submittedScore != null ? Integer.parseInt(submittedScore) : null);
-                Boolean confirmed = null;
-                if (status == RoundRecordStatus.PENDING_CONFIRM.getCode()) {
-                    confirmed = confirmedSet.contains(String.valueOf(uid));
-                }
-                detailVOs.add(RoundRecordResp.DetailVO.builder()
-                        .userId(uid)
-                        .nickname(nicknameMap.getOrDefault(uid, ""))
-                        .avatarUrl(avatarUrlMap.getOrDefault(uid, ""))
-                        .score(score)
-                        .submitted(submittedScore != null)
-                        .confirmed(confirmed)
-                        .build());
+            Boolean confirmed = null;
+            if (status == RoundRecordStatus.PENDING_CONFIRM.getCode()) {
+                confirmed = confirmedUserIds.contains(String.valueOf(uid));
             }
+            detailVOs.add(RoundRecordResp.DetailVO.builder()
+                    .userId(uid)
+                    .nickname(nicknameMap.getOrDefault(uid, ""))
+                    .avatarUrl(avatarUrlMap.getOrDefault(uid, ""))
+                    .score(score)
+                    .submitted(submitted)
+                    .confirmed(confirmed)
+                    .build());
         }
 
-        int confirmCount = confirmedSet.size();
+        int confirmCount = confirmedUserIds.size();
 
         return RoundRecordResp.builder()
-                .id(Long.parseLong((String) roundData.get("id")))
+                .id(Long.parseLong(roundIdVal))
                 .roomId(roomId)
                 .status(status)
                 .inputMethod(inputMethod)
@@ -705,5 +683,53 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                 .confirmTotal(memberUserIds.size())
                 .createdAt(LocalDateTime.ofInstant(Instant.ofEpochMilli(createdAtMs), ZoneId.systemDefault()))
                 .build();
+    }
+
+    // ===== round:data 辅助方法 =====
+
+    /** 从 round:data 读取所有 score:{uid} 字段，去掉前缀返回 uid→score 映射 */
+    private Map<String, String> getScoreEntries(Long roomId) {
+        Map<Object, Object> all = redisTemplate.opsForHash().entries(roundDataKey(roomId));
+        Map<String, String> result = new HashMap<>();
+        for (Map.Entry<Object, Object> entry : all.entrySet()) {
+            String key = (String) entry.getKey();
+            if (key.startsWith(SCORE_PREFIX)) {
+                result.put(key.substring(SCORE_PREFIX.length()), (String) entry.getValue());
+            }
+        }
+        return result;
+    }
+
+    /** 统计 round:data 中 score: 字段数量 */
+    private long countScoreEntries(Long roomId) {
+        Map<Object, Object> all = redisTemplate.opsForHash().entries(roundDataKey(roomId));
+        long count = 0;
+        for (Object key : all.keySet()) {
+            if (((String) key).startsWith(SCORE_PREFIX)) count++;
+        }
+        return count;
+    }
+
+    /** 从 round:data 读取所有 confirm:{uid} 字段，返回已确认的 userId 集合 */
+    private Set<String> getConfirmedUserIds(Long roomId) {
+        Map<Object, Object> all = redisTemplate.opsForHash().entries(roundDataKey(roomId));
+        Set<String> result = new HashSet<>();
+        for (Object key : all.keySet()) {
+            String k = (String) key;
+            if (k.startsWith(CONFIRM_PREFIX)) {
+                result.add(k.substring(CONFIRM_PREFIX.length()));
+            }
+        }
+        return result;
+    }
+
+    /** 统计 round:data 中 confirm: 字段数量 */
+    private long countConfirmEntries(Long roomId) {
+        Map<Object, Object> all = redisTemplate.opsForHash().entries(roundDataKey(roomId));
+        long count = 0;
+        for (Object key : all.keySet()) {
+            if (((String) key).startsWith(CONFIRM_PREFIX)) count++;
+        }
+        return count;
     }
 }

@@ -1,4 +1,4 @@
-<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}}">
+<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}} {{voiceSheetVisible || nicknameDrawerVisible ? 'terminal-page--overlay-open' : ''}}">
   <!-- 未登录 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-state">
     <view class="empty-state__icon">
@@ -34,10 +34,10 @@
         <text class="profile-hud__kicker-en">SHIP PROFILE</text>
       </view>
 
-      <!-- 铭牌主体：头像 + 名字 + 等级 + 最强成就 -->
+      <!-- 铭牌主体：识别徽标 + 呼号 + 等级 + 最强成就 -->
       <view class="profile-hud__body">
         <view class="profile-hud__left">
-          <button class="profile-hud__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <button class="profile-hud__avatar-btn" bindtap="onTapAvatar">
             <helmet-avatar
               src="{{avatarUrl || ''}}"
               size="lg"
@@ -152,6 +152,7 @@
         <text class="terminate-btn__zh">断开终端</text>
       </view>
     </view>
+    <view class="terminal-bottom-spacer"></view>
   </view>
 
   <!-- 本舰呼号校准悬浮终端 -->
@@ -200,8 +201,10 @@
   </view>
 
   <!-- 音色选择弹层 -->
-  <view wx:if="{{voiceSheetVisible}}" class="voice-mask voice-mask--show" bindtap="closeVoiceSheet"></view>
+  <view wx:if="{{voiceSheetVisible}}" class="voice-mask voice-mask--show" bindtap="closeVoiceSheet" catchtouchmove="noop"></view>
   <view wx:if="{{voiceSheetVisible}}" class="voice-sheet voice-sheet--show">
+    <view class="voice-sheet__handle"></view>
+    <view class="voice-sheet__close" bindtap="closeVoiceSheet">关闭</view>
     <view class="voice-sheet__header">
       <text class="voice-sheet__kicker">VOICE CHANNEL</text>
       <text class="voice-sheet__title">通讯频道校准</text>
@@ -257,4 +260,5 @@
       </scroll-view>
     </view>
   </view>
+
 </view>

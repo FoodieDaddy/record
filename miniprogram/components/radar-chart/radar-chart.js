@@ -54,10 +54,6 @@ Component({
   observers: {
     'dimensions, locked'() {
       this._redraw();
-    },
-    locked(val) {
-      console.log('[radar-chart] locked changed:', val);
-      this._redraw();
     }
   },
 
@@ -190,6 +186,7 @@ Component({
     },
 
     _startPulseLoop() {
+      if (this._pulsing) return;
       const self = this;
       function tick() {
         if (self._animMode !== 'unlocked' || self.data.locked) return;

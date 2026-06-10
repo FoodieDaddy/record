@@ -120,4 +120,4 @@ function syncFromServer(detail) {
   });
 }
 
-module.exports = { speakTransfer, speak, stop, getSettings, saveSettings, syncFromServer };
+module.exports = { speakTransfer, speak, stop, clear: stop, getSettings, saveSettings, syncFromServer };

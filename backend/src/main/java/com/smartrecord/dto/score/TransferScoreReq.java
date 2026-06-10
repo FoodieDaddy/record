@@ -9,7 +9,7 @@ import lombok.Data;
 @Schema(description = "计分请求")
 public class TransferScoreReq {
 
-    @NotNull(message = "roomId 不能为空")
+    @NotNull(message = "房间 ID 不能为空")
     @Schema(description = "房间 ID", example = "1750000000000010")
     private Long roomId;
 
@@ -24,4 +24,7 @@ public class TransferScoreReq {
 
     @Schema(description = "备注", example = "本轮数值变化")
     private String remark;
+
+    @Schema(description = "客户端请求 ID，用于幂等去重", example = "1718000000000-a3f8b2")
+    private String clientRequestId;
 }

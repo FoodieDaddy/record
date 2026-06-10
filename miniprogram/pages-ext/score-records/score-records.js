@@ -6,12 +6,18 @@ Page({
     loading: true,
     loadError: false,
     animationEnabled: true,
-    records: []
+    records: [],
+    pageHeight: 0,
+  },
+
+  onLoad() {
+    this.calcPageHeight();
   },
 
   onShow() {
     this.setData({ animationEnabled: app.globalData.animationEnabled !== false });
     this.loadSamples();
+    this.calcPageHeight();
   },
 
   async loadSamples() {
@@ -43,5 +49,21 @@ Page({
     this.loadSamples().finally(() => {
       wx.stopPullDownRefresh();
     });
-  }
+  },
+
+  calcPageHeight() {
+    let pageHeight = 0;
+    try {
+      const win = wx.getWindowInfo();
+      pageHeight = win.windowHeight;
+    } catch (e) {
+      try {
+        const info = wx.getSystemInfoSync();
+        pageHeight = info.windowHeight;
+      } catch (e2) { /* 最终降级 */ }
+    }
+    if (pageHeight) {
+      this.setData({ pageHeight });
+    }
+  },
 });

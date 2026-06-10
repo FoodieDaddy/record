@@ -21,7 +21,7 @@
 
     <view class="terminal-divider">
       <view class="div-line"></view>
-      <text class="div-label">脉冲 · 编队 · 镜像 · 档案</text>
+      <text class="div-label">脉冲 · 编队 · 指令 · 镜像</text>
       <view class="div-line"></view>
     </view>
 
@@ -62,12 +62,12 @@
     </view>
   </view>
 
-  <!-- 身份认证 -->
+  <!-- 终端接入 -->
   <view class="auth-section" wx:if="{{!connecting}}">
     <view class="auth-header">
       <view class="auth-line"></view>
-      <text class="auth-label-cn">身份认证</text>
-      <text class="auth-label">IDENTITY AUTH</text>
+      <text class="auth-label-cn">终端接入</text>
+      <text class="auth-label">TERMINAL LINK</text>
       <view class="auth-line"></view>
     </view>
 
@@ -77,7 +77,7 @@
       hover-stay-time="100"
       bindtap="onLogin"
     >
-      <text class="btn-text">身份认证</text>
+      <text class="btn-text">接入终端</text>
       <view wx:if="{{loading}}" class="btn-loading">
         <view class="spinner"></view>
       </view>
@@ -86,7 +86,7 @@
     <text class="auth-hint">首次接入后自动创建识别档案</text>
   </view>
 
-  <!-- 登录动画 -->
+  <!-- 接入动画 -->
   <view class="connecting-overlay" wx:if="{{connecting}}">
     <view class="connecting-box">
       <text class="connecting-title">正在接入</text>
@@ -101,7 +101,7 @@
       </view>
 
       <view class="connecting-divider" wx:if="{{accessGranted}}"></view>
-      <text class="access-granted" wx:if="{{accessGranted}}">接入完成</text>
+      <text class="access-granted" wx:if="{{accessGranted}}">已接入</text>
       <text class="access-granted-kicker" wx:if="{{accessGranted}}">ACCESS GRANTED</text>
     </view>
   </view>
@@ -110,6 +110,6 @@
   <view class="bottom-info">
     <text class="build-info">BUILD 1.0.0</text>
     <view class="bottom-divider"></view>
-    <text class="brand-terminal">PULSE TERMINAL</text>
+    <text class="brand-terminal">SPACE SCOREKEEPER</text>
   </view>
 </view>

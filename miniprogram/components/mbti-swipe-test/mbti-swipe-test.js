@@ -70,12 +70,28 @@ Component({
       }, 5000);
     },
     detached() {
-      if (this._loadingTimer) clearTimeout(this._loadingTimer);
-      if (this._animTimer) clearTimeout(this._animTimer);
+      this.clearLocalTimers();
+    }
+  },
+
+  pageLifetimes: {
+    hide() {
+      this.clearLocalTimers();
     }
   },
 
   methods: {
+    clearLocalTimers() {
+      if (this._loadingTimer) {
+        clearTimeout(this._loadingTimer);
+        this._loadingTimer = null;
+      }
+      if (this._animTimer) {
+        clearTimeout(this._animTimer);
+        this._animTimer = null;
+      }
+    },
+
     onSwipeRight() {
       this.submitAnswer(1, 'right');
     },
@@ -165,10 +181,6 @@ Component({
         testVersion: 'v1',
         answers: answers
       });
-    },
-
-    onClose() {
-      this.triggerEvent('close');
     }
   }
 });

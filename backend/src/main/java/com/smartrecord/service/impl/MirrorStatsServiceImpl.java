@@ -27,17 +27,17 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    private static final String CACHE_KEY = "sr:mirror:stats:";
-    private static final long CACHE_TTL_HOURS = 24;
+    private static final String USER_KEY_PREFIX = "sr:user:";
+    private static final String CACHE_FIELD = "mirror:stats";
 
     @Override
     public MirrorStatsResp calculate(Long userId) {
         // 尝试读缓存
-        String cacheKey = CACHE_KEY + userId;
+        String userKey = USER_KEY_PREFIX + userId;
         try {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
+            Object cached = redisTemplate.opsForHash().get(userKey, CACHE_FIELD);
             if (cached != null) {
-                return objectMapper.readValue(cached, MirrorStatsResp.class);
+                return objectMapper.readValue((String) cached, MirrorStatsResp.class);
             }
         } catch (Exception e) {
             log.warn("读取stats缓存失败: userId={}", userId);
@@ -82,9 +82,7 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
 
         // 写缓存
         try {
-            redisTemplate.opsForValue().set(cacheKey,
-                    objectMapper.writeValueAsString(resp),
-                    CACHE_TTL_HOURS, TimeUnit.HOURS);
+            redisTemplate.opsForHash().put(userKey, CACHE_FIELD, objectMapper.writeValueAsString(resp));
         } catch (Exception e) {
             log.warn("写入stats缓存失败: userId={}", userId);
         }

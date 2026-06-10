@@ -51,7 +51,7 @@
             <text class="hero-title">{{mbti.mbtiTitle}}</text>
           </block>
           <block wx:else>
-            <text class="hero-uncalibrated">人格协议未接入</text>
+            <text class="hero-uncalibrated">协议未接入 / 等待校准</text>
           </block>
         </view>
 
@@ -66,7 +66,7 @@
         <view class="hero-summary" wx:if="{{mbti.calibrated}}">
           <view class="summary-item">
             <text class="summary-label">协议一致率</text>
-            <text class="summary-val summary-val--match">{{personaMatch.matchPercentage}}%</text>
+            <text class="summary-val {{personaMatchDisplayPending ? 'summary-val--pending' : 'summary-val--match'}}">{{personaMatchDisplay}}</text>
           </view>
           <view class="summary-sep"></view>
           <view class="summary-item">
@@ -89,7 +89,7 @@
       </view>
 
       <!-- ===== 二级：航迹档案 ===== -->
-      <view class="mirror-track" style="opacity: {{sectionsOpacity}};">
+      <view class="mirror-track {{!mbti.calibrated ? 'mirror-track--second-screen' : ''}}" style="opacity: {{sectionsOpacity}};">
         <view class="sr-card track-archive-card" bindtap="goScoreRecords">
           <view class="card-header">
             <view class="card-title-row">
@@ -125,14 +125,15 @@
       <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
         <view class="sr-card analysis-card">
           <view class="card-header">
-            <view class="card-title-row">
+            <view class="card-title-row analysis-toggle" bindtap="toggleAnalysis">
               <text class="card-title">协议分析</text>
               <text class="card-kicker">PROTOCOL ANALYSIS</text>
+              <text class="analysis-toggle__state">{{analysisExpanded ? '收起' : '展开'}}</text>
             </view>
             <view class="sr-card-line card-line"></view>
           </view>
 
-          <view class="analysis-body">
+          <view class="analysis-body" wx:if="{{analysisExpanded}}">
 
             <!-- 系统判读 -->
             <view class="analysis-section">
@@ -269,6 +270,11 @@
   <!-- ==================== CALIBRATION 视图 ==================== -->
   <block wx:if="{{calibrationVisible}}">
     <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
+      <view class="cal-close-btn" bindtap="closeMbtiTest">
+        <view class="cal-close-icon"></view>
+        <text class="cal-close-text">退出校准</text>
+      </view>
+
       <!-- 顶部 -->
       <view class="cal-header">
         <text class="cal-title">协议校准</text>
@@ -279,11 +285,6 @@
       <view class="cal-ring-wrap">
         <view class="cal-ring {{reduceMotion ? '' : 'cal-ring-spin'}}"></view>
         <view class="cal-ring-inner"></view>
-      </view>
-
-      <!-- 进度 -->
-      <view class="cal-progress" wx:if="{{!calibrationSubmitting}}">
-        <text class="cal-progress-text">信号 {{calibrationProgress}}</text>
       </view>
 
       <!-- 提交完成面板 -->
@@ -303,7 +304,6 @@
         <mbti-swipe-test
           reduceMotion="{{reduceMotion}}"
           bind:complete="handleMbtiComplete"
-          bind:close="closeMbtiTest"
         />
       </view>
     </view>

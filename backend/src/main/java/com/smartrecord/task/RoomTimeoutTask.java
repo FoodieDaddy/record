@@ -63,15 +63,12 @@ public class RoomTimeoutTask {
                 try {
                     Long roomId = room.getId();
                     String eventsKey = ROOM_PREFIX + roomId + ":events";
-                    String batchesKey = ROOM_PREFIX + roomId + ":batches";
 
                     Long eventCount = redisTemplate.opsForZSet().zCard(eventsKey);
-                    List<String> batches = redisTemplate.opsForList().range(batchesKey, 0, -1);
                     boolean hasEvents = eventCount != null && eventCount > 0;
-                    boolean hasBatches = batches != null && !batches.isEmpty();
 
-                    if (hasEvents || hasBatches) {
-                        log.info("房间 {} 超时 {} 小时，自动结算（events={}, batches={}）", roomId, TIMEOUT_HOURS, eventCount, hasBatches ? batches.size() : 0);
+                    if (hasEvents) {
+                        log.info("房间 {} 超时 {} 小时，自动结算（events={}）", roomId, TIMEOUT_HOURS, eventCount);
                         scoreService.settleRoom(room.getOwnerId(), roomId, true);
                     } else {
                         log.info("房间 {} 超时 {} 小时且无积分数据，自动解散", roomId, TIMEOUT_HOURS);

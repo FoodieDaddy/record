@@ -1,5 +1,6 @@
 package com.smartrecord.controller;
 
+import com.smartrecord.aop.CurrentUser;
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.mirror.MbtiDirectReq;
 import com.smartrecord.dto.mirror.MbtiTestReq;
@@ -10,7 +11,6 @@ import com.smartrecord.service.MirrorProfileService;
 import com.smartrecord.service.MirrorStatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,41 +27,36 @@ public class MirrorController {
 
     @Operation(summary = "获取镜像画像")
     @GetMapping("/profile")
-    public Result<MirrorProfileResp> profile(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
-        MirrorProfileResp resp = mirrorProfileService.getFullProfile(userId);
-        return Result.ok(resp);
+    public Result<MirrorProfileResp> profile(@CurrentUser Long userId) {
+        return Result.ok(mirrorProfileService.getFullProfile(userId));
     }
 
     @Operation(summary = "刷新战绩画像")
     @PostMapping("/profile/refresh")
-    public Result<MirrorProfileResp> refreshProfile(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+    public Result<MirrorProfileResp> refreshProfile(@CurrentUser Long userId) {
         mirrorProfileService.clearProfileCache(userId);
-        MirrorProfileResp resp = mirrorProfileService.getFullProfile(userId);
-        return Result.ok(resp);
+        return Result.ok(mirrorProfileService.getFullProfile(userId));
     }
 
     @Operation(summary = "MBTI 20题测试")
     @PostMapping("/mbti/test")
     public Result<MirrorProfileResp.ProfileInfo> mbtiTest(
-            HttpServletRequest request, @Valid @RequestBody MbtiTestReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+            @CurrentUser Long userId,
+            @Valid @RequestBody MbtiTestReq req) {
         return Result.ok(mirrorProfileService.submitMbtiTest(userId, req));
     }
 
     @Operation(summary = "MBTI直接输入")
     @PostMapping("/mbti/direct")
     public Result<MirrorProfileResp.ProfileInfo> mbtiDirect(
-            HttpServletRequest request, @Valid @RequestBody MbtiDirectReq req) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+            @CurrentUser Long userId,
+            @Valid @RequestBody MbtiDirectReq req) {
         return Result.ok(mirrorProfileService.submitMbtiDirect(userId, req.getMbtiCode()));
     }
 
     @Operation(summary = "五维战力雷达图数据")
     @GetMapping("/stats")
-    public Result<MirrorStatsResp> stats(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("currentUserId");
+    public Result<MirrorStatsResp> stats(@CurrentUser Long userId) {
         return Result.ok(mirrorStatsService.calculate(userId));
     }
 }

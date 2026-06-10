@@ -1,21 +1,17 @@
 /**
- * 环境配置
+ * 环境配置入口
  *
- * 默认只保留本机开发和发布占位地址；真机调试或灰度环境可通过
- * wx.setStorageSync('SMART_RECORD_BASE_URL', 'https://example.com/api')
- * wx.setStorageSync('SMART_RECORD_WS_URL', 'wss://example.com/api')
- * 注入运行时地址，避免在仓库中提交服务器 IP。
+ * 优先级（从高到低）：
+ * 1. Storage 运行时覆盖（SMART_RECORD_BASE_URL / SMART_RECORD_WS_URL）
+ * 2. env.js 中 mode 对应的配置
+ * 3. 默认本地配置
+ *
+ * 切换环境：
+ *   修改 config/env.js 中的 mode 字段为 'local' | 'anyservice' | 'prod'
  */
-const DEFAULT_CONFIG = {
-  baseUrl: 'http://localhost:18080/api',
-  wsUrl: 'ws://localhost:18080/api'
-};
+const ENV = require('./config/env');
 
-const RELEASE_CONFIG = {
-  baseUrl: 'https://your-domain.com/api',
-  wsUrl: 'wss://your-domain.com/api'
-};
-
+/** 运行时 Storage 覆盖（真机调试 / 灰度环境注入） */
 function readRuntimeOverride() {
   try {
     const baseUrl = wx.getStorageSync('SMART_RECORD_BASE_URL');
@@ -24,7 +20,7 @@ function readRuntimeOverride() {
       return { baseUrl, wsUrl };
     }
   } catch (e) {
-    // storage 不可用时回退到默认配置
+    // storage 不可用时回退
   }
   return null;
 }
@@ -40,9 +36,69 @@ function getEnvVersion() {
 }
 
 function resolveConfig() {
+  // Storage 运行时覆盖优先
   const override = readRuntimeOverride();
   if (override) return override;
-  return getEnvVersion() === 'release' ? RELEASE_CONFIG : DEFAULT_CONFIG;
+
+  const mode = ENV.mode || 'local';
+
+  if (mode === 'anyservice') {
+    // HTTP API 走 wx.cloud.callContainer，但音频下载等仍需真实服务器地址
+    const server = ENV.anyservice.serverUrl || '';
+    return {
+      baseUrl: server ? `${server}/api` : '',
+      wsUrl: ENV.anyservice.wsUrl || ''
+    };
+  }
+
+  if (mode === 'prod') {
+    return {
+      baseUrl: `${ENV.prod.apiBaseUrl}/api`,
+      wsUrl: `${ENV.prod.wsUrl}/api`
+    };
+  }
+
+  // local 模式（默认）
+  return {
+    baseUrl: `${ENV.local.apiBaseUrl}/api`,
+    wsUrl: `${ENV.local.wsUrl}/api`
+  };
 }
 
-module.exports = resolveConfig();
+const config = resolveConfig();
+
+/** 当前环境模式 */
+config.mode = ENV.mode || 'local';
+
+/** 超时配置 */
+config.timeout = ENV.timeout || { normal: 10000, directive: 30000 };
+
+/** AnyService 配置（mode === 'anyservice' 时使用） */
+config.anyservice = ENV.anyservice || {};
+
+/** 存储配置 */
+config.storage = ENV.storage || {};
+config.storageProvider = ENV.storage ? ENV.storage.provider : 'cloudbase';
+
+/**
+ * 获取 WebSocket URL（供 score-ws.js 使用）
+ * @param {string} roomId
+ * @returns {string}
+ */
+config.getWsUrl = function (roomId) {
+  const mode = config.mode;
+  let base;
+
+  if (mode === 'anyservice') {
+    // AnyService WebSocket 需真机验证后填写 wsUrl
+    base = config.anyservice.wsUrl || config.wsUrl;
+  } else if (mode === 'prod') {
+    base = config.wsUrl;
+  } else {
+    base = config.wsUrl;
+  }
+
+  return `${base}/ws/score?roomId=${roomId}`;
+};
+
+module.exports = config;

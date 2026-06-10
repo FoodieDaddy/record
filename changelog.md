@@ -2,6 +2,117 @@
 
 ## 未发布
 
+### 修复
+
+- 解散编队时成员记录未更新 `quit_time` 和 `final_score`，导致历史编队成员数据不完整。
+
+### 变更
+
+- Redis key 结构整合：每个编队从 13 个 key 收敛到 6 个，用户信息/镜像画像/五维扫描合并为单 Hash，总 key 模式从 22 种减少到 13 种。
+- 编队页 active 态 v6 重构：大型 HUD 舷窗(640rpx+) + 实体控制台 + 任务终端区，消除下半屏空黑。
+- HUD 舷窗从 420rpx 扩展到 640rpx-740rpx，成员观测区从 248rpx 扩展到 320rpx。
+- 本舰脉冲仪表改为绝对定位嵌入 HUD 下半区，不再被轨迹条遮挡。
+- 空态新增远距离信标扫描视觉：三层脉冲扫描环 + 3 个占位航船点 + "等待编队接入"。
+- 控制台从 AR 悬浮面板改为 cockpit-console 实体按键：console-key__slot 凹槽 + __face 按键面 + LED 状态点，按下 feedback translateY。
+- 按钮从 2 个(信标/航迹)扩展为 4 个(信标/航迹/封存航程/更多)，两排布局。
+- 新增"更多"面板：复制编队码 + 解散/撤离，危险操作从信标面板移入此地。
+- 新增 task-terminal 任务终端区：协议/阶段/席位/链路四读数 + 迷你点阵 + 最近 3 条脉冲轨迹。
+- 信标面板重构为 beacon-panel AR 浮空终端：只保留 QR/编队码/复制/关闭，移除保存信标/发送信标/危险区。
+- 顶部状态条压缩为 cockpit-status-strip：绿点 + 文字，半透明深色底，不占 HUD 空间。
+- 底部 Dock 蓝线和能量轨透明度降低，选中态标签从 #0A84FF 改为 rgba(0,200,255,0.72)。
+- room-view-model 新增 protocolLabel（脉冲流向/航段写入），terminalLogEntries 扩展到 3 条。
+- room.js 新增 toggleMorePanel/closeMorePanel/copyRoomNoFromMore，showMorePanel 在 onHide 清理。
+
+- 产品命名统一为「太空记分器 / Space Scorekeeper」，强调多人编队记分与航迹复盘；Smart Record 收敛为工程代号，脉冲终端不再作为用户可见品牌名。
+- 世界观名从「脉冲方舟」调整为「太空方舟」。
+- 产品副标题定为「多人编队记分与航迹复盘 / Crew scoring and flight-log review」。
+- 登录页英文标识从 PULSE TERMINAL 改为 SPACE SCOREKEEPER。
+- Canvas 海报标识从 SMART RECORD · NAV BAY 改为 SPACE SCOREKEEPER · NAV BAY，从 SMART RECORD · HOLO BAY 改为 SPACE SCOREKEEPER · HOLO BAY。
+- 小程序导航栏标题从「脉冲终端」改为「太空记分器」。
+- 产品定位补充：必须让用户一眼知道这是记分器，其次再通过太空编队、驾驶舱、航迹档案形成差异化。
+
+### 变更
+
+- 驾驶舱控制台二次重构：console-bridge 桥接舷窗 + console-panel 透视面板 + console-danger-strip 封存安全锁条，控制台高度压缩，删除重复 readout-chip 行改为单行紧凑读数。
+- 按钮从 cockpit-switch 平面斜切升级为 flight-key 三层实体按键：flight-key-slot（凹槽）+ flight-key-body（切角按键面 + 上高光线）+ flight-key-side（底部厚度暗边），按下时 body translateY(2rpx) + side 高度收缩 + LED 亮度降低。
+- 按钮行从等宽 1fr 1fr 改为主操作 1.15fr + 辅助 0.85fr 不等宽布局，更接近主键 + 辅助键座舱感。
+- 封存航程从大红主按钮改为安全锁条 console-danger-strip：暗红描边 + 锁点 + 副标题 + 确认按钮，高度 72rpx，不再和主操作抢视觉。
+- HUD 舷窗新增座舱包围：cockpit-frame-left/right（左右舱体暗色边框）+ cockpit-canopy-arc（顶部弧形玻璃边缘），舷窗更像玻璃而非普通面板。
+- cockpit-dashboard-lip 唇缘加粗加阴影，视觉上连接舷窗底部与 console-bridge。
+- 脉冲轨迹区高度压缩至 96rpx，TERMINAL FEED 透明度降至 0.18。
+- 封存航程不再被底部 TabBar 遮挡：room-page--active padding-bottom 改为 calc(320rpx + env(safe-area-inset-bottom))。
+- 控制台使用 perspective + rotateX(5deg) 模拟低头透视，reduce-motion 下取消。
+- 无 transition: all，无新增 setInterval / requestAnimationFrame。
+- 识别徽标存储从阿里云 OSS 迁移到可切换的存储抽象层：开发测试阶段使用腾讯云开发 CloudBase 存储，后期可切换腾讯 COS，不再依赖阿里云 OSS。
+- 新增 `avatar-storage.js` 前端工具，对外只暴露 `uploadAvatar(tempFilePath)` 和 `resolveAvatarSrc(avatarUrl)` 两个方法，页面不直接写 `wx.cloud.uploadFile`、OSS presign 或 COS 逻辑。
+- 识别徽标选择改用 `wx.chooseMedia`（`mediaType=['image']`, `sizeType=['compressed']`），替代原来的 `open-type="chooseAvatar"`。
+- 后端新增 `StorageProviderConfig` 和 `storage.provider` 配置（aliyun / cloudbase / cos），`PresignUrlResp` 增加 `provider` 字段。
+- `helmet-avatar` 组件和 `room.js` 编队成员头像支持 `cloud://` fileID 异步解析渲染。
+- 默认 TTS 语音从晓晓改为云扬（专业男声），更符合宇航员角色。
+
+### 修复
+
+- 创建房间后的 WebSocket `PRESENCE_UPDATE` 改为先复制到可变 Map 再补信封字段，避免 `Map.of(...)` 触发 `UnsupportedOperationException`。
+- 首页待机态协议选择与创建/加入按钮下移到独立操作区，避免压住 HUD 读数。
+- 首页改用自定义导航栏，太空背景延伸到标题栏和刘海/状态栏区域。
+- 自定义底部 Dock 下方原生 tabBar 文案清空，避免真机出现两层「编队/指令/镜像/身份」。
+- 头像 URL 清洗新增后端早期自动生成 OSS SVG 默认头像过滤，缺失的 `images/avatar-*.svg` 会回退到首字徽标，避免渲染层 404。
+- 登录页接入语义收敛：主按钮改为「接入终端」，接入步骤改为识别档案、协议参数、编队链路和导航核心。
+- 编队页待机态改为更清晰的舷窗/HUD 待机结构，模式选择改为协议槽位表达，创建/加入按钮上移并避开底部 Dock。
+- 编队页 WebSocket 重连遮罩改为页面可见态绑定，切换 Tab 时立即清理视觉遮罩和页面级 loading。
+- 指令页重新计算弹窗打开时锁定背景滚动，正文和安全边界可读性提升。
+- 全息舱底部安全区加大，固定操作栏抬高并改为实底，协议一致率在 0 样本时显示「待计算」。
+- 全息舱协议校准作为全屏任务处理：进入时隐藏自定义 Dock，退出/完成/切页恢复；答题按钮固定在安全区上方，旧题文字不再叠卡显示。
+- 识别舱底部安全区加大，「断开终端」保持流式布局并增加底部 spacer。
+- 通讯音色抽屉覆盖底部 Dock，增加拖拽柄和关闭按钮，列表底部补足安全区。
+- 识别徽标点击后直接调用微信头像授权，不再先展示自定义来源面板，避免重复选择流程。
+
+### 基础设施
+
+- 新增 CloudBase / AnyService 接入能力：小程序前端支持 local / anyservice / prod 三种环境模式切换，HTTP API 可通过 `wx.cloud.callContainer` 经 CloudBase AnyService 转发到后端。
+- 新增 `config/env.js` 统一环境配置，`config.js` 集成并保持向后兼容。
+- `request.js` 改造支持三种模式，页面调用方式不变。
+- `score-ws.js` 改用 `config.getWsUrl()` 统一 WebSocket URL 来源。
+- 新增 `storage-client.js` 上传封装，默认走后端预签名 URL 直传对象存储，可选 CloudBase 云存储开发模式。
+- 新增 `application-prod.yml` 后端生产配置，敏感信息通过环境变量注入。
+- 本地开发模式不受影响，无需 CloudBase 依赖。
+- Docker Compose 数据库从 MySQL 5.7 升级到 8.0。
+- 新增 Spring Boot Actuator 健康检查端点（`/actuator/health`），Dockerfile 新增 `HEALTHCHECK` 指令。
+- 生产环境启用优雅关闭（30s 超时），滚动更新时在途请求不会被强断。
+- 生产环境 HikariCP 连接池参数配置（最大 20 连接、最小 5 空闲、30s 闲置超时）。
+- 生产环境 Redis Lettuce 连接池参数配置（最大 16 活跃、最大 8 空闲）。
+- 生产环境禁用 Swagger UI 和 API Docs。
+- 生产环境关闭 MyBatis SQL 日志输出。
+- 接入 Spring Cloud Alibaba Sentinel 熔断限流，微信登录接口已配置 `@SentinelResource` 熔断降级。
+- Docker Compose 生产配置 MySQL 和 Redis 新增健康检查，`depends_on` 改为 `condition: service_healthy`。
+- Docker Compose 生产配置 `SPRING_PROFILES_ACTIVE` 修正为 `prod`。
+- Sentinel Dashboard 管理控制台接入（`bladex/sentinel-dashboard:1.8.8`，端口 18858）。
+- Sentinel URL 全局限流（200 QPS 预热模式）+ 微信登录 50 QPS + OSS 预签名 100 QPS + TTS 合成 30 QPS。
+- OSS 预签名和 TTS 合成接口新增 `@SentinelResource` 熔断降级。
+- 新增 `logback-spring.xml` 结构化 JSON 日志（`logstash-logback-encoder`），生产环境按天轮转、单文件 100MB、保留 30 天、总量 2GB，ERROR 日志独立文件。
+- 新增 Prometheus Metrics 端点（`/actuator/prometheus`），带 `application` 标签。
+- WebSocket 心跳机制：服务端每 25 秒发送 Ping，60 秒无响应自动关闭僵尸连接。
+- MySQL 慢查询日志开启（阈值 1 秒）。
+- Redis 开启 AOF 持久化（`appendonly yes`，`appendfsync everysec`）。
+- 新增 OpenTelemetry 链路追踪（`micrometer-tracing-bridge-otel` + OTLP 导出），通过 `OTEL_EXPORTER_OTLP_ENDPOINT` 环境变量配置后端地址。
+- 新增 CORS 跨域配置，允许未来 H5/管理端跨域访问 API。
+- 生产环境开启 Response Gzip 压缩（JSON/XML/HTML/JS/CSS，阈值 1KB）。
+- Jackson 序列化优化：日期统一 `yyyy-MM-dd HH:mm:ss` 格式、忽略未知属性、空 Bean 不抛异常。
+- 新增集成测试（Actuator 健康检查、未登录 401、Swagger 可访问、微信登录无效 code 校验）。
+- 新增 GitHub Actions CI/CD：单元测试 → 集成测试（MySQL + Redis Service）→ Docker 构建验证。
+- Dockerfile 安全加固：创建非 root 用户 `appuser` 运行应用，日志目录预创建并赋权。
+
+### 可靠性
+
+- 核心写接口幂等性保护：转分、封存、本局录提交/确认接口支持 `clientRequestId` 去重，重复请求返回首次结果。
+- 异步任务持久化：二维码生成改为数据库持久化任务，服务重启后自动恢复执行，指数退避重试。
+- 引入 Flyway 数据库迁移工具，schema 变更通过版本化脚本管理。
+- Snowflake ID 生成器支持通过环境变量显式配置 dataCenterId/workerId，prod 环境未配置时启动失败。
+- 生产环境配置 fail-fast：缺少 JWT、微信、OSS、Snowflake 等关键配置时直接启动失败，不泄露敏感值。
+- WebSocket 消息统一信封：每条推送携带 messageId 和 serverTime，支持前端去重和补偿。
+- WebSocket 重连后自动恢复房间状态：成员列表、分数、待处理轮次主动同步。
+- 新增 10 个后端单元测试：Snowflake ID 生成器（5）、房间服务（2）、记分服务（3）。
+
 ### 安全
 
 - WebSocket 连接新增 roomId 成员校验，非房间成员无法订阅实时广播。
@@ -15,8 +126,15 @@
 - 新建 `.env.example` 提供环境变量模板。
 - `deploy.sh` 中服务器地址和密钥路径改为环境变量。
 
+### 变更
+
+- 驾驶舱 active 态 HUD 下方「信标 / 航迹」按钮从实体 3D 按键重构为 AR 悬浮操作面板：半透明全息面板、青蓝切角描边、纯 CSS 图标、能量线和状态点，更像悬浮在舷窗下沿的舰载 AR 操作面板。
+- 脉冲流向数字输入面板重构为悬浮 AR 脉冲写入面板：深黑蓝半透明背景、青蓝细描边、扫描线和四角 HUD 装饰；宽度响应式适配、底部间距优化避免被 Dock 遮挡；移除推荐数值区域。
+
 ### 优化
 
+- `room.wxss` 按现有视觉区域拆分为 `pages/room/styles/*.wxss`，主文件仅保留同序 `@import`，降低单文件维护成本。
+- 新增 `room-view-model.js`，抽出驾驶舱视图态、席位列表、presence 标签、脉冲格式化和航船坐标等纯展示逻辑。
 - `room.js` 的 `buildMemberGrid` + `rebuildPulseStats` 合并为一次 setData 写入，减少渲染压力。
 - 新增 `room-patch-scheduler` 批处理调度器，支持高频 setData 合并。
 - `request.js` 新增 GET 请求去重和 X-Request-Id 追踪头。

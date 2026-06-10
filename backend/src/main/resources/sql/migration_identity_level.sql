@@ -1,9 +1,0 @@
--- 身份等级表
-CREATE TABLE IF NOT EXISTS user_identity_level (
-  user_id    BIGINT PRIMARY KEY COMMENT '用户ID',
-  level      INT NOT NULL DEFAULT 1 COMMENT '等级 1-5',
-  exp        INT NOT NULL DEFAULT 0 COMMENT '经验值',
-  stability  INT DEFAULT NULL COMMENT '人格稳定度 0-100',
-  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES user(id)
-) COMMENT '用户身份等级';

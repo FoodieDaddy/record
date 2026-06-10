@@ -2,6 +2,6 @@
   "component": true,
   "usingComponents": {
     "score-chart": "/components/score-chart/score-chart",
-    "helmet-avatar": "/components/helmet-avatar/index"
+    "helmet-avatar": "/components/helmet-avatar/helmet-avatar"
   }
 }

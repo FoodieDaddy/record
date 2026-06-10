@@ -12,6 +12,7 @@
       <input
         class="score-input"
         type="number"
+        adjust-position="{{false}}"
         placeholder="0"
         value="{{inputValue}}"
         bindinput="onInput"

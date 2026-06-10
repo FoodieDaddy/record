@@ -1,11 +1,15 @@
 package com.smartrecord.dto.storage;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "预签名上传 URL 响应")
 public class PresignUrlResp {
 
@@ -17,4 +21,7 @@ public class PresignUrlResp {
 
     @Schema(description = "文件对象 key", example = "session/2026/06/01/xxx.jpg")
     private String objectKey;
+
+    @Schema(description = "存储提供者标识", example = "aliyun")
+    private String provider;
 }

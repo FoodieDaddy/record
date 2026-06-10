@@ -1,4 +1,4 @@
-<view class="terminal-dock">
+<view class="terminal-dock {{hidden ? 'terminal-dock--hidden' : ''}}">
   <view class="dock-top-line"></view>
   <view class="dock-energy-rail"></view>
 
@@ -56,11 +56,11 @@
           <view class="id-pin p2"></view>
         </view>
 
-        <view class="dock-connect-dot" wx:if="{{selected === index}}"></view>
+        <view class="dock-connect-dot {{selected === index ? 'is-visible' : ''}}"></view>
       </view>
 
       <text class="dock-label">{{item.text}}</text>
-      <view class="dock-active-bar" wx:if="{{selected === index}}"></view>
+      <view class="dock-active-bar {{selected === index ? 'is-visible' : ''}}"></view>
     </view>
   </view>
 </view>

@@ -1,6 +1,7 @@
 package com.smartrecord.config.interceptor;
 
 import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,7 +33,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
-            throw new BizException(4001, "终端未接入");
+            throw new BizException(ErrorCode.IDENTITY_NOT_FOUND);
         }
         try {
             Long userId = jwtUtil.parseUserId(token.substring(7));
@@ -41,7 +42,7 @@ public class JwtInterceptor implements HandlerInterceptor {
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            throw new BizException(4001, "接入已过期");
+            throw new BizException(ErrorCode.IDENTITY_EXPIRED);
         }
     }
 }

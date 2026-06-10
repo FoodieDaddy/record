@@ -2,6 +2,7 @@ package com.smartrecord.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.common.Result;
 import com.smartrecord.service.MimoTtsService;
 import com.smartrecord.service.TtsService;
@@ -34,7 +35,7 @@ public class TtsController {
                     @RequestParam(required = false) String voiceId,
                     HttpServletResponse response) {
         if (text == null || text.trim().isEmpty() || text.length() > 200) {
-            throw new BizException("文本无效或过长");
+            throw new BizException(ErrorCode.TTS_TEXT_INVALID);
         }
 
         // 按 voiceId 查找完整配置（含 rate/pitch）
@@ -52,7 +53,7 @@ public class TtsController {
 
         byte[] audio = ttsService.synthesize(text, activeVoice, rate, pitch);
         if (audio == null || audio.length == 0) {
-            throw new BizException("语音合成失败");
+            throw new BizException(ErrorCode.TTS_SYNTHESIS_FAILED);
         }
 
         try {
@@ -63,7 +64,7 @@ public class TtsController {
             response.getOutputStream().flush();
         } catch (Exception e) {
             log.error("写入 TTS 响应失败", e);
-            throw new BizException("语音响应写入失败");
+            throw new BizException(ErrorCode.TTS_RESPONSE_WRITE_FAILED);
         }
     }
 
@@ -72,7 +73,7 @@ public class TtsController {
     public Result<Map<String, Object>> benchmark(@RequestParam String text,
                                                  @RequestParam(required = false) String mimoVoice) {
         if (text == null || text.trim().isEmpty() || text.length() > 200) {
-            throw new BizException("文本无效或过长");
+            throw new BizException(ErrorCode.TTS_TEXT_INVALID);
         }
 
         // edge-tts

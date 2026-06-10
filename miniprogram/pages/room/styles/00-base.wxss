@@ -1,0 +1,13 @@
+.room-page {
+  padding: 24rpx;
+  /* 自定义 tabbar 140rpx + Home Indicator + 页面底部操作余量 */
+  padding-bottom: var(--sr-page-bottom-safe-large, calc(360rpx + env(safe-area-inset-bottom)));
+  min-height: 100vh;
+}
+
+/* 隐藏所有滚动条 */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

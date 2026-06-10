@@ -1,6 +1,7 @@
 Component({
   data: {
     selected: 0,
+    hidden: false,
     tabs: [
       {
         text: '编队',
@@ -33,13 +34,52 @@ Component({
     ]
   },
 
+  lifetimes: {
+    attached() {
+      this.syncFromPage();
+    }
+  },
+
+  pageLifetimes: {
+    show() {
+      this.syncFromPage();
+    }
+  },
+
   methods: {
+    syncFromPage() {
+      var pages = getCurrentPages();
+      if (pages.length === 0) return;
+      var route = '/' + pages[pages.length - 1].route;
+      var tabs = this.data.tabs;
+      var matched = -1;
+      for (var i = 0; i < tabs.length; i++) {
+        if (route === tabs[i].pagePath || route.indexOf(tabs[i].pagePath) === 0) {
+          matched = i;
+          break;
+        }
+      }
+      if (matched >= 0 && matched !== this.data.selected) {
+        this.setData({ selected: matched });
+      }
+    },
+
     switchTab(e) {
-      var index = e.currentTarget.dataset.index
-      var path = e.currentTarget.dataset.path
-      if (index === this.data.selected) return
-      this.setData({ selected: index })
-      wx.switchTab({ url: path })
+      var index = e.currentTarget.dataset.index;
+      var path = e.currentTarget.dataset.path;
+      if (index === this.data.selected) return;
+      this.setData({ selected: index });
+      wx.switchTab({ url: path });
+    },
+
+    /** 隐藏 tabbar（全屏覆盖场景，如校准流） */
+    hide() {
+      this.setData({ hidden: true });
+    },
+
+    /** 显示 tabbar */
+    show() {
+      this.setData({ hidden: false });
     }
   }
 })

@@ -1,3 +1,0 @@
-<view class="trend-chart-container">
-  <canvas id="trendChart" type="2d" class="trend-canvas" />
-</view>

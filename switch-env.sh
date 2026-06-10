@@ -11,25 +11,25 @@ info() { echo -e "${GREEN}[switch]${NC} $*"; }
 warn() { echo -e "${YELLOW}[switch]${NC} $*"; }
 
 ENV="${1:-}"
-CONFIG_FILE="$(dirname "$0")/miniprogram/config.js"
+CONFIG_FILE="$(dirname "$0")/miniprogram/config/env.js"
 
 if [ -z "$ENV" ]; then
   echo "用法: ./switch-env.sh <local|dev>"
   echo "  local — 本地开发（localhost:18080）"
-  echo "  dev   — 云服务器（需在 miniprogram/config.js 中配置 dev 地址）"
+  echo "  dev   — 云服务器（需在 miniprogram/config/env.js 中配置 anyservice 地址）"
   exit 1
 fi
 
 case "$ENV" in
   local)
     # 切换小程序指向本地
-    sed -i '' "s/const currentEnv = '.*'/const currentEnv = 'local'/" "$CONFIG_FILE"
+    sed -i '' "s/mode: '.*'/mode: 'local'/" "$CONFIG_FILE"
     info "小程序已切换到本地环境 (localhost:18080)"
     warn "后端请在 IDE 中启动，基础设施请运行: docker-compose up -d"
     ;;
   dev)
     # 切换小程序指向服务器
-    sed -i '' "s/const currentEnv = '.*'/const currentEnv = 'dev'/" "$CONFIG_FILE"
+    sed -i '' "s/mode: '.*'/mode: 'anyservice'/" "$CONFIG_FILE"
     info "小程序已切换到云服务器环境"
     warn "如需部署后端: ./deploy.sh"
     ;;

@@ -1,23 +1,17 @@
 const profileService = require('../../services/profile-service');
-const { getColor, getFirstChar } = require('../../utils/avatar');
+const { get } = require('../../utils/request');
+const { getColor, getFirstChar, normalizeAvatarUrl } = require('../../utils/avatar');
+const { uploadAvatar, resolveAvatarSrc } = require('../../utils/avatar-storage');
 const { generateNickname } = require('../../utils/nickname');
 const { truncate, getWidth } = require('../../utils/nickname-width');
 const { getMirrorProfile } = require('../../utils/mirror-api');
-const { getSettings, saveSettings } = require('../../utils/voice');
+const { getSettings, saveSettings, clear: clearVoiceQueue } = require('../../utils/voice');
 const { vibrateShort } = require('../../utils/haptic');
 const config = require('../../config');
 const app = getApp();
 
 const SAVE_DELAY = 2000;
 const HUD_FADE_DELAY = 1600;
-const audioCtx = wx.createInnerAudioContext();
-audioCtx.obeyMuteSwitch = false;
-
-let _saveTimer = null;
-let _uploadingAvatar = false;
-let _settingsTimer = null;
-let _pendingSettings = {};
-let _hudHideTimer = null;
 
 // 音色分类标签映射（后端 ID → 终端显示）
 const CATEGORY_LABELS = {
@@ -96,6 +90,16 @@ Page({
     pendingVoice: null
   },
 
+  onLoad() {
+    this.audioCtx = wx.createInnerAudioContext();
+    this.audioCtx.obeyMuteSwitch = false;
+    this._saveTimer = null;
+    this._uploadingAvatar = false;
+    this._settingsTimer = null;
+    this._pendingSettings = {};
+    this._hudHideTimer = null;
+  },
+
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3 })
@@ -115,7 +119,7 @@ Page({
     let userTask = Promise.resolve();
     if (cached && cached.nickname) {
       const rawAvatar = cached.avatarUrl || '';
-      const avatar = rawAvatar.startsWith('http') ? rawAvatar : '';
+      const avatar = normalizeAvatarUrl(rawAvatar);
       const name = cached.nickname;
       this.setData({
         nickname: name,
@@ -125,6 +129,15 @@ Page({
         _lastSavedAvatar: avatar
       });
       this.updateAvatar();
+      // cloud:// 头像异步解析为 https 临时 URL
+      if (avatar.startsWith('cloud://')) {
+        resolveAvatarSrc(avatar).then(resolved => {
+          if (resolved) {
+            this.setData({ avatarUrl: resolved });
+            this.updateAvatar();
+          }
+        });
+      }
     } else {
       userTask = this.loadUserInfo();
     }
@@ -160,23 +173,23 @@ Page({
   // ========== HUD 状态条 ==========
 
   showHud(text, type, autoHide) {
-    if (_hudHideTimer) {
-      clearTimeout(_hudHideTimer);
-      _hudHideTimer = null;
+    if (this._hudHideTimer) {
+      clearTimeout(this._hudHideTimer);
+      this._hudHideTimer = null;
     }
     this.setData({ hudVisible: true, hudText: text, hudType: type || 'info' });
     if (autoHide !== false) {
-      _hudHideTimer = setTimeout(() => {
-        _hudHideTimer = null;
+      this._hudHideTimer = setTimeout(() => {
+        this._hudHideTimer = null;
         this.setData({ hudVisible: false });
       }, HUD_FADE_DELAY);
     }
   },
 
   hideHud() {
-    if (_hudHideTimer) {
-      clearTimeout(_hudHideTimer);
-      _hudHideTimer = null;
+    if (this._hudHideTimer) {
+      clearTimeout(this._hudHideTimer);
+      this._hudHideTimer = null;
     }
     this.setData({ hudVisible: false });
   },
@@ -256,7 +269,7 @@ Page({
       if (user) {
         const loadedNick = user.nickname || '';
         const rawAvatar = user.avatarUrl || '';
-        const loadedAvatar = rawAvatar.startsWith('http') ? rawAvatar : '';
+        const loadedAvatar = normalizeAvatarUrl(rawAvatar);
         this.setData({
           nickname: loadedNick,
           avatarUrl: loadedAvatar,
@@ -269,6 +282,16 @@ Page({
           avatarUrl: loadedAvatar
         });
         this.updateAvatar();
+
+        // cloud:// 头像异步解析为 https 临时 URL
+        if (loadedAvatar.startsWith('cloud://')) {
+          resolveAvatarSrc(loadedAvatar).then(resolved => {
+            if (resolved) {
+              this.setData({ avatarUrl: resolved });
+              this.updateAvatar();
+            }
+          });
+        }
 
         const uid = String(user.userId || '');
         this.setData({ playerCode: 'SR-' + uid.slice(-4).padStart(4, '0') });
@@ -428,7 +451,7 @@ Page({
       this.showHud('通讯音色已接入', 'info');
     }
     this.setData({ voiceSheetVisible: false });
-    audioCtx.stop();
+    this.audioCtx.stop();
     this.setData({ playingVoiceId: '' });
   },
 
@@ -451,54 +474,71 @@ Page({
       pendingVoice: { voiceId: voice.id }
     });
 
-    audioCtx.stop();
+    this.audioCtx.stop();
     this.setData({ playingVoiceId: voice.id });
-    audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
-    audioCtx.play();
+    this.audioCtx.src = config.baseUrl + '/voice/preview?file=' + encodeURIComponent(voice.file);
+    this.audioCtx.play();
 
-    audioCtx.offEnded();
-    audioCtx.onEnded(() => {
+    this.audioCtx.offEnded();
+    this.audioCtx.onEnded(() => {
       this.setData({ playingVoiceId: '' });
     });
   },
 
   debouncedSaveSettings(partial) {
-    Object.assign(_pendingSettings, partial);
-    if (_settingsTimer) clearTimeout(_settingsTimer);
-    _settingsTimer = setTimeout(() => {
-      _settingsTimer = null;
+    Object.assign(this._pendingSettings, partial);
+    if (this._settingsTimer) clearTimeout(this._settingsTimer);
+    this._settingsTimer = setTimeout(() => {
+      this._settingsTimer = null;
       this.flushSaveSettings();
     }, SAVE_DELAY);
   },
 
   flushSaveSettings() {
-    if (_settingsTimer) {
-      clearTimeout(_settingsTimer);
-      _settingsTimer = null;
+    if (this._settingsTimer) {
+      clearTimeout(this._settingsTimer);
+      this._settingsTimer = null;
     }
-    if (Object.keys(_pendingSettings).length === 0) return;
-    const payload = { ..._pendingSettings };
-    _pendingSettings = {};
+    if (Object.keys(this._pendingSettings).length === 0) return;
+    const payload = { ...this._pendingSettings };
+    this._pendingSettings = {};
     profileService.saveUserSettings(payload).catch(() => {});
   },
 
-  // ========== 头像 ==========
+  // ========== 识别徽标 ==========
 
-  async onChooseAvatar(e) {
-    const tempPath = e.detail.avatarUrl;
+  onTapAvatar() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFile = res.tempFiles && res.tempFiles[0];
+        if (tempFile && tempFile.tempFilePath) {
+          this.applyBadgeTempPath(tempFile.tempFilePath);
+        }
+      },
+      fail: () => {}
+    });
+  },
+
+  async applyBadgeTempPath(tempPath) {
+    if (!tempPath) return;
     this.setData({ avatarUrl: tempPath });
     this.updateAvatar();
     this.showHud('识别徽标上传中', 'info', false);
-    _uploadingAvatar = true;
+    this._uploadingAvatar = true;
     try {
-      const ossUrl = await this.uploadToOSS(tempPath);
-      this.setData({ avatarUrl: ossUrl });
+      const avatarUrlResult = await uploadAvatar(tempPath);
+      this.setData({ avatarUrl: avatarUrlResult });
+      this.updateAvatar();
       this.showHud('识别徽标已更新', 'info');
     } catch (err) {
-      console.error('头像上传失败', err);
-      this.showHud('识别徽标上传失败', 'error');
+      console.error('识别徽标上传失败', err);
+      this.showHud('识别徽标更新失败，请稍后重试', 'error');
     } finally {
-      _uploadingAvatar = false;
+      this._uploadingAvatar = false;
     }
     this.debouncedSave();
   },
@@ -506,23 +546,23 @@ Page({
   // ========== 自动保存 ==========
 
   debouncedSave() {
-    if (_saveTimer) clearTimeout(_saveTimer);
-    _saveTimer = setTimeout(() => {
-      _saveTimer = null;
+    if (this._saveTimer) clearTimeout(this._saveTimer);
+    this._saveTimer = setTimeout(() => {
+      this._saveTimer = null;
       this.saveProfile();
     }, SAVE_DELAY);
   },
 
   flushSave() {
-    if (_saveTimer) {
-      clearTimeout(_saveTimer);
-      _saveTimer = null;
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
     }
     this.saveProfile();
   },
 
   async saveProfile() {
-    if (_uploadingAvatar) return;
+    if (this._uploadingAvatar) return;
     const { nickname, avatarUrl } = this.data;
     if (!nickname || !nickname.trim()) return;
 
@@ -536,12 +576,14 @@ Page({
     this.setData({ identityBayState: 'starting', identityBayLabel: '识别舱启动中' });
     this.showHud('协议同步中', 'info', false);
     try {
-      let finalAvatarUrl = avatarUrl;
-      if (avatarUrl && !avatarUrl.startsWith('http')) {
+      const normalizedAvatarUrl = normalizeAvatarUrl(avatarUrl);
+      let finalAvatarUrl = normalizedAvatarUrl;
+      // 未标准化的本地路径（wxfile:// 临时文件）需要先上传
+      if (avatarUrl && !normalizedAvatarUrl && !/^https?:\/\//.test(avatarUrl) && !/^cloud:\/\//.test(avatarUrl)) {
         try {
-          finalAvatarUrl = await this.uploadToOSS(avatarUrl);
+          finalAvatarUrl = await uploadAvatar(avatarUrl);
         } catch (uploadErr) {
-          console.error('头像补传失败', uploadErr);
+          console.error('识别徽标补传失败', uploadErr);
           finalAvatarUrl = this.data._lastSavedAvatar || '';
         }
       }
@@ -571,41 +613,6 @@ Page({
     }
   },
 
-  async uploadToOSS(filePath) {
-    const fileData = await new Promise((resolve, reject) => {
-      wx.getFileSystemManager().readFile({
-        filePath,
-        success: res => resolve(res.data),
-        fail: reject
-      });
-    });
-    const contentLength = fileData.byteLength || fileData.length || 0;
-    const contentType = 'image/jpeg';
-    const presignData = await profileService.getPresignUrl(contentType, contentLength);
-    if (!presignData || !presignData.uploadUrl) {
-      throw new Error('获取预签名 URL 失败');
-    }
-
-    await new Promise((resolve, reject) => {
-      wx.request({
-        url: presignData.uploadUrl,
-        method: 'PUT',
-        data: fileData,
-        header: {
-          'Content-Type': contentType,
-          'Content-Length': String(contentLength)
-        },
-        success(res) {
-          if (res.statusCode === 200) resolve();
-          else reject(new Error('上传失败: ' + res.statusCode));
-        },
-        fail: reject
-      });
-    });
-
-    return presignData.accessUrl || presignData.objectKey;
-  },
-
   // ========== 导航 ==========
 
   goLogin() {
@@ -633,33 +640,42 @@ Page({
 
   onHide() {
     this.flushSave();
-    this.flushSaveSettings();
     this.hideHud();
     if (this.data.nicknameDrawerVisible) {
       this.closeNicknameDrawer();
     }
+    if (this.data.voiceSheetVisible) {
+      this.closeVoiceSheet();
+    }
+    this.flushSaveSettings();
+    this.setData({ playingVoiceId: '' });
+    this.audioCtx.stop();
   },
 
   onUnload() {
     // 清理所有 timer
-    if (_saveTimer) {
-      clearTimeout(_saveTimer);
-      _saveTimer = null;
+    if (this._saveTimer) {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = null;
     }
-    if (_settingsTimer) {
-      clearTimeout(_settingsTimer);
-      _settingsTimer = null;
+    if (this._settingsTimer) {
+      clearTimeout(this._settingsTimer);
+      this._settingsTimer = null;
     }
-    if (_hudHideTimer) {
-      clearTimeout(_hudHideTimer);
-      _hudHideTimer = null;
+    if (this._hudHideTimer) {
+      clearTimeout(this._hudHideTimer);
+      this._hudHideTimer = null;
     }
     this.flushSave();
     this.flushSaveSettings();
+    clearVoiceQueue();
     if (this.data.pendingVoice) {
       saveSettings(this.data.pendingVoice);
     }
-    audioCtx.stop();
-    audioCtx.destroy();
+    this.audioCtx.stop();
+    this.audioCtx.destroy();
+  },
+
+  noop() {
   }
 });

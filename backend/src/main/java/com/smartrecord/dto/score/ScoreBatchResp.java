@@ -21,6 +21,9 @@ public class ScoreBatchResp {
     @Schema(description = "本轮各玩家得分")
     private List<PlayerScoreVO> scores;
 
+    @Schema(description = "备注", example = "迟到扣分")
+    private String remark;
+
     @Data
     @Builder
     @Schema(description = "玩家得分详情")

@@ -214,6 +214,9 @@ Page({
     // projection visibility
     projectionVisible: false,
     coreCompact: false,
+
+    // Page layout
+    pageHeight: 0,
   },
 
   /* ===== 实例字段（非 data） ===== */
@@ -245,10 +248,11 @@ Page({
     const d = String(now.getDate()).padStart(2, '0')
     this.setData({
       animationEnabled: app.globalData.animationEnabled !== false,
-      reduceMotion: app.globalData.animationEnabled === false || app.globalData.reduceMotion === true,
+      reduceMotion: app.globalData.animationEnabled === false,
       currentDate: `${y}.${m}.${d}`,
       pageReady: true,
     })
+    this._calcPageHeight()
     this._initShareCapability()
     this._checkCache()
     this._setupEntranceAnimation()
@@ -266,23 +270,50 @@ Page({
       this.setData({ pageReady: true })
     }
     // 确保 TabBar 可见（防止异常路径漏恢复）
-    try { wx.showTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 1 });
+    }
+    // 每次展示重新计算高度，防止横竖屏切换等场景
+    this._calcPageHeight()
+  },
+
+  _calcPageHeight() {
+    let pageHeight = this.data.pageHeight || 0
+    try {
+      const win = wx.getWindowInfo();
+      pageHeight = win.windowHeight;
+    } catch (e) {
+      try {
+        const info = wx.getSystemInfoSync();
+        pageHeight = info.windowHeight;
+      } catch (e2) { /* 最终降级，保持旧值 */ }
+    }
+    if (pageHeight && pageHeight !== this.data.pageHeight) {
+      this.setData({ pageHeight })
+    }
   },
 
   onHide() {
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
-    // 海报弹层可能已 hideTabBar，离开页面时恢复
+    // 海报弹层可能已隐藏 tabbar，离开页面时恢复
     if (this.data.posterModalVisible) {
       this.setData({ posterModalVisible: false, phase: '', posterPath: '', posterError: '' })
-      try { wx.showTabBar({ animation: false }) } catch (e) {}
+      // 只使用自定义 tabbar 的方法
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setData({ hidden: false, selected: 1 });
+      }
     }
   },
 
   onUnload() {
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
-    try { wx.showTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 1 });
+    }
   },
 
   /* ==================== 分享能力检测 ==================== */
@@ -662,7 +693,10 @@ Page({
         posterPath: '',
         posterError: '',
       })
-      try { wx.showTabBar({ animation: false }) } catch (e) {}
+      // 只使用自定义 tabbar 的方法
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setData({ hidden: false, selected: 1 });
+      }
     }
   },
 
@@ -841,7 +875,10 @@ Page({
       forcePending: true,
       requesting: false,
     })
-    try { wx.showTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 1 });
+    }
   },
 
   /* ==================== 分享 / 海报 ==================== */
@@ -849,7 +886,10 @@ Page({
   onTapGeneratePoster() {
     vibrateShort('light')
     this.setData({ phase: 'poster_generating', posterError: '', posterModalVisible: true })
-    try { wx.hideTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: true });
+    }
     setTimeout(() => {
       this._renderPosterCanvas()
     }, 300)
@@ -860,7 +900,10 @@ Page({
     query.select('#posterCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
         this.setData({ phase: 'poster_error', posterError: '画布初始化失败' })
-        try { wx.showTabBar({ animation: false }) } catch (e) {}
+        // 只使用自定义 tabbar 的方法
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+          this.getTabBar().setData({ hidden: false, selected: 1 });
+        }
         return
       }
 
@@ -877,7 +920,10 @@ Page({
       const s = this.data.strategy
       if (!s) {
         this.setData({ phase: 'poster_error', posterError: '指令数据缺失' })
-        try { wx.showTabBar({ animation: false }) } catch (e) {}
+        // 只使用自定义 tabbar 的方法
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+          this.getTabBar().setData({ hidden: false, selected: 1 });
+        }
         return
       }
 
@@ -886,7 +932,10 @@ Page({
         this._drawPosterContent(ctx, W, H, s)
       } catch (e) {
         this.setData({ phase: 'poster_error', posterError: '指令卡绘制失败' })
-        try { wx.showTabBar({ animation: false }) } catch (err) {}
+        // 只使用自定义 tabbar 的方法
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+          this.getTabBar().setData({ hidden: false, selected: 1 });
+        }
         return
       }
 
@@ -903,7 +952,10 @@ Page({
         },
         fail: () => {
           this.setData({ phase: 'poster_error', posterError: '指令卡导出失败' })
-          try { wx.showTabBar({ animation: false }) } catch (e) {}
+          // 只使用自定义 tabbar 的方法
+          if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+            this.getTabBar().setData({ hidden: false, selected: 1 });
+          }
         },
       })
     })
@@ -1110,7 +1162,7 @@ Page({
 
     ctx.textAlign = 'right'
     ctx.fillStyle = 'rgba(0,175,255,0.18)'
-    this._fillLetterSpaced(ctx, 'SMART RECORD · NAV BAY', padR, H - 48)
+    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER · NAV BAY', padR, H - 48)
     ctx.textAlign = 'left'
   },
 
@@ -1360,7 +1412,10 @@ Page({
 
   onClosePoster() {
     this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
-    try { wx.showTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 1 });
+    }
   },
 
   onPosterRetry() {
@@ -1372,7 +1427,10 @@ Page({
 
   onPosterCancel() {
     this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
-    try { wx.showTabBar({ animation: false }) } catch (e) {}
+    // 只使用自定义 tabbar 的方法
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ hidden: false, selected: 1 });
+    }
   },
 
   /* ==================== 通用工具 ==================== */

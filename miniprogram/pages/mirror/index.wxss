@@ -3,9 +3,10 @@
 /* ---- 根容器 ---- */
 .mirror-bay {
   position: relative;
-  min-height: 100vh;
   box-sizing: border-box;
-  padding: 16rpx 28rpx calc(env(safe-area-inset-bottom) + 308rpx);
+  /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
+  padding: 16rpx 28rpx;
+  padding-bottom: var(--sr-page-bottom-safe-xl, calc(420rpx + env(safe-area-inset-bottom)));
   background:
     radial-gradient(circle at 50% 18%, rgba(0,200,255,0.08), transparent 28%),
     radial-gradient(circle at 18% 0%, rgba(10,132,255,0.10), transparent 34%),
@@ -280,6 +281,11 @@
   text-shadow: 0 0 12rpx rgba(48, 209, 88, 0.25);
 }
 
+.summary-val--pending {
+  color: rgba(226,242,255,0.58);
+  text-shadow: none;
+}
+
 .summary-val--sample {
   color: var(--color-orange, #FF9F0A);
 }
@@ -295,7 +301,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  gap: 10rpx;
   width: 100%;
   max-width: 480rpx;
 }
@@ -374,13 +380,14 @@
   height: 72rpx;
   line-height: 72rpx;
   text-align: center;
-  border-radius: 6rpx;
+  border-radius: 0;
   border: 1rpx solid rgba(0, 200, 255, 0.30);
   background: rgba(0, 200, 255, 0.06);
   color: rgba(0, 200, 255, 0.90);
   font-size: 26rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
+  clip-path: polygon(14rpx 0, 100% 0, 100% calc(100% - 14rpx), calc(100% - 14rpx) 100%, 0 100%, 0 14rpx);
 }
 
 .term-btn.ghost {
@@ -489,6 +496,16 @@
 /* ===== 协议分析卡片 ===== */
 .analysis-card {
   padding: 24rpx 26rpx;
+}
+
+.analysis-toggle {
+  width: 100%;
+}
+
+.analysis-toggle__state {
+  margin-left: auto;
+  font-size: 20rpx;
+  color: rgba(0,200,255,0.62);
 }
 
 .analysis-body {
@@ -857,6 +874,10 @@
   z-index: 1;
 }
 
+.mirror-track--second-screen {
+  margin-top: 180rpx;
+}
+
 .track-archive-card:active {
   background: rgba(0, 200, 255, 0.04);
 }
@@ -923,13 +944,14 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: calc(140rpx + env(safe-area-inset-bottom));
+  bottom: var(--sr-action-dock-bottom, calc(156rpx + env(safe-area-inset-bottom)));
   z-index: 900;
   display: flex;
   gap: 12rpx;
-  padding: 12rpx 32rpx;
-  background: rgba(6, 10, 16, 0.94);
+  padding: 14rpx 32rpx 16rpx;
+  background: linear-gradient(180deg, rgba(5, 12, 20, 0.99), rgba(1, 5, 10, 0.99));
   border-top: 1rpx solid rgba(0, 200, 255, 0.15);
+  box-shadow: 0 -18rpx 40rpx rgba(0,0,0,0.62);
 }
 
 .dock-glow::before {
@@ -994,23 +1016,23 @@
 
 /* ===== 底部占位 ===== */
 .mirror-bottom-spacer {
-  height: 16rpx;
+  height: calc(420rpx + env(safe-area-inset-bottom));
 }
 
 /* ===== Calibration Shell ===== */
 .calibration-shell {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1001;
+  inset: 0;
+  z-index: 3000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  padding: calc(120rpx + env(safe-area-inset-top)) 32rpx calc(40rpx + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 50% 30%, rgba(10,132,255,0.08), transparent 60%),
+    radial-gradient(circle at 50% 24%, rgba(0,200,255,0.09), transparent 30%),
+    radial-gradient(circle at 18% 0%, rgba(10,132,255,0.10), transparent 34%),
+    linear-gradient(180deg, rgba(5, 12, 20, 0.98), rgba(3, 7, 12, 0.98)),
     #05070A;
   opacity: 0;
   transform: scale(0.96);
@@ -1039,9 +1061,63 @@
   pointer-events: auto;
 }
 
+.cal-close-btn {
+  position: absolute;
+  top: calc(36rpx + env(safe-area-inset-top));
+  right: 28rpx;
+  z-index: 3012;
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  height: 48rpx;
+  padding: 0 16rpx 0 14rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(126, 156, 180, 0.20);
+  background: rgba(5, 12, 20, 0.72);
+  color: rgba(176, 208, 235, 0.62);
+  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
+}
+
+.cal-close-btn:active {
+  border-color: rgba(0, 200, 255, 0.34);
+  background: rgba(0, 200, 255, 0.08);
+}
+
+.cal-close-icon {
+  position: relative;
+  width: 18rpx;
+  height: 18rpx;
+  flex-shrink: 0;
+}
+
+.cal-close-icon::before,
+.cal-close-icon::after {
+  content: '';
+  position: absolute;
+  top: 8rpx;
+  left: 0;
+  width: 18rpx;
+  height: 2rpx;
+  background: currentColor;
+}
+
+.cal-close-icon::before {
+  transform: rotate(45deg);
+}
+
+.cal-close-icon::after {
+  transform: rotate(-45deg);
+}
+
+.cal-close-text {
+  font-size: 20rpx;
+  line-height: 1;
+  letter-spacing: 2rpx;
+}
+
 .cal-header {
   text-align: center;
-  margin-bottom: 32rpx;
+  margin-bottom: 26rpx;
 }
 
 .cal-title {
@@ -1064,7 +1140,7 @@
   position: relative;
   width: 160rpx;
   height: 160rpx;
-  margin-bottom: 24rpx;
+  margin-bottom: 18rpx;
 }
 
 .cal-ring {
@@ -1095,21 +1171,14 @@
   border: 1rpx solid rgba(0, 200, 255, 0.10);
 }
 
-.cal-progress {
-  margin-bottom: 16rpx;
-}
-
-.cal-progress-text {
-  font-size: 24rpx;
-  color: rgba(0, 200, 255, 0.60);
-  letter-spacing: 3rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-}
-
 .cal-test-wrap {
   flex: 1;
   width: 100%;
+  min-height: 0;
   overflow: hidden;
+  display: flex;
+  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 /* ---- 校准提交面板 ---- */
