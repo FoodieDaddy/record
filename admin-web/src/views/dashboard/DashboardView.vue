@@ -1,25 +1,59 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useApi } from '@/composables/useApi'
 import StatCard from '@/components/data/StatCard.vue'
+import HudChart from '@/components/chart/HudChart.vue'
 
-const stats = [
-  { label: '总航船用户', kicker: 'SPACE VESSELS', value: '12,408', trend: '+126 今日', trendType: 'up' as const },
-  { label: '今日活跃航船', kicker: 'ACTIVE TODAY', value: '246', trend: '+18', trendType: 'up' as const },
-  { label: '当前活跃编队', kicker: 'ACTIVE FORMATIONS', value: '18', trend: '+3', trendType: 'up' as const },
-  { label: '今日封存航程', kicker: 'SEALED TODAY', value: '42', trend: '+8', trendType: 'up' as const },
-  { label: '今日脉冲流向', kicker: 'PULSE TRANSFERS', value: '3,842', trend: '+420', trendType: 'up' as const },
-  { label: '今日航段写入', kicker: 'SEGMENT WRITES', value: '1,206', trend: '+156', trendType: 'up' as const },
-]
+const api = useApi()
+const loading = ref(true)
 
-const healthItems = [
-  { name: 'API 服务', status: 'ok', latency: '12ms' },
-  { name: 'MySQL', status: 'ok', latency: '3ms' },
-  { name: 'Redis', status: 'ok', latency: '1ms' },
+const stats = ref([
+  { label: '总航船用户', kicker: 'SPACE VESSELS', value: '-', trend: '', trendType: 'up' as const },
+  { label: '今日活跃航船', kicker: 'ACTIVE TODAY', value: '-', trend: '', trendType: 'up' as const },
+  { label: '当前活跃编队', kicker: 'ACTIVE FORMATIONS', value: '-', trend: '', trendType: 'up' as const },
+  { label: '今日封存航程', kicker: 'SEALED TODAY', value: '-', trend: '', trendType: 'up' as const },
+  { label: '今日脉冲流向', kicker: 'PULSE TRANSFERS', value: '-', trend: '', trendType: 'up' as const },
+  { label: '今日航段写入', kicker: 'SEGMENT WRITES', value: '-', trend: '', trendType: 'up' as const },
+])
+
+const healthItems = ref([
+  { name: 'API 服务', status: 'ok', latency: '-' },
+  { name: 'MySQL', status: 'ok', latency: '-' },
+  { name: 'Redis', status: 'ok', latency: '-' },
   { name: 'WebSocket', status: 'ok', latency: '-' },
-  { name: 'CloudBase 存储', status: 'ok', latency: '45ms' },
-  { name: 'TTS 主引擎', status: 'warn', latency: '890ms' },
-  { name: 'TTS 副引擎', status: 'ok', latency: '320ms' },
-  { name: '导航主引擎', status: 'ok', latency: '2.1s' },
-]
+  { name: 'CloudBase 存储', status: 'ok', latency: '-' },
+  { name: 'TTS 主引擎', status: 'ok', latency: '-' },
+  { name: 'TTS 副引擎', status: 'ok', latency: '-' },
+  { name: '导航主引擎', status: 'ok', latency: '-' },
+])
+
+function formatNum(n: number): string {
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
+  return n.toLocaleString()
+}
+
+onMounted(async () => {
+  try {
+    const data: any = await api.get('/admin/dashboard/overview')
+    stats.value[0].value = formatNum(data.totalUsers || 0)
+    stats.value[1].value = formatNum(data.todayActiveUsers || 0)
+    stats.value[2].value = formatNum(data.activeFormations || 0)
+    stats.value[3].value = formatNum(data.todaySealed || 0)
+    stats.value[4].value = formatNum(data.todayTransfers || 0)
+    stats.value[5].value = formatNum(data.todayRoundWrites || 0)
+  } catch (e) {
+    console.error('Dashboard load failed:', e)
+  } finally {
+    loading.value = false
+  }
+
+  try {
+    const health: any = await api.get('/admin/system/health')
+    if (Array.isArray(health)) {
+      healthItems.value = health
+    }
+  } catch {}
+})
 </script>
 
 <template>
@@ -52,8 +86,6 @@ const healthItems = [
             <line x1="250" y1="150" x2="280" y2="220" stroke="rgba(255,69,58,0.06)" stroke-width="1" stroke-dasharray="3 3" />
             <circle cx="120" cy="80" r="2" fill="rgba(10,132,255,0.3)" />
             <circle cx="400" cy="120" r="2" fill="rgba(10,132,255,0.2)" />
-            <circle cx="200" cy="250" r="1.5" fill="rgba(0,200,255,0.2)" />
-            <circle cx="380" cy="250" r="2" fill="rgba(10,132,255,0.15)" />
           </svg>
         </div>
       </div>
@@ -77,16 +109,7 @@ const healthItems = [
     </div>
 
     <div class="dashboard__row" style="margin-top:16px;">
-      <div class="base-panel dashboard__chart">
-        <div class="base-panel__header">
-          <span class="base-panel__title">脉冲记录趋势</span>
-          <span style="font-size:11px;color:var(--text-muted);">近 30 天</span>
-        </div>
-        <div class="base-panel__body dashboard__placeholder">
-          图表区域 — 接入 ECharts 后渲染
-        </div>
-      </div>
-
+      <HudChart title="脉冲记录趋势" kicker="近 30 天" style="min-height:280px;" />
       <div class="base-panel dashboard__events">
         <div class="base-panel__header">
           <span class="base-panel__title">实时事件</span>
@@ -107,26 +130,13 @@ const healthItems = [
 <style scoped>
 .dashboard__stats { margin-bottom: 16px; }
 .dashboard__row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-.dashboard__kicker {
-  font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
-}
+.dashboard__kicker { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
 .dashboard__situation { min-height: 400px; }
-.dashboard__situation-body {
-  display: flex; align-items: center; justify-content: center; min-height: 340px;
-}
+.dashboard__situation-body { display: flex; align-items: center; justify-content: center; min-height: 340px; }
 .dashboard__health { min-height: 400px; }
-.dashboard__chart { min-height: 280px; }
 .dashboard__events { min-height: 280px; }
-.dashboard__placeholder {
-  display: flex; align-items: center; justify-content: center;
-  min-height: 220px; color: var(--text-muted); font-size: 12px;
-}
 
-.health-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
-  font-size: var(--text-sm);
-}
+.health-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: var(--text-sm); }
 .health-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .dot--ok { background: var(--color-green); }
 .dot--warn { background: var(--color-orange); }
@@ -138,10 +148,7 @@ const healthItems = [
 .text--error { color: var(--color-red); }
 .health-latency { color: var(--text-muted); font-size: var(--text-xs); }
 
-.event-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 0; font-size: var(--text-xs);
-}
+.event-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: var(--text-xs); }
 .event-time { color: var(--text-muted); min-width: 40px; }
 .event-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .dot--cyan { background: var(--color-cyan); }
