@@ -68,7 +68,10 @@ onMounted(load)
 <template>
   <div class="base-panel">
     <div class="base-panel__header">
-      <span class="base-panel__title">管理员</span>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="base-panel__title">管理员</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">ADMIN REGISTRY</span>
+      </div>
       <CommandButton variant="primary" style="height:28px;font-size:11px;" @click="showCreate = true">新增管理员</CommandButton>
     </div>
     <div class="base-panel__body">

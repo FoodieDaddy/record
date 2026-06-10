@@ -36,7 +36,12 @@ onMounted(load)
 
 <template>
   <div class="base-panel">
-    <div class="base-panel__header"><span class="base-panel__title">审计日志</span></div>
+    <div class="base-panel__header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="base-panel__title">审计日志</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">AUDIT TRAIL</span>
+      </div>
+    </div>
     <div class="base-panel__body">
       <DataTable :columns="columns" :data="logs" :loading="loading">
         <template #result="{ row }">
