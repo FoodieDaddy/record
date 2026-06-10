@@ -19,7 +19,7 @@ onMounted(() => {
   updateTime()
   timer = window.setInterval(updateTime, 1000)
 })
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => window.clearInterval(timer))
 
 const statusItems = [
   { label: '系统', value: '正常', type: 'ok' },
@@ -67,6 +67,10 @@ function navigateToResult(path: string) {
   searchQuery.value = ''
   showSearchResults.value = false
 }
+
+function onSearchBlur() {
+  window.setTimeout(() => { showSearchResults.value = false }, 200)
+}
 </script>
 
 <template>
@@ -85,7 +89,7 @@ function navigateToResult(path: string) {
         placeholder="搜索模块..."
         @input="onSearchInput"
         @focus="onSearchInput"
-        @blur="setTimeout(() => showSearchResults = false, 200)"
+        @blur="onSearchBlur"
       />
       <div v-if="showSearchResults && searchResults.length" class="search-dropdown">
         <div

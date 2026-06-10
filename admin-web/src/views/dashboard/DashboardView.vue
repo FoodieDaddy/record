@@ -8,6 +8,7 @@ import { chartTheme } from '@/utils/chart-theme'
 const api = useApi()
 const loading = ref(true)
 const trendOption = ref<any>(null)
+const events = ref<any[]>([])
 
 const stats = ref([
   { label: '总航船用户', kicker: 'SPACE VESSELS', value: '-', trend: '', trendType: 'up' as const },
@@ -104,6 +105,11 @@ onMounted(async () => {
       grid: { left: 40, right: 16, top: 32, bottom: 24 },
     }
   } catch {}
+
+  try {
+    const eventData: any = await api.get('/admin/dashboard/events')
+    events.value = Array.isArray(eventData) ? eventData : []
+  } catch {}
 })
 </script>
 
@@ -178,10 +184,13 @@ onMounted(async () => {
           <span class="dashboard__kicker">LIVE</span>
         </div>
         <div class="base-panel__body" style="padding:8px 16px;">
-          <div v-for="i in 8" :key="i" class="event-row">
-            <span class="event-time text-mono">14:{{ 40 - i }}</span>
-            <span class="event-dot dot--cyan" />
-            <span class="event-text">事件流数据接入后渲染</span>
+          <div v-for="(e, i) in events" :key="i" class="event-row">
+            <span class="event-time text-mono">{{ e.time }}</span>
+            <span class="event-dot" :class="`dot--${e.color}`" />
+            <span class="event-text">{{ e.desc }}</span>
+          </div>
+          <div v-if="events.length === 0" style="text-align:center;padding:24px;color:var(--text-muted);font-size:12px;">
+            暂无近期事件
           </div>
         </div>
       </div>
@@ -215,5 +224,7 @@ onMounted(async () => {
 .event-time { color: var(--text-muted); min-width: 40px; }
 .event-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 .dot--cyan { background: var(--color-cyan); }
+.dot--green { background: var(--color-green); }
+.dot--blue { background: var(--color-primary); }
 .event-text { color: var(--text-secondary); }
 </style>

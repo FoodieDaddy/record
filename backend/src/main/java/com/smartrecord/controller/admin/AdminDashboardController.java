@@ -10,6 +10,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @Tag(name = "Admin Dashboard")
 @RestController
 @RequestMapping("/admin/dashboard")
@@ -34,5 +37,11 @@ public class AdminDashboardController {
     @GetMapping("/trace-stats")
     public Result<TraceStatsResp> traceStats() {
         return Result.ok(dashboardService.getTraceStats());
+    }
+
+    @Operation(summary = "近期事件流")
+    @GetMapping("/events")
+    public Result<List<Map<String, Object>>> events() {
+        return Result.ok(dashboardService.getRecentEvents());
     }
 }

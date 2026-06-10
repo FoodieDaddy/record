@@ -183,4 +183,55 @@ public class AdminDashboardService {
             .topFormations(formationRanks)
             .build();
     }
+
+    /**
+     * 获取近期事件流：最近用户接入和编队动态
+     */
+    public List<Map<String, Object>> getRecentEvents() {
+        List<Map<String, Object>> events = new ArrayList<>();
+
+        // 最近接入的用户
+        List<User> recentUsers = userMapper.selectList(
+            new LambdaQueryWrapper<User>()
+                .orderByDesc(User::getCreatedAt)
+                .last("LIMIT 5")
+        );
+        for (User u : recentUsers) {
+            String time = u.getCreatedAt() != null
+                ? u.getCreatedAt().toString().substring(11, 16)
+                : "--:--";
+            events.add(Map.of(
+                "time", time,
+                "type", "join",
+                "desc", (u.getNickname() != null ? u.getNickname() : "未知航船") + " 接入系统",
+                "color", "green"
+            ));
+        }
+
+        // 最近的编队动态
+        List<Room> recentRooms = roomMapper.selectList(
+            new LambdaQueryWrapper<Room>()
+                .orderByDesc(Room::getCreatedAt)
+                .last("LIMIT 5")
+        );
+        for (Room r : recentRooms) {
+            String time = r.getCreatedAt() != null
+                ? r.getCreatedAt().toString().substring(11, 16)
+                : "--:--";
+            boolean sealed = r.getStatus() != null && r.getStatus() == 1;
+            events.add(Map.of(
+                "time", time,
+                "type", sealed ? "seal" : "create",
+                "desc", sealed
+                    ? "封存航程 " + r.getRoomNo()
+                    : "创建编队 " + r.getRoomNo(),
+                "color", sealed ? "green" : "blue"
+            ));
+        }
+
+        // 按时间降序排列
+        events.sort((a, b) -> ((String) b.get("time")).compareTo((String) a.get("time")));
+
+        return events.size() > 10 ? events.subList(0, 10) : events;
+    }
 }
