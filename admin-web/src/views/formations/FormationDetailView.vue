@@ -5,6 +5,7 @@ import { useApi } from '@/composables/useApi'
 import StatusPill from '@/components/status/StatusPill.vue'
 import CommandButton from '@/components/button/CommandButton.vue'
 import ConfirmDangerModal from '@/components/modal/ConfirmDangerModal.vue'
+import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 
 const route = useRoute()
 const api = useApi()
@@ -44,7 +45,23 @@ async function handleConfirm() {
 </script>
 
 <template>
-  <div v-if="loading" style="color:var(--text-muted);padding:48px;text-align:center;">加载中...</div>
+  <div v-if="loading">
+    <div class="base-panel" style="margin-bottom:16px;">
+      <div class="base-panel__body">
+        <SkeletonLoader :card="true" />
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px;">
+      <div class="base-panel">
+        <div class="base-panel__body">
+          <SkeletonLoader v-for="i in 4" :key="i" :avatar="true" :lines="1" />
+        </div>
+      </div>
+      <div class="base-panel">
+        <div class="base-panel__body"><SkeletonLoader :card="true" /></div>
+      </div>
+    </div>
+  </div>
   <div v-else-if="formation">
     <div class="base-panel" style="margin-bottom:16px;">
       <div class="base-panel__header">
@@ -63,13 +80,21 @@ async function handleConfirm() {
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">成员席位</span></div>
         <div class="base-panel__body">
-          <div v-for="m in formation.members || []" :key="m.userId" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
-            <div style="width:28px;height:28px;border-radius:50%;background:rgba(10,132,255,0.10);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--color-primary);">{{ String(m.userId || '?').slice(-2) }}</div>
-            <div style="flex:1;font-size:12px;">
-              <div>{{ m.nickname || m.userId }}</div>
-              <div style="font-size:10px;color:var(--text-muted);">加入: {{ m.joinedAt || '-' }}<template v-if="m.quitTime"> | 退出: {{ m.quitTime }}</template></div>
+          <div v-for="m in formation.members || []" :key="m.userId" class="member-row">
+            <div class="member-avatar">
+              {{ (m.nickname || '?')[0] }}
             </div>
-            <div class="text-mono" style="font-size:12px;color:var(--color-cyan);">{{ m.finalScore ?? m.score ?? '-' }}</div>
+            <div class="member-info">
+              <div class="member-name">{{ m.nickname || m.userId }}</div>
+              <div class="member-meta">
+                <span v-if="m.score != null" class="member-score">{{ m.finalScore ?? m.score }}</span>
+                <span class="member-time">{{ m.joinedAt ? m.joinedAt.substring(5, 16) : '-' }}</span>
+              </div>
+            </div>
+            <span class="member-status-dot" :class="m.quitTime ? 'dot--offline' : 'dot--online'" :title="m.quitTime ? '已退出' : '在线'" />
+          </div>
+          <div v-if="!formation.members?.length" style="text-align:center;padding:24px;color:var(--text-muted);font-size:12px;">
+            暂无成员数据
           </div>
         </div>
       </div>
@@ -90,3 +115,41 @@ async function handleConfirm() {
     <ConfirmDangerModal v-bind="dangerModal" @confirm="handleConfirm" @cancel="dangerModal.visible = false" />
   </div>
 </template>
+
+<style scoped>
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.member-row:last-child { border-bottom: none; }
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(10,132,255,0.10);
+  border: 1px solid rgba(10,132,255,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.member-info { flex: 1; min-width: 0; }
+.member-name { font-size: 13px; color: var(--text-primary); }
+.member-meta { display: flex; gap: 8px; margin-top: 2px; }
+.member-score { font-size: 11px; color: var(--color-cyan); font-family: var(--font-mono); }
+.member-time { font-size: 10px; color: var(--text-muted); }
+.member-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot--online { background: var(--color-green); box-shadow: 0 0 6px rgba(48,209,88,0.3); }
+.dot--offline { background: var(--text-muted); }
+</style>

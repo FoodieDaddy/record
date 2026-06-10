@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useApi } from '@/composables/useApi'
 import StatCard from '@/components/data/StatCard.vue'
 import HudChart from '@/components/chart/HudChart.vue'
+import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 import { chartTheme } from '@/utils/chart-theme'
 
 const api = useApi()
@@ -115,8 +116,12 @@ onMounted(async () => {
 
 <template>
   <div class="dashboard">
-    <div v-if="loading" style="text-align:center;padding:48px;color:var(--text-muted);font-size:12px;">
-      正在接入基地数据...
+    <div v-if="loading">
+      <div class="grid-6" style="margin-bottom:16px;">
+        <div v-for="i in 6" :key="i" class="base-panel">
+          <div class="base-panel__body"><SkeletonLoader :card="true" /></div>
+        </div>
+      </div>
     </div>
 
     <template v-else>
