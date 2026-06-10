@@ -9,13 +9,16 @@ import com.smartrecord.entity.RoomMember;
 import com.smartrecord.entity.User;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
+import com.smartrecord.mapper.RoundRecordMapper;
 import com.smartrecord.mapper.UserMapper;
+import com.smartrecord.entity.RoundRecord;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,6 +30,7 @@ public class AdminDashboardService {
     private final UserMapper userMapper;
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
+    private final RoundRecordMapper roundRecordMapper;
 
     public DashboardOverviewResp getOverview() {
         return DashboardOverviewResp.builder()
@@ -233,5 +237,87 @@ public class AdminDashboardService {
         events.sort((a, b) -> ((String) b.get("time")).compareTo((String) a.get("time")));
 
         return events.size() > 10 ? events.subList(0, 10) : events;
+    }
+
+    /**
+     * 脉冲流向统计：从已归档编队的 allRecord JSON 统计总流向数和总脉冲值
+     */
+    public Map<String, Object> getPulseStats() {
+        List<Room> sealedRooms = roomMapper.selectList(
+            new LambdaQueryWrapper<Room>().eq(Room::getStatus, 1)
+        );
+
+        long totalTransfers = 0;
+        long totalPulseValue = 0;
+
+        for (Room room : sealedRooms) {
+            if (room.getAllRecord() != null) {
+                totalTransfers += room.getAllRecord().size();
+                for (Map<String, Object> record : room.getAllRecord()) {
+                    Object amount = record.get("amount");
+                    if (amount instanceof Number) {
+                        totalPulseValue += ((Number) amount).longValue();
+                    }
+                }
+            }
+        }
+
+        // 统计航段写入
+        Long totalRounds = roundRecordMapper.selectCount(null);
+
+        Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put("totalTransfers", totalTransfers);
+        stats.put("totalPulseValue", totalPulseValue);
+        stats.put("totalRounds", totalRounds);
+        stats.put("sealedRooms", sealedRooms.size());
+
+        return stats;
+    }
+
+    /**
+     * 脉冲流向趋势（近 30 天）：按日统计航段写入数和脉冲流向数
+     */
+    public TrendDataResp getPulseTrends() {
+        List<String> dates = new ArrayList<>();
+        List<Long> transferCounts = new ArrayList<>();
+        List<Long> roundCounts = new ArrayList<>();
+
+        LocalDate today = LocalDate.now();
+        for (int i = 29; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            dates.add(date.getMonthValue() + "/" + date.getDayOfMonth());
+
+            LocalDateTime dayStart = date.atStartOfDay();
+            LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+
+            // 航段写入统计
+            Long rounds = roundRecordMapper.selectCount(
+                new LambdaQueryWrapper<RoundRecord>()
+                    .ge(RoundRecord::getCreatedAt, dayStart)
+                    .lt(RoundRecord::getCreatedAt, dayEnd)
+            );
+            roundCounts.add(rounds);
+
+            // 脉冲流向（从当日归档的编队统计）
+            Long transfers = 0L;
+            List<Room> dayRooms = roomMapper.selectList(
+                new LambdaQueryWrapper<Room>()
+                    .eq(Room::getStatus, 1)
+                    .ge(Room::getCreatedAt, dayStart)
+                    .lt(Room::getCreatedAt, dayEnd)
+            );
+            for (Room room : dayRooms) {
+                if (room.getAllRecord() != null) {
+                    transfers += room.getAllRecord().size();
+                }
+            }
+            transferCounts.add(transfers);
+        }
+
+        return TrendDataResp.builder()
+            .dates(dates)
+            .userGrowth(transferCounts)
+            .formationCreated(roundCounts)
+            .build();
     }
 }

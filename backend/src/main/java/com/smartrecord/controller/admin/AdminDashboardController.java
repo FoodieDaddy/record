@@ -44,4 +44,16 @@ public class AdminDashboardController {
     public Result<List<Map<String, Object>>> events() {
         return Result.ok(dashboardService.getRecentEvents());
     }
+
+    @Operation(summary = "脉冲流向统计")
+    @GetMapping("/pulse-stats")
+    public Result<Map<String, Object>> pulseStats() {
+        return Result.ok(dashboardService.getPulseStats());
+    }
+
+    @Operation(summary = "脉冲流向趋势（近 30 天）")
+    @GetMapping("/pulse-trends")
+    public Result<TrendDataResp> pulseTrends() {
+        return Result.ok(dashboardService.getPulseTrends());
+    }
 }

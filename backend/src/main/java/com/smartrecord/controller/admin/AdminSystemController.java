@@ -4,6 +4,7 @@ import com.smartrecord.common.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,9 @@ public class AdminSystemController {
 
     private final DataSource dataSource;
     private final StringRedisTemplate redisTemplate;
+
+    @Value("${sentinel.dashboard:http://localhost:18858}")
+    private String sentinelDashboard;
 
     @Operation(summary = "系统健康状态")
     @GetMapping("/health")
@@ -73,5 +77,14 @@ public class AdminSystemController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         return Result.ok(Map.of("records", List.of(), "total", 0));
+    }
+
+    @Operation(summary = "Sentinel 限流面板信息")
+    @GetMapping("/sentinel")
+    public Result<Map<String, Object>> sentinelInfo() {
+        return Result.ok(Map.of(
+            "dashboardUrl", sentinelDashboard,
+            "status", "available"
+        ));
     }
 }

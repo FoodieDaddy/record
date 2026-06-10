@@ -9,6 +9,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @Tag(name = "Admin 用户管理")
 @RestController
 @RequestMapping("/admin/users")
@@ -30,5 +33,18 @@ public class AdminUserController {
     @GetMapping("/{id}")
     public Result<User> detail(@PathVariable Long id) {
         return Result.ok(userService.getUserDetail(id));
+    }
+
+    @Operation(summary = "修改用户状态")
+    @PutMapping("/{id}/status")
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        userService.updateUserStatus(id, status);
+        return Result.ok();
+    }
+
+    @Operation(summary = "用户参与的编队列表")
+    @GetMapping("/{id}/formations")
+    public Result<List<Map<String, Object>>> userFormations(@PathVariable Long id) {
+        return Result.ok(userService.getUserFormations(id));
     }
 }
