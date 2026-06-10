@@ -124,4 +124,38 @@ async function handleLogin() {
 .login-input { width: 100%; }
 .login-error { font-size: var(--text-sm); color: var(--color-red); margin-bottom: 16px; }
 .login-btn { width: 100%; height: 44px; font-size: 14px; margin-top: 8px; }
+
+.login-left {
+  animation: fade-in .6s ease both;
+}
+.login-right {
+  animation: fade-in .6s ease .2s both;
+}
+.login-brand__title {
+  animation: fade-in-up .5s ease .1s both;
+}
+.login-brand__sub {
+  animation: fade-in-up .5s ease .2s both;
+}
+.login-brand__en {
+  animation: fade-in-up .5s ease .3s both;
+}
+.login-brand__desc {
+  animation: fade-in-up .5s ease .4s both;
+}
+.login-graphic {
+  animation: fade-in .8s ease .5s both;
+}
+.login-form__title {
+  animation: fade-in-up .4s ease .3s both;
+}
+.login-field:nth-child(1) {
+  animation: fade-in-up .4s ease .4s both;
+}
+.login-field:nth-child(2) {
+  animation: fade-in-up .4s ease .5s both;
+}
+.login-btn {
+  animation: fade-in-up .4s ease .6s both;
+}
 </style>

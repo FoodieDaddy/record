@@ -64,7 +64,13 @@ onMounted(async () => {
 
     <template v-else>
     <div class="dashboard__stats grid-6">
-      <StatCard v-for="s in stats" :key="s.label" v-bind="s" />
+      <StatCard
+        v-for="(s, i) in stats"
+        :key="s.label"
+        v-bind="s"
+        :style="{ animationDelay: `${i * 80}ms` }"
+        class="animate-fade-in-up"
+      />
     </div>
 
     <div class="dashboard__row">

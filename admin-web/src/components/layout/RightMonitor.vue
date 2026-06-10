@@ -57,6 +57,13 @@ const services = [
   display: flex; align-items: center; gap: 8px;
   padding: 6px 0; font-size: var(--text-sm);
 }
+.event-row {
+  animation: slide-in-right .3s ease both;
+}
+.event-row:nth-child(1) { animation-delay: 0ms; }
+.event-row:nth-child(2) { animation-delay: 50ms; }
+.event-row:nth-child(3) { animation-delay: 100ms; }
+.event-row:nth-child(4) { animation-delay: 150ms; }
 .monitor-dot, .event-dot {
   width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }

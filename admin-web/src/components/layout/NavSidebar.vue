@@ -130,6 +130,7 @@ function isActive(path: string): boolean {
 }
 .nav-item.active .nav-item__dot {
   opacity: 1; box-shadow: 0 0 8px rgba(0,200,255,0.4);
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 .nav-item__name { font-size: 13px; font-weight: 500; }
 .nav-item__kicker {

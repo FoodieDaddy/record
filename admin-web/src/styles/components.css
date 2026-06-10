@@ -39,6 +39,18 @@
   bottom: -1px; right: -1px;
   border-width: 0 1px 1px 0;
 }
+.base-panel--hud .base-panel__body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0,200,255,0.15) 50%, transparent 100%);
+  animation: scan-line 4s linear infinite;
+  pointer-events: none;
+  opacity: 0.5;
+}
 
 /* StatCard */
 .stat-card {
@@ -83,6 +95,10 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
   opacity: 0.3;
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+.stat-card__value {
+  animation: number-count .5s ease both;
 }
 
 /* StatusPill */
@@ -119,6 +135,9 @@
   background: rgba(255,255,255,0.04);
   color: var(--text-muted);
   border: 1px solid rgba(255,255,255,0.08);
+}
+.status-pill--running .status-pill__dot {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 /* CommandButton */
@@ -174,6 +193,13 @@
   opacity: 0.38;
   cursor: not-allowed;
 }
+.cmd-btn--primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 0 16px rgba(10,132,255,0.3);
+}
+.cmd-btn--danger:active {
+  transform: scale(0.97);
+}
 
 /* DataTable */
 .data-table {
@@ -202,6 +228,19 @@
 .data-table tr.selected td:first-child {
   box-shadow: inset 2px 0 0 var(--color-cyan);
 }
+.data-table tbody tr {
+  animation: fade-in-up .3s ease both;
+}
+.data-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.data-table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.data-table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.data-table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.data-table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.data-table tbody tr:nth-child(6) { animation-delay: 150ms; }
+.data-table tbody tr:nth-child(7) { animation-delay: 180ms; }
+.data-table tbody tr:nth-child(8) { animation-delay: 210ms; }
+.data-table tbody tr:nth-child(9) { animation-delay: 240ms; }
+.data-table tbody tr:nth-child(10) { animation-delay: 270ms; }
 
 /* 输入框 */
 .input-field {
@@ -217,6 +256,7 @@
 }
 .input-field:focus {
   border-color: rgba(0,200,255,0.4);
+  box-shadow: 0 0 0 2px rgba(0,200,255,0.08);
 }
 .input-field::placeholder {
   color: var(--text-disabled);
