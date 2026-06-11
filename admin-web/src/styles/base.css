@@ -13,12 +13,14 @@ html {
 body {
   font-family: var(--font-sans);
   color: var(--text-main);
-  background:
-    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
-    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
-    var(--bg-base);
+  background: var(--bg-base);
+  background-image:
+    radial-gradient(circle at 12% 10%, rgba(94, 139, 255, 0.10), transparent 28%),
+    radial-gradient(circle at 88% 4%, rgba(118, 199, 231, 0.10), transparent 26%),
+    linear-gradient(135deg, #EEF3F8 0%, #F8FAFC 48%, #E8EFF6 100%);
   min-height: 100vh;
   line-height: 1.5;
+  transition: var(--theme-transition);
 }
 
 a {
@@ -32,19 +34,20 @@ input, textarea, select, button {
   color: inherit;
 }
 
+/* 滚动条 */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.08);
-  border-radius: 3px;
+  background: rgba(130, 150, 180, 0.14);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.14);
+  background: rgba(130, 150, 180, 0.24);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -57,7 +60,7 @@ input, textarea, select, button {
 
 /* 全局动画 */
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -66,37 +69,27 @@ input, textarea, select, button {
   to { opacity: 1; }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 4px rgba(0,200,255,0.3); }
-  50% { box-shadow: 0 0 12px rgba(0,200,255,0.6); }
-}
-
-@keyframes scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(20px); }
+  from { opacity: 0; transform: translateX(12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes number-count {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* 工具类 */
 .animate-fade-in-up {
-  animation: fade-in-up .4s ease both;
+  animation: fade-in-up .3s ease both;
 }
 
 .animate-fade-in {
-  animation: fade-in .3s ease both;
+  animation: fade-in .22s ease both;
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right .3s ease both;
+  animation: slide-in-right .22s ease both;
 }
 
 /* 响应式 */
@@ -118,39 +111,7 @@ input, textarea, select, button {
   }
 }
 
-/* 飞船控制中心增强 */
-
-/* 全局扫描线覆盖 */
-body::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 9998;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.015) 2px,
-    rgba(0,0,0,0.015) 4px
-  );
-}
-
-/* 网格背景 */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: -1;
-  background-image:
-    linear-gradient(rgba(10,132,255,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(10,132,255,0.02) 1px, transparent 1px);
-  background-size: 60px 60px;
+/* ── Mono 字体辅助 ── */
+.text-mono {
+  font-family: var(--font-mono);
 }

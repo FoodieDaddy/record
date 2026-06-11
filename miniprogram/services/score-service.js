@@ -45,17 +45,45 @@ function getTransferAmountSuggestions(roomId) {
 
 /** 提交记分 */
 function submitScore(payload) {
-  return post('/score', payload);
+  return post('/score', payload).then(res => {
+    try {
+      const behaviorLogger = require('../utils/behavior-logger');
+      behaviorLogger.track('PULSE_RECORD', {
+        action: 'SUBMIT',
+        roomId: payload.roomId,
+        scoresCount: payload.scores ? Object.keys(payload.scores).length : 0
+      });
+    } catch(e) {}
+    return res;
+  });
 }
 
 /** 发起转分 */
 function transferScore(payload) {
-  return post('/score/transfer', { ...payload, clientRequestId: createRequestId() });
+  return post('/score/transfer', { ...payload, clientRequestId: createRequestId() }).then(res => {
+    try {
+      const behaviorLogger = require('../utils/behavior-logger');
+      behaviorLogger.track('PULSE_RECORD', {
+        action: 'TRANSFER',
+        roomId: payload.roomId,
+        amount: payload.amount
+      });
+    } catch(e) {}
+    return res;
+  });
 }
 
 /** 结束对局 */
 function settleRoom(roomId) {
-  return post(`/score/room/${roomId}/settle`, { clientRequestId: createRequestId() }, { silent: true });
+  return post(`/score/room/${roomId}/settle`, { clientRequestId: createRequestId() }, { silent: true }).then(res => {
+    try {
+      const behaviorLogger = require('../utils/behavior-logger');
+      behaviorLogger.track('FLEET_ARCHIVE', {
+        roomId: roomId
+      });
+    } catch(e) {}
+    return res;
+  });
 }
 
 /** 获取收益日志 */

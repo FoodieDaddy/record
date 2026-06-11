@@ -37,9 +37,10 @@
       <!-- 铭牌主体：识别徽标 + 呼号 + 等级 + 最强成就 -->
       <view class="profile-hud__body">
         <view class="profile-hud__left">
-          <button class="profile-hud__avatar-btn" bindtap="onTapAvatar">
+          <button class="profile-hud__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
             <helmet-avatar
               src="{{avatarUrl || ''}}"
+              nickname="{{nickname}}"
               size="lg"
               active="{{true}}"
               controller="{{true}}"
@@ -173,13 +174,14 @@
         <view class="callsign-input-row">
           <input
             class="callsign-input"
+            type="nickname"
             value="{{drawerNickname}}"
-            type="text"
-            maxlength="12"
             placeholder="输入本舰呼号"
             adjust-position="{{false}}"
             cursor-spacing="80"
             bindinput="onDrawerNicknameInput"
+            bindblur="onDrawerNicknameInput"
+            bindchange="onDrawerNicknameInput"
             bindkeyboardheightchange="onCallsignKeyboardHeightChange"
           />
           <view class="callsign-generate" bindtap="onRandomNickname">
@@ -260,5 +262,8 @@
       </scroll-view>
     </view>
   </view>
+
+  <!-- 系统全局左上角提示 -->
+  <sr-toast id="srToast" reduceMotion="{{!animationEnabled}}" />
 
 </view>

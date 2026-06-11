@@ -6,11 +6,46 @@
 const { vibrateShort } = require('../../utils/haptic');
 const app = getApp();
 
+/** 订阅消息模板 ID（需在微信公众平台申请） */
+const SUBSCRIBE_MESSAGE_TEMPLATES = [
+  // 记分提醒模板 ID（待申请）
+  // 'your_template_id_here'
+];
+
+/**
+ * 请求订阅消息权限
+ * 需在用户手势回调中调用（如 tap）
+ * @returns {Promise<Object>} 授权结果
+ */
+function requestSubscribePermission() {
+  // 如果没有配置模板 ID，跳过请求
+  if (!SUBSCRIBE_MESSAGE_TEMPLATES.length) {
+    return Promise.resolve({});
+  }
+  return new Promise((resolve) => {
+    wx.requestSubscribeMessage({
+      tmplIds: SUBSCRIBE_MESSAGE_TEMPLATES,
+      success: (res) => {
+        console.log('[订阅消息] 授权结果', res);
+        resolve(res);
+      },
+      fail: (err) => {
+        console.warn('[订阅消息] 授权失败', err);
+        resolve(err);
+      }
+    });
+  });
+}
+
 const roomActionHandler = {
   /** 启动太空（创建房间） */
   handleStartSpace() {
     if (this.data.launching) return;
     vibrateShort('light');
+    
+    // 请求订阅消息权限（需在用户手势中调用）
+    requestSubscribePermission();
+    
     this.setData({ launching: true, isLaunching: true, launchPhase: 'linking' });
 
     // 启动过渡动画：linking → window → hud → 执行创建
@@ -78,6 +113,10 @@ const roomActionHandler = {
     const code = this.data.joinCode.trim();
     if (!code || code.length < 6 || this.data.joining) return;
     vibrateShort('light');
+    
+    // 请求订阅消息权限（需在用户手势中调用）
+    requestSubscribePermission();
+    
     this.setData({ joining: true, isLaunching: true, launchPhase: 'linking' });
 
     // 启动过渡动画

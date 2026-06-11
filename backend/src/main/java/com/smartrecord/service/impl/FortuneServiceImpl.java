@@ -13,6 +13,9 @@ import com.smartrecord.mapper.FortuneLogMapper;
 import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.service.FortuneService;
+import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.anno.CacheType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +39,9 @@ public class FortuneServiceImpl implements FortuneService {
     private final FortuneLogMapper fortuneLogMapper;
     private final Executor asyncExecutor;
     private final StringRedisTemplate redisTemplate;
+
+    @CreateCache(name = "sr:fortune:", cacheType = CacheType.BOTH, expire = 14400)
+    private Cache<String, FortuneResp> fortuneCache;
 
     @Value("${app.llm.api-url:}")
     private String apiUrl;
@@ -194,13 +200,13 @@ public class FortuneServiceImpl implements FortuneService {
     @Override
     public FortuneResp getTodayFortune(Long userId, boolean force) {
         // 0. 检查 Redis 缓存（每日策略 4 小时内复用，force 时跳过）
-        String cacheKey = FORTUNE_CACHE_KEY + userId + ":" + getDateKey();
+        String innerKey = userId + ":" + getDateKey();
+        String cacheKey = FORTUNE_CACHE_KEY + innerKey;
         if (!force) {
             try {
-                String cached = redisTemplate.opsForValue().get(cacheKey);
-                if (cached != null) {
+                FortuneResp resp = fortuneCache.get(innerKey);
+                if (resp != null) {
                     log.debug("命中每日策略缓存: userId={}", userId);
-                    FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
                     if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
                     if (resp.getTitle() == null) {
                         UserTag cachedTag = resp.getUserTag() != null ? UserTag.valueOf(resp.getUserTag()) : UserTag.STABLE;
@@ -223,7 +229,7 @@ public class FortuneServiceImpl implements FortuneService {
             }
         } else {
             log.info("强制刷新策略: userId={}", userId);
-            try { redisTemplate.delete(cacheKey); } catch (Exception e) { log.warn("删除策略缓存失败", e); }
+            try { fortuneCache.remove(innerKey); } catch (Exception e) { log.warn("删除策略缓存失败", e); }
         }
 
         // 0.5 并发短锁：防止同一天同一用户重复生成
@@ -237,9 +243,8 @@ public class FortuneServiceImpl implements FortuneService {
         if (!locked && !force) {
             // 拿不到锁，尝试再读一次缓存（可能其他线程刚写入）
             try {
-                String cached = redisTemplate.opsForValue().get(cacheKey);
-                if (cached != null) {
-                    FortuneResp resp = JSONUtil.parseObj(cached).toBean(FortuneResp.class);
+                FortuneResp resp = fortuneCache.get(innerKey);
+                if (resp != null) {
                     if (resp.getLunarDate() == null) fillTimeWindowFields(resp);
                     fillNextRefreshAt(resp, cacheKey);
                     return resp;
@@ -306,7 +311,7 @@ public class FortuneServiceImpl implements FortuneService {
             result.setSource("fallback");
         }
         try {
-            redisTemplate.opsForValue().set(cacheKey, JSONUtil.toJsonStr(result), CACHE_TTL_HOURS, TimeUnit.HOURS);
+            fortuneCache.put(innerKey, result);
         } catch (Exception e) {
             log.warn("缓存策略失败: userId={}", userId, e);
         }
@@ -319,6 +324,7 @@ public class FortuneServiceImpl implements FortuneService {
         // 5. 异步写入策略生成日志
         FortuneLog flog = new FortuneLog();
         flog.setUserId(userId);
+        flog.setRequestId(org.slf4j.MDC.get("requestId"));
         flog.setUserTag(userTag.name());
         flog.setSource(result.getSource());
         flog.setModel(fromLlm ? model : "");

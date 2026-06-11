@@ -14,6 +14,7 @@ import com.smartrecord.service.StorageService;
 import com.smartrecord.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -28,10 +29,10 @@ public class StorageServiceImpl implements StorageService {
     private static final long MAX_UPLOAD_BYTES = 2L * 1024 * 1024;
     private static final String OBJECT_PREFIX = "avatars/";
 
-    private final OSS ossClient;
     private final OssConfig ossConfig;
     private final SnowflakeIdGenerator idGenerator;
     private final StorageProviderConfig storageProviderConfig;
+    private final ObjectProvider<OSS> ossClientProvider;
 
     @Override
     public String getProvider() {
@@ -70,7 +71,11 @@ public class StorageServiceImpl implements StorageService {
             request.setContentType(normalizedContentType);
             request.addHeader("Content-Length", String.valueOf(contentLength));
 
-            String uploadUrl = ossClient.generatePresignedUrl(request).toString();
+            OSS client = ossClientProvider.getIfAvailable();
+            if (client == null) {
+                throw new BizException(503, "OSS 客户端未配置，请在 .env 中配置 OSS 相关变量");
+            }
+            String uploadUrl = client.generatePresignedUrl(request).toString();
             // 确保使用 HTTPS 协议
             if (uploadUrl.startsWith("http://")) {
                 uploadUrl = uploadUrl.replace("http://", "https://");
@@ -99,8 +104,10 @@ public class StorageServiceImpl implements StorageService {
         if (objectKey.startsWith("cloud://")) return;
 
         CompletableFuture.runAsync(() -> {
+            OSS client = ossClientProvider.getIfAvailable();
+            if (client == null) return;
             try {
-                ossClient.deleteObject(ossConfig.getBucketName(), objectKey);
+                client.deleteObject(ossConfig.getBucketName(), objectKey);
             } catch (Exception e) {
                 log.warn("异步删除存储文件失败: {}", objectKey, e);
             }

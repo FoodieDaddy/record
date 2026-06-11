@@ -624,7 +624,10 @@ Page({
         if (typeof recentRoom === 'number') recentRoom = String(recentRoom);
         var dateSrc = latest.settledAt || latest.createdAt;
         if (dateSrc) {
-          var t = new Date(dateSrc);
+          var dateStr = String(dateSrc).replace(/-/g, '/').replace('T', ' ');
+          // Handle '2026.06.11' format if any
+          dateStr = dateStr.replace(/\./g, '/');
+          var t = new Date(dateStr);
           if (!isNaN(t.getTime())) {
             var m = t.getMonth() + 1;
             var d = t.getDate();

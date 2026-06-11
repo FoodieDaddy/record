@@ -41,4 +41,12 @@ public interface AsyncTaskService {
      * @param error  错误信息
      */
     void markFailed(Long taskId, String error);
+
+    /**
+     * 原子抢占异步任务（乐观锁状态变更）
+     *
+     * @param taskId 任务 ID
+     * @return 抢占成功返回 true，否则返回 false
+     */
+    boolean startTask(Long taskId);
 }

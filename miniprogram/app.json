@@ -1,4 +1,5 @@
 {
+  "cloud": true,
   "pages": [
     "pages/login/login",
     "pages/room/room",
@@ -50,6 +51,11 @@
       }
     ]
   },
+  "usingComponents": {
+    "helmet-avatar": "/components/helmet-avatar/helmet-avatar",
+    "sr-toast": "/components/sr-toast/sr-toast"
+  },
+  "lazyCodeLoading": "requiredComponents",
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

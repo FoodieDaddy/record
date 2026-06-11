@@ -17,6 +17,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
 
@@ -59,6 +60,8 @@ class ScoreServiceTest {
     private RoomService roomService;
     @Mock
     private Executor asyncExecutor;
+    @Mock
+    private org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
     @Mock
     private ZSetOperations<String, String> zSetOps;
@@ -112,5 +115,56 @@ class ScoreServiceTest {
         BizException ex = assertThrows(BizException.class,
             () -> scoreService.submitScore(1L, req));
         assertTrue(ex.getMessage().contains("编队 ID"));
+    }
+
+    @Test
+    @DisplayName("撤销：userId 为 null 时抛出异常")
+    void testUndo_NullUserId() {
+        BizException ex = assertThrows(BizException.class,
+            () -> scoreService.undoLastScore(null, 1L));
+        assertEquals(400, ex.getCode());
+    }
+
+    @Test
+    @DisplayName("撤销：房间不存在时抛出异常")
+    void testUndo_RoomNotFound() {
+        when(roomMapper.selectById(999L)).thenReturn(null);
+        BizException ex = assertThrows(BizException.class,
+            () -> scoreService.undoLastScore(1L, 999L));
+        assertTrue(ex.getCode() == 404 || ex.getMessage().contains("未找到"));
+    }
+
+    @Test
+    @DisplayName("撤销：非房主操作时抛出异常")
+    void testUndo_NotOwner() {
+        Room room = new Room();
+        room.setId(1L);
+        room.setOwnerId(100L);
+        room.setStatus(0);
+        room.setScoreMode(1);
+        when(roomMapper.selectById(1L)).thenReturn(room);
+
+        BizException ex = assertThrows(BizException.class,
+            () -> scoreService.undoLastScore(2L, 1L));
+        assertTrue(ex.getMessage().contains("房主") || ex.getMessage().contains("主控"));
+    }
+
+    @Test
+    @DisplayName("撤销：自由流转模式无流水时抛出异常")
+    void testUndo_FreeFlowNoEvents() {
+        Room room = new Room();
+        room.setId(1L);
+        room.setOwnerId(1L);
+        room.setStatus(0);
+        room.setScoreMode(1);
+        when(roomMapper.selectById(1L)).thenReturn(room);
+
+        // Mock Redis opsForZSet
+        when(redisTemplate.opsForZSet()).thenReturn(zSetOps);
+        when(zSetOps.reverseRange(anyString(), eq(0L), eq(0L))).thenReturn(Collections.emptySet());
+
+        BizException ex = assertThrows(BizException.class,
+            () -> scoreService.undoLastScore(1L, 1L));
+        assertTrue(ex.getMessage().contains("没有可以撤销"));
     }
 }

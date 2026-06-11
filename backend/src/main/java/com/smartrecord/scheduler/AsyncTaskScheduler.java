@@ -11,6 +11,7 @@ import com.smartrecord.entity.AsyncTask;
 import com.smartrecord.service.AsyncTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Executor;
 
 /**
  * 异步任务调度器
@@ -30,8 +32,9 @@ public class AsyncTaskScheduler {
 
     private final AsyncTaskService asyncTaskService;
     private final StringRedisTemplate redisTemplate;
-    private final OSS ossClient;
+    private final ObjectProvider<OSS> ossClientProvider;
     private final OssConfig ossConfig;
+    private final Executor asyncExecutor;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -60,7 +63,9 @@ public class AsyncTaskScheduler {
 
         log.info("扫描到 {} 个待执行的二维码生成任务", tasks.size());
         for (AsyncTask task : tasks) {
-            processQrCodeTask(task);
+            if (asyncTaskService.startTask(task.getId())) {
+                asyncExecutor.execute(() -> processQrCodeTask(task));
+            }
         }
     }
 
@@ -129,7 +134,12 @@ public class AsyncTaskScheduler {
             PutObjectRequest putRequest = new PutObjectRequest(
                     ossConfig.getBucketName(), objectKey,
                     new ByteArrayInputStream(qrBytes), metadata);
-            ossClient.putObject(putRequest);
+            OSS client = ossClientProvider.getIfAvailable();
+            if (client != null) {
+                client.putObject(putRequest);
+            } else {
+                log.info("OSS client not configured, skipping QR code upload.");
+            }
 
             return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
         } catch (Exception e) {

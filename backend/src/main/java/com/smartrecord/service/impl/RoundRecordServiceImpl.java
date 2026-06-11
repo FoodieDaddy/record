@@ -26,6 +26,7 @@ import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.EmotionAudioPool;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.RoundRecordService;
+import com.smartrecord.service.SubscribeMessageService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import com.smartrecord.util.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +62,7 @@ public class RoundRecordServiceImpl implements RoundRecordService {
     private final ScoreWebSocket scoreWebSocket;
     private final EmotionAudioPool emotionAudioPool;
     private final OverviewService overviewService;
+    private final SubscribeMessageService subscribeMessageService;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -139,6 +141,9 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             pushData.put("round", resp);
             scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
 
+            // 发送订阅消息给离线用户（记分提醒）
+            sendScoreReminderToOfflineUsers(roomId, room);
+
             // 信任关闭时启动超时监控
             if (trustMode == 0) {
                 startTimeoutMonitor(roomId, roundId, status);
@@ -209,6 +214,10 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                     pushData.put("type", "ROUND_STARTED");
                     pushData.put("round", resp);
                     scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+
+                    // 发送订阅消息给离线用户（记分提醒）
+                    sendScoreReminderToOfflineUsers(roomId, room);
+
                     return resp;
                 }
 
@@ -282,6 +291,10 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                     pushData.put("type", "ROUND_STARTED");
                     pushData.put("round", resp);
                     scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+
+                    // 发送订阅消息给离线用户（记分提醒）
+                    sendScoreReminderToOfflineUsers(roomId, room);
+
                     return resp;
                 }
             }
@@ -597,6 +610,52 @@ public class RoundRecordServiceImpl implements RoundRecordService {
                 log.warn("超时监控异常: roomId={}, roundId={}", roomId, roundId, e);
             }
         }, asyncExecutor);
+    }
+
+    /**
+     * 发送记分提醒订阅消息给离线用户
+     */
+    private void sendScoreReminderToOfflineUsers(Long roomId, Room room) {
+        // 使用 asyncExecutor 彻底异步化微信订阅消息发送，防止同步公网 HTTP 阻塞事务和 Redisson 分布式锁，提升系统性能
+        final var finalRoom = room;
+        asyncExecutor.execute(() -> {
+            try {
+                String roomIdStr = String.valueOf(roomId);
+                Set<Long> onlineUserIds = scoreWebSocket.getOnlineUserIds(roomIdStr);
+                
+                // 1. 加载房间内的所有成员
+                List<RoomMember> members = roomMemberMapper.selectList(
+                        new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+                
+                for (RoomMember member : members) {
+                    Long userId = member.getUserId();
+                    if (onlineUserIds.contains(userId)) {
+                        continue; // 在线用户已建立 WebSocket，不需要发送订阅消息
+                    }
+                    
+                    User user = userMapper.selectById(userId);
+                    if (user == null || user.getOpenid() == null) {
+                        continue;
+                    }
+                    
+                    // 2. 构建订阅消息数据实体
+                    cn.hutool.json.JSONObject data = new cn.hutool.json.JSONObject();
+                    data.set("nickname", user.getNickname() != null ? user.getNickname() : "舰员");
+                    data.set("roomNo", finalRoom.getRoomNo());
+                    data.set("time", LocalDateTime.now().format(
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                    
+                    // 3. 同步至微信小程序后台推送
+                    subscribeMessageService.sendSubscribeMessage(
+                            user.getOpenid(),
+                            "template_id_score_reminder",
+                            "pages/room/room?roomNo=" + finalRoom.getRoomNo(),
+                            data);
+                }
+            } catch (Exception e) {
+                log.warn("异步发送记分提醒订阅消息失败: roomId={}", roomId, e);
+            }
+        });
     }
 
     private RoundRecordResp buildRespFromRedis(Long roomId, Room room) {

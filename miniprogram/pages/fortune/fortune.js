@@ -109,6 +109,11 @@ function mapUserTagToLabel(userTag) {
   const map = {
     WINNING_STREAK: '连胜态',
     LOSING_STREAK: '连败态',
+    HIGH_RISK: '偏高',
+    STABLE: '稳健态',
+  }
+  return map[userTag] || '待同步'
+}
 
 /** 补充 CloudBase AI 来源缺失的 archetype 字段（title/subtitle/tags） */
 const ARCHETYPE_MAP = {
@@ -124,11 +129,6 @@ function _fillArchetypeIfMissing(strategy) {
   if (!strategy.title) strategy.title = archetype.title
   if (!strategy.subtitle) strategy.subtitle = archetype.subtitle
   if (!strategy.tags || strategy.tags.length === 0) strategy.tags = archetype.tags
-}
-    HIGH_RISK: '偏高',
-    STABLE: '稳健态',
-  }
-  return map[userTag] || '待同步'
 }
 
 /** source 映射中文 */

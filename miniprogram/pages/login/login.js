@@ -3,10 +3,10 @@ const { vibrateShort } = require('../../utils/haptic');
 const TimerManager = require('../../utils/timer-manager');
 const app = getApp();
 
-// 创建 TimerManager 实例并 mixin 到页面对象
+// 创建 TimerManager 实例
 const timerMgr = new TimerManager();
 
-Page(Object.assign(timerMgr, {
+Page({
   data: {
     loading: false,
     connecting: false,
@@ -48,12 +48,12 @@ Page(Object.assign(timerMgr, {
   },
 
   onHide() {
-    this.clearAll();
+    timerMgr.clearAll();
     this.setData({ connecting: false, accessGranted: false });
   },
 
   onUnload() {
-    this.clearAll();
+    timerMgr.clearAll();
   },
 
   playConnectingAnimation() {
@@ -76,24 +76,24 @@ Page(Object.assign(timerMgr, {
       let i = 0;
       const showNext = () => {
         if (i >= stepTexts.length) {
-          setTimeout(() => {
+          timerMgr.setTimeout(() => {
             this.setData({
               accessGranted: true,
               connecting: false
             });
-            setTimeout(resolve, 800);
+            timerMgr.setTimeout(resolve, 800);
           }, 400);
           return;
         }
         const idx = i;
-        setTimeout(() => {
+        timerMgr.setTimeout(() => {
           this.setData({ [`steps[${idx}].done`]: true });
-          setTimeout(showNext, 300);
+          timerMgr.setTimeout(showNext, 300);
         }, 400);
         i++;
       };
 
-      setTimeout(showNext, 500);
+      timerMgr.setTimeout(showNext, 500);
     });
   }
-}));
+});

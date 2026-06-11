@@ -15,12 +15,31 @@ function getRoomDetail(roomId) {
 
 /** 创建房间 */
 function createRoom(payload) {
-  return post('/room', payload);
+  return post('/room', payload).then(res => {
+    try {
+      const behaviorLogger = require('../utils/behavior-logger');
+      behaviorLogger.track('FLEET_CREATE', {
+        scoreMode: payload.scoreMode,
+        roundInputMethod: payload.roundInputMethod,
+        roomId: res ? res.id : ''
+      });
+    } catch(e) {}
+    return res;
+  });
 }
 
 /** 加入房间 */
 function joinRoom(roomNo) {
-  return post('/room/join', { roomNo });
+  return post('/room/join', { roomNo }).then(res => {
+    try {
+      const behaviorLogger = require('../utils/behavior-logger');
+      behaviorLogger.track('FLEET_JOIN', {
+        roomNo: roomNo,
+        roomId: res ? res.id : ''
+      });
+    } catch(e) {}
+    return res;
+  });
 }
 
 /** 退出房间 */

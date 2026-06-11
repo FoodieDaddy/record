@@ -10,8 +10,6 @@ const COLORS = [
   '#0A84FF', '#E91E63', '#00BCD4', '#00C8FF', '#607D8B', '#30D158'
 ];
 
-const GENERATED_OSS_AVATAR_RE = /^https?:\/\/smartrecord\.oss-cn-guangzhou\.aliyuncs\.com\/images\/avatar-\d+\.svg(?:[?#].*)?$/i;
-
 /**
  * 根据昵称哈希选取颜色（同一昵称始终同色）
  * @param {string} nickname
@@ -60,8 +58,6 @@ function getAvatarData(nickname) {
 function normalizeAvatarUrl(url) {
   const value = String(url || '').trim();
   if (!value) return '';
-  // 后端早期自动生成的 OSS SVG 默认头像可能已不存在，直接回退到首字徽标，避免渲染层 404。
-  if (GENERATED_OSS_AVATAR_RE.test(value)) return '';
   if (/^(https?:\/\/|wxfile:\/\/|cloud:\/\/|data:image\/)/.test(value)) return value;
   return '';
 }

@@ -297,7 +297,8 @@ Page({
         this.setData({ playerCode: 'SR-' + uid.slice(-4).padStart(4, '0') });
 
         if (user.createdAt) {
-          const created = new Date(user.createdAt).getTime();
+          const safeCreatedAt = typeof user.createdAt === 'string' ? user.createdAt.replace(/-/g, '/') : user.createdAt;
+          const created = new Date(safeCreatedAt).getTime();
           const days = Math.floor((Date.now() - created) / 86400000);
           this.setData({ daysSinceJoined: days });
         }
@@ -507,20 +508,11 @@ Page({
 
   // ========== 识别徽标 ==========
 
-  onTapAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sizeType: ['compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFile = res.tempFiles && res.tempFiles[0];
-        if (tempFile && tempFile.tempFilePath) {
-          this.applyBadgeTempPath(tempFile.tempFilePath);
-        }
-      },
-      fail: () => {}
-    });
+  onChooseAvatar(e) {
+    const tempPath = e.detail && e.detail.avatarUrl;
+    if (tempPath) {
+      this.applyBadgeTempPath(tempPath);
+    }
   },
 
   async applyBadgeTempPath(tempPath) {

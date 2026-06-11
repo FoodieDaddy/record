@@ -22,6 +22,10 @@ public class Admin {
 
     private Integer status;
 
+    private Integer failedAttempts;
+
+    private LocalDateTime lockedUntil;
+
     private LocalDateTime lastLoginAt;
 
     private LocalDateTime createdAt;

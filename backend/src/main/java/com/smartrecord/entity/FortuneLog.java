@@ -14,6 +14,8 @@ public class FortuneLog {
 
     private Long userId;
 
+    private String requestId;
+
     private String userTag;
 
     private String source;

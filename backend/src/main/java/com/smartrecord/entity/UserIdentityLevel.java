@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @TableName("user_identity_level")
 public class UserIdentityLevel {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(value = "user_id", type = IdType.INPUT)
     private Long userId;
 
     private Integer level;

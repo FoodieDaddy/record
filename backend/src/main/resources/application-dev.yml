@@ -38,3 +38,8 @@ storage:
   provider: ${STORAGE_PROVIDER:aliyun}
   cloudbase:
     env-id: ${CLOUDBASE_ENV_ID:}
+
+jetcache:
+  remote:
+    default:
+      uri: redis://${SPRING_REDIS_HOST}:${SPRING_REDIS_PORT}

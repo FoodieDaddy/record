@@ -12,6 +12,10 @@ import com.smartrecord.enums.MbtiType;
 import com.smartrecord.mapper.UserMirrorProfileMapper;
 import com.smartrecord.service.BattlePersonaService;
 import com.smartrecord.service.MirrorProfileService;
+import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.anno.CacheType;
+import com.alicp.jetcache.anno.Cached;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -33,6 +37,9 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     private final BattlePersonaService battlePersonaService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+
+    @CreateCache(name = "sr:user:profile:", cacheType = CacheType.BOTH, expire = 1800)
+    private Cache<Long, MirrorProfileResp> profileCache;
 
     private static final String USER_KEY_PREFIX = "sr:user:";
     private static final String CACHE_FIELD = "mirror:profile";
@@ -123,21 +130,8 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
     );
 
     @Override
+    @Cached(name = "sr:user:profile:", key = "#userId", cacheType = CacheType.BOTH, expire = 1800)
     public MirrorProfileResp getFullProfile(Long userId) {
-        // 尝试读缓存
-        String userKey = USER_KEY_PREFIX + userId;
-        try {
-            Object cached = redisTemplate.opsForHash().get(userKey, CACHE_FIELD);
-            if (cached != null) {
-                String cachedStr = (String) cached;
-                MirrorProfileResp cachedResp = objectMapper.readValue(cachedStr, MirrorProfileResp.class);
-                // 缓存命中后也执行净化，防止历史画像词进入展示层。
-                return sanitizeResponse(cachedResp);
-            }
-        } catch (Exception e) {
-            log.warn("读取镜像缓存失败: userId={}", userId);
-        }
-
         // 构建完整画像
         UserMirrorProfile profile = getProfile(userId);
         ProfileInfo mbti = toProfileInfo(profile);
@@ -194,18 +188,7 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
                 .build();
 
         // 构建响应后统一净化历史画像词。
-        resp = sanitizeResponse(resp);
-
-        // 写缓存
-        try {
-            redisTemplate.opsForHash().put(userKey, CACHE_FIELD, objectMapper.writeValueAsString(resp));
-        } catch (JsonProcessingException e) {
-            log.warn("序列化镜像缓存失败: userId={}", userId);
-        } catch (Exception e) {
-            log.warn("写入镜像缓存失败: userId={}", userId);
-        }
-
-        return resp;
+        return sanitizeResponse(resp);
     }
 
     @Override
@@ -262,10 +245,12 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
 
     @Override
     public void clearProfileCache(Long userId) {
+        if (userId == null) return;
         try {
-            redisTemplate.opsForHash().delete(USER_KEY_PREFIX + userId, CACHE_FIELD);
+            profileCache.remove(userId);
+            log.info("成功清除镜像行为画像缓存: userId={}", userId);
         } catch (Exception e) {
-            log.warn("清除镜像缓存失败: userId={}", userId);
+            log.warn("清除镜像行为画像缓存失败: userId={}", userId, e);
         }
     }
 

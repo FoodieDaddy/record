@@ -2,9 +2,9 @@ package com.smartrecord.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * 异步线程池配置 — 基于 JDK 21 虚拟线程
@@ -17,6 +17,11 @@ public class AsyncConfig {
 
     @Bean("asyncExecutor")
     public Executor asyncExecutor() {
-        return Executors.newVirtualThreadPerTaskExecutor();
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("vt-async-");
+        // 开启 JDK 21 虚拟线程支持
+        executor.setVirtualThreads(true);
+        // 配置跨线程 MDC 日志链追踪复制装饰器
+        executor.setTaskDecorator(new MdcTaskDecorator());
+        return executor;
     }
 }

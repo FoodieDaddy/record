@@ -50,7 +50,7 @@ public class RoomTimeoutTask {
             List<Room> rooms = roomMapper.selectList(
                     new LambdaQueryWrapper<Room>()
                             .eq(Room::getStatus, 0)
-                            .and(w -> w.isNull(Room::getLastActiveAt)
+                            .and(w -> w.nested(n -> n.isNull(Room::getLastActiveAt).lt(Room::getCreatedAt, threshold))
                                     .or().lt(Room::getLastActiveAt, threshold))
                             .orderByAsc(Room::getLastActiveAt));
 

@@ -61,4 +61,10 @@ public class UserController {
     public Result<IdentityLevelResp> getIdentityLevel(@CurrentUser Long userId) {
         return Result.ok(identityLevelService.getIdentityLevel(userId));
     }
+
+    @Operation(summary = "获取个人生涯复盘数据", description = "获取用户生涯复盘驾驶舱汇总数据（包含总局数、胜率、拍档与宿敌）")
+    @GetMapping("/career-cockpit")
+    public Result<CareerCockpitResp> getCareerCockpit(@CurrentUser Long userId) {
+        return Result.ok(userService.getCareerCockpit(userId));
+    }
 }

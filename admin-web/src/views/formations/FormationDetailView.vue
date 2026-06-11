@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useLocaleStore } from '@/stores/locale'
 import StatusPill from '@/components/status/StatusPill.vue'
@@ -10,6 +10,7 @@ import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const route = useRoute()
+const router = useRouter()
 const api = useApi()
 const locale = useLocaleStore()
 const formation = ref<any>(null)
@@ -77,6 +78,9 @@ async function handleConfirm() {
     </div>
   </div>
   <div v-else-if="formation">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <button class="cmd-btn" style="font-size:12px;" @click="router.push('/formations')">← {{ locale.isZh ? '返回列表' : 'Back' }}</button>
+    </div>
     <!-- 状态指示器 + 编队摘要 -->
     <div class="formation-status-banner" :class="formation.status === '运行中' ? 'banner--running' : 'banner--sealed'">
       <div class="banner-indicator" />
@@ -150,16 +154,16 @@ async function handleConfirm() {
   gap: 10px;
   padding: 10px 16px;
   margin-bottom: 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
 .banner--running {
-  background: rgba(48,209,88,0.06);
-  border-color: rgba(48,209,88,0.15);
+  background: var(--pill-ok-bg);
+  border-color: var(--pill-ok-border);
 }
 .banner--sealed {
-  background: rgba(10,132,255,0.06);
-  border-color: rgba(10,132,255,0.15);
+  background: var(--pill-running-bg);
+  border-color: var(--pill-running-border);
 }
 .banner-indicator {
   width: 8px;
@@ -169,7 +173,6 @@ async function handleConfirm() {
 }
 .banner--running .banner-indicator {
   background: var(--color-green);
-  box-shadow: 0 0 8px rgba(48,209,88,0.4);
 }
 .banner--sealed .banner-indicator {
   background: var(--color-primary);
@@ -184,15 +187,15 @@ async function handleConfirm() {
   align-items: center;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--table-row-border);
 }
 .member-row:last-child { border-bottom: none; }
 .member-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(10,132,255,0.10);
-  border: 1px solid rgba(10,132,255,0.18);
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--btn-primary-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,6 +215,6 @@ async function handleConfirm() {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.dot--online { background: var(--color-green); box-shadow: 0 0 6px rgba(48,209,88,0.3); }
+.dot--online { background: var(--color-green); }
 .dot--offline { background: var(--text-muted); }
 </style>

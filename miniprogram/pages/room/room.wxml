@@ -11,11 +11,7 @@
     </view>
   </view>
 
-  <!-- 通讯链路波动提示（顶部轻提示） -->
-  <view class="ws-toast {{pageVisible && wsReconnecting ? 'ws-toast--show' : ''}}">
-    <view class="ws-toast__dot"></view>
-    <text class="ws-toast__text">链路重试中</text>
-  </view>
+
   <!-- 未登录状态 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-auth">
     <view class="empty-auth-icon icon-lock-wrap"><view class="icon-lock"></view></view>
@@ -182,11 +178,7 @@
 
   <!-- active 状态：驾驶舱主界面 -->
   <view wx:if="{{isLoggedIn && cockpitState === 'active' && currentRoom}}" class="cockpit-active">
-    <!-- 顶部提示 -->
-    <view class="top-toast {{toastMsg ? 'top-toast-show' : ''}} {{toastType === 'error' ? 'top-toast-error' : ''}}" wx:if="{{toastMsg}}">
-      <text>{{toastMsg}}</text>
-    </view>
-
+  
     <!-- 单屏驾驶舱 -->
     <view class="cockpit-active-screen">
 
@@ -266,8 +258,9 @@
         </view>
 
         <!-- 本舰脉冲仪表（HUD下半区，不被遮挡） -->
-        <view class="pulse-instrument {{cockpitView.selfPulseClass}}">
+        <view class="pulse-instrument {{cockpitView.selfPulseClass}} {{animActive ? 'is-powering' : ''}}">
           <view class="pulse-instrument__arc-outer"></view>
+          <view class="pulse-instrument__power-track"></view>
           <view class="pulse-instrument__arc-inner"></view>
           <view class="pulse-instrument__ticks">
             <view class="pulse-instrument__tick" wx:for="{{11}}" wx:key="*this" style="transform: rotate({{-50 + index * 10}}deg);"></view>
@@ -285,64 +278,58 @@
         <view class="cockpit-dashboard-lip"></view>
       </view>
 
-      <!-- ===== 驾驶台桥接 ===== -->
-      <view class="console-bridge">
-        <view class="console-bridge__spine"></view>
-      </view>
+      <!-- ===== 飞船控制台（与HUD融合） ===== -->
+      <view class="cockpit-console-v2">
+        <!-- 左右舂线装饰 -->
+        <view class="ccv2-rail ccv2-rail--left"></view>
+        <view class="ccv2-rail ccv2-rail--right"></view>
 
-      <!-- ===== 控制台实体按键（三个主按钮） ===== -->
-      <view class="cockpit-console">
-        <view class="console-top-rail"></view>
-
-        <view class="console-key-row">
+        <!-- 主按键区 -->
+        <view class="ccv2-panel">
           <!-- 信标按钮 -->
-          <view class="console-key console-key--beacon" bindtap="openBeacon" hover-class="console-key--press">
-            <view class="console-key__slot">
-              <view class="console-key__side"></view>
-              <view class="console-key__led"></view>
-              <view class="console-key__face">
-                <text class="console-key__main">信标</text>
-              </view>
+          <view class="ccv2-btn" bindtap="openBeacon" hover-class="ccv2-btn--press">
+            <view class="ccv2-btn__glow"></view>
+            <view class="ccv2-btn__body">
+              <view class="ccv2-btn__indicator ccv2-btn__indicator--cyan"></view>
+              <text class="ccv2-btn__label">信标</text>
+              <text class="ccv2-btn__sub">BEACON</text>
             </view>
           </view>
+
+          <!-- 中央竖线 -->
+          <view class="ccv2-divider"></view>
 
           <!-- 航迹按钮 -->
-          <view class="console-key console-key--nav" bindtap="goTrace" hover-class="console-key--press">
-            <view class="console-key__slot">
-              <view class="console-key__side"></view>
-              <view class="console-key__led"></view>
-              <view class="console-key__face">
-                <text class="console-key__main">航迹</text>
-              </view>
-            </view>
-          </view>
-
-          <!-- 解散/撤离按钮 -->
-          <view class="console-key console-key--danger" bindtap="confirmLeaveOrDisband" hover-class="console-key--press">
-            <view class="console-key__slot">
-              <view class="console-key__side"></view>
-              <view class="console-key__led console-key__led--danger"></view>
-              <view class="console-key__face">
-                <text class="console-key__main">{{isOwner ? '解散' : '撤离'}}</text>
-              </view>
+          <view class="ccv2-btn" bindtap="goTrace" hover-class="ccv2-btn--press">
+            <view class="ccv2-btn__glow"></view>
+            <view class="ccv2-btn__body">
+              <view class="ccv2-btn__indicator ccv2-btn__indicator--green"></view>
+              <text class="ccv2-btn__label">航迹</text>
+              <text class="ccv2-btn__sub">TRACE</text>
             </view>
           </view>
         </view>
 
-        <view class="console-bottom-rail"></view>
+        <!-- 紧急按钮：角落独立按钮（带安全护罩） -->
+        <view class="ccv2-emergency" bindtap="confirmLeaveOrDisband" hover-class="ccv2-emergency--press">
+          <view class="ccv2-emergency__guard"></view>
+          <view class="ccv2-emergency__btn">
+            <view class="ccv2-emergency__led"></view>
+            <text class="ccv2-emergency__text">{{isOwner ? '解散' : '撤离'}}</text>
+          </view>
+        </view>
       </view>
 
       <!-- ===== 输出脉冲终端 ===== -->
       <view class="output-terminal">
         <view class="terminal-scanline"></view>
 
-        <view class="terminal-header">
-          <text class="terminal-header__title">输出脉冲</text>
-        </view>
-
-        <view class="terminal-entries">
+        <scroll-view class="terminal-entries" scroll-y="true" enable-flex="true" 
+                     scroll-into-view="{{cockpitView.terminalLogEntries.length > 0 ? 'entry-' + cockpitView.terminalLogEntries[cockpitView.terminalLogEntries.length-1].id : ''}}"
+                     scroll-with-animation="true">
           <view wx:if="{{cockpitView.terminalLogEntries.length > 0}}">
             <view wx:for="{{cockpitView.terminalLogEntries}}" wx:key="id"
+                  id="entry-{{item.id}}"
                   class="terminal-entry {{item.isNew ? 'terminal-entry--new' : ''}}">
               <text class="terminal-entry__time">{{item.time}}</text>
               <text class="terminal-entry__text">{{item.text}}</text>
@@ -352,7 +339,7 @@
           <view class="terminal-empty" wx:else>
             <text>等待输出</text>
           </view>
-        </view>
+        </scroll-view>
       </view>
 
     </view>
@@ -394,7 +381,7 @@
 
     <!-- VR 悬浮触控阵列（驾驶舱输入层） -->
     <view class="pulse-vr-overlay {{showNumpad ? 'pulse-vr-overlay--show' : ''}}" catchtap="cancelTransfer">
-      <view class="pulse-vr-cluster" catchtap="preventClose">
+      <view class="pulse-vr-cluster {{numpadLaunching ? 'is-launching' : ''}}" catchtap="preventClose">
         <!-- AR 面板扫描线 -->
         <view class="pulse-vr-scanline"></view>
         <!-- AR 面板边角装饰 -->
@@ -408,6 +395,7 @@
           <view class="pulse-lock-target" wx:if="{{transferToInfo}}">
             <helmet-avatar
               src="{{transferToInfo.avatarUrl || ''}}"
+              nickname="{{transferToInfo.nickname}}"
               size="56"
               active="{{false}}"
               showStatus="{{false}}"
@@ -418,7 +406,7 @@
               <text class="pulse-lock-sub">目标锁定</text>
             </view>
           </view>
-          <view class="pulse-lock-value">
+          <view class="pulse-lock-value {{numpadLaunching ? 'is-launching' : ''}}">
             <text>{{numpadValue || '0'}}</text>
           </view>
         </view>
@@ -466,23 +454,38 @@
 
     <!-- 记录动画层（CSS 驱动） -->
     <view class="transfer-anim-overlay" wx:if="{{animActive}}">
-      <!-- 屏幕闪烁 -->
+      <!-- 屏幕瞬时闪烁（全息光晕 Flare） -->
       <view class="transfer-anim-flash {{animFlying ? 'is-active' : ''}}"></view>
-      <!-- 拖尾粒子 -->
-      <view class="transfer-anim-trail trail-1 {{animFlying ? 'is-flying' : ''}}"
-            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;">
-        <view class="transfer-anim-dot-trail"></view>
+
+      <!-- 发射起点波纹（Launch Ripple） -->
+      <view class="launch-ripple-container {{animFlying ? 'is-active' : ''}}"
+            style="left:{{animStartX}}px;top:{{animStartY}}px;">
+        <view class="launch-ripple-wave"></view>
       </view>
-      <view class="transfer-anim-trail trail-2 {{animFlying ? 'is-flying' : ''}}"
-            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;">
-        <view class="transfer-anim-dot-trail dot-trail-2"></view>
+
+      <!-- 终点命中反馈（冲击波 Ripple） -->
+      <view class="impact-ripple-container {{impactCrewId ? 'is-impacting' : ''}}"
+            style="left:{{animStartX + animDx}}px;top:{{animStartY + animDy}}px;">
+        <view class="impact-ripple-wave"></view>
+        <view class="impact-ripple-hex"></view>
       </view>
-      <!-- 主粒子 -->
-      <view class="transfer-anim-particle {{animFlying ? 'is-flying' : ''}}"
-            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;"
+
+      <!-- 终点命中飘字（Decryption Float Text） -->
+      <view class="impact-float-text {{impactCrewId ? 'is-floating' : ''}}"
+            style="left:{{animStartX + animDx}}px;top:{{animStartY + animDy - 30}}px;">
+        +{{animAmount}}
+      </view>
+
+      <!-- 主干光束跃迁（Warp Beam Flight） -->
+      <view class="transfer-anim-beam-wrapper {{animFlying ? 'is-flying' : ''}}"
+            style="left:{{animStartX}}px;top:{{animStartY}}px;--dx:{{animDx}}px;--dy:{{animDy}}px;--arc:{{animArc}}px;--angle:{{animAngle}}deg;"
             bindanimationend="onParticleAnimEnd">
-        <view class="transfer-anim-dot"></view>
-        <text class="transfer-anim-amount">{{animAmount}}</text>
+        <!-- 拖尾与残影 -->
+        <view class="beam-trail"></view>
+        <!-- 高能光束核心 -->
+        <view class="beam-core"></view>
+        <!-- 环绕光环（Warp Rings） -->
+        <view class="beam-rings"></view>
       </view>
     </view>
 
@@ -696,4 +699,6 @@
       </view>
     </view>
   </view>
+  <!-- 系统全局左上角提示 -->
+  <sr-toast id="srToast" reduceMotion="{{!animationEnabled}}" />
 </view>

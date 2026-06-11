@@ -54,7 +54,8 @@ function clampFormationPosition(pos) {
 
 function getTraceSortValue(trace) {
   if (!trace) return 0;
-  const time = new Date(trace.createdAt || '').getTime();
+  const safeDateStr = typeof trace.createdAt === 'string' ? trace.createdAt.replace(/-/g, '/') : (trace.createdAt || '');
+  const time = new Date(safeDateStr).getTime();
   if (!Number.isNaN(time)) return time;
   return Number(trace.id || 0);
 }
@@ -203,10 +204,11 @@ function buildSeatList(members = [], options = {}) {
   }));
 }
 
-function buildTerminalLogEntries(pulseTraces = [], maxEntries = 3) {
+function buildTerminalLogEntries(pulseTraces = [], maxEntries = 50) {
   const traces = pulseTraces.slice(-maxEntries);
   return traces.map(trace => {
-    const ts = trace.createdAt ? new Date(trace.createdAt) : null;
+    const safeCreatedAt = typeof trace.createdAt === 'string' ? trace.createdAt.replace(/-/g, '/') : trace.createdAt;
+    const ts = safeCreatedAt ? new Date(safeCreatedAt) : null;
     const time = ts && !isNaN(ts.getTime())
       ? `${String(ts.getHours()).padStart(2, '0')}:${String(ts.getMinutes()).padStart(2, '0')}:${String(ts.getSeconds()).padStart(2, '0')}`
       : (trace.timeFormatted || '--:--:--');
@@ -247,9 +249,19 @@ function buildCockpitView(ctx = {}) {
     statusDot = 'connecting';
     statusSubtitle = '';
   } else if (hasFormation) {
-    statusLabel = '驾驶舱已接入';
-    statusSubtitle = externalShips.length > 0 ? '' : '暂无外部航船';
-    statusDot = 'online';
+    if (ctx.wsReconnecting) {
+      statusLabel = '链路重试中';
+      statusSubtitle = '正在重新建立通讯...';
+      statusDot = 'connecting';
+    } else if (ctx.wsConnected === false) {
+      statusLabel = '链路已断开';
+      statusSubtitle = '通讯异常，请检查网络';
+      statusDot = 'idle';
+    } else {
+      statusLabel = '驾驶舱已接入';
+      statusSubtitle = externalShips.length > 0 ? '' : '暂无外部航船';
+      statusDot = 'online';
+    }
   } else {
     statusLabel = '驾驶舱待机中';
     statusDot = 'idle';

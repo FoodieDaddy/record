@@ -59,3 +59,20 @@ emotion:
       - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_02.mp3
       - https://smartrecord.oss-cn-guangzhou.aliyuncs.com/emotion/lose_03.mp3
     neutral-urls: []
+
+jetcache:
+  statIntervalMinutes: 15          # 每 15 分钟输出一次缓存命中率统计
+  areaInCacheName: false
+  local:
+    default:
+      type: caffeine               # L1 本地缓存引擎
+      limit: 1000                  # 本地最大缓存条目数
+      keyConvertor: fastjson       # key 序列化方式
+      expireAfterWriteInMillis: 600000  # 本地缓存 10 分钟过期
+  remote:
+    default:
+      type: redis.lettuce           # L2 远程缓存引擎
+      keyConvertor: fastjson
+      valueEncoder: java            # 远程 value 序列化方式 (JDK)
+      valueDecoder: java
+      expireAfterWriteInMillis: 3600000  # 远程缓存 1 小时过期

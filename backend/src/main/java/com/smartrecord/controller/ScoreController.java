@@ -92,14 +92,7 @@ public class ScoreController {
         return Result.ok(scoreService.getRoomTransfers(roomId, page, size));
     }
 
-    @Operation(summary = "常用转出金额推荐", description = "从 Redis 小排行读取个人常发与编队高频金额，数据不足时随机补齐")
-    @GetMapping("/room/{roomId}/transfer-amount-suggestions")
-    public Result<TransferAmountSuggestionResp> getTransferAmountSuggestions(
-            @CurrentUser Long userId,
-            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
-        roomAccessGuard.assertRoomMember(roomId, userId);
-        return Result.ok(scoreService.getTransferAmountSuggestions(userId, roomId));
-    }
+
 
     @Idempotent(operation = "settle")
     @Operation(summary = "结束对局", description = "房主操作，数据归档到房间")
@@ -141,5 +134,14 @@ public class ScoreController {
             @Parameter(description = "房间 ID") @PathVariable Long roomId) {
         roomAccessGuard.assertRoomMember(roomId, userId);
         return Result.ok(scoreService.getRoomNetwork(roomId));
+    }
+
+    @Operation(summary = "一键撤销上一笔记分", description = "撤销房间的最后一笔转账或最后一轮确认生效的轮次记录。仅房主可用。")
+    @PostMapping("/room/{roomId}/undo")
+    public Result<Void> undoLastScore(
+            @CurrentUser Long userId,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        scoreService.undoLastScore(userId, roomId);
+        return Result.ok();
     }
 }

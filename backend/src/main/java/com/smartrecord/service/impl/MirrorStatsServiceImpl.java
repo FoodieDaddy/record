@@ -10,6 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.anno.CacheType;
+import com.alicp.jetcache.anno.Cached;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,22 +31,15 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    @CreateCache(name = "sr:user:stats:", cacheType = CacheType.BOTH, expire = 1800)
+    private Cache<Long, MirrorStatsResp> statsCache;
+
     private static final String USER_KEY_PREFIX = "sr:user:";
     private static final String CACHE_FIELD = "mirror:stats";
 
     @Override
+    @Cached(name = "sr:user:stats:", key = "#userId", cacheType = CacheType.BOTH, expire = 1800)
     public MirrorStatsResp calculate(Long userId) {
-        // 尝试读缓存
-        String userKey = USER_KEY_PREFIX + userId;
-        try {
-            Object cached = redisTemplate.opsForHash().get(userKey, CACHE_FIELD);
-            if (cached != null) {
-                return objectMapper.readValue((String) cached, MirrorStatsResp.class);
-            }
-        } catch (Exception e) {
-            log.warn("读取stats缓存失败: userId={}", userId);
-        }
-
         // 获取原始数据
         List<Map<String, Object>> trend = roomMemberMapper.selectTrendByUserId(userId, 20);
         List<Integer> netScores = new ArrayList<>();
@@ -74,20 +71,11 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
                         .desc("基于单局最大得分占比。").build()
         );
 
-        MirrorStatsResp resp = MirrorStatsResp.builder()
+        return MirrorStatsResp.builder()
                 .dimensions(dimensions)
                 .sampleSize(netScores.size())
                 .calculatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
                 .build();
-
-        // 写缓存
-        try {
-            redisTemplate.opsForHash().put(userKey, CACHE_FIELD, objectMapper.writeValueAsString(resp));
-        } catch (Exception e) {
-            log.warn("写入stats缓存失败: userId={}", userId);
-        }
-
-        return resp;
     }
 
     /**
@@ -237,5 +225,18 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
 
     private int clamp(int val) {
         return Math.max(0, Math.min(100, val));
+    }
+
+    @Override
+    public void clearStatsCache(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            statsCache.remove(userId);
+            log.info("成功清除五维战力缓存: userId={}", userId);
+        } catch (Exception e) {
+            log.warn("清除五维战力缓存失败: userId={}", userId, e);
+        }
     }
 }

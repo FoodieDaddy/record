@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @TableName("user_detail")
 public class UserDetail {
 
-    @TableId(type = IdType.ASSIGN_ID)
+    @TableId(type = IdType.INPUT)
     private Long id;
 
     private Integer voiceEnabled;

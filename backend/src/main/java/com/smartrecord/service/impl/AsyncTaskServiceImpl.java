@@ -120,4 +120,15 @@ public class AsyncTaskServiceImpl implements AsyncTaskService {
         }
         return error.length() > 1024 ? error.substring(0, 1024) : error;
     }
+
+    @Override
+    public boolean startTask(Long taskId) {
+        int updated = asyncTaskMapper.update(null,
+                new LambdaUpdateWrapper<AsyncTask>()
+                        .eq(AsyncTask::getId, taskId)
+                        .in(AsyncTask::getStatus, 0, 3)
+                        .set(AsyncTask::getStatus, 1)
+        );
+        return updated > 0;
+    }
 }

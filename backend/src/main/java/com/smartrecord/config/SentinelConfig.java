@@ -29,6 +29,13 @@ public class SentinelConfig {
         apiRule.setWarmUpPeriodSec(10);
         rules.add(apiRule);
 
+        // 管理员登录接口：5 QPS（严格限制，防止暴力破解）
+        FlowRule adminLoginRule = new FlowRule();
+        adminLoginRule.setResource("admin-login");
+        adminLoginRule.setGrade(RuleConstant.FLOW_GRADE_QPS);
+        adminLoginRule.setCount(5);
+        rules.add(adminLoginRule);
+
         // 微信登录接口：50 QPS（登录是外部 HTTP 调用，需更严格限制）
         FlowRule loginRule = new FlowRule();
         loginRule.setResource("wx-login");

@@ -1,42 +1,171 @@
-:root {
-  /* 主色 */
-  --color-primary: #0A84FF;
-  --color-cyan: #00C8FF;
-  --color-purple: #5E5CE6;
-  --color-green: #30D158;
-  --color-orange: #FF9F0A;
-  --color-red: #FF453A;
+/*
+ * 设计 Token 体系 —— 白色飞船舰桥 · 未来家具风
+ * light = 玻璃质感舰桥（默认）
+ * dark  = 深空维护模式（保留兼容）
+ */
 
-  /* 文字 */
-  --text-main: rgba(255,255,255,0.92);
-  --text-secondary: rgba(255,255,255,0.56);
-  --text-muted: rgba(255,255,255,0.38);
-  --text-disabled: rgba(255,255,255,0.24);
+:root,
+[data-theme="light"] {
+  /* ── 主色 ── */
+  --color-primary: #5E8BFF;
+  --color-cyan: #76C7E7;
+  --color-purple: #8B8AF0;
+  --color-indigo: #8B8AF0;
+  --color-green: #62BE8A;
+  --color-orange: #F0B35D;
+  --color-red: #E57E7E;
 
-  /* 背景 */
-  --bg-base: #0A0A0A;
-  --bg-panel: rgba(255,255,255,0.035);
-  --bg-panel-hover: rgba(255,255,255,0.05);
-  --bg-elevated: rgba(4, 8, 16, 0.98);
+  /* ── 文字 ── */
+  --text-main: #172230;
+  --text-secondary: #536273;
+  --text-muted: #8D98A8;
+  --text-disabled: #B8C2CE;
 
-  /* 描边 */
-  --border-subtle: rgba(255,255,255,0.06);
-  --border-medium: rgba(255,255,255,0.10);
-  --border-accent: rgba(10,132,255,0.18);
-  --border-cyan: rgba(0,200,255,0.22);
+  /* ── 背景 ── */
+  --bg-base: #EDF2F7;
+  --bg-shell: rgba(248, 250, 253, 0.72);
+  --bg-grid: transparent;
+  --bg-surface: rgba(241, 245, 250, 0.86);
+  --bg-panel: rgba(255, 255, 255, 0.62);
+  --bg-panel-strong: rgba(255, 255, 255, 0.78);
+  --bg-panel-solid: rgba(255, 255, 255, 0.94);
+  --bg-panel-muted: rgba(240, 246, 252, 0.72);
+  --bg-panel-hover: rgba(235, 242, 250, 0.80);
+  --bg-elevated: rgba(255, 255, 255, 0.94);
+  --bg-scanline: transparent;
 
-  /* 状态色 */
-  --status-ok: #30D158;
-  --status-warn: #FF9F0A;
-  --status-error: #FF453A;
-  --status-unknown: rgba(255,255,255,0.24);
+  /* ── 描边 ── */
+  --border-glass: rgba(255, 255, 255, 0.46);
+  --border-subtle: rgba(130, 150, 180, 0.14);
+  --border-medium: rgba(120, 140, 170, 0.18);
+  --border-accent: rgba(130, 150, 180, 0.16);
+  --border-cyan: rgba(118, 199, 231, 0.22);
+  --border-strong: rgba(120, 145, 180, 0.24);
 
-  /* 字体 */
+  /* ── 状态色 ── */
+  --status-ok: #62BE8A;
+  --status-warn: #F0B35D;
+  --status-error: #E57E7E;
+  --status-unknown: rgba(23, 34, 48, 0.14);
+
+  /* ── 面板 ── */
+  --panel-header-bg: linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.22));
+  --panel-header-border: rgba(255, 255, 255, 0.30);
+  --panel-hud-corner: transparent;
+  --panel-glow: rgba(94, 139, 255, 0.06);
+  --panel-shadow: 0 18px 42px rgba(31,52,88,0.09), 0 4px 14px rgba(31,52,88,0.05), inset 0 1px 0 rgba(255,255,255,0.78);
+
+  /* ── 表格 ── */
+  --table-header-bg: rgba(241, 245, 250, 0.60);
+  --table-row-border: rgba(130, 150, 180, 0.08);
+  --table-row-hover: rgba(94, 139, 255, 0.04);
+  --table-row-selected: rgba(94, 139, 255, 0.06);
+
+  /* ── 图表 ── */
+  --chart-text: #172230;
+  --chart-axis-label: rgba(23, 34, 48, 0.40);
+  --chart-axis-line: rgba(130, 150, 180, 0.10);
+  --chart-split-line: rgba(130, 150, 180, 0.06);
+  --chart-tooltip-bg: rgba(255, 255, 255, 0.94);
+  --chart-tooltip-border: rgba(130, 150, 180, 0.12);
+
+  /* ── 导航 ── */
+  --nav-bg: rgba(255, 255, 255, 0.58);
+  --nav-border: rgba(255, 255, 255, 0.30);
+  --nav-item-color: #536273;
+  --nav-item-hover-bg: rgba(94, 139, 255, 0.06);
+  --nav-item-hover-color: #172230;
+  --nav-item-active-bg: rgba(94, 139, 255, 0.10);
+  --nav-item-active-color: #5E8BFF;
+  --nav-group-title: rgba(23, 34, 48, 0.28);
+
+  /* ── 顶栏 ── */
+  --topbar-bg: rgba(255, 255, 255, 0.58);
+  --topbar-border: rgba(255, 255, 255, 0.30);
+  --topbar-shadow: 0 1px 4px rgba(31, 52, 88, 0.04);
+
+  /* ── 底栏 ── */
+  --bottom-border: rgba(130, 150, 180, 0.06);
+  --bottom-color: rgba(23, 34, 48, 0.26);
+
+  /* ── 右侧监控 ── */
+  --monitor-bg: rgba(255, 255, 255, 0.82);
+  --monitor-section-border: rgba(130, 150, 180, 0.06);
+
+  /* ── 搜索 ── */
+  --search-bg: rgba(255, 255, 255, 0.58);
+  --search-border: rgba(255, 255, 255, 0.46);
+  --search-shadow: 0 8px 32px rgba(31, 52, 88, 0.08);
+
+  /* ── 设置弹层 ── */
+  --settings-bg: rgba(255, 255, 255, 0.92);
+  --settings-border: rgba(255, 255, 255, 0.46);
+  --settings-shadow: 0 16px 48px rgba(31, 52, 88, 0.12);
+
+  /* ── 输入框 ── */
+  --input-bg: rgba(255, 255, 255, 0.58);
+  --input-border: rgba(255, 255, 255, 0.46);
+  --input-focus-border: rgba(94, 139, 255, 0.40);
+  --input-focus-shadow: 0 0 0 3px rgba(94, 139, 255, 0.08);
+
+  /* ── 按钮 ── */
+  --btn-primary-bg: rgba(94, 139, 255, 0.08);
+  --btn-primary-border: rgba(94, 139, 255, 0.22);
+  --btn-primary-shadow: none;
+  --btn-primary-hover-bg: rgba(94, 139, 255, 0.14);
+  --btn-secondary-bg: rgba(255, 255, 255, 0.58);
+  --btn-ghost-hover-bg: rgba(94, 139, 255, 0.06);
+  --btn-danger-border: rgba(229, 126, 126, 0.24);
+  --btn-danger-hover-bg: rgba(229, 126, 126, 0.06);
+
+  /* ── 状态胶囊 ── */
+  --pill-ok-bg: rgba(98, 190, 138, 0.10);
+  --pill-ok-border: rgba(98, 190, 138, 0.18);
+  --pill-ok-color: #4A9E6E;
+  --pill-warn-bg: rgba(240, 179, 93, 0.10);
+  --pill-warn-border: rgba(240, 179, 93, 0.18);
+  --pill-warn-color: #C4922E;
+  --pill-error-bg: rgba(229, 126, 126, 0.10);
+  --pill-error-border: rgba(229, 126, 126, 0.18);
+  --pill-error-color: #C85555;
+  --pill-running-bg: rgba(94, 139, 255, 0.08);
+  --pill-running-border: rgba(94, 139, 255, 0.18);
+  --pill-running-color: #4A6FCC;
+  --pill-offline-bg: rgba(23, 34, 48, 0.04);
+  --pill-offline-border: rgba(23, 34, 48, 0.08);
+  --pill-offline-color: var(--text-muted);
+
+  /* ── 分页器 ── */
+  --pagination-bg: rgba(255, 255, 255, 0.58);
+  --pagination-border: rgba(255, 255, 255, 0.46);
+  --pagination-active-bg: rgba(94, 139, 255, 0.10);
+  --pagination-active-border: rgba(94, 139, 255, 0.24);
+
+  /* ── Toast ── */
+  --toast-bg: rgba(255, 255, 255, 0.92);
+  --toast-border: rgba(255, 255, 255, 0.46);
+  --toast-shadow: 0 16px 48px rgba(31, 52, 88, 0.12);
+
+  /* ── HUD 标签 ── */
+  --hud-label-bg: rgba(118, 199, 231, 0.08);
+  --hud-label-border: rgba(118, 199, 231, 0.14);
+  --hud-label-color: var(--color-cyan);
+
+  /* ── 复制按钮 ── */
+  --copy-btn-bg: rgba(255, 255, 255, 0.58);
+  --copy-btn-border: rgba(255, 255, 255, 0.46);
+
+  /* ── 抽屉 ── */
+  --drawer-bg: rgba(255, 255, 255, 0.92);
+  --drawer-overlay: rgba(23, 34, 48, 0.16);
+  --drawer-border: rgba(255, 255, 255, 0.30);
+
+  /* ── 字体 ── */
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
                'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 
-  /* 字号 */
+  /* ── 字号 ── */
   --text-xs: 11px;
   --text-sm: 12px;
   --text-base: 13px;
@@ -46,7 +175,7 @@
   --text-2xl: 24px;
   --text-3xl: 32px;
 
-  /* 间距 */
+  /* ── 间距 ── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -57,217 +186,176 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* 圆角 */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  /* ── 圆角 ── */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 
-  /* 切角 */
-  --clip-panel: polygon(
-    12px 0, calc(100% - 12px) 0,
-    100% 12px, 100% calc(100% - 12px),
-    calc(100% - 12px) 100%, 12px 100%,
-    0 calc(100% - 12px), 0 12px
-  );
-  --clip-btn: polygon(
-    8px 0, calc(100% - 8px) 0,
-    100% 8px, 100% calc(100% - 8px),
-    calc(100% - 8px) 100%, 8px 100%,
-    0 calc(100% - 8px), 0 8px
-  );
-
-  /* 布局 */
+  /* ── 布局 ── */
   --sidebar-width: 260px;
-  --sidebar-collapsed: 64px;
-  --topbar-height: 80px;
-  --right-panel-width: 280px;
+  --sidebar-collapsed: 72px;
+  --topbar-height: 64px;
+
+  /* ── 阴影 ── */
+  --shadow-xs: 0 4px 12px rgba(31, 52, 88, 0.05);
+  --shadow-sm: 0 8px 20px rgba(31, 52, 88, 0.07);
+  --shadow-md: 0 14px 32px rgba(31, 52, 88, 0.08), 0 2px 8px rgba(31, 52, 88, 0.05);
+  --shadow-lg: 0 20px 48px rgba(31, 52, 88, 0.10), 0 4px 12px rgba(31, 52, 88, 0.05);
+
+  /* ── 高光 ── */
+  --highlight-inner: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+  /* ── 毛玻璃 ── */
+  --blur-soft: 18px;
+  --blur-panel: 24px;
+
+  /* ── 主题过渡 ── */
+  --theme-transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 
-/* 浅色主题 */
-.theme-light {
-  --bg-base: #F0F2F5;
-  --bg-panel: rgba(255,255,255,0.85);
-  --bg-panel-hover: rgba(255,255,255,0.95);
-  --bg-elevated: #FFFFFF;
-  --text-main: rgba(0,0,0,0.88);
-  --text-secondary: rgba(0,0,0,0.65);
-  --text-muted: rgba(0,0,0,0.45);
-  --text-disabled: rgba(0,0,0,0.25);
-  --border-subtle: rgba(0,0,0,0.06);
-  --border-medium: rgba(0,0,0,0.10);
-  --border-accent: rgba(10,132,255,0.18);
-  --border-cyan: rgba(0,200,255,0.22);
-}
+/* ══════════════════════════════════════
+   深空维护模式（保留兼容）
+   ══════════════════════════════════════ */
+[data-theme="dark"] {
+  --color-primary: #4DA3FF;
+  --color-cyan: #6BB8E0;
+  --color-purple: #8B8AF0;
+  --color-indigo: #8B8AF0;
+  --color-green: #6CC494;
+  --color-orange: #F0B860;
+  --color-red: #E88080;
 
-.theme-light body {
-  background:
-    radial-gradient(circle at 20% 0%, rgba(10,132,255,0.04), transparent 32%),
-    #F0F2F5;
-}
+  --text-main: rgba(232, 240, 248, 0.92);
+  --text-secondary: rgba(182, 198, 214, 0.68);
+  --text-muted: rgba(142, 158, 176, 0.46);
+  --text-disabled: rgba(120, 136, 152, 0.28);
 
-.theme-light .base-panel {
-  background: rgba(255,255,255,0.85);
-  border-color: rgba(0,0,0,0.08);
-}
+  --bg-base: #0F1318;
+  --bg-shell: #131920;
+  --bg-grid: transparent;
+  --bg-surface: rgba(19, 25, 32, 0.80);
+  --bg-panel: rgba(19, 25, 32, 0.92);
+  --bg-panel-strong: rgba(22, 28, 36, 0.96);
+  --bg-panel-solid: rgba(19, 25, 32, 0.98);
+  --bg-panel-muted: rgba(19, 25, 32, 0.60);
+  --bg-panel-hover: rgba(28, 36, 48, 0.85);
+  --bg-elevated: rgba(15, 19, 24, 0.98);
+  --bg-scanline: transparent;
 
-.theme-light .base-panel__header {
-  background: rgba(10,132,255,0.03);
-  border-bottom-color: rgba(0,0,0,0.06);
-}
+  --border-glass: rgba(80, 110, 150, 0.10);
+  --border-subtle: rgba(80, 110, 150, 0.10);
+  --border-medium: rgba(80, 110, 150, 0.14);
+  --border-accent: rgba(80, 110, 150, 0.12);
+  --border-cyan: rgba(107, 184, 224, 0.18);
+  --border-strong: rgba(80, 110, 150, 0.22);
 
-.theme-light .stat-card {
-  background: rgba(255,255,255,0.9);
-  border-color: rgba(0,0,0,0.06);
-}
+  --status-ok: #6CC494;
+  --status-warn: #F0B860;
+  --status-error: #E88080;
+  --status-unknown: rgba(255, 255, 255, 0.16);
 
-.theme-light .data-table th {
-  background: rgba(0,0,0,0.02);
-  border-bottom-color: rgba(0,0,0,0.08);
-  color: rgba(0,0,0,0.45);
-}
+  --panel-header-bg: linear-gradient(180deg, rgba(22,28,36,0.96), rgba(19,25,32,0.88));
+  --panel-header-border: rgba(80, 110, 150, 0.08);
+  --panel-glow: rgba(77, 163, 255, 0.06);
+  --panel-shadow: none;
 
-.theme-light .data-table td {
-  border-bottom-color: rgba(0,0,0,0.04);
-  color: rgba(0,0,0,0.88);
-}
+  --table-header-bg: rgba(19, 25, 32, 0.80);
+  --table-row-border: rgba(80, 110, 150, 0.06);
+  --table-row-hover: rgba(77, 163, 255, 0.04);
+  --table-row-selected: rgba(77, 163, 255, 0.08);
 
-.theme-light .data-table tbody tr:hover td {
-  background: rgba(10,132,255,0.04);
-}
+  --chart-text: rgba(220, 232, 248, 0.60);
+  --chart-axis-label: rgba(182, 198, 214, 0.42);
+  --chart-axis-line: rgba(80, 110, 150, 0.08);
+  --chart-split-line: rgba(80, 110, 150, 0.05);
+  --chart-tooltip-bg: rgba(15, 19, 24, 0.96);
+  --chart-tooltip-border: rgba(107, 184, 224, 0.14);
 
-.theme-light .input-field {
-  background: rgba(255,255,255,0.8);
-  border-color: rgba(0,0,0,0.12);
-  color: rgba(0,0,0,0.88);
-}
+  --nav-bg: linear-gradient(180deg, #131920 0%, #0F1318 100%);
+  --nav-border: rgba(80, 110, 150, 0.08);
+  --nav-item-color: rgba(182, 198, 214, 0.48);
+  --nav-item-hover-bg: rgba(77, 163, 255, 0.04);
+  --nav-item-hover-color: rgba(232, 240, 248, 0.80);
+  --nav-item-active-bg: rgba(77, 163, 255, 0.08);
+  --nav-item-active-color: #6BB8E0;
+  --nav-group-title: rgba(142, 158, 176, 0.32);
 
-.theme-light .input-field::placeholder {
-  color: rgba(0,0,0,0.25);
-}
+  --topbar-bg: rgba(19, 25, 32, 0.92);
+  --topbar-border: rgba(80, 110, 150, 0.08);
+  --topbar-shadow: 0 1px 0 rgba(80, 110, 150, 0.04);
 
-.theme-light .input-field:focus {
-  border-color: rgba(10,132,255,0.4);
-  box-shadow: 0 0 0 2px rgba(10,132,255,0.08);
-}
+  --bottom-border: rgba(80, 110, 150, 0.06);
+  --bottom-color: rgba(142, 158, 176, 0.28);
 
-.theme-light .cmd-btn--primary {
-  background: rgba(10,132,255,0.08);
-  border-color: rgba(10,132,255,0.20);
-}
+  --monitor-bg: rgba(19, 25, 32, 0.96);
+  --monitor-section-border: rgba(80, 110, 150, 0.06);
 
-.theme-light .cmd-btn--secondary {
-  background: rgba(0,0,0,0.03);
-  border-color: rgba(0,0,0,0.10);
-  color: rgba(0,0,0,0.65);
-}
+  --search-bg: rgba(19, 25, 32, 0.6);
+  --search-border: rgba(80, 110, 150, 0.12);
+  --search-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 
-.theme-light .cmd-btn--ghost {
-  color: rgba(0,0,0,0.45);
-}
+  --settings-bg: rgba(22, 28, 36, 0.98);
+  --settings-border: rgba(80, 110, 150, 0.12);
+  --settings-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 
-.theme-light .cmd-btn--danger {
-  border-color: rgba(255,69,58,0.30);
-  color: #FF453A;
-}
+  --input-bg: rgba(19, 25, 32, 0.6);
+  --input-border: rgba(80, 110, 150, 0.12);
+  --input-focus-border: rgba(77, 163, 255, 0.30);
+  --input-focus-shadow: 0 0 0 2px rgba(77, 163, 255, 0.06);
 
-.theme-light .status-pill--ok {
-  background: rgba(48,209,88,0.08);
-  border-color: rgba(48,209,88,0.15);
-}
+  --btn-primary-bg: rgba(77, 163, 255, 0.08);
+  --btn-primary-border: rgba(77, 163, 255, 0.18);
+  --btn-primary-shadow: none;
+  --btn-primary-hover-bg: rgba(77, 163, 255, 0.14);
+  --btn-secondary-bg: rgba(107, 184, 224, 0.04);
+  --btn-ghost-hover-bg: rgba(107, 184, 224, 0.04);
+  --btn-danger-border: rgba(232, 128, 128, 0.22);
+  --btn-danger-hover-bg: rgba(232, 128, 128, 0.06);
 
-.theme-light .status-pill--error {
-  background: rgba(255,69,58,0.08);
-  border-color: rgba(255,69,58,0.15);
-}
+  --pill-ok-bg: rgba(108, 196, 148, 0.08);
+  --pill-ok-border: rgba(108, 196, 148, 0.16);
+  --pill-ok-color: #6CC494;
+  --pill-warn-bg: rgba(240, 184, 96, 0.08);
+  --pill-warn-border: rgba(240, 184, 96, 0.16);
+  --pill-warn-color: #F0B860;
+  --pill-error-bg: rgba(232, 128, 128, 0.08);
+  --pill-error-border: rgba(232, 128, 128, 0.16);
+  --pill-error-color: #E88080;
+  --pill-running-bg: rgba(77, 163, 255, 0.08);
+  --pill-running-border: rgba(77, 163, 255, 0.16);
+  --pill-running-color: #4DA3FF;
+  --pill-offline-bg: rgba(255, 255, 255, 0.02);
+  --pill-offline-border: rgba(255, 255, 255, 0.05);
+  --pill-offline-color: var(--text-muted);
 
-.theme-light .status-pill--running {
-  background: rgba(10,132,255,0.08);
-  border-color: rgba(10,132,255,0.15);
-}
+  --pagination-bg: rgba(19, 25, 32, 0.4);
+  --pagination-border: rgba(80, 110, 150, 0.08);
+  --pagination-active-bg: rgba(77, 163, 255, 0.10);
+  --pagination-active-border: rgba(77, 163, 255, 0.22);
 
-.theme-light .nav-sidebar {
-  background: #FFFFFF;
-  border-right-color: rgba(0,0,0,0.06);
-}
+  --toast-bg: var(--bg-elevated);
+  --toast-border: var(--border-accent);
+  --toast-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 
-.theme-light .nav-sidebar::before {
-  background: linear-gradient(180deg, rgba(10,132,255,0.06), transparent 50%, rgba(10,132,255,0.03));
-}
+  --hud-label-bg: rgba(107, 184, 224, 0.04);
+  --hud-label-border: rgba(107, 184, 224, 0.08);
+  --hud-label-color: var(--color-cyan);
 
-.theme-light .nav-brand {
-  border-bottom-color: rgba(0,0,0,0.06);
-  background: rgba(10,132,255,0.02);
-}
+  --copy-btn-bg: rgba(107, 184, 224, 0.04);
+  --copy-btn-border: rgba(107, 184, 224, 0.06);
 
-.theme-light .nav-item {
-  color: rgba(0,0,0,0.45);
-}
+  --drawer-bg: rgba(15, 19, 24, 0.98);
+  --drawer-overlay: rgba(0, 0, 0, 0.50);
+  --drawer-border: rgba(80, 110, 150, 0.10);
 
-.theme-light .nav-item:hover {
-  background: rgba(10,132,255,0.04);
-  color: rgba(0,0,0,0.65);
-}
+  --shadow-xs: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.20);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.24);
 
-.theme-light .nav-item.active {
-  background: rgba(10,132,255,0.06);
-  color: #0A84FF;
-}
-
-.theme-light .nav-group__title {
-  color: rgba(0,0,0,0.25);
-}
-
-.theme-light .top-bar {
-  background: rgba(255,255,255,0.9);
-  border-bottom-color: rgba(0,0,0,0.06);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
-.theme-light .search-dropdown {
-  background: #FFFFFF;
-  border-color: rgba(0,0,0,0.10);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-}
-
-.theme-light .search-item:hover {
-  background: rgba(10,132,255,0.06);
-}
-
-.theme-light .hud-label {
-  background: rgba(10,132,255,0.05);
-  border-color: rgba(10,132,255,0.10);
-  color: #0A84FF;
-}
-
-.theme-light .pagination__btn {
-  background: rgba(255,255,255,0.8);
-  border-color: rgba(0,0,0,0.10);
-  color: rgba(0,0,0,0.65);
-}
-
-.theme-light .bottom-status {
-  border-top-color: rgba(0,0,0,0.04);
-  color: rgba(0,0,0,0.25);
-}
-
-.theme-light .toast-item {
-  background: #FFFFFF;
-  border-color: rgba(0,0,0,0.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-}
-
-.theme-light body::after {
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.008) 2px,
-    rgba(0,0,0,0.008) 4px
-  );
-}
-
-.theme-light body::before {
-  background-image:
-    linear-gradient(rgba(0,0,0,0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,0,0,0.015) 1px, transparent 1px);
+  --highlight-inner: none;
+  --blur-soft: 0;
+  --blur-panel: 0;
 }

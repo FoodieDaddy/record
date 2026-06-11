@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
 import { useLocaleStore } from '@/stores/locale'
 import StatCard from '@/components/data/StatCard.vue'
@@ -8,6 +8,7 @@ import StatusPill from '@/components/status/StatusPill.vue'
 import SkeletonLoader from '@/components/feedback/SkeletonLoader.vue'
 
 const route = useRoute()
+const router = useRouter()
 const api = useApi()
 const locale = useLocaleStore()
 const user = ref<any>(null)
@@ -46,6 +47,10 @@ onMounted(async () => {
     </div>
   </div>
   <div v-else-if="user">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <button class="cmd-btn" style="font-size:12px;" @click="router.push('/users')">← {{ locale.isZh ? '返回列表' : 'Back' }}</button>
+      <span style="font-size:11px;color:var(--text-muted);">{{ locale.isZh ? '用户详情' : 'User Detail' }}</span>
+    </div>
     <!-- 三栏布局：用户档案 -->
     <div class="vessel-profile">
       <!-- 左栏：身份信息 -->
@@ -59,7 +64,7 @@ onMounted(async () => {
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:4px;">ID: {{ user.userId || user.id }}</div>
           </div>
           <StatusPill :status="user.status === 1 || user.status === '正常' ? 'ok' : 'error'" :label="user.status === 1 || user.status === '正常' ? locale.t('system.ok') : locale.t('system.error')" />
-          <div style="width:100%;border-top:1px solid rgba(255,255,255,0.03);padding-top:12px;margin-top:4px;">
+          <div style="width:100%;border-top:1px solid var(--table-row-border);padding-top:12px;margin-top:4px;">
             <div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;">
               <span style="color:var(--text-muted);">{{ locale.t('user.identityLevel') }}</span>
               <span class="text-mono" style="color:var(--color-cyan);">{{ user.identityLevel || '-' }}</span>
@@ -127,8 +132,8 @@ onMounted(async () => {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(10,132,255,0.10);
-  border: 1px solid rgba(10,132,255,0.20);
+  background: var(--btn-primary-bg);
+  border: 1px solid var(--btn-primary-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,7 +152,7 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--table-row-border);
 }
 .formation-item:last-child { border-bottom: none; }
 </style>

@@ -20,12 +20,24 @@ import com.smartrecord.service.AsyncTaskService;
 import com.smartrecord.service.RoomService;
 import com.smartrecord.service.StorageService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
+import org.springframework.context.ApplicationEventPublisher;
+import com.smartrecord.event.RoomClosedEvent;
+import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.anno.CacheType;
 import com.smartrecord.util.SnowflakeIdGenerator;
+import com.smartrecord.entity.UserAchievement;
+import com.smartrecord.entity.Achievement;
+import com.smartrecord.mapper.UserAchievementMapper;
+import com.smartrecord.mapper.AchievementMapper;
+import com.smartrecord.service.MirrorProfileService;
+import com.smartrecord.service.MirrorStatsService;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.model.ObjectMetadata;
 import com.aliyun.oss.model.PutObjectRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -48,13 +60,22 @@ public class RoomServiceImpl implements RoomService {
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
     private final UserMapper userMapper;
+    private final com.smartrecord.mapper.RoundRecordMapper roundRecordMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final StringRedisTemplate redisTemplate;
-    private final OSS ossClient;
     private final OssConfig ossConfig;
     private final ScoreWebSocket scoreWebSocket;
     private final StorageService storageService;
     private final AsyncTaskService asyncTaskService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final ObjectProvider<OSS> ossClientProvider;
+    private final UserAchievementMapper userAchievementMapper;
+    private final AchievementMapper achievementMapper;
+    private final MirrorProfileService mirrorProfileService;
+    private final MirrorStatsService mirrorStatsService;
+
+    @CreateCache(name = "achievement:id:", cacheType = CacheType.BOTH, expire = 3600)
+    private Cache<Long, Achievement> achievementCache;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
@@ -149,9 +170,41 @@ public class RoomServiceImpl implements RoomService {
             throw new BizException(ErrorCode.ROOM_CLOSED);
         }
 
-        // 4. 检查房间人数上限
+        // 4. 检查房间人数上限。如果超过 16 人上限，尝试寻找“WebSocket 掉线且积分为 0”的僵尸成员进行强制腾退
         Long memberCount = countActiveMembers(rid);
-        if (memberCount >= 16) throw new BizException(ErrorCode.ROOM_FULL);
+        if (memberCount >= 16) {
+            // 获取当前房间在 WebSocket 中的在线用户 ID 集合
+            Set<Long> onlineUserIds = scoreWebSocket.getOnlineUserIds(String.valueOf(rid));
+            // 读取当前房间的所有活跃成员快照
+            Map<Long, JSONObject> activeMembersMap = readActiveMembers(rid);
+            String scoresKey = "sr:room:" + rid + ":scores";
+            
+            Long victimUserId = null;
+            for (Long activeUid : activeMembersMap.keySet()) {
+                // 如果该成员当前不在线（不在 WebSocket 在线列表中）
+                if (!onlineUserIds.contains(activeUid)) {
+                    // 查询该离线成员的当前积分
+                    Double score = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(activeUid));
+                    // 必须满足积分未变动（为 0 分）且非房主本人，才被判定为可清退的僵尸用户
+                    if ((score == null || score.intValue() == 0) && !room.getOwnerId().equals(activeUid)) {
+                        victimUserId = activeUid;
+                        break; // 找到一个离线零分用户即可
+                    }
+                }
+            }
+            
+            if (victimUserId != null) {
+                // 执行强制自动腾退以挪出空位
+                log.info("房间 {} 达到 16 人上限，自动清退离线零分僵尸用户: userId={}", rid, victimUserId);
+                removeActiveMember(rid, victimUserId);
+                redisTemplate.opsForSet().remove("sr:user:rooms:" + victimUserId, String.valueOf(rid));
+                // 异步广播该成员离席事件，通知同编队其他成员
+                asyncPushMemberLeave(rid, victimUserId);
+            } else {
+                // 实在无法腾退（所有成员均在线，或者离线成员都有大局积分产生），抛出满员异常
+                throw new BizException(ErrorCode.ROOM_FULL);
+            }
+        }
 
         // 5. 加载用户信息并检查重名
         Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
@@ -332,6 +385,12 @@ public class RoomServiceImpl implements RoomService {
                 .eq(Room::getId, roomId)
                 .set(Room::getStatus, 1));
 
+        // 解散房间时，将该房间下所有处于“录入中”或“待确认”状态的本局录记录更新为“已取消”，防止数据库状态失真。因 RoundRecord 实体不包含 updatedAt 字段，故不单独进行设置
+        roundRecordMapper.update(null, new LambdaUpdateWrapper<com.smartrecord.entity.RoundRecord>()
+                .eq(com.smartrecord.entity.RoundRecord::getRoomId, roomId)
+                .in(com.smartrecord.entity.RoundRecord::getStatus, List.of(1, 2)) // 1-等待成员填写, 2-等待全员确认
+                .set(com.smartrecord.entity.RoundRecord::getStatus, 5)); // 5-已取消
+
         // 获取所有成员并清理 Redis
         List<RoomMember> members = roomMemberMapper.selectList(
                 new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
@@ -346,6 +405,16 @@ public class RoomServiceImpl implements RoomService {
                 .set(RoomMember::getQuitTime, java.time.LocalDateTime.now())
                 .set(RoomMember::getFinalScore, 0));
 
+        // 广播房间解散消息
+        try {
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "ROOM_DISBANDED");
+            pushData.put("roomId", String.valueOf(roomId));
+            scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+        } catch (Exception e) {
+            log.error("推送房间解散消息失败: roomId={}", roomId, e);
+        }
+
         // 清理房间 Redis key
         String prefix = "sr:room:" + roomId + ":";
 
@@ -353,13 +422,14 @@ public class RoomServiceImpl implements RoomService {
                 dataKey(roomId),
                 prefix + "scores",
                 prefix + "events",
-                prefix + "round:data"));
+                prefix + "round:data",
+                prefix + "transfer:amount"));
         redisTemplate.delete(keysToDelete);
 
         redisTemplate.delete("sr:room_no:" + room.getRoomNo());
 
-        // 清理二维码
-        storageService.deleteObjectAsync("qrcode/" + room.getRoomNo() + ".png");
+        // 发布房间关闭（解散）事件，异步清理二维码资源
+        eventPublisher.publishEvent(new RoomClosedEvent(this, room.getRoomNo()));
     }
 
     @Override
@@ -535,11 +605,112 @@ public class RoomServiceImpl implements RoomService {
         return result;
     }
 
-    private void upsertActiveMember(Long roomId, Long userId, String nickname, String avatarUrl) {
-        JSONObject obj = JSONUtil.createObj()
+    private JSONObject getUserDisplayAndPersonaData(Long userId) {
+        String nickname = "";
+        String avatarUrl = "";
+        String equippedBadge = "";
+        String equippedAvatarBorder = "";
+        String mbtiTitle = "";
+        Integer mbtiCode = null;
+        Map<String, Object> radarStats = new HashMap<>();
+
+        // 1. 尝试从个人缓存中读取基本信息和装扮
+        Object cachedInfo = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
+        if (cachedInfo != null) {
+            JSONObject userObj = JSONUtil.parseObj((String) cachedInfo);
+            nickname = userObj.getStr("nickname", "");
+            avatarUrl = userObj.getStr("avatarUrl", "");
+            equippedBadge = userObj.getStr("equippedBadge", "");
+            equippedAvatarBorder = userObj.getStr("equippedAvatarBorder", "");
+        } else {
+            // 缓存未命中，查库
+            User u = userMapper.selectById(userId);
+            if (u != null) {
+                nickname = u.getNickname();
+                avatarUrl = u.getAvatarUrl();
+                List<UserAchievement> userAchievements = userAchievementMapper.selectList(
+                        new LambdaQueryWrapper<UserAchievement>()
+                                .eq(UserAchievement::getUserId, userId)
+                                .eq(UserAchievement::getStatus, 1)
+                );
+                for (UserAchievement ua : userAchievements) {
+                    Achievement achievement = achievementCache.computeIfAbsent(ua.getAchievementId(), id -> achievementMapper.selectById(id));
+                    if (achievement != null && achievement.getCosmeticPayload() != null) {
+                        try {
+                            JSONObject payload = JSONUtil.parseObj(achievement.getCosmeticPayload());
+                            if (achievement.getCosmeticType() == 1) {
+                                equippedBadge = payload.getStr("badge", "");
+                            } else if (achievement.getCosmeticType() == 2) {
+                                equippedAvatarBorder = payload.getStr("avatarBorder", "");
+                            }
+                        } catch (Exception e) {
+                            log.error("解析用户成就装扮参数失败: achievementId={}", achievement.getId(), e);
+                        }
+                    }
+                }
+                // 顺便回写缓存
+                String createdAtStr = u.getCreatedAt() != null
+                        ? u.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                        : "";
+                String userJson = JSONUtil.toJsonStr(Map.of(
+                        "userId", userId,
+                        "nickname", nickname != null ? nickname : "",
+                        "avatarUrl", avatarUrl != null ? avatarUrl : "",
+                        "status", u.getStatus() != null ? u.getStatus() : 0,
+                        "createdAt", createdAtStr,
+                        "equippedBadge", equippedBadge,
+                        "equippedAvatarBorder", equippedAvatarBorder
+                ));
+                redisTemplate.opsForHash().put("sr:user:" + userId, "info", userJson);
+            }
+        }
+
+        // 2. 获取 MBTI 称号和编码
+        try {
+            var profile = mirrorProfileService.getFullProfile(userId);
+            if (profile != null) {
+                if (profile.getBattlePersona() != null) {
+                    mbtiTitle = profile.getBattlePersona().getTitle();
+                }
+                if (profile.getMbti() != null) {
+                    mbtiCode = profile.getMbti().getMbtiCode();
+                }
+            }
+        } catch (Exception e) {
+            log.warn("缓存拼装获取用户画像失败: userId={}", userId, e);
+        }
+
+        // 3. 获取雷达五维数据
+        try {
+            var stats = mirrorStatsService.calculate(userId);
+            if (stats != null && stats.getDimensions() != null) {
+                for (var d : stats.getDimensions()) {
+                    radarStats.put(d.getKey(), d.getValue());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("缓存拼装获取用户战绩统计失败: userId={}", userId, e);
+        }
+
+        return JSONUtil.createObj()
                 .set("userId", userId)
-                .set("nickname", nickname)
-                .set("avatarUrl", avatarUrl != null ? avatarUrl : "");
+                .set("nickname", nickname != null ? nickname : "")
+                .set("avatarUrl", avatarUrl != null ? avatarUrl : "")
+                .set("equippedBadge", equippedBadge)
+                .set("equippedAvatarBorder", equippedAvatarBorder)
+                .set("mbtiTitle", mbtiTitle)
+                .set("mbtiCode", mbtiCode)
+                .set("radarStats", radarStats);
+    }
+
+    private void upsertActiveMember(Long roomId, Long userId, String nickname, String avatarUrl) {
+        JSONObject obj = getUserDisplayAndPersonaData(userId);
+        if (nickname != null && !nickname.isEmpty()) {
+            obj.set("nickname", nickname);
+        }
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            obj.set("avatarUrl", avatarUrl);
+        }
         redisTemplate.opsForHash().put(dataKey(roomId), ACTIVE_PREFIX + userId, obj.toString());
     }
 
@@ -752,7 +923,12 @@ public class RoomServiceImpl implements RoomService {
             PutObjectRequest putRequest = new PutObjectRequest(
                     ossConfig.getBucketName(), objectKey,
                     new ByteArrayInputStream(qrBytes), metadata);
-            ossClient.putObject(putRequest);
+            OSS client = ossClientProvider.getIfAvailable();
+            if (client != null) {
+                client.putObject(putRequest);
+            } else {
+                log.warn("OSS 客户端未配置，跳过小程序码上传");
+            }
 
             return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
         } catch (Exception e) {
@@ -762,29 +938,60 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private RoomResp buildRoomResp(Room room, List<RoomMember> members, String qrCodeUrl) {
-        Set<Long> userIds = members.stream().map(RoomMember::getUserId).collect(Collectors.toSet());
-        Map<Long, String> nicknameMap = new HashMap<>();
-        Map<Long, String> avatarUrlMap = new HashMap<>();
-        for (Long uid : userIds) {
-            Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
-            if (cached != null) {
-                JSONObject userObj = JSONUtil.parseObj((String) cached);
-                nicknameMap.put(uid, userObj.getStr("nickname", ""));
-                avatarUrlMap.put(uid, buildFullUrl(userObj.getStr("avatarUrl", "")));
-            } else {
-                User u = userMapper.selectById(uid);
-                nicknameMap.put(uid, u != null ? u.getNickname() : "");
-                avatarUrlMap.put(uid, u != null ? buildFullUrl(u.getAvatarUrl()) : "");
-            }
-        }
+        Map<Long, JSONObject> activeMembers = readActiveMembers(room.getId());
 
-        List<RoomResp.MemberVO> memberVOs = members.stream().map(m ->
-                RoomResp.MemberVO.builder()
-                        .userId(m.getUserId())
-                        .nickname(nicknameMap.getOrDefault(m.getUserId(), ""))
-                        .avatarUrl(avatarUrlMap.getOrDefault(m.getUserId(), ""))
-                        .build()
-        ).collect(Collectors.toList());
+        List<RoomResp.MemberVO> memberVOs = members.stream().map(m -> {
+            Long uid = m.getUserId();
+            JSONObject cached = activeMembers.get(uid);
+
+            String nickname = "";
+            String avatarUrl = "";
+            String equippedBadge = "";
+            String equippedAvatarBorder = "";
+            String mbtiTitle = "";
+            Integer mbtiCode = null;
+            Map<String, Object> radarStats = null;
+
+            if (cached != null) {
+                nickname = cached.getStr("nickname", "");
+                avatarUrl = buildFullUrl(cached.getStr("avatarUrl", ""));
+                equippedBadge = cached.getStr("equippedBadge", "");
+                equippedAvatarBorder = cached.getStr("equippedAvatarBorder", "");
+                mbtiTitle = cached.getStr("mbtiTitle", "");
+                mbtiCode = cached.getInt("mbtiCode");
+                JSONObject radarJson = cached.getJSONObject("radarStats");
+                if (radarJson != null) {
+                    radarStats = new HashMap<>(radarJson);
+                }
+            } else {
+                JSONObject freshObj = getUserDisplayAndPersonaData(uid);
+                nickname = freshObj.getStr("nickname", "");
+                avatarUrl = buildFullUrl(freshObj.getStr("avatarUrl", ""));
+                equippedBadge = freshObj.getStr("equippedBadge", "");
+                equippedAvatarBorder = freshObj.getStr("equippedAvatarBorder", "");
+                mbtiTitle = freshObj.getStr("mbtiTitle", "");
+                mbtiCode = freshObj.getInt("mbtiCode");
+                JSONObject radarJson = freshObj.getJSONObject("radarStats");
+                if (radarJson != null) {
+                    radarStats = new HashMap<>(radarJson);
+                }
+
+                if (room.getStatus() == 0) {
+                    redisTemplate.opsForHash().put(dataKey(room.getId()), ACTIVE_PREFIX + uid, freshObj.toString());
+                }
+            }
+
+            return RoomResp.MemberVO.builder()
+                    .userId(uid)
+                    .nickname(nickname)
+                    .avatarUrl(avatarUrl)
+                    .equippedBadge(equippedBadge)
+                    .equippedAvatarBorder(equippedAvatarBorder)
+                    .mbtiTitle(mbtiTitle)
+                    .mbtiCode(mbtiCode)
+                    .radarStats(radarStats)
+                    .build();
+        }).collect(Collectors.toList());
 
         // 读取 roundConfig（仅本局录模式）
         Integer autoTimeoutSeconds = null;

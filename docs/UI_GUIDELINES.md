@@ -2,29 +2,49 @@
 
 ## 视觉系统
 
-统一黑底，允许极弱径向光：
+统一深蓝黑底，克制发光：
 
 ```css
-background:
-  radial-gradient(circle at 20% 0%, rgba(10,132,255,0.12), transparent 32%),
-  radial-gradient(circle at 90% 18%, rgba(94,92,230,0.08), transparent 30%),
-  #0A0A0A;
+--bg-base: #060B12;
+--bg-shell: #08111C;
+--bg-panel: rgba(8, 18, 30, 0.94);
 ```
 
-主色令牌：
+主色令牌（深色主题 — 默认）：
 
 ```css
---color-primary: #0A84FF;
---color-cyan: #00C8FF;
---color-purple: #5E5CE6;
---color-green: #30D158;
---color-orange: #FF9F0A;
---color-red: #FF453A;
---text-main: rgba(255,255,255,0.92);
---text-secondary: rgba(255,255,255,0.56);
---text-muted: rgba(255,255,255,0.38);
---text-disabled: rgba(255,255,255,0.24);
+--color-primary: #2D8CFF;
+--color-cyan: #39A8D8;
+--color-purple: #6E6ADB;
+--color-green: #31A866;
+--color-orange: #D29A3A;
+--color-red: #C85A54;
+--text-main: rgba(232, 240, 248, 0.92);
+--text-secondary: rgba(182, 198, 214, 0.68);
+--text-muted: rgba(142, 158, 176, 0.46);
+--text-disabled: rgba(120, 136, 152, 0.28);
+--border-subtle: rgba(64, 108, 148, 0.10);
+--grid-line: rgba(80, 120, 160, 0.05);
 ```
+
+主色令牌（浅色主题 — 日间模式）：
+
+```css
+--bg-base: #FFFFFF;
+--bg-shell: #F7F8FA;
+--bg-panel: #FFFFFF;
+--color-primary: #2F6FC7;
+--color-cyan: #317F9F;
+--color-green: #3C8B5F;
+--color-orange: #A97834;
+--color-red: #B8514E;
+--text-main: #1A2332;
+--text-secondary: rgba(26, 35, 50, 0.72);
+--text-muted: rgba(26, 35, 50, 0.48);
+--text-disabled: rgba(26, 35, 50, 0.28);
+```
+
+浅色模式背景：白色底，内容区 `#F7F8FA`，面板纯白，导航栏白色，顶栏白色。描边统一使用 `rgba(0,0,0,...)` 体系。网格线 120px 间距，透明度极低。
 
 色彩规则：
 
@@ -118,6 +138,87 @@ HUD 核心框：
 统一使用「太空记分器 / Space Scorekeeper」。中文主名优先，英文只作弱装饰。
 
 海报标识：`SPACE SCOREKEEPER · <BAY>`。不再使用 SMART RECORD 或 PULSE TERMINAL。
+
+## admin-web 管理后台主题系统
+
+管理后台采用「白色飞船舰桥」设计语言，以浅色主题为默认，整体明亮、轻盈、洁净、未来感。
+
+### 设计关键词
+
+白色、纯净、悬浮、圆润、柔和、秩序、舰桥、智能、未来、太空舱。
+
+禁止：厚重黑底、强荧光蓝、强网格、过度描边、满屏发光、粗重控制台风格。
+
+### 浅色主题（默认 · 白色舰桥模式）
+
+```css
+--bg-base: #EEF3F9;
+--bg-panel: rgba(255, 255, 255, 0.92);
+--bg-panel-strong: rgba(255, 255, 255, 0.96);
+--border-subtle: rgba(130, 150, 180, 0.12);
+--text-main: #111827;
+--text-secondary: #536176;
+--text-muted: #7D8CA0;
+--color-primary: #2F80ED;
+--shadow-md: 0 14px 32px rgba(31, 52, 88, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+```
+
+背景：径向蓝+青冷光线性渐变，不用单调纯色。
+
+圆角规范：
+- 面板/卡片：20-24px
+- 按钮/输入框/筛选器：10-14px
+- 状态胶囊/标签：8-10px
+- 弹窗/抽屉：24px
+
+玻璃质感规范：
+- 所有核心卡片和面板使用 `backdrop-filter: blur(18-24px)`
+- 半透明白色渐变背景：`linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.62))`
+- 半透明边框：`border: 1px solid rgba(255,255,255,0.46)`
+- 高光伪元素：`::before { background: linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.02)) }`
+- 双层阴影 + inset 高光
+
+卡片规范（StatCard / summary-card）：
+- 高度 92px
+- 玻璃背景 + `blur(18px)`
+- 双层阴影 + inset 高光
+- 图标块 48px、圆角 16px、玻璃背景
+- 数字 28px、font-weight 800
+
+面板规范（BasePanel）：
+- 圆角 24px
+- 玻璃背景 + `blur(22px)`
+- gradient header：`linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.22))`
+- header 高度 52px
+
+导航规范：
+- 毛玻璃背景：`rgba(255,255,255,0.58)` + `blur(22px)`
+- 菜单项 44px 高度、14px 圆角
+- 选中：浅蓝玻璃胶囊底 + 蓝色图标
+
+白色基底、冷灰过渡、实体面板（柔和阴影）、大圆角、轻描边、克制蓝灰点缀。
+
+### 深色主题（深空维护模式）
+
+```css
+--bg-base: #0F1318;
+--bg-shell: #131920;
+--bg-panel: rgba(19, 25, 32, 0.92);
+--text-main: rgba(232, 240, 248, 0.92);
+--color-primary: #4DA3FF;
+```
+
+保留深色模式兼容，但不再是默认主题。
+
+### 规则
+
+- 所有组件必须引用 CSS 变量（`tokens.css`），禁止在组件内写死颜色值。
+- ECharts 图表通过 `getChartColors(theme)` 获取当前主题配色，主题变化时自动重绘。
+- 主题过渡使用 `transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease`，不用 `transition: all`。
+- 面板使用 `border-radius: var(--radius-md)` 大圆角，`box-shadow: var(--shadow-xs)` 柔和阴影。
+- 卡片 hover 效果：`transform: translateY(-2px)` + `box-shadow` 加深，不做发光。
+- 切换主题后刷新页面仍保持选择（localStorage `admin_theme`）。
+- 导航栏、顶栏使用 `backdrop-filter: blur(12px)` 半透明毛玻璃效果。
 
 ## 页面分工
 

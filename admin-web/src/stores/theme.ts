@@ -4,7 +4,8 @@ import { ref } from 'vue'
 export type Theme = 'dark' | 'light'
 
 export const useThemeStore = defineStore('theme', () => {
-  const theme = ref<Theme>((localStorage.getItem('admin_theme') as Theme) || 'dark')
+  const stored = (localStorage.getItem('admin_theme') as Theme) || 'light'
+  const theme = ref<Theme>(stored)
 
   function setTheme(t: Theme) {
     theme.value = t
@@ -13,17 +14,9 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   function applyTheme(t: Theme) {
-    const root = document.documentElement
-    if (t === 'light') {
-      root.classList.add('theme-light')
-      root.classList.remove('theme-dark')
-    } else {
-      root.classList.add('theme-dark')
-      root.classList.remove('theme-light')
-    }
+    document.documentElement.setAttribute('data-theme', t)
   }
 
-  // 初始化时应用主题
   applyTheme(theme.value)
 
   return { theme, setTheme }

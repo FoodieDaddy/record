@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const props = defineProps<{
   page: number
   total: number
@@ -7,10 +9,10 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:page'])
 
-const totalPages = Math.ceil(props.total / props.pageSize)
+const totalPages = computed(() => Math.ceil(props.total / props.pageSize))
 
 function go(p: number) {
-  if (p >= 1 && p <= totalPages) emit('update:page', p)
+  if (p >= 1 && p <= totalPages.value) emit('update:page', p)
 }
 </script>
 
@@ -36,9 +38,10 @@ function go(p: number) {
 .pagination__btn {
   min-width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; border: 1px solid var(--border-subtle);
-  background: transparent; color: var(--text-secondary);
+  border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(255, 255, 255, 0.42); color: var(--text-secondary);
   font-size: var(--text-sm); cursor: pointer;
+  backdrop-filter: blur(6px);
 }
 .pagination__btn--active {
   background: rgba(10,132,255,0.15);

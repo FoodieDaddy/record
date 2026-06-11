@@ -19,11 +19,12 @@ import com.smartrecord.enums.RoundRecordStatus;
 import com.smartrecord.enums.ScoreMode;
 import com.smartrecord.mapper.*;
 import com.smartrecord.service.EmotionAudioPool;
-import com.smartrecord.service.IdentityLevelService;
 import com.smartrecord.service.OverviewService;
 import com.smartrecord.service.RoomService;
 import com.smartrecord.service.ScoreService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
+import com.smartrecord.event.RoomSettledEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -59,19 +60,27 @@ public class ScoreServiceImpl implements ScoreService {
     private final ScoreWebSocket scoreWebSocket;
     private final EmotionAudioPool emotionAudioPool;
     private final OverviewService overviewService;
-    private final IdentityLevelService identityLevelService;
     private final RoomService roomService;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    private final ApplicationEventPublisher eventPublisher;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
 
     private static final String ROOM_PREFIX = "sr:room:";
     private static final int ROOM_EXPIRE_HOURS = 24;
+    private static final int ROOM_STATUS_ACTIVE = 0;
+    private static final int ROOM_STATUS_ARCHIVED = 1;
     private final ConcurrentHashMap<Long, Long> lastTtlRefresh = new ConcurrentHashMap<>();
 
     private String dataKey(Long roomId) { return ROOM_PREFIX + roomId + ":data"; }
 
     private static final String TRANSFER_LUA = """
             local scoresKey = KEYS[1]
+            local settlingKey = KEYS[2]
+            -- 结算中校验，防止并发写入导致数据丢失
+            if redis.call('EXISTS', settlingKey) == 1 then
+                return -2
+            end
             local fromUser = ARGV[1]
             local toUser = ARGV[2]
             local amount = tonumber(ARGV[3])
@@ -93,7 +102,7 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 验证房间存在且活跃
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
+        if (room == null || room.getStatus() != ROOM_STATUS_ACTIVE) {
             throw new BizException(ErrorCode.ROOM_NOT_FOUND);
         }
 
@@ -125,12 +134,12 @@ public class ScoreServiceImpl implements ScoreService {
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
-            if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
+            if (!lock.tryLock(5, TimeUnit.SECONDS)) {
                 throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
             // 加锁后二次检查房间状态，防止结算期间提交脏数据
             Room freshRoom = roomMapper.selectById(roomId);
-            if (freshRoom != null && freshRoom.getStatus() != 0) {
+            if (freshRoom != null && freshRoom.getStatus() != ROOM_STATUS_ACTIVE) {
                 throw new BizException(ErrorCode.SCORE_ROOM_ARCHIVED);
             }
 
@@ -198,7 +207,7 @@ public class ScoreServiceImpl implements ScoreService {
         if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
 
         Map<Long, Integer> totals;
-        if (room.getStatus() == 0) {
+        if (room.getStatus() == ROOM_STATUS_ACTIVE) {
             // 进行中 → Redis
             totals = getPlayerTotalsFromRedis(roomId);
             // 从 data Hash 的 a: 前缀字段补齐 0 分成员
@@ -290,26 +299,33 @@ public class ScoreServiceImpl implements ScoreService {
     }
 
     @Override
-    @org.springframework.transaction.annotation.Transactional
+    // 移除类级别的 @Transactional 声明，避免整个大事务长久占用数据库连接池。
+    // 具体写数据库操作在 doSettleRoom 内部通过编程式事务 TransactionTemplate 进行细粒度控制。
     public SettleResp settleRoom(Long userId, Long roomId, boolean autoSettled) {
         Room room = roomMapper.selectById(roomId);
         if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
         if (!autoSettled && !room.getOwnerId().equals(userId)) throw new BizException(ErrorCode.NOT_OWNER_SEAL);
-        if (room.getStatus() != 0) throw new BizException(ErrorCode.ROOM_ARCHIVED);
+        if (room.getStatus() != ROOM_STATUS_ACTIVE) throw new BizException(ErrorCode.ROOM_ARCHIVED);
 
         // 分布式锁：防止结算期间并发记分丢数据
         String lockKey = ROOM_PREFIX + roomId + ":lock";
         RLock lock = redissonClient.getLock(lockKey);
         try {
-            if (!lock.tryLock(5, 30, TimeUnit.SECONDS)) {
+            if (!lock.tryLock(5, TimeUnit.SECONDS)) {
                 throw new BizException(ErrorCode.SYSTEM_BUSY);
             }
             // 加锁后二次检查，防止并发重复结算
             Room freshRoom = roomMapper.selectById(roomId);
-            if (freshRoom != null && freshRoom.getStatus() != 0) {
+            if (freshRoom != null && freshRoom.getStatus() != ROOM_STATUS_ACTIVE) {
                 throw new BizException(ErrorCode.ROOM_ALREADY_ARCHIVED);
             }
-            return doSettleRoom(userId, roomId, room, autoSettled);
+            // 写入结算标志，拦截并发记分
+            redisTemplate.opsForValue().set(ROOM_PREFIX + roomId + ":settling", "1", 30, TimeUnit.SECONDS);
+            try {
+                return doSettleRoom(userId, roomId, room, autoSettled);
+            } finally {
+                redisTemplate.delete(ROOM_PREFIX + roomId + ":settling");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BizException(ErrorCode.OPERATION_INTERRUPTED);
@@ -433,7 +449,7 @@ public class ScoreServiceImpl implements ScoreService {
             }
             recordMeta.put("transferEvents", events);
         }
-        List<Map<String, Object>> membersSnapshot = buildMemberSnapshot(memberMetaMap, playerTotalMap.keySet());
+        List<Map<String, Object>> membersSnapshot = buildMemberSnapshot(memberMetaMap, playerTotalMap.keySet(), roomId);
         if (!membersSnapshot.isEmpty()) {
             recordMeta.put("membersSnapshot", membersSnapshot);
         }
@@ -441,21 +457,24 @@ public class ScoreServiceImpl implements ScoreService {
             allRecord.add(recordMeta);
         }
 
-        // 5. 更新 room.all_record 并标记已归档（JSON 字段使用显式 SQL，避免 Wrapper 绕过 TypeHandler）
-        room.setAllRecord(allRecord);
-        room.setStatus(1);
-        roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(allRecord));
-
-        // 5. 更新 room_member.final_score 和 quit_time
+        // 5. 编程式事务包裹：更新 room.all_record 并标记已归档，以及更新成员最终积分与离场时间，实现快进快出释放数据库连接
         LocalDateTime now = LocalDateTime.now();
-        for (Map.Entry<Long, Integer> entry : playerTotalMap.entrySet()) {
-            roomMemberMapper.update(null,
-                    new LambdaUpdateWrapper<RoomMember>()
-                            .eq(RoomMember::getRoomId, roomId)
-                            .eq(RoomMember::getUserId, entry.getKey())
-                            .set(RoomMember::getFinalScore, entry.getValue())
-                            .set(RoomMember::getQuitTime, now));
-        }
+        final List<Map<String, Object>> finalAllRecord = allRecord;
+        final Map<Long, Integer> finalPlayerTotalMap = playerTotalMap;
+        transactionTemplate.executeWithoutResult(status -> {
+            // 更新房间大字段及状态为已封存 (1)
+            roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(finalAllRecord));
+
+            // 更新当前房间所有关联成员的最终累积胜负分和离席时间
+            for (Map.Entry<Long, Integer> entry : finalPlayerTotalMap.entrySet()) {
+                roomMemberMapper.update(null,
+                        new LambdaUpdateWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, roomId)
+                                .eq(RoomMember::getUserId, entry.getKey())
+                                .set(RoomMember::getFinalScore, entry.getValue())
+                                .set(RoomMember::getQuitTime, now));
+            }
+        });
         log.info("更新房间 {} 成员最终分数，共 {} 人", roomId, playerTotalMap.size());
 
         // 6. 清理 Redis
@@ -474,10 +493,12 @@ public class ScoreServiceImpl implements ScoreService {
         // 7. WebSocket 通知
         scoreWebSocket.pushToRoom(String.valueOf(roomId), Map.of("type", "SETTLE"));
 
+
+
         // 8. 构建结算响应
         // 8.1 加载用户信息（昵称 + 头像）
         List<Long> userIdList = new ArrayList<>(playerTotalMap.keySet());
-        Map<Long, User> userMap = batchLoadUsersByIds(new HashSet<>(userIdList));
+        Map<Long, User> userMap = batchLoadUsersByIds(new HashSet<>(userIdList), roomId);
 
         // 8.2 构建 memberScores
         List<SettleResp.MemberScore> memberScores = userIdList.stream()
@@ -549,7 +570,7 @@ public class ScoreServiceImpl implements ScoreService {
                 .filter(uid -> !nicknameMap.containsKey(uid))
                 .collect(Collectors.toSet());
         if (!missingUsers.isEmpty()) {
-            Map<Long, User> extraUsers = batchLoadUsersByIds(missingUsers);
+            Map<Long, User> extraUsers = batchLoadUsersByIds(missingUsers, roomId);
             for (Map.Entry<Long, User> entry : extraUsers.entrySet()) {
                 nicknameMap.put(entry.getKey(), entry.getValue().getNickname());
             }
@@ -565,31 +586,12 @@ public class ScoreServiceImpl implements ScoreService {
 
         lastTtlRefresh.remove(roomId);
 
-        // 异步重算身份等级 + 清理封存相关缓存（非关键路径）
-        final var settledUserIds = new ArrayList<>(playerTotalMap.keySet());
-        asyncExecutor.execute(() -> {
-            String today = java.time.LocalDate.now().toString();
-            for (Long uid : settledUserIds) {
-                try {
-                    identityLevelService.recalculate(uid);
-                } catch (Exception e) {
-                    log.warn("异步重算身份等级失败: userId={}", uid, e);
-                }
-                // 清理镜像缓存，下次访问重新计算
-                try {
-                    redisTemplate.delete("sr:mirror:stats:" + uid);
-                    redisTemplate.delete("sr:mirror:profile:" + uid);
-                } catch (Exception e) {
-                    log.warn("清理镜像缓存失败: userId={}", uid, e);
-                }
-                // 清理今日策略缓存，下次访问使用新样本
-                try {
-                    redisTemplate.delete("sr:fortune:" + uid + ":" + today);
-                } catch (Exception e) {
-                    log.warn("清理策略缓存失败: userId={}", uid, e);
-                }
-            }
-        });
+        // 发布房间结算事件，由监听器异步处理后续业务（重算等级、扫描成就、清理缓存等）
+        try {
+            eventPublisher.publishEvent(new RoomSettledEvent(this, room, playerTotalMap, finalAllRecord));
+        } catch (Exception e) {
+            log.error("发布房间结算事件失败: roomId={}", roomId, e);
+        }
 
         return SettleResp.builder()
                 .roomId(roomId)
@@ -663,28 +665,38 @@ public class ScoreServiceImpl implements ScoreService {
             }
         }
 
-        List<Map<String, Object>> membersSnapshot = buildMemberSnapshot(memberMetaMap, playerTotalMap.keySet());
+        List<Map<String, Object>> membersSnapshot = buildMemberSnapshot(memberMetaMap, playerTotalMap.keySet(), roomId);
         if (!membersSnapshot.isEmpty()) {
             Map<String, Object> recordMeta = new HashMap<>();
             recordMeta.put("membersSnapshot", membersSnapshot);
             allRecord.add(recordMeta);
         }
 
-        // 3. 更新 room.all_record 并标记已归档（JSON 字段使用显式 SQL，避免 Wrapper 绕过 TypeHandler）
-        room.setAllRecord(allRecord);
-        room.setStatus(1);
-        roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(allRecord));
-
-        // 4. 更新 room_member.final_score 和 quit_time
+        // 3. 编程式小事务包裹：更新房间归档状态、更新成员分数与离场时间、并将未结算轮次状态闭环，以快速释放数据库连接
         LocalDateTime now = LocalDateTime.now();
-        for (Map.Entry<Long, Integer> entry : playerTotalMap.entrySet()) {
-            roomMemberMapper.update(null,
-                    new LambdaUpdateWrapper<RoomMember>()
-                            .eq(RoomMember::getRoomId, roomId)
-                            .eq(RoomMember::getUserId, entry.getKey())
-                            .set(RoomMember::getFinalScore, entry.getValue())
-                            .set(RoomMember::getQuitTime, now));
-        }
+        final List<Map<String, Object>> finalAllRecord = allRecord;
+        final Map<Long, Integer> finalPlayerTotalMap = playerTotalMap;
+        transactionTemplate.executeWithoutResult(status -> {
+            // 3.1 本局录状态闭环：将该房间下所有处于待处理状态的轮次记录更新为已取消 (5)，防止脏数据残留。因 RoundRecord 实体不包含 updatedAt 字段，故不单独进行设置
+            roundRecordMapper.update(null,
+                    new LambdaUpdateWrapper<RoundRecord>()
+                            .eq(RoundRecord::getRoomId, roomId)
+                            .in(RoundRecord::getStatus, List.of(1, 2)) // 1-等待成员填写, 2-等待全员确认
+                            .set(RoundRecord::getStatus, 5)); // 5-已取消
+
+            // 3.2 归档房间并标记已封存 (1)
+            roomMapper.archiveRoomRecord(roomId, 1, JSONUtil.toJsonStr(finalAllRecord));
+
+            // 3.3 批量更新当前房间所有活跃成员的最终累积胜负分和离席时间
+            for (Map.Entry<Long, Integer> entry : finalPlayerTotalMap.entrySet()) {
+                roomMemberMapper.update(null,
+                        new LambdaUpdateWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, roomId)
+                                .eq(RoomMember::getUserId, entry.getKey())
+                                .set(RoomMember::getFinalScore, entry.getValue())
+                                .set(RoomMember::getQuitTime, now));
+            }
+        });
 
         // 5. 清理 Redis
         List<String> keysToDelete = new ArrayList<>(List.of(
@@ -762,31 +774,12 @@ public class ScoreServiceImpl implements ScoreService {
 
         lastTtlRefresh.remove(roomId);
 
-        // 异步重算身份等级 + 清理封存相关缓存（非关键路径）
-        final var settledUserIds2 = new ArrayList<>(playerTotalMap.keySet());
-        asyncExecutor.execute(() -> {
-            String today = java.time.LocalDate.now().toString();
-            for (Long uid : settledUserIds2) {
-                try {
-                    identityLevelService.recalculate(uid);
-                } catch (Exception e) {
-                    log.warn("异步重算身份等级失败: userId={}", uid, e);
-                }
-                // 清理镜像缓存，下次访问重新计算
-                try {
-                    redisTemplate.delete("sr:mirror:stats:" + uid);
-                    redisTemplate.delete("sr:mirror:profile:" + uid);
-                } catch (Exception e) {
-                    log.warn("清理镜像缓存失败: userId={}", uid, e);
-                }
-                // 清理今日策略缓存，下次访问使用新样本
-                try {
-                    redisTemplate.delete("sr:fortune:" + uid + ":" + today);
-                } catch (Exception e) {
-                    log.warn("清理策略缓存失败: userId={}", uid, e);
-                }
-            }
-        });
+        // 发布房间结算事件，由监听器异步处理后续业务
+        try {
+            eventPublisher.publishEvent(new RoomSettledEvent(this, room, playerTotalMap, finalAllRecord));
+        } catch (Exception e) {
+            log.error("发布房间结算事件失败: roomId={}", roomId, e);
+        }
 
         return SettleResp.builder()
                 .roomId(roomId)
@@ -1207,7 +1200,7 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 验证房间存在且活跃
         Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
+        if (room == null || room.getStatus() != ROOM_STATUS_ACTIVE) {
             throw new BizException(ErrorCode.ROOM_NOT_FOUND);
         }
 
@@ -1219,12 +1212,14 @@ public class ScoreServiceImpl implements ScoreService {
         String scoresKey = ROOM_PREFIX + roomId + ":scores";
         try {
             Long result = redisTemplate.execute(TRANSFER_SCRIPT,
-                    List.of(scoresKey),
+                    List.of(scoresKey, ROOM_PREFIX + roomId + ":settling"),
                     String.valueOf(userId),
                     String.valueOf(req.getToUserId()),
                     String.valueOf(req.getAmount()));
             if (result == null || result == 0) {
                 throw new BizException(ErrorCode.ROOM_ARCHIVED_OR_FAILED);
+            } else if (result == -2) {
+                throw new BizException(ErrorCode.ROOM_SETTLING);
             }
         } catch (BizException e) {
             throw e;
@@ -1261,7 +1256,6 @@ public class ScoreServiceImpl implements ScoreService {
         redisTemplate.opsForZSet().add(
                 ROOM_PREFIX + roomId + ":events", JSONUtil.toJsonStr(event), now);
         redisTemplate.expire(ROOM_PREFIX + roomId + ":events", ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-        recordTransferAmountRank(roomId, userId, req.getAmount());
 
         // 读取双方最新分数（一次 Redis 调用，附加到 WS 推送供观察者本地更新）
         Double fromScore = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(userId));
@@ -1285,6 +1279,53 @@ public class ScoreServiceImpl implements ScoreService {
             }
         });
 
+        // 判定高能弹幕事件并推送 (不阻塞关键路径)
+        try {
+            int amount = req.getAmount();
+            double preFromScore = (fromScore != null ? fromScore : 0) + amount;
+            double preToScore = (toScore != null ? toScore : 0) - amount;
+
+            String fromNickname = getUserNickname(userId);
+            String toNickname = getUserNickname(req.getToUserId());
+
+            String bulletinContent = null;
+            String effectType = null;
+
+            // 1. 扣款方分值跌入负分触发 (pre >= 0 且 post < 0)
+            if (preFromScore >= 0 && fromScore != null && fromScore < 0) {
+                bulletinContent = String.format("🚨 高能警报：[%s] 的积分跌破负分，正触发逆熵翻盘预警！", fromNickname);
+                effectType = "entropy_negative";
+            }
+            // 2. 收款方分值突破负分翻正触发 (pre < 0 且 post >= 0)
+            else if (preToScore < 0 && toScore != null && toScore >= 0) {
+                bulletinContent = String.format("⚡ 逆熵爆发：[%s] 成功突破负分限制，积分翻正！", toNickname);
+                effectType = "entropy_positive";
+            }
+            // 3. 单笔大额转账触发 (数值 >= 100 积分)
+            else if (amount >= 100) {
+                bulletinContent = String.format("💰 慷慨手笔：[%s] 主动向 [%s] 转账了 %d 积分，震撼全场！", fromNickname, toNickname, amount);
+                effectType = "big_transfer";
+            }
+
+            if (bulletinContent != null) {
+                Map<String, Object> bulletinData = new HashMap<>();
+                bulletinData.put("type", "BULLETIN");
+                bulletinData.put("roomId", roomIdStr);
+                bulletinData.put("content", bulletinContent);
+                bulletinData.put("effectType", effectType);
+
+                asyncExecutor.execute(() -> {
+                    try {
+                        scoreWebSocket.pushToRoom(roomIdStr, bulletinData);
+                    } catch (Exception e) {
+                        log.warn("实时高能弹幕 WS 发送失败", e);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            log.warn("高能弹幕计算过程发生异常", e);
+        }
+
         // 异步更新总览缓存
         overviewService.computeOverview(roomId);
 
@@ -1299,105 +1340,12 @@ public class ScoreServiceImpl implements ScoreService {
                 .build();
     }
 
-    private void recordTransferAmountRank(Long roomId, Long userId, Integer amount) {
-        if (roomId == null || userId == null || amount == null || amount <= 0) return;
-        try {
-            String key = ROOM_PREFIX + roomId + ":transfer:amount";
-            String member = String.valueOf(amount);
-            redisTemplate.opsForZSet().incrementScore(key, "u:" + userId + ":" + member, 1);
-            redisTemplate.opsForZSet().incrementScore(key, "all:" + member, 1);
-            redisTemplate.expire(key, ROOM_EXPIRE_HOURS, TimeUnit.HOURS);
-        } catch (Exception e) {
-            log.warn("更新常用转出金额排行失败: roomId={}, userId={}", roomId, userId, e);
-        }
-    }
 
-    @Override
-    public TransferAmountSuggestionResp getTransferAmountSuggestions(Long userId, Long roomId) {
-        if (roomId == null) throw new BizException(ErrorCode.BAD_REQUEST, "编队 ID 不能为空");
-
-        Room room = roomMapper.selectById(roomId);
-        if (room == null || room.getStatus() != 0) {
-            throw new BizException(ErrorCode.ROOM_NOT_FOUND);
-        }
-        if (!isActiveRoomMember(roomId, userId)) {
-            throw new BizException(ErrorCode.NOT_ROOM_MEMBER);
-        }
-
-        List<TransferAmountSuggestionResp.Item> items = new ArrayList<>(6);
-        Set<Integer> used = new LinkedHashSet<>();
-
-        String transferKey = ROOM_PREFIX + roomId + ":transfer:amount";
-        appendAmountRankItems(items, used, transferKey, "u:" + userId + ":", "crew", "常发", 3);
-        appendAmountRankItems(items, used, transferKey, "all:", "space", "编队", 3);
-
-        boolean fallback = items.size() < 6;
-        appendFallbackAmountItems(items, used, roomId, userId);
-
-        return TransferAmountSuggestionResp.builder()
-                .fallback(fallback)
-                .items(items.size() > 6 ? items.subList(0, 6) : items)
-                .build();
-    }
-
-    private void appendAmountRankItems(List<TransferAmountSuggestionResp.Item> items,
-                                       Set<Integer> used,
-                                       String key,
-                                       String memberPrefix,
-                                       String source,
-                                       String label,
-                                       int limit) {
-        Set<ZSetOperations.TypedTuple<String>> tuples = redisTemplate.opsForZSet()
-                .reverseRangeWithScores(key, 0, -1);
-        if (tuples == null || tuples.isEmpty()) return;
-
-        int added = 0;
-        for (ZSetOperations.TypedTuple<String> tuple : tuples) {
-            if (added >= limit || items.size() >= 6) break;
-            String member = tuple.getValue();
-            if (!member.startsWith(memberPrefix)) continue;
-            Integer amount = parsePositiveAmount(member.substring(memberPrefix.length()));
-            if (amount == null || !used.add(amount)) continue;
-            items.add(TransferAmountSuggestionResp.Item.builder()
-                    .amount(amount)
-                    .source(source)
-                    .label(label)
-                    .build());
-            added++;
-        }
-    }
-
-    private void appendFallbackAmountItems(List<TransferAmountSuggestionResp.Item> items,
-                                           Set<Integer> used,
-                                           Long roomId,
-                                           Long userId) {
-        List<Integer> pool = new ArrayList<>(List.of(1, 2, 3, 5, 8, 10, 12, 15, 20, 25, 30, 50, 66, 88, 100));
-        Collections.shuffle(pool, new Random(Objects.hash(roomId, userId, LocalDate.now())));
-        for (Integer amount : pool) {
-            if (items.size() >= 6) break;
-            if (!used.add(amount)) continue;
-            items.add(TransferAmountSuggestionResp.Item.builder()
-                    .amount(amount)
-                    .source("random")
-                    .label("推荐")
-                    .build());
-        }
-    }
-
-    private Integer parsePositiveAmount(String value) {
-        if (value == null) return null;
-        try {
-            int amount = Integer.parseInt(value);
-            return amount > 0 ? amount : null;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 
     private void touchActiveRoom(Long roomId) {
         roomMapper.update(null, new LambdaUpdateWrapper<Room>()
                 .eq(Room::getId, roomId)
-                .eq(Room::getStatus, 0)
+                .eq(Room::getStatus, ROOM_STATUS_ACTIVE)
                 .set(Room::getLastActiveAt, LocalDateTime.now()));
     }
 
@@ -1436,7 +1384,7 @@ public class ScoreServiceImpl implements ScoreService {
             userIds.add(e.getLong("from"));
             userIds.add(e.getLong("to"));
         }
-        Map<Long, User> userMap = batchLoadUsersByIds(userIds);
+        Map<Long, User> userMap = batchLoadUsersByIds(userIds, roomId);
 
         // 组装响应
         List<TransferScoreResp> records = pageEvents.stream().map(e -> {
@@ -1468,15 +1416,38 @@ public class ScoreServiceImpl implements ScoreService {
         return PageResult.of(total, records);
     }
 
-    private Map<Long, User> batchLoadUsersByIds(Set<Long> userIds) {
+    private Map<Long, User> batchLoadUsersByIds(Set<Long> userIds, Long roomId) {
         if (userIds.isEmpty()) return Collections.emptyMap();
 
         Map<Long, User> userMap = new HashMap<>();
         List<Long> missedIds = new ArrayList<>();
-        List<Long> idList = new ArrayList<>(userIds);
 
-        for (int i = 0; i < idList.size(); i++) {
-            Long uid = idList.get(i);
+        // 1. 优先尝试从活跃房间缓存中提取
+        if (roomId != null) {
+            String roomDataKey = "sr:room:" + roomId + ":data";
+            try {
+                Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomDataKey);
+                if (entries != null) {
+                    for (Long uid : userIds) {
+                        Object val = entries.get("a:" + uid);
+                        if (val != null) {
+                            JSONObject memberObj = JSONUtil.parseObj((String) val);
+                            User u = new User();
+                            u.setId(uid);
+                            u.setNickname(memberObj.getStr("nickname", ""));
+                            u.setAvatarUrl(memberObj.getStr("avatarUrl", ""));
+                            userMap.put(uid, u);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("batchLoadUsersByIds 尝试从房间缓存加载用户资料失败: roomId={}", roomId, e);
+            }
+        }
+
+        // 2. 对于没有命中的，读个人缓存 sr:user:xxx:info
+        for (Long uid : userIds) {
+            if (userMap.containsKey(uid)) continue;
             Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
             if (cached != null) {
                 JSONObject obj = JSONUtil.parseObj((String) cached);
@@ -1490,6 +1461,7 @@ public class ScoreServiceImpl implements ScoreService {
             }
         }
 
+        // 3. 对仍然缺失的，查数据库
         if (!missedIds.isEmpty()) {
             List<User> users = userMapper.selectBatchIds(missedIds);
             for (User u : users) {
@@ -1575,12 +1547,12 @@ public class ScoreServiceImpl implements ScoreService {
     /**
      * 构建封存成员快照：优先使用 archive 中的昵称头像，缺失时从用户表兜底。
      */
-    private List<Map<String, Object>> buildMemberSnapshot(Map<Long, JSONObject> memberMetaMap, Collection<Long> userIds) {
+    private List<Map<String, Object>> buildMemberSnapshot(Map<Long, JSONObject> memberMetaMap, Collection<Long> userIds, Long roomId) {
         if (userIds == null || userIds.isEmpty()) {
             return Collections.emptyList();
         }
         Set<Long> orderedIds = new LinkedHashSet<>(userIds);
-        Map<Long, User> userMap = batchLoadUsersByIds(orderedIds);
+        Map<Long, User> userMap = batchLoadUsersByIds(orderedIds, roomId);
         List<Map<String, Object>> snapshot = new ArrayList<>();
         for (Long uid : orderedIds) {
             JSONObject meta = memberMetaMap != null ? memberMetaMap.get(uid) : null;
@@ -1624,5 +1596,157 @@ public class ScoreServiceImpl implements ScoreService {
                 }
             }
         }
+    }
+
+    /**
+     * 一键撤销最后一笔计分/最后一轮生效轮次（仅限房主）。
+     *
+     * @param userId 操作用户 ID（房主）
+     * @param roomId 房间 ID
+     */
+    @Override
+    public void undoLastScore(Long userId, Long roomId) {
+        if (userId == null || roomId == null) {
+            throw new BizException(400, "用户ID和房间ID不能为空");
+        }
+
+        // 1. 验证房间存在并且处于活跃状态 (status = 0)
+        Room room = roomMapper.selectById(roomId);
+        if (room == null || room.getStatus() != ROOM_STATUS_ACTIVE) {
+            throw new BizException(404, "未找到该房间或房间已归档");
+        }
+
+        // 2. 只有房主拥有撤销上一笔记分的管理员权限
+        if (!room.getOwnerId().equals(userId)) {
+            throw new BizException(ErrorCode.NOT_OWNER_CANCEL.getCode(), "只有房主拥有撤销上一笔记分的权限");
+        }
+
+        String scoresKey = ROOM_PREFIX + roomId + ":scores";
+
+        // 3. 根据记分模式进行分支撤销
+        if (ScoreMode.FREE_FLOW.getCode() == (room.getScoreMode() != null ? room.getScoreMode() : 1)) {
+            // ================= 自由流转模式撤销 =================
+            // 只有 Redis 操作，不需要数据库事务
+            String eventsKey = ROOM_PREFIX + roomId + ":events";
+
+            // 从 Redis ZSet 中获取最后一笔转账流水（使用 reverseRange 获取最新的一条）
+            Set<String> lastEventSet = redisTemplate.opsForZSet().reverseRange(eventsKey, 0, 0);
+            if (lastEventSet == null || lastEventSet.isEmpty()) {
+                throw new BizException(400, "当前房间内没有可以撤销的转账流水");
+            }
+
+            String lastEventJson = lastEventSet.iterator().next();
+            JSONObject eventObj = JSONUtil.parseObj(lastEventJson);
+            Long fromUserId = eventObj.getLong("from");
+            Long toUserId = eventObj.getLong("to");
+            Integer amount = eventObj.getInt("amount");
+
+            // 执行反向扣分与加分操作
+            // from 加上 amount，to 减去 amount
+            redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(fromUserId), amount);
+            redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(toUserId), -amount);
+
+            // 从 Redis 流水 ZSet 中移除这一笔记录
+            redisTemplate.opsForZSet().remove(eventsKey, lastEventJson);
+
+            // 获取撤销后双方的最新分值
+            Double fromNewScore = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(fromUserId));
+            Double toNewScore = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(toUserId));
+
+            log.info("房主 {} 撤销了房间 {} 的最新自由流转记分: from={}, to={}, amount={}", userId, roomId, fromUserId, toUserId, amount);
+
+            // 广播 UNDO 事件给房间所有人
+            String roomIdStr = String.valueOf(roomId);
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "UNDO");
+            pushData.put("roomId", roomIdStr);
+            pushData.put("fromUserId", String.valueOf(fromUserId));
+            pushData.put("toUserId", String.valueOf(toUserId));
+            pushData.put("amount", amount);
+            pushData.put("fromNewScore", fromNewScore != null ? fromNewScore.intValue() : 0);
+            pushData.put("toNewScore", toNewScore != null ? toNewScore.intValue() : 0);
+
+            asyncExecutor.execute(() -> {
+                try {
+                    scoreWebSocket.pushToRoom(roomIdStr, pushData);
+                } catch (Exception e) {
+                    log.warn("自由流转模式撤销 WebSocket 广播推送失败: roomId={}", roomId, e);
+                }
+            });
+
+        } else {
+            // ================= 本局录入模式撤销 =================
+            // 先读取数据（事务外）
+            List<RoundRecord> appliedRounds = roundRecordMapper.selectList(
+                    new LambdaQueryWrapper<RoundRecord>()
+                            .eq(RoundRecord::getRoomId, roomId)
+                            .eq(RoundRecord::getStatus, RoundRecordStatus.APPLIED.getCode())
+                            .orderByDesc(RoundRecord::getAppliedAt)
+            );
+
+            if (appliedRounds == null || appliedRounds.isEmpty()) {
+                throw new BizException(400, "当前房间内没有可以撤销的确认轮次");
+            }
+
+            // 获取最新的一轮记录
+            RoundRecord lastRound = appliedRounds.get(0);
+            Long roundId = lastRound.getId();
+
+            // 查询对应的计分细节
+            List<RoundRecordDetail> details = roundRecordDetailMapper.selectList(
+                    new LambdaQueryWrapper<RoundRecordDetail>()
+                            .eq(RoundRecordDetail::getRoundRecordId, roundId)
+            );
+
+            // 编程式事务：MySQL 删除操作
+            transactionTemplate.execute(status -> {
+                roundRecordMapper.deleteById(roundId);
+                roundRecordDetailMapper.delete(new LambdaQueryWrapper<RoundRecordDetail>()
+                        .eq(RoundRecordDetail::getRoundRecordId, roundId));
+                return null;
+            });
+
+            // 事务提交成功后：Redis 反向操作
+            if (details != null && !details.isEmpty()) {
+                for (RoundRecordDetail d : details) {
+                    if (d.getScore() != 0) {
+                        redisTemplate.opsForZSet().incrementScore(scoresKey, String.valueOf(d.getUserId()), -d.getScore());
+                    }
+                }
+            }
+
+            // 获取最新的完整记分排行榜数据以便广播
+            Set<ZSetOperations.TypedTuple<String>> scoresTuple = redisTemplate.opsForZSet().rangeWithScores(scoresKey, 0, -1);
+            List<Map<String, Object>> scoreList = new ArrayList<>();
+            if (scoresTuple != null) {
+                for (ZSetOperations.TypedTuple<String> tuple : scoresTuple) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("userId", Long.parseLong(tuple.getValue()));
+                    item.put("score", tuple.getScore() != null ? tuple.getScore().intValue() : 0);
+                    scoreList.add(item);
+                }
+            }
+
+            log.info("房主 {} 撤销了房间 {} 的最新生效轮次: roundId={}", userId, roomId, roundId);
+
+            // 广播 ROUND_UNDO 事件给房间所有人
+            String roomIdStr = String.valueOf(roomId);
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "ROUND_UNDO");
+            pushData.put("roomId", roomIdStr);
+            pushData.put("roundId", String.valueOf(roundId));
+            pushData.put("scores", scoreList);
+
+            asyncExecutor.execute(() -> {
+                try {
+                    scoreWebSocket.pushToRoom(roomIdStr, pushData);
+                } catch (Exception e) {
+                    log.warn("本局录入模式撤销 WebSocket 广播推送失败: roomId={}", roomId, e);
+                }
+            });
+        }
+
+        // 4. 异步重新计算数据总览缓存
+        overviewService.computeOverview(roomId);
     }
 }

@@ -144,13 +144,27 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     /**
-     * 向房间内所有连接推送消息
+     * 获取房间内在线用户 ID 集合
+     * 用于判断用户是否在线，决定是否发送订阅消息
+     */
+    public Set<Long> getOnlineUserIds(String roomId) {
+        Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
+        if (sessions == null || sessions.isEmpty()) {
+            return new java.util.HashSet<>();
+        }
+        return sessions.stream()
+                .filter(WebSocketSession::isOpen)
+                .map(s -> s.getAttributes().get(USER_ID_ATTR))
+                .filter(Long.class::isInstance)
+                .map(Long.class::cast)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /**
+     * 向房间内所有连接推送消息（支持多实例分布式广播）
      * 自动为 Map 类型消息添加 messageId、serverTime、roomId 信封字段
      */
     public void pushToRoom(String roomId, Object message) {
-        Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
-        if (sessions == null || sessions.isEmpty()) return;
-
         // 为消息添加统一信封字段
         Object enrichedMessage = enrichMessage(message, roomId);
 
@@ -161,13 +175,36 @@ public class ScoreWebSocket extends TextWebSocketHandler {
             log.warn("WebSocket 消息序列化失败", e);
             return;
         }
+
+        // 分布式环境：广播到 Redis Pub/Sub 通道
+        try {
+            JSONObject publishMsg = new JSONObject();
+            publishMsg.set("roomId", roomId);
+            publishMsg.set("payload", payload);
+            redisTemplate.convertAndSend("sr:ws:pubsub", publishMsg.toString());
+        } catch (Exception e) {
+            log.warn("Redis 广播失败，降级本地推送: roomId={}", roomId, e);
+            sendLocalMessage(roomId, payload);
+        }
+    }
+
+    /**
+     * 真正向本地连接发送消息的底层方法（线程安全）
+     */
+    public void sendLocalMessage(String roomId, String payload) {
+        Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
+        if (sessions == null || sessions.isEmpty()) return;
+
         TextMessage textMessage = new TextMessage(payload);
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
                 try {
-                    session.sendMessage(textMessage);
+                    // 并发写同步保护，防止 TEXT_FULL_WRITING 错误
+                    synchronized (session) {
+                        session.sendMessage(textMessage);
+                    }
                 } catch (Exception e) {
-                    log.warn("WebSocket 推送失败: {}", session.getId(), e);
+                    log.warn("WebSocket 本地推送失败: sessionId={}", session.getId(), e);
                 }
             }
         }

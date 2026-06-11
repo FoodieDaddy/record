@@ -2,6 +2,7 @@ package com.smartrecord.controller.admin;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smartrecord.common.Result;
+import com.smartrecord.dto.admin.AdminDirectiveResp;
 import com.smartrecord.entity.FortuneLog;
 import com.smartrecord.service.admin.AdminDirectiveService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,15 +20,19 @@ public class AdminDirectiveController {
 
     @Operation(summary = "指令日志列表")
     @GetMapping("/logs")
-    public Result<Page<FortuneLog>> list(
+    public Result<?> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return Result.ok(directiveService.listLogs(page, size));
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String requestId) {
+        Page<FortuneLog> logPage = directiveService.listLogs(page, size, userId, requestId);
+        return Result.ok(logPage.convert(AdminDirectiveResp::from));
     }
 
     @Operation(summary = "指令日志详情")
     @GetMapping("/logs/{id}")
-    public Result<FortuneLog> detail(@PathVariable Long id) {
-        return Result.ok(directiveService.getDetail(id));
+    public Result<AdminDirectiveResp> detail(@PathVariable Long id) {
+        FortuneLog log = directiveService.getDetail(id);
+        return Result.ok(AdminDirectiveResp.from(log));
     }
 }

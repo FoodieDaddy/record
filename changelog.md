@@ -2,6 +2,63 @@
 
 ## 未发布
 
+### 变更
+
+- admin-web 玻璃质感未来家具风视觉升级：所有核心卡片和面板加入 `backdrop-filter: blur()` 毛玻璃效果、`::before` 高光伪元素、半透明白色渐变背景，整体从"浅色后台"升级为"白色飞船玻璃舱体"。
+- admin-web 白色飞船舰桥控制台视觉升级：全局背景改为径向冷光渐变、卡片改为 92px 悬浮设备卡（gradient 背景+48px 图标块+28px 大数字+双层阴影）、面板改为 22px 圆角 gradient header、导航改为白色毛玻璃侧舱、Dashboard 系统健康/实时事件改为 readout-row 设备条。
+- admin-web Dashboard 运行总览改造：基地态势面板从装饰 SVG 改为左侧小轨道图+右侧实际数据（活跃编队/今日脉冲/封存/事件/系统状态）。
+- admin-web 列表页摘要卡化：用户/编队/指令/镜像页的摘要条全部改为带图标的设备卡风格（左侧彩色图标块+右侧数字+标签）。
+- admin-web 用户页增加稀疏数据提示：数据少时显示"当前仅显示已接入后台的航船"。
+- admin-web 白色舰桥 UI 精修：增强飞船舱体感（冷灰蓝背景+径向冷光）、面板圆角 18-24px、按钮/输入框圆角 10-14px、表格层级增强、StatCard 增加图标。
+- 修复 i18n key 泄漏：系统监控页 `system.title` 改为 `nav.system`、Orbital Bridge 中文化、Top 10 改为「前十」。
+- 修复状态胶囊换行问题：`white-space: nowrap`、固定高度 26px、`min-width: 48px`。
+- 编队页 room.js 架构重构与体积优化：将 WebSocket 消息处理、结算分享与退出、脉冲流向输入以及本局录入这 4 个业务领域拆分为独立的处理器文件（room-ws-handler.js 等），采用 Object.assign 混入 Page 中，使 room.js 主文件代码量由 3100+ 行收缩至 900 行，显著提升了代码的维护效率。
+- 管理后台整体重构为「白色飞船舰桥」风格：浅色主题改为默认，整体明亮、轻盈、洁净、未来感。
+- 主题系统重写：浅色主题为白色舰桥模式（`#EEF2F6` 基底、冷灰过渡、大圆角 12-24px、柔和阴影），深色主题保留为深空维护模式。
+- 布局重构：导航栏改为悬浮式侧舱控制条（白色半透明毛玻璃、SVG 线性图标、圆角胶囊高亮），顶栏轻量化（64px 高度、圆角搜索舱），移除扫描线和网格背景。
+- 组件重构：BasePanel/StatCard/StatusPill/CommandButton/DataTable/EmptyState/Toast/Modal 全部改为大圆角、柔和阴影、轻描边风格。
+- 图表主题重构：浅色透明背景、极淡轴线网格、柔和蓝青紫配色、白色浮层 tooltip。
+- Dashboard 首页重构：指标卡区 + 基地态势 + 系统健康 + 脉冲趋势 + 实时事件，一屏 Grid 布局。
+- 动效克制：页面切换淡入+轻微上浮 180ms，卡片 hover 上浮 2px+阴影加深，移除发光闪烁和 pulse 动画。
+- 移除 `clip-path` 切角面板，改用 `border-radius` 大圆角。
+- 移除扫描线覆盖层和网格背景纹理。
+- 所有业务页面适配新风格（用户、编队、航迹、指令、镜像、系统、管理员、审计）。
+- 管理后台系统级重构：主题收敛、i18n 彻底清理、右侧监控栏重构、各页面内容增强。
+- 深色主题降噪：青蓝色饱和度降低（`#2D8CFF` / `#39A8D8` / `#31A866`），网格透明度降低 50%，扫描线间距加大，面板描边弱化，移除活动状态发光动画。
+- 浅色主题标记为「实验维护模式」，设置面板中默认禁用，需手动启用。
+- 右侧监控栏从常驻侧栏改为抽屉：点击顶部「展开监控」按钮从右侧滑出，关闭后主内容恢复全宽。
+- i18n 彻底清理：新增 120+ key，中文模式下页面无英文残留，英文模式下无中文残留。
+- 技术穿帮词修复：LLM→主引擎、fallback→备用指令、VIEWER→观察员、SUPER_ADMIN→超级管理员、Edge-TTS→语音主引擎、MiMo→语音副引擎、MySQL→数据库、Redis→缓存。
+- 航船用户页新增：摘要卡（总数/正常/禁用）、状态筛选（全部/正常/禁用）、批量操作按钮、用户 ID 可复制。
+- 任务编队页新增：摘要卡（总数/进行中/已封存）、状态筛选、编队码列、成员数列。
+- 指令日志页新增：摘要卡（总数/成功/失败/备用指令）、耗时列、来源映射（LLM→主引擎）。
+- 镜像档案页新增：摘要卡（总数/已校准/未校准/平均一致率）、未校准状态灰色显示、双操作按钮（查看镜像/查看用户）。
+- 系统监控页新增：服务名映射（MySQL→数据库等）、最后检测时间、空数据面板高度缩小。
+- 管理员页新增：角色名映射（VIEWER→观察员等）、禁用二次确认、角色权限说明卡、select 选项显示中文角色名。
+- 审计日志页新增：高风险操作橙色标记（DELETE/REMOVE/DISABLE 等）。
+- DataTable 组件：loading/empty/copy 按钮全部走 i18n。
+- 设置面板：浅色主题按钮默认禁用并显示「维护中」提示。
+- 头像存储改为双模式可切换（cloudbase 默认 / aliyun），由 `STORAGE_PROVIDER` 环境变量控制。
+- `ossClient` bean 改为条件创建（`storage.provider=aliyun` 时初始化），纯 cloudbase 模式启动不再依赖 OSS 配置。
+- `StorageServiceImpl` 中 `OSS` 注入改为 `ObjectProvider<OSS>` 可选注入。
+- 微信订阅消息功能（第一阶段）：小程序云开发配置完成（`project.config.json` 添加 `cloudfunctionRoot`、`app.json` 添加 `"cloud": true`）、`cloudfunctions/sendSubscribeMessage` 云函数已创建（含 `index.js`、`package.json`、`config.json`）、后端 `SubscribeMessageService` 已创建（支持发送订阅消息）、`ScoreWebSocket` 新增 `getOnlineUserIds()` 方法（用于判断用户是否在线）、前端 `room-action-handler.js` 已添加订阅权限请求逻辑（`handleStartSpace` 和 `handleJoinSpace` 中调用 `wx.requestSubscribeMessage`）、后端 `ScoreServiceImpl.settleRoom()` 已添加离线用户订阅消息发送逻辑（编队封存通知）、后端 `RoundRecordServiceImpl` 已添加记分提醒订阅消息发送逻辑（`sendScoreReminderToOfflineUsers` 方法）。
+- 修复编队页错误提示和状态恢复问题：`handleRoomNotFoundError()` 改为正确术语「编队不存在」、报错后正确返回基础页（idle 状态）、重连时自动恢复编队数据链路（`refreshRoomState()` 增强为完整恢复编队数据）。
+
+## 2026-06-11 — Dashboard 一屏化与浅色模式重做
+
+### 变更
+
+- Dashboard 首页重构为一屏总控台：使用 CSS Grid 固定五行布局（标题 56px / 状态条 40px / 指标卡 96px / 主态势 1fr / 底部趋势 180px），页面不再出现纵向滚动。
+- 指标卡从默认 6 列改为自适应 6/3/2 列响应式，数值字号从 28px 压缩到 22px，卡片 padding 从 16px 压缩到 10px。
+- 主态势区（基地态势 + 系统健康）和底部区（脉冲趋势 + 实时事件）使用 `minmax(0, 1fr)` 嵌套 Grid，面板高度由父容器控制，不内容撑开。
+- HudChart 组件改为容器驱动高度（`height: 100%`），图表自动填充父容器，支持 ECharts resize。
+- 实时事件限制最多显示 5 条，底部区不再被视口裁切。
+- 浅色模式从「实验维护模式」重做为「日间基地维护模式」：背景改为灰蓝色调（`#C8D3DE` ~ `#D8E1EA`），面板使用实体灰蓝（`rgba(226,235,243,0.96)`），网格线从 80px 扩大到 120px 并降低透明度 40%。
+- 浅色模式配色全面调整：主色更克制（`#2F6FC7` / `#317F9F`），状态绿改为柔和绿（`#3C8B5F`），文字加深（`#172433`），边框增强对比但不刺眼。
+- 浅色模式左侧导航保持深蓝（`#111D2E`），顶栏使用浅灰蓝（`rgba(215,225,235,0.94)`），与主内容区通过阴影过渡。
+- 浅色主题默认启用，设置面板中深色/浅色按钮均可直接切换，移除「实验」和「维护中」标注。
+- AppLayout 改为 `height: 100vh; overflow: hidden`，Dashboard 页面 workspace 无 padding 溢出。
+
 ### 修复
 
 - 解散编队时成员记录未更新 `quit_time` 和 `final_score`，导致历史编队成员数据不完整。

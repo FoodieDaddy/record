@@ -23,10 +23,20 @@ import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.StorageService;
 import com.smartrecord.service.UserService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
-import com.smartrecord.util.AvatarGenerator;
 import com.smartrecord.util.JwtUtil;
 import com.smartrecord.util.NicknameGenerator;
 import com.smartrecord.util.SnowflakeIdGenerator;
+import com.smartrecord.entity.UserAchievement;
+import com.smartrecord.entity.Achievement;
+import com.smartrecord.mapper.UserAchievementMapper;
+import com.smartrecord.mapper.AchievementMapper;
+import com.smartrecord.service.MirrorProfileService;
+import com.smartrecord.service.MirrorStatsService;
+import com.alicp.jetcache.Cache;
+import com.alicp.jetcache.anno.CreateCache;
+import com.alicp.jetcache.anno.CacheType;
+import com.alicp.jetcache.anno.Cached;
+import com.alicp.jetcache.anno.CacheInvalidate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +46,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,8 +69,14 @@ public class UserServiceImpl implements UserService {
     private final ScoreWebSocket scoreWebSocket;
     private final StorageService storageService;
     private final OssConfig ossConfig;
-    private final AvatarGenerator avatarGenerator;
     private final TransactionTemplate transactionTemplate;
+    private final UserAchievementMapper userAchievementMapper;
+    private final AchievementMapper achievementMapper;
+    private final MirrorProfileService mirrorProfileService;
+    private final MirrorStatsService mirrorStatsService;
+
+    @CreateCache(name = "achievement:id:", cacheType = CacheType.BOTH, expire = 3600)
+    private Cache<Long, Achievement> achievementCache;
 
     @Value("${wechat.appid:}")
     private String appId;
@@ -71,17 +89,28 @@ public class UserServiceImpl implements UserService {
             blockHandler = "loginBlockHandler",
             fallback = "loginFallback")
     public LoginResp login(LoginReq req) {
-        // 1. 调用微信 code2session
-        String url = String.format(
-                "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
-                appId, appSecret, req.getCode());
-        String respStr = HttpUtil.get(url);
-        JSONObject resp = JSONUtil.parseObj(respStr);
+        String openid;
+        String unionid = null;
+        
+        if (req.getCode() != null && req.getCode().startsWith("dev_code_")) {
+            // 本地开发与测试环境 Mock 登录：直接根据后缀匹配种子用户 openid
+            String indexStr = req.getCode().replace("dev_code_", "");
+            openid = "dev_openid_" + indexStr;
+            log.info("[MOCK LOGIN] 触发本地开发环境 Mock 登录, code={}, openid={}", req.getCode(), openid);
+        } else {
+            // 1. 调用微信 code2session 线上真实登录
+            String url = String.format(
+                    "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
+                    appId, appSecret, req.getCode());
+            String respStr = HttpUtil.get(url);
+            JSONObject resp = JSONUtil.parseObj(respStr);
 
-        String openid = resp.getStr("openid");
-        if (openid == null) {
-            log.error("微信登录失败: {}", respStr);
-            throw new BizException(ErrorCode.WX_LOGIN_FAILED);
+            openid = resp.getStr("openid");
+            unionid = resp.getStr("unionid");
+            if (openid == null) {
+                log.error("微信登录失败: {}", respStr);
+                throw new BizException(ErrorCode.WX_LOGIN_FAILED);
+            }
         }
 
         // 2. 查找或创建用户
@@ -102,9 +131,9 @@ public class UserServiceImpl implements UserService {
             user = new User();
             user.setId(idGenerator.nextId());
             user.setOpenid(openid);
-            user.setUnionid(resp.getStr("unionid"));
+            user.setUnionid(unionid);
             user.setNickname(truncateNickname(NicknameGenerator.generateRandomName()));
-            user.setAvatarUrl(avatarGenerator.generateAndUpload());
+            user.setAvatarUrl("");
             final User newUser = user;
             transactionTemplate.executeWithoutResult(status -> {
                 userMapper.insert(newUser);
@@ -114,16 +143,8 @@ public class UserServiceImpl implements UserService {
             });
         }
 
-        // 3. 缓存用户信息到 Redis Hash
-        String createdAtStr = user.getCreatedAt() != null
-                ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                : "";
-        String userJson = JSONUtil.toJsonStr(Map.of(
-                "userId", user.getId(),
-                "nickname", user.getNickname() != null ? user.getNickname() : "",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
-                "status", user.getStatus() != null ? user.getStatus() : 0,
-                "createdAt", createdAtStr));
+        // 3. 缓存用户信息到 Redis Hash（使用统一辅助方法，包含装扮字段）
+        String userJson = buildUserJson(user);
         redisTemplate.opsForHash().put("sr:user:" + user.getId(), "info", userJson);
 
         // 4. 签发 JWT
@@ -153,21 +174,16 @@ public class UserServiceImpl implements UserService {
                     .build();
         }
 
-        // 缓存未命中，查库并回写
+        // 缓存未命中，查库并回写（包含装扮字段）
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BizException(ErrorCode.IDENTITY_NOT_RECOGNIZED);
         }
+        String json = buildUserJson(user);
+        redisTemplate.opsForHash().put(userKey, "info", json);
         String createdAtStr = user.getCreatedAt() != null
                 ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
                 : "";
-        String json = JSONUtil.toJsonStr(Map.of(
-                "userId", userId,
-                "nickname", user.getNickname() != null ? user.getNickname() : "",
-                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
-                "status", user.getStatus() != null ? user.getStatus() : 0,
-                "createdAt", createdAtStr));
-        redisTemplate.opsForHash().put(userKey, "info", json);
 
         return UserInfoResp.builder()
                 .userId(user.getId())
@@ -199,6 +215,14 @@ public class UserServiceImpl implements UserService {
         String avatarUrl = req.getAvatarUrl();
         String nickname = req.getNickname();
 
+        // 校验头像路径安全性
+        if (avatarUrl != null && !avatarUrl.isEmpty()) {
+            if (!avatarUrl.startsWith("cloud://") && !avatarUrl.startsWith("http://") && !avatarUrl.startsWith("https://")
+                    && !avatarUrl.startsWith("avatars/") && !avatarUrl.startsWith("images/")) {
+                throw new BizException(400, "非法头像路径");
+            }
+        }
+
         // 头像变更时，异步删除旧的 OSS 文件
         String newAvatarUrl = avatarUrl != null ? avatarUrl : oldAvatarUrl;
         if (avatarUrl != null && oldAvatarUrl != null && !avatarUrl.equals(oldAvatarUrl)) {
@@ -218,23 +242,12 @@ public class UserServiceImpl implements UserService {
                 .set(avatarUrl != null, User::getAvatarUrl, avatarUrl)
                 .set(User::getUpdatedAt, LocalDateTime.now());
         userMapper.update(null, wrapper);
-
-        // 更新 Redis 缓存（统一单 key）
-        String userJson = JSONUtil.toJsonStr(Map.of(
-                "userId", userId,
-                "nickname", newNickname,
-                "avatarUrl", newAvatarUrl != null ? newAvatarUrl : "",
-                "status", oldStatus,
-                "createdAt", oldCreatedAt));
-        redisTemplate.opsForHash().put(userKey, "info", userJson);
-
-        // 仅在昵称变更时推送 MEMBER_UPDATE；纯头像更新跳过（避免新用户登录时的冗余 room_member 查询）
-        if (nickname != null) {
-            pushMemberUpdateToRooms(userId, newNickname, newAvatarUrl);
-        }
+        // 刷新缓存并推送 MEMBER_UPDATE 广播到该用户所在的所有活跃房间
+        refreshUserCacheAndNotify(userId);
     }
 
     @Override
+    @Cached(name = "user:detail:", key = "#userId", cacheType = CacheType.BOTH, expire = 3600)
     public UserDetailResp getUserDetail(Long userId) {
         UserDetail detail = userDetailMapper.selectById(userId);
         return UserDetailResp.builder()
@@ -246,6 +259,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @CacheInvalidate(name = "user:detail:", key = "#userId")
     public void updateUserDetail(Long userId, UpdateUserDetailReq req) {
         LambdaUpdateWrapper<UserDetail> wrapper = new LambdaUpdateWrapper<UserDetail>()
                 .eq(UserDetail::getId, userId)
@@ -319,9 +333,76 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * 查找用户所在的所有活跃房间，推送 MEMBER_UPDATE 事件
+     * 刷新用户缓存（包括基本信息和当前装备的装扮）并广播通知成员更新。
+     *
+     * @param userId 用户 ID
      */
-    private void pushMemberUpdateToRooms(Long userId, String nickname, String avatarUrl) {
+    @Override
+    public void refreshUserCacheAndNotify(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        String userJson = buildUserJson(user);
+        redisTemplate.opsForHash().put("sr:user:" + userId, "info", userJson);
+
+        // 获取当前已装备装扮进行广播
+        JSONObject userObj = JSONUtil.parseObj(userJson);
+        String equippedBadge = userObj.getStr("equippedBadge", "");
+        String equippedAvatarBorder = userObj.getStr("equippedAvatarBorder", "");
+
+        pushMemberUpdateToRooms(userId, user.getNickname(), storageService.buildFullUrl(user.getAvatarUrl()), equippedBadge, equippedAvatarBorder);
+    }
+
+    /**
+     * 统一构建包含基本信息与当前装备装扮的 Redis 缓存 JSON。
+     */
+    private String buildUserJson(User user) {
+        String createdAtStr = user.getCreatedAt() != null
+                ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                : "";
+
+        // 查询用户当前已装备（status = 1）的成就
+        List<UserAchievement> userAchievements = userAchievementMapper.selectList(
+                new LambdaQueryWrapper<UserAchievement>()
+                        .eq(UserAchievement::getUserId, user.getId())
+                        .eq(UserAchievement::getStatus, 1)
+        );
+
+        String equippedBadge = "";
+        String equippedAvatarBorder = "";
+        for (UserAchievement ua : userAchievements) {
+            Achievement achievement = achievementCache.computeIfAbsent(ua.getAchievementId(), id -> achievementMapper.selectById(id));
+            if (achievement != null && achievement.getCosmeticPayload() != null) {
+                try {
+                    JSONObject payload = JSONUtil.parseObj(achievement.getCosmeticPayload());
+                    if (achievement.getCosmeticType() == 1) {
+                        equippedBadge = payload.getStr("badge", "");
+                    } else if (achievement.getCosmeticType() == 2) {
+                        equippedAvatarBorder = payload.getStr("avatarBorder", "");
+                    }
+                } catch (Exception e) {
+                    log.error("解析用户成就装扮参数失败: achievementId={}", achievement.getId(), e);
+                }
+            }
+        }
+
+        Map<String, Object> dataMap = new HashMap<>();
+        dataMap.put("userId", user.getId());
+        dataMap.put("nickname", user.getNickname() != null ? user.getNickname() : "");
+        dataMap.put("avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "");
+        dataMap.put("status", user.getStatus() != null ? user.getStatus() : 0);
+        dataMap.put("createdAt", createdAtStr);
+        dataMap.put("equippedBadge", equippedBadge);
+        dataMap.put("equippedAvatarBorder", equippedAvatarBorder);
+
+        return JSONUtil.toJsonStr(dataMap);
+    }
+
+    /**
+     * 查找用户所在的所有活跃房间，推送 MEMBER_UPDATE 事件，携带最新称号及头像框装扮。
+     */
+    private void pushMemberUpdateToRooms(Long userId, String nickname, String avatarUrl, String equippedBadge, String equippedAvatarBorder) {
         try {
             // 从 Redis 缓存获取用户所在的房间
             Set<String> roomIds = redisTemplate.opsForSet().members("sr:user:rooms:" + userId);
@@ -335,17 +416,225 @@ public class UserServiceImpl implements UserService {
                         .collect(Collectors.toSet());
             }
 
+            // 获取用户最新的 MBTI 称号和战绩统计
+            String mbtiTitle = "";
+            Integer mbtiCode = null;
+            Map<String, Object> radarStats = new HashMap<>();
+            try {
+                var profile = mirrorProfileService.getFullProfile(userId);
+                if (profile != null) {
+                    if (profile.getBattlePersona() != null) {
+                        mbtiTitle = profile.getBattlePersona().getTitle();
+                    }
+                    if (profile.getMbti() != null) {
+                        mbtiCode = profile.getMbti().getMbtiCode();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("热同步资料获取用户画像失败: userId={}", userId, e);
+            }
+
+            try {
+                var stats = mirrorStatsService.calculate(userId);
+                if (stats != null && stats.getDimensions() != null) {
+                    for (var d : stats.getDimensions()) {
+                        radarStats.put(d.getKey(), d.getValue());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("热同步资料获取用户战绩统计失败: userId={}", userId, e);
+            }
+
+            JSONObject obj = JSONUtil.createObj()
+                    .set("userId", userId)
+                    .set("nickname", nickname != null ? nickname : "")
+                    .set("avatarUrl", avatarUrl != null ? avatarUrl : "")
+                    .set("equippedBadge", equippedBadge != null ? equippedBadge : "")
+                    .set("equippedAvatarBorder", equippedAvatarBorder != null ? equippedAvatarBorder : "")
+                    .set("mbtiTitle", mbtiTitle)
+                    .set("mbtiCode", mbtiCode)
+                    .set("radarStats", radarStats);
+
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "MEMBER_UPDATE");
             pushData.put("userId", String.valueOf(userId));
             pushData.put("nickname", nickname);
             pushData.put("avatarUrl", avatarUrl != null ? avatarUrl : "");
+            pushData.put("equippedBadge", equippedBadge != null ? equippedBadge : "");
+            pushData.put("equippedAvatarBorder", equippedAvatarBorder != null ? equippedAvatarBorder : "");
+            pushData.put("mbtiTitle", mbtiTitle);
+            pushData.put("mbtiCode", mbtiCode);
+            pushData.put("radarStats", radarStats);
 
             for (String roomIdStr : roomIds) {
+                String dataKey = "sr:room:" + roomIdStr + ":data";
+                // 仅当房间仍然保留该活跃成员时才热更新，防止污染已结算封存的历史房间
+                if (Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(dataKey, "a:" + userId))) {
+                    redisTemplate.opsForHash().put(dataKey, "a:" + userId, obj.toString());
+                }
                 scoreWebSocket.pushToRoom(roomIdStr, pushData);
             }
         } catch (Exception e) {
             log.warn("推送 MEMBER_UPDATE 失败: userId={}", userId, e);
         }
+    }
+
+    /**
+     * 获取用户生涯驾驶舱汇总数据（包括总场次、胜率、黄金拍档及宿敌画像）
+     *
+     * @param userId 用户 ID
+     * @return 个人生涯汇总数据
+     */
+    @Override
+    public CareerCockpitResp getCareerCockpit(Long userId) {
+        if (userId == null) {
+            return new CareerCockpitResp();
+        }
+
+        // 1. 查询当前用户历史所有已结算的对局成员记录 (finalScore 不为 null 代表已结算归档)
+        List<RoomMember> myMemberships = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .eq(RoomMember::getUserId, userId)
+                        .isNotNull(RoomMember::getFinalScore)
+        );
+
+        if (myMemberships == null || myMemberships.isEmpty()) {
+            return CareerCockpitResp.builder()
+                    .totalRooms(0)
+                    .totalScore(0)
+                    .positiveRate(0.0)
+                    .build();
+        }
+
+        int totalRooms = myMemberships.size();
+        int totalScore = 0;
+        int positiveRooms = 0;
+        Set<Long> roomIds = new HashSet<>();
+        // 记录我自己在每个房间的最终得分，便于后面共存分析时直接取，避免重复遍历
+        Map<Long, Integer> myRoomScoreMap = new HashMap<>();
+
+        for (RoomMember m : myMemberships) {
+            int score = m.getFinalScore();
+            totalScore += score;
+            if (score > 0) {
+                positiveRooms++;
+            }
+            roomIds.add(m.getRoomId());
+            myRoomScoreMap.put(m.getRoomId(), score);
+        }
+
+        double positiveRate = Math.round(((double) positiveRooms / totalRooms * 100) * 10.0) / 10.0;
+
+        // 2. 分析与我同局的所有其他玩家
+        List<RoomMember> allCoMembers = roomMemberMapper.selectList(
+                new LambdaQueryWrapper<RoomMember>()
+                        .in(RoomMember::getRoomId, roomIds)
+                        .ne(RoomMember::getUserId, userId)
+                        .isNotNull(RoomMember::getFinalScore)
+        );
+
+        CareerCockpitResp.PartnerInfo bestPartner = null;
+        CareerCockpitResp.PartnerInfo nemesis = null;
+
+        if (allCoMembers != null && !allCoMembers.isEmpty()) {
+            // 好友ID -> 好友参与的我所在的房间ID列表
+            Map<Long, List<Long>> friendRoomsMap = new HashMap<>();
+            for (RoomMember co : allCoMembers) {
+                friendRoomsMap.computeIfAbsent(co.getUserId(), k -> new ArrayList<>()).add(co.getRoomId());
+            }
+
+            long bestFriendId = -1;
+            double maxAvgScore = -Double.MAX_VALUE;
+            int maxPlayCount = 0;
+
+            long worstFriendId = -1;
+            double minAvgScore = Double.MAX_VALUE;
+            int worstPlayCount = 0;
+
+            for (Map.Entry<Long, List<Long>> entry : friendRoomsMap.entrySet()) {
+                Long friendId = entry.getKey();
+                List<Long> sharedRoomIds = entry.getValue();
+                int playCount = sharedRoomIds.size();
+
+                // 计算共同游戏时，我方（userId）的平均得分
+                double sumScore = 0;
+                for (Long rid : sharedRoomIds) {
+                    sumScore += myRoomScoreMap.getOrDefault(rid, 0);
+                }
+                double avgScore = Math.round((sumScore / playCount) * 10.0) / 10.0;
+
+                // 黄金拍档判定：平均分最高（相同平均分则局数多者优先，且我方必须是平均正分）
+                if (avgScore > maxAvgScore || (Math.abs(avgScore - maxAvgScore) < 0.001 && playCount > maxPlayCount)) {
+                    maxAvgScore = avgScore;
+                    maxPlayCount = playCount;
+                    bestFriendId = friendId;
+                }
+
+                // 天命宿敌判定：平均分最低（相同平均分则局数多者优先）
+                if (avgScore < minAvgScore || (Math.abs(avgScore - minAvgScore) < 0.001 && playCount > worstPlayCount)) {
+                    minAvgScore = avgScore;
+                    worstPlayCount = playCount;
+                    worstFriendId = friendId;
+                }
+            }
+
+            if (bestFriendId != -1) {
+                String bestNickname = getUserNickname(bestFriendId);
+                String bestAvatar = getUserAvatar(bestFriendId);
+                bestPartner = CareerCockpitResp.PartnerInfo.builder()
+                        .userId(bestFriendId)
+                        .nickname(bestNickname)
+                        .avatarUrl(storageService.buildFullUrl(bestAvatar))
+                        .playCount(maxPlayCount)
+                        .avgScore(maxAvgScore)
+                        .build();
+            }
+
+            if (worstFriendId != -1) {
+                String worstNickname = getUserNickname(worstFriendId);
+                String worstAvatar = getUserAvatar(worstFriendId);
+                nemesis = CareerCockpitResp.PartnerInfo.builder()
+                        .userId(worstFriendId)
+                        .nickname(worstNickname)
+                        .avatarUrl(storageService.buildFullUrl(worstAvatar))
+                        .playCount(worstPlayCount)
+                        .avgScore(minAvgScore)
+                        .build();
+            }
+        }
+
+        return CareerCockpitResp.builder()
+                .totalRooms(totalRooms)
+                .totalScore(totalScore)
+                .positiveRate(positiveRate)
+                .bestPartner(bestPartner)
+                .nemesis(nemesis)
+                .build();
+    }
+
+    /**
+     * 辅助获取用户昵称
+     */
+    private String getUserNickname(Long userId) {
+        Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
+        if (cached != null) {
+            JSONObject userObj = JSONUtil.parseObj((String) cached);
+            return userObj.getStr("nickname", "未知成员");
+        }
+        User u = userMapper.selectById(userId);
+        return u != null ? u.getNickname() : "未知成员";
+    }
+
+    /**
+     * 辅助获取用户头像路径
+     */
+    private String getUserAvatar(Long userId) {
+        Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
+        if (cached != null) {
+            JSONObject userObj = JSONUtil.parseObj((String) cached);
+            return userObj.getStr("avatarUrl", "");
+        }
+        User u = userMapper.selectById(userId);
+        return u != null ? u.getAvatarUrl() : "";
     }
 }

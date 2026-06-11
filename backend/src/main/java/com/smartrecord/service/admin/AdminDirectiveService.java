@@ -14,11 +14,14 @@ public class AdminDirectiveService {
     private final FortuneLogMapper fortuneLogMapper;
 
     /**
-     * 指令日志列表（分页，按创建时间倒序）
+     * 指令日志列表（分页，根据 userId/requestId 过滤，按创建时间倒序）
      */
-    public Page<FortuneLog> listLogs(int page, int size) {
-        return fortuneLogMapper.selectPage(new Page<>(page, size),
-                new LambdaQueryWrapper<FortuneLog>().orderByDesc(FortuneLog::getCreatedAt));
+    public Page<FortuneLog> listLogs(int page, int size, Long userId, String requestId) {
+        LambdaQueryWrapper<FortuneLog> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(userId != null, FortuneLog::getUserId, userId);
+        queryWrapper.eq(requestId != null && !requestId.isBlank(), FortuneLog::getRequestId, requestId);
+        queryWrapper.orderByDesc(FortuneLog::getCreatedAt);
+        return fortuneLogMapper.selectPage(new Page<>(page, size), queryWrapper);
     }
 
     /**

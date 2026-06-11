@@ -191,4 +191,8 @@ cd admin-web && npm run build                   # 构建
 
 ## 环境变量
 
-复制 `.env.example` 为 `.env` 并填入真实值。所需变量：数据库连接、Redis 地址、JWT Secret、阿里云 OSS、LLM API、微信 AppID/Secret、TTS 配置。
+复制 `.env.example` 为 `.env` 并填入真实值。所需变量：数据库连接、Redis 地址、JWT Secret、LLM API、微信 AppID/Secret、TTS 配置。
+
+存储模式由 `STORAGE_PROVIDER` 控制（默认 `cloudbase`，可选 `aliyun`）：
+- `cloudbase`：微信云存储，前端通过 `wx.cloud.uploadFile` 直传，后端仅存储 `cloud://` 文件 ID
+- `aliyun`：阿里云 OSS，后端生成预签名 URL，前端直传 OSS

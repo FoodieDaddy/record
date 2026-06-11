@@ -11,6 +11,9 @@ const config = require('../config');
 /** 进行中的 GET 请求（用于去重） */
 const inflight = new Map();
 
+/** 去重请求最大生存期 (ms)，超时自动清除防止永久阻塞 */
+const INFLIGHT_TTL = 30000;
+
 /** 网络异常 toast 节流：5s 内只弹一次 */
 let _networkToastTime = 0;
 /** 业务错误 toast 节流：同一消息 3s 内不重复弹 */
@@ -34,8 +37,15 @@ function request(options) {
   const method = options.method || 'GET';
 
   // GET 请求去重（同一 key 的请求进行中时复用）
-  if (options.dedupe !== false && method === 'GET' && inflight.has(key)) {
-    return inflight.get(key).promise;
+  if (options.dedupe !== false && method === 'GET') {
+    // 清理过期条目
+    const now = Date.now();
+    for (const [k, v] of inflight) {
+      if (now - v.ts > INFLIGHT_TTL) inflight.delete(k);
+    }
+    if (inflight.has(key)) {
+      return inflight.get(key).promise;
+    }
   }
 
   const requestId = createRequestId();
@@ -59,15 +69,18 @@ function request(options) {
       const resData = res.data || {};
       const errCode = resData.code;
 
-      // 4001: token 无效/过期 | 4003: 账号已注销/已封禁
-      if (res.statusCode === 401 || errCode === 4001 || errCode === 4003) {
-        const msg = errCode === 4003 ? (resData.message || '账号异常') : '接入已过期';
+      // 身份/Token 相关: 4001=未接入, 4002=已过期, 4004=未识别
+      // 账号相关: 4003=已封禁, 4005=已注销
+      const isAuthError = errCode === 4001 || errCode === 4002 || errCode === 4004;
+      const isAccountError = errCode === 4003 || errCode === 4005;
+      if (res.statusCode === 401 || isAuthError || isAccountError) {
+        const msg = isAccountError ? (resData.message || '账号异常') : '接入已过期';
         // 防抖：避免并发 401 重复登出
         if (!_loggingOut) {
           _loggingOut = true;
           app.logout();
           wx.redirectTo({ url: '/pages/login/login' });
-          if (errCode === 4003) {
+          if (isAccountError) {
             wx.showToast({ title: msg, icon: 'none', duration: 3000 });
           }
           setTimeout(() => { _loggingOut = false; }, 3000);
@@ -106,6 +119,24 @@ function request(options) {
           wx.showToast({ title: '网络异常', icon: 'none' });
         }
       }
+      
+      // 异常监控埋点（排除日志上报接口本身以防止递归）
+      if (options.url !== '/behavior/report') {
+        setTimeout(() => {
+          try {
+            const behaviorLogger = require('./behavior-logger');
+            behaviorLogger.track('NETWORK_ERROR', {
+              url: options.url,
+              method: method,
+              errMsg: err.errMsg || String(err),
+              requestId: requestId
+            });
+          } catch (e) {
+            console.error('[request] 自动记录 NETWORK_ERROR 失败', e);
+          }
+        }, 0);
+      }
+      
       reject(err);
     };
 
@@ -114,6 +145,23 @@ function request(options) {
       const duration = Date.now() - start;
       if (duration > 3000) {
         console.warn(`[request] ${method} ${options.url} ${duration}ms`);
+      }
+      
+      // 慢请求监控埋点（排除日志上报接口本身）
+      if (duration > 2000 && options.url !== '/behavior/report') {
+        setTimeout(() => {
+          try {
+            const behaviorLogger = require('./behavior-logger');
+            behaviorLogger.track('SLOW_REQUEST', {
+              url: options.url,
+              method: method,
+              duration: duration,
+              requestId: requestId
+            });
+          } catch (e) {
+            console.error('[request] 自动记录 SLOW_REQUEST 失败', e);
+          }
+        }, 0);
       }
     };
 
@@ -141,9 +189,6 @@ function request(options) {
         fail: onFail,
         complete: onComplete
       });
-
-      // callContainer 不返回可中断任务，去重仅复用 Promise
-      inflight.set(key, { promise });
     } else {
       // 本地/正式模式：wx.request
       const reqOptions = {
@@ -160,10 +205,11 @@ function request(options) {
         fail: onFail,
         complete: onComplete
       });
-
-      inflight.set(key, { promise });
     }
   });
+
+  // 去重仅复用 Promise，移至外部以防构造器内部同步调用引发的暂存死区 (TDZ) 报错
+  inflight.set(key, { promise, ts: Date.now() });
 
   return promise;
 }

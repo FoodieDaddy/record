@@ -38,6 +38,12 @@ public class OverviewServiceImpl implements OverviewService {
     @Async("asyncExecutor")
     public void computeOverview(Long roomId) {
         try {
+            // 前置校验房间状态，已结算则直接退出，防止回写脏数据造成 Redis 内存泄露
+            Room room = roomMapper.selectById(roomId);
+            if (room == null || room.getStatus() != 0) {
+                log.info("房间 {} 已结算或不存在，跳过异步总览计算", roomId);
+                return;
+            }
             ChartDataResp chartData = getChartData(roomId);
             String json = JSONUtil.toJsonStr(chartData);
             redisTemplate.opsForHash().put(dataKey(roomId), "overview", json);
@@ -100,7 +106,7 @@ public class OverviewServiceImpl implements OverviewService {
             }
         }
         List<Long> userIds = new ArrayList<>(userIdSet);
-        Map<Long, String> nicknameMap = loadNicknameMap(userIds);
+        Map<Long, String> nicknameMap = loadNicknameMap(userIds, room.getId());
 
         List<Long> timestamps = new ArrayList<>();
         Map<Long, List<Integer>> userScores = new HashMap<>();
@@ -171,8 +177,14 @@ public class OverviewServiceImpl implements OverviewService {
             return ChartDataResp.builder().timestamps(List.of()).series(List.of()).build();
         }
 
+        Long roomId = null;
+        try {
+            String temp = roomPrefix.substring("sr:room:".length());
+            roomId = Long.parseLong(temp.substring(0, temp.indexOf(":")));
+        } catch (Exception ignored) {}
+
         List<Long> userIds = new ArrayList<>(userIdSet);
-        Map<Long, String> nicknameMap = loadNicknameMap(userIds);
+        Map<Long, String> nicknameMap = loadNicknameMap(userIds, roomId);
 
         // 按时间排序
         eventList.sort(Comparator.comparingLong(o -> o.getLong("time", 0L)));
@@ -231,12 +243,34 @@ public class OverviewServiceImpl implements OverviewService {
                 .build();
     }
 
-    private Map<Long, String> loadNicknameMap(List<Long> userIds) {
+    private Map<Long, String> loadNicknameMap(List<Long> userIds, Long roomId) {
         if (userIds.isEmpty()) return Collections.emptyMap();
 
         Map<Long, String> map = new HashMap<>();
         List<Long> missedIds = new ArrayList<>();
+
+        // 1. 如果有 roomId，优先尝试从房间缓存盒读取
+        if (roomId != null) {
+            String roomDataKey = "sr:room:" + roomId + ":data";
+            try {
+                Map<Object, Object> entries = redisTemplate.opsForHash().entries(roomDataKey);
+                if (entries != null) {
+                    for (Long uid : userIds) {
+                        Object val = entries.get("a:" + uid);
+                        if (val != null) {
+                            JSONObject memberObj = JSONUtil.parseObj((String) val);
+                            map.put(uid, memberObj.getStr("nickname", "玩家"));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("loadNicknameMap 尝试从房间缓存加载昵称失败: roomId={}", roomId, e);
+            }
+        }
+
+        // 2. 对缺失的，再读取个人缓存 sr:user:xxx:info
         for (Long uid : userIds) {
+            if (map.containsKey(uid)) continue;
             Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
             if (cached != null) {
                 JSONObject userObj = JSONUtil.parseObj((String) cached);
@@ -246,6 +280,7 @@ public class OverviewServiceImpl implements OverviewService {
             }
         }
 
+        // 3. 对仍然缺失的查数据库并回写缓存
         if (!missedIds.isEmpty()) {
             List<User> users = userMapper.selectBatchIds(missedIds);
             for (User user : users) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { useApi } from '@/composables/useApi'
@@ -16,15 +16,7 @@ const locale = useLocaleStore()
 const theme = useThemeStore()
 const showSettings = ref(false)
 
-const currentTime = ref('')
 const systemStatus = ref<'ok' | 'warn' | 'error'>('ok')
-let timer: number
-
-function updateTime() {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  currentTime.value = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
 
 async function checkSystemHealth() {
   try {
@@ -40,19 +32,16 @@ async function checkSystemHealth() {
 function handleKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault()
-    const input = document.querySelector('.top-bar__center input') as HTMLInputElement
+    const input = document.querySelector('.top-bar__search input') as HTMLInputElement
     input?.focus()
   }
 }
 
 onMounted(() => {
-  updateTime()
-  timer = window.setInterval(updateTime, 1000)
   checkSystemHealth()
   document.addEventListener('keydown', handleKeydown)
 })
 onUnmounted(() => {
-  window.clearInterval(timer)
   document.removeEventListener('keydown', handleKeydown)
 })
 
@@ -60,22 +49,22 @@ const searchQuery = ref('')
 const searchResults = ref<Array<{ name: string; path: string }>>([])
 const showSearchResults = ref(false)
 
-const searchableItems = [
-  { name: '基地总览', path: '/dashboard' },
-  { name: '航船用户', path: '/users' },
-  { name: '任务编队', path: '/formations' },
-  { name: '航迹中心', path: '/traces' },
-  { name: '指令日志', path: '/directives/logs' },
-  { name: '镜像档案', path: '/mirrors' },
-  { name: '系统监控', path: '/system/health' },
-  { name: '管理员', path: '/admins' },
-  { name: '审计日志', path: '/audit' },
-]
+const searchableItems = computed(() => [
+  { name: locale.t('nav.overview'), path: '/dashboard' },
+  { name: locale.t('nav.users'), path: '/users' },
+  { name: locale.t('nav.formations'), path: '/formations' },
+  { name: locale.t('nav.traces'), path: '/traces' },
+  { name: locale.t('nav.directives'), path: '/directives/logs' },
+  { name: locale.t('nav.mirrors'), path: '/mirrors' },
+  { name: locale.t('nav.system'), path: '/system/health' },
+  { name: locale.t('nav.admins'), path: '/admins' },
+  { name: locale.t('nav.audit'), path: '/audit' },
+])
 
 function onSearchInput() {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) { searchResults.value = []; showSearchResults.value = false; return }
-  searchResults.value = searchableItems.filter(item => item.name.toLowerCase().includes(q))
+  searchResults.value = searchableItems.value.filter(item => item.name.toLowerCase().includes(q))
   showSearchResults.value = true
 }
 
@@ -93,6 +82,19 @@ function handleLogout() {
   auth.logout()
   router.push('/login')
 }
+
+function mapRoleName(role: string): string {
+  if (role === 'SUPER_ADMIN') return locale.t('role.superAdmin')
+  if (role === 'OPERATOR') return locale.t('role.operator')
+  if (role === 'VIEWER') return locale.t('role.viewer')
+  return role || 'ADMIN'
+}
+
+const systemStatusText = computed(() => {
+  if (systemStatus.value === 'error') return locale.t('system.abnormal')
+  if (systemStatus.value === 'warn') return locale.t('system.attention')
+  return locale.t('system.normal')
+})
 </script>
 
 <template>
@@ -101,16 +103,21 @@ function handleLogout() {
       <Breadcrumb />
     </div>
 
-    <div class="top-bar__center" style="position:relative;">
-      <input
-        v-model="searchQuery"
-        class="input-field"
-        style="width:100%;"
-        placeholder="搜索用户、编队、指令... (⌘K)"
-        @input="onSearchInput"
-        @focus="onSearchInput"
-        @blur="onSearchBlur"
-      />
+    <div class="top-bar__search" style="position:relative;">
+      <div class="search-box">
+        <svg class="search-box__icon" viewBox="0 0 16 16" fill="none" width="14" height="14">
+          <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2" />
+          <line x1="11" y1="11" x2="14" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          class="search-box__input"
+          :placeholder="locale.t('common.searchPlaceholder') + ' (⌘K)'"
+          @input="onSearchInput"
+          @focus="onSearchInput"
+          @blur="onSearchBlur"
+        />
+      </div>
       <div v-if="showSearchResults && searchResults.length" class="search-dropdown">
         <div
           v-for="r in searchResults"
@@ -124,25 +131,20 @@ function handleLogout() {
     </div>
 
     <div class="top-bar__right">
-      <button
-        class="cmd-btn cmd-btn--ghost"
-        style="height:24px;padding:0 6px;font-size:11px;"
-        @click="app.toggleRightPanel()"
-      >{{ app.rightPanelOpen ? '收起监控' : '展开监控' }}</button>
-      <div class="top-bar__divider" />
       <div class="top-bar__health" @click="router.push('/system/health')">
         <span class="top-bar__health-dot" :class="`dot--${systemStatus}`" />
-        <span style="font-size:11px;color:var(--text-muted);">系统{{ systemStatus === 'ok' ? '正常' : systemStatus === 'warn' ? '注意' : '异常' }}</span>
+        <span class="top-bar__health-text">{{ systemStatusText }}</span>
       </div>
       <div class="top-bar__divider" />
-      <span class="top-bar__role hud-label">{{ auth.role || 'ADMIN' }}</span>
-      <span class="top-bar__user">{{ auth.username || '管理员' }}</span>
-      <span class="top-bar__time text-mono">{{ currentTime }}</span>
+      <span class="top-bar__role hud-label">{{ mapRoleName(auth.role || '') }}</span>
+      <span class="top-bar__user">{{ auth.username || locale.t('nav.admins') }}</span>
       <div style="position:relative;">
-        <button class="cmd-btn cmd-btn--ghost" style="height:28px;font-size:12px;padding:0 8px;" @click="showSettings = !showSettings">
-          设置
+        <button class="cmd-btn cmd-btn--ghost" style="height:30px;font-size:12px;padding:0 10px;" @click="showSettings = !showSettings">
+          <svg viewBox="0 0 20 20" fill="none" width="16" height="16" stroke="currentColor" stroke-width="1.5">
+            <path d="M10 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 8.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM10 14a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" />
+          </svg>
         </button>
-        <div v-if="showSettings" class="settings-dropdown" @click.self="showSettings = false">
+        <div v-if="showSettings" class="settings-overlay" @click.self="showSettings = false">
           <div class="settings-panel">
             <div class="settings-row">
               <span class="settings-label">{{ locale.t('settings.language') }}</span>
@@ -151,12 +153,12 @@ function handleLogout() {
                   class="settings-btn"
                   :class="{ active: locale.isZh }"
                   @click="locale.setLocale('zh')"
-                >中文</button>
+                >{{ locale.t('settings.chinese') }}</button>
                 <button
                   class="settings-btn"
                   :class="{ active: !locale.isZh }"
                   @click="locale.setLocale('en')"
-                >EN</button>
+                >{{ locale.t('settings.english') }}</button>
               </div>
             </div>
             <div class="settings-row">
@@ -164,20 +166,20 @@ function handleLogout() {
               <div class="settings-toggle">
                 <button
                   class="settings-btn"
-                  :class="{ active: theme.theme === 'dark' }"
-                  @click="theme.setTheme('dark')"
-                >{{ locale.t('settings.dark') }}</button>
-                <button
-                  class="settings-btn"
                   :class="{ active: theme.theme === 'light' }"
                   @click="theme.setTheme('light')"
                 >{{ locale.t('settings.light') }}</button>
+                <button
+                  class="settings-btn"
+                  :class="{ active: theme.theme === 'dark' }"
+                  @click="theme.setTheme('dark')"
+                >{{ locale.t('settings.dark') }}</button>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <button class="cmd-btn cmd-btn--ghost" style="height:28px;font-size:12px;" @click="handleLogout">退出</button>
+      <button class="cmd-btn cmd-btn--ghost" style="height:30px;font-size:12px;" @click="handleLogout">{{ locale.t('common.logout') }}</button>
     </div>
   </header>
 </template>
@@ -187,59 +189,93 @@ function handleLogout() {
   height: var(--topbar-height);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 24px;
-  border-bottom: 1px solid rgba(10,132,255,0.12);
-  background: linear-gradient(90deg, rgba(4,8,16,0.9), rgba(4,8,16,0.7));
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.30);
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: 0 1px 4px rgba(31, 52, 88, 0.04);
   position: sticky; top: 0; z-index: 90;
+  transition: var(--theme-transition);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
 }
 .top-bar__left { display: flex; align-items: center; }
-.top-bar__center { flex: 1; max-width: 400px; margin: 0 32px; }
-.top-bar__right { display: flex; align-items: center; gap: 12px; }
+.top-bar__search { width: 360px; margin: 0 24px; flex-shrink: 0; }
+.top-bar__right { display: flex; align-items: center; gap: 10px; }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  border-radius: 14px;
+  transition: border-color .15s, box-shadow .15s;
+  backdrop-filter: blur(12px);
+}
+.search-box:focus-within {
+  border-color: var(--input-focus-border);
+  box-shadow: var(--input-focus-shadow);
+}
+.search-box__icon {
+  color: var(--text-disabled);
+  flex-shrink: 0;
+}
+.search-box__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-main);
+  font-size: var(--text-base);
+}
+.search-box__input::placeholder {
+  color: var(--text-disabled);
+}
 
 .top-bar__health {
   display: flex; align-items: center; gap: 6px;
-  cursor: pointer; padding: 4px 8px; border-radius: 3px;
-  transition: background .15s;
+  cursor: pointer; padding: 4px 10px; border-radius: var(--radius-xs);
+  transition: background .12s;
 }
-.top-bar__health:hover { background: rgba(255,255,255,0.03); }
+.top-bar__health:hover { background: var(--btn-ghost-hover-bg); }
 .top-bar__health-dot { width: 6px; height: 6px; border-radius: 50%; }
-.dot--ok { background: var(--color-green); box-shadow: 0 0 6px rgba(48,209,88,0.4); }
-.dot--warn { background: var(--color-orange); box-shadow: 0 0 6px rgba(255,159,10,0.4); }
-.dot--error { background: var(--color-red); box-shadow: 0 0 6px rgba(255,69,58,0.4); }
+.top-bar__health-text { font-size: 11px; color: var(--text-muted); }
+.dot--ok { background: var(--color-green); }
+.dot--warn { background: var(--color-orange); }
+.dot--error { background: var(--color-red); }
 
 .top-bar__role {
   font-size: 10px;
-  padding: 2px 6px;
+  padding: 3px 8px;
 }
 .top-bar__user { font-size: var(--text-sm); color: var(--text-secondary); }
-.top-bar__time { font-size: var(--text-xs); color: var(--text-muted); }
-.top-bar__divider { width: 1px; height: 20px; background: var(--border-subtle); }
+.top-bar__divider { width: 1px; height: 18px; background: var(--border-subtle); }
 
 .search-dropdown {
   position: absolute;
   top: 100%; left: 0; right: 0;
-  margin-top: 4px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-accent);
-  border-radius: 4px;
+  margin-top: 6px;
+  background: var(--settings-bg);
+  border: 1px solid var(--settings-border);
+  border-radius: 16px;
   overflow: hidden;
   z-index: 200;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  box-shadow: var(--search-shadow);
 }
 .search-item {
   padding: 10px 14px;
   font-size: 13px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background .15s;
+  transition: background .12s, color .12s;
 }
 .search-item:hover {
-  background: rgba(10,132,255,0.08);
+  background: var(--nav-item-active-bg);
   color: var(--text-main);
 }
 
-.settings-dropdown {
+.settings-overlay {
   position: absolute;
   top: 100%;
   right: 0;
@@ -247,12 +283,13 @@ function handleLogout() {
   z-index: 300;
 }
 .settings-panel {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-accent);
-  border-radius: 6px;
-  padding: 12px;
-  min-width: 200px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  background: var(--settings-bg);
+  border: 1px solid var(--settings-border);
+  border-radius: 16px;
+  padding: 14px;
+  min-width: 240px;
+  box-shadow: var(--settings-shadow);
+  transition: var(--theme-transition);
 }
 .settings-row {
   display: flex;
@@ -272,21 +309,25 @@ function handleLogout() {
   gap: 4px;
 }
 .settings-btn {
-  padding: 4px 10px;
+  padding: 5px 12px;
   font-size: 11px;
   border: 1px solid var(--border-subtle);
-  border-radius: 3px;
+  border-radius: 10px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: all .15s;
+  transition: background-color .12s, border-color .12s, color .12s;
 }
 .settings-btn.active {
-  background: rgba(10,132,255,0.12);
-  border-color: rgba(10,132,255,0.25);
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-border);
   color: var(--color-primary);
 }
-.settings-btn:hover:not(.active) {
-  background: rgba(255,255,255,0.04);
+.settings-btn:hover:not(.active):not(:disabled) {
+  background: var(--btn-ghost-hover-bg);
+}
+.settings-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

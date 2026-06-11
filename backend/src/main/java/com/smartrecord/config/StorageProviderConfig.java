@@ -17,8 +17,8 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "storage")
 public class StorageProviderConfig {
 
-    /** 当前存储提供者：aliyun / cloudbase / cos */
-    private String provider = "aliyun";
+    /** 当前存储提供者：cloudbase（默认）/ aliyun / cos */
+    private String provider = "cloudbase";
 
     /** CloudBase 环境配置 */
     private CloudBase cloudbase = new CloudBase();

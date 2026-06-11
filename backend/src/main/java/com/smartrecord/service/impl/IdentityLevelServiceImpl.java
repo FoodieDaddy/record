@@ -109,11 +109,18 @@ public class IdentityLevelServiceImpl implements IdentityLevelService {
         entity.setStability(stability);
         entity.setUpdatedAt(LocalDateTime.now());
 
-        UserIdentityLevel existing = identityLevelMapper.selectById(userId);
-        if (existing != null) {
-            identityLevelMapper.updateById(entity);
-        } else {
-            identityLevelMapper.insert(entity);
+        synchronized (String.valueOf(userId).intern()) {
+            UserIdentityLevel existing = identityLevelMapper.selectById(userId);
+            if (existing != null) {
+                identityLevelMapper.updateById(entity);
+            } else {
+                try {
+                    identityLevelMapper.insert(entity);
+                } catch (org.springframework.dao.DuplicateKeyException e) {
+                    log.info("并发重算等级主键冲突，降级为更新: userId={}", userId);
+                    identityLevelMapper.updateById(entity);
+                }
+            }
         }
 
         log.info("身份等级计算完成: userId={}, level={}, exp={}, stability={}, matchCount={}",

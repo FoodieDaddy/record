@@ -1,5 +1,72 @@
 # 计划
 
+## admin-web 玻璃质感未来家具风视觉升级（2026-06-11） ✅
+
+- ✅ tokens.css 全面重写：新增 `--border-glass`、`--blur-soft`/`--blur-panel`、`--highlight-inner`、主色改为 `#5E8BFF`、面板改为半透明 `rgba(255,255,255,0.62)`
+- ✅ base.css 背景升级：径向蓝+青冷光线性渐变
+- ✅ components.css 全面玻璃化：BasePanel/StatCard/readout-row/health-row/event-row/summary-card/filter-btn 全部加入 `backdrop-filter: blur()`、`::before` 高光伪元素、半透明白色渐变背景
+- ✅ NavSidebar：`rgba(255,255,255,0.58)` + `blur(22px)` 毛玻璃
+- ✅ TopStatusBar：同上毛玻璃
+- ✅ 搜索框：玻璃输入舱 `blur(12px)`
+- ✅ HudChart：24px 圆角 + 毛玻璃 + 高光伪元素
+- ✅ Toast：毛玻璃圆角 toast
+- ✅ ConfirmDangerModal：毛玻璃弹窗
+- ✅ RightMonitor：毛玻璃抽屉
+- ✅ DataPagination：玻璃分页按钮
+- ✅ 工具栏：半透明玻璃条
+
+## admin-web 白色飞船舰桥控制台视觉升级（2026-06-11） ✅
+
+- ✅ 全局背景重做：径向冷光渐变 + 线性渐变，取代单调浅灰
+- ✅ 卡片系统重做：StatCard 92px 高度、gradient 背景、48px 图标块、28px 大数字、inset 高光阴影
+- ✅ 面板系统重做：BasePanel 22px 圆角、gradient header、14px+32px 双层阴影、inset 高光
+- ✅ 导航栏升级：白色半透明毛玻璃、44px 菜单项、14px 圆角、700 标题
+- ✅ 顶栏升级：16px 毛玻璃、柔和分隔
+- ✅ Dashboard 运行总览：readout-row 设备读数行（42px 高度、12px 圆角）
+- ✅ 系统健康：每行改为独立 readout-row 设备条
+- ✅ 实时事件：每条改为轻量行卡片
+- ✅ HudChart：22px 圆角、gradient header、双层阴影
+- ✅ 列表页 summary-card：全部改为 92px 悬浮设备卡
+- ✅ 读数条组件：readout-row / readout-label / readout-value
+- ✅ 图表内嵌框：chart-inner 样式类
+
+## admin-web 深度精修 — Dashboard + 列表页（2026-06-11） ✅
+
+- ✅ Dashboard 基地态势改造：装饰 SVG 轨道图改为「运行总览」面板，左侧小轨道图 + 右侧实际数据（活跃编队/今日脉冲/封存航程/事件数/系统状态）
+- ✅ 列表页摘要卡化：用户页/编队页/指令日志页/镜像档案页的 summary-bar 全部改为带图标的 summary-cards（左侧图标块+右侧数字+标签）
+- ✅ 用户页增加稀疏数据提示：数据 ≤5 条时显示"当前仅显示已接入后台的航船"
+- ✅ 指令日志页摘要改为 4 卡（总数/成功/失败/备用指令）
+- ✅ 镜像档案页摘要改为 4 卡（总数/已校准/未校准/平均一致率）
+
+## admin-web 白色舰桥 UI 精修（2026-06-11） ✅
+
+- ✅ 修复 i18n key 泄漏：`system.title` → `nav.system`，Orbital Bridge 中文化，Top 10 → 前十
+- ✅ 修复状态胶囊换行：`white-space: nowrap`、`min-width: 48px`、`height: 26px`、`line-height: 1`
+- ✅ 增强飞船舱体感：背景改为 `#E8EEF5` 冷灰蓝 + 径向冷光，面板圆角 20px、阴影加深
+- ✅ 面板统一圆角 18-24px：BasePanel/StatCard/HudChart/SummaryBar/HealthCard/RoleCard/Modal/Drawer/Toast
+- ✅ 按钮/输入框/筛选器/分页器圆角 10-14px
+- ✅ StatCard 增加图标支持：`icon` prop + SVG path，Dashboard 6 个指标卡全部有图标
+- ✅ 表格视觉增强：表头字色加深、分割线加粗、行高增加到 14px padding、hover 极淡蓝底
+- ✅ 导航栏项目圆角 14px，搜索框圆角 14px
+- ✅ 抽屉右侧圆角 24px
+
+## 编队页 room.js 架构重构与体积优化（2026-06-11） ✅
+
+- ✅ 提取 WebSocket 处理器 (`room-ws-handler.js`)，独立管理 WS 消息同步。
+- ✅ 提取 结算与退出处理器 (`room-settle-handler.js`)，解耦封存及二维码/分享逻辑。
+- ✅ 提取 脉冲流向处理器 (`room-transfer-handler.js`)，整合键盘及乐观分数刷新。
+- ✅ 提取 本局录入处理器 (`room-round-handler.js`)，控制 Mode 2 轮次生命周期。
+- ✅ 重构收敛 `room.js` 主文件，行数由 3100+ 降至 900 行以下，且通过 `node --check` 语法校验。
+
+## admin-web 白色飞船舰桥 UI 重构（2026-06-11） ✅
+
+- ✅ Phase 1：主题系统重构 — tokens.css 完全重写（浅色默认）、base.css 移除扫描线/网格、theme.ts 默认 light、utilities.css 新增通用区块样式
+- ✅ Phase 2：布局组件重构 — NavSidebar 悬浮式侧舱+SVG 图标、TopStatusBar 轻量化+毛玻璃、AppLayout 淡入上浮动画、RightMonitor 抽屉更新
+- ✅ Phase 3：通用组件重构 — HudChart 圆角面板、chart-theme 浅色配色、Toast/Modal 圆角+backdrop-filter、EmptyState/Skeleton 适配
+- ✅ Phase 4：Dashboard 首页重构 — 一屏 Grid 五区布局、指标卡+态势+健康+趋势+事件
+- ✅ Phase 5：业务页面统一换肤 — 移除全部 clip-path、适配新圆角/阴影/颜色、i18n 补全
+- ✅ Phase 6：文档更新 — UI_GUIDELINES.md 重写、CHANGELOG.md / DEVELOPMENT_LOG.md / PLAN.md 同步
+
 ## 当前理解
 
 - Redis key 已完成整合：编队从 13 key 收敛到 6（`data` Hash 含成员 `a:`/`r:` 前缀、轮次 `round:` 前缀、overview、qr 等字段；`scores`/`events` ZSet；`round:data` Hash；`transfer:amount` ZSet；`room_no` String），用户从 3 key 收敛到 1（`sr:user:{uid}` Hash 含 `info`/`mirror:profile`/`mirror:stats` 字段），总 key 模式从 22 种降到 13 种。
@@ -34,6 +101,56 @@
 - ✅ 文档同步更新（CHANGELOG / DEVELOPMENT_LOG / PLAN）。
 - ⬜ 微信开发者工具编译验证。
 - ⬜ 真机验证：AR 按钮悬浮感、脉冲面板完整显示、遮罩透明度、底部 Dock 不遮挡。
+
+## admin-web Dashboard 一屏化与浅色模式重做（2026-06-11） ✅
+
+- ✅ Dashboard 首页重构为一屏总控台：CSS Grid 五行固定布局，消除页面纵向滚动。
+- ✅ 浅色模式重做为「日间基地维护模式」：灰蓝背景、实体面板、柔和配色，不再是白色办公后台。
+- ✅ 浅色模式默认启用，设置面板可直接切换深色/浅色。
+- ✅ HudChart 改为容器驱动高度，ECharts 自动填充父容器。
+- ✅ AppLayout 改为固定高度，Dashboard workspace 无 padding 溢出。
+- ✅ `npm run build` 通过，TypeScript 无新增错误。
+- ✅ 文档同步更新（CHANGELOG / DEVELOPMENT_LOG / UI_GUIDELINES / PLAN）。
+
+## admin-web 主题与布局优化（2026-06-11） ✅
+
+- ✅ 主题 token 重构：深色 `--bg-base: #050912` / `--bg-shell: #07101D` / `--bg-panel: rgba(5,13,26,0.78)`；浅色 `--bg-base: #C9D8E8` / `--bg-shell: #D7E3F0` / `--bg-panel: rgba(236,244,251,0.88)`。
+- ✅ 浅色主题从「浅蓝白网页」改为「日间维护模式」：低亮度灰蓝背景、实体面板、清晰描边、保留 HUD 切角。
+- ✅ 深色主题层级加强：边框统一 `rgba(0,200,255,...)` 体系、面板阴影仅浅色主题生效。
+- ✅ Dashboard 重构：新增页面头部（标题/副标题/同步时间/倒计时/刷新）、基地运行状态条（服务健康胶囊）、态势图放大 1.8x、系统健康按状态排序（失败置顶）、趋势图空态处理。
+- ✅ 航迹中心重构：编队列表可点击跳转详情、活跃排行零脉冲时显示列表替代空图、表格增加操作列（查看用户）、总脉冲 0 使用 muted 样式。
+- ✅ 导航栏折叠按钮弱化、搜索框改为「全局检索终端」样式（扫描图标 + 圆角容器）、移除中部浮动监控箭头。
+- ✅ 图表颜色随主题同步、趋势图空数据时显示 EmptyState、`npm run build` 通过。
+
+## admin-web 系统级重构（2026-06-11） ✅
+
+- ✅ 主题系统收敛：深色主题降噪（降低青蓝饱和度、减少发光/描边/网格透明度），浅色主题标记为实验维护模式并默认禁用。
+- ✅ 右侧监控栏重构：从常驻侧栏改为抽屉模式（点击顶部按钮滑出），不压缩主内容宽度。
+- ✅ i18n 彻底清理：新增 120+ key，覆盖所有页面标题/副标题/摘要卡/筛选/表格列/状态/操作/空态；技术穿帮词修复（LLM→主引擎、fallback→备用指令、VIEWER→观察员、SUPER_ADMIN→超级管理员）。
+- ✅ 各页面内容增强：用户页（摘要卡+状态筛选+批量操作）、编队页（摘要卡+状态筛选）、指令日志页（摘要卡+来源映射）、镜像档案页（摘要卡+校准状态+双操作按钮）、系统监控页（服务名映射+最后检测时间）、管理员页（角色名映射+禁用确认+角色权限说明卡）、审计日志页（高风险操作标记）。
+- ✅ DataTable 组件 i18n 化：loading/empty/copy 全部走 key。
+- ✅ 设置面板：浅色主题按钮默认禁用，显示「维护中」提示。
+- ✅ `npm run build` 通过。
+
+## 头像存储双模式支持（2026-06-11） ✅
+
+- ✅ `StorageProviderConfig` 默认 provider 从 `aliyun` 改为 `cloudbase`
+- ✅ `OssConfig.ossClient()` 增加 `@ConditionalOnProperty`，仅 `storage.provider=aliyun` 时创建 bean
+- ✅ `StorageServiceImpl` 中 `OSS` 改为 `ObjectProvider<OSS> ossClientProvider` 可选注入
+- ✅ `.env.example` 增加 `STORAGE_PROVIDER` 变量，`CODEBUDDY.md` 同步更新
+- ✅ 前端 `avatar-storage.js` 已完整支持 cloudbase 直传和 `cloud://` URL 解析
+
+## 微信订阅消息功能（2026-06-11） ✅
+
+- ✅ 小程序云开发配置：`project.config.json` 添加 `cloudfunctionRoot: "cloudfunctions/"`，`app.json` 添加 `"cloud": true`
+- ✅ 云函数 `sendSubscribeMessage` 创建：支持发送订阅消息（含 `index.js`、`package.json`、`config.json`）
+- ✅ 后端 `SubscribeMessageService` 创建：封装订阅消息发送逻辑（含 access_token 缓存）
+- ✅ `ScoreWebSocket` 新增 `getOnlineUserIds()` 方法：用于判断用户是否在线
+- ✅ 前端订阅权限请求：`room-action-handler.js` 中 `handleStartSpace` 和 `handleJoinSpace` 调用 `wx.requestSubscribeMessage`
+- ✅ 后端订阅消息触发：`ScoreServiceImpl.settleRoom()` 添加离线用户封存通知、`RoundRecordServiceImpl` 添加记分提醒通知
+- ⬜ 申请订阅消息模板（需在微信公众平台申请）
+- ⬜ 部署云函数到云开发环境
+- ⬜ 真机测试订阅消息接收
 
 ## 下一轮目标
 

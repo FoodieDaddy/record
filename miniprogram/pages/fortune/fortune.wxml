@@ -323,4 +323,7 @@
     bind:confirm="onConfirmRegenerate"
   />
 
+  <!-- 系统全局左上角提示 -->
+  <sr-toast id="srToast" reduceMotion="{{!animationEnabled}}" />
+
 </scroll-view>

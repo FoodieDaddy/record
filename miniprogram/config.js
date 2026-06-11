@@ -93,7 +93,6 @@ config.getWsUrl = function (roomId) {
   let base;
 
   if (mode === 'anyservice') {
-    // AnyService WebSocket 需真机验证后填写 wsUrl
     base = config.anyservice.wsUrl || config.wsUrl;
   } else if (mode === 'prod') {
     base = config.wsUrl;

@@ -22,9 +22,16 @@ const pulseHandler = {
     return { ok: true };
   },
 
-  /** 将后端错误映射为舰载终端文案 */
+  /** 将后端错误映射为舰载终端文案（优先使用错误码，降级用文案匹配） */
   normalizeRoomActionError(err) {
+    const code = err && err.code;
     const msg = (err && err.message) || '';
+    // 优先按错误码匹配
+    if (code === 4043 || code === 4042 || code === 4607 || code === 4608) return '航程已封存，无法继续记录';
+    if (code === 4041) return '编队链路已断开，请返回后重试';
+    if (code === 4031) return '目标航船已断开';
+    if (code === 4201 || code === 4202 || code === 4203) return '请输入脉冲数值';
+    // 降级：按文案匹配
     if (msg.includes('已封存') || msg.includes('已关闭') || msg.includes('不可重复')) return '航程已封存，无法继续记录';
     if (msg.includes('不存在')) return '编队链路已断开，请返回后重试';
     if (msg.includes('目标') && msg.includes('不存在')) return '目标航船已断开';

@@ -117,3 +117,8 @@ logging:
   level:
     root: INFO
     com.smartrecord: INFO
+
+jetcache:
+  remote:
+    default:
+      uri: redis://${SPRING_REDIS_PASSWORD}@${SPRING_REDIS_HOST}:${SPRING_REDIS_PORT}

@@ -1,12 +1,25 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import NavSidebar from './NavSidebar.vue'
 import TopStatusBar from './TopStatusBar.vue'
 import RightMonitor from './RightMonitor.vue'
 import BottomStatus from './BottomStatus.vue'
+import ErrorBoundary from '@/components/feedback/ErrorBoundary.vue'
 import { useAppStore } from '@/stores/app'
+import { useGlobalShortcuts } from '@/composables/useGlobalShortcuts'
+import { useRoute } from 'vue-router'
 import { RouterView } from 'vue-router'
+import { computed } from 'vue'
 
 const app = useAppStore()
+const route = useRoute()
+
+const isDashboard = computed(() => route.path === '/dashboard')
+
+// 全局快捷键：Esc 关闭右侧监控面板
+useGlobalShortcuts([
+  { key: 'Escape', handler: () => { if (app.rightPanelOpen) app.toggleRightPanel() } },
+])
 </script>
 
 <template>
@@ -14,68 +27,52 @@ const app = useAppStore()
     <NavSidebar />
     <div class="app-main" :class="{ 'sidebar-collapsed': app.sidebarCollapsed }">
       <TopStatusBar />
-      <div class="app-content">
-        <div class="app-workspace">
+      <div class="app-workspace" :class="{ 'app-workspace--dashboard': isDashboard }">
+        <ErrorBoundary>
           <RouterView v-slot="{ Component }">
             <transition name="page-fade" mode="out-in">
               <component :is="Component" />
             </transition>
           </RouterView>
-        </div>
-        <RightMonitor v-if="app.rightPanelOpen" />
+        </ErrorBoundary>
       </div>
-      <button
-        v-if="!app.rightPanelOpen"
-        class="monitor-toggle"
-        @click="app.toggleRightPanel()"
-      >
-        &#8249;
-      </button>
       <BottomStatus />
     </div>
+    <RightMonitor />
   </div>
 </template>
 
 <style scoped>
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity .15s ease;
+  transition: opacity .18s ease, transform .18s ease;
 }
-.page-fade-enter-from,
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
 .page-fade-leave-to {
   opacity: 0;
 }
-.app-layout { min-height: 100vh; }
+.app-layout { height: 100vh; overflow: hidden; }
 .app-main {
   margin-left: var(--sidebar-width);
   transition: margin-left .2s;
-  display: flex; flex-direction: column; min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-base);
 }
 .app-main.sidebar-collapsed { margin-left: var(--sidebar-collapsed); }
-.app-content { display: flex; flex: 1; }
-.app-workspace { flex: 1; padding: 24px; min-width: 0; }
-.monitor-toggle {
-  position: fixed;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 40px;
-  background: rgba(10,132,255,0.08);
-  border: 1px solid rgba(10,132,255,0.15);
-  border-right: none;
-  border-radius: 4px 0 0 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  z-index: 50;
-  transition: background .15s;
+.app-workspace {
+  flex: 1;
+  min-height: 0;
+  padding: 24px 28px;
+  overflow-y: auto;
 }
-.monitor-toggle:hover {
-  background: rgba(10,132,255,0.15);
-  color: var(--text-secondary);
+.app-workspace--dashboard {
+  padding: 20px 24px;
+  overflow: hidden;
 }
 </style>

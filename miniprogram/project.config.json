@@ -45,6 +45,7 @@
     "filterUnused": false
   },
   "compileType": "miniprogram",
+  "cloudfunctionRoot": "cloudfunctions/",
   "libVersion": "3.16.1",
   "appid": "wx9d93ece2b67f812b",
   "projectname": "smartrecord",

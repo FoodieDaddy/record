@@ -27,8 +27,7 @@ public interface ScoreService {
     /** 房间计分流水（分页） */
     PageResult<TransferScoreResp> getRoomTransfers(Long roomId, int page, int size);
 
-    /** 常用转出金额推荐 */
-    TransferAmountSuggestionResp getTransferAmountSuggestions(Long userId, Long roomId);
+
 
     /** 多场趋势数据 */
     TrendResp getTrend(Long userId, int limit);
@@ -41,4 +40,12 @@ public interface ScoreService {
 
     /** 积分流水终端数据 */
     YieldLogResp getYieldLog(Long userId);
+
+    /**
+     * 一键撤销最后一笔计分/最后一轮生效轮次（仅限房主）。
+     *
+     * @param userId 操作用户 ID（房主）
+     * @param roomId 房间 ID
+     */
+    void undoLastScore(Long userId, Long roomId);
 }

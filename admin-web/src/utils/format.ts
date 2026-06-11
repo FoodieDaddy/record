@@ -1,22 +1,22 @@
-export function formatNumber(n: number): string {
-  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
-  return n.toLocaleString()
+/**
+ * 格式化工具
+ */
+export function formatNumber(n: number | string | null | undefined): string {
+  if (n == null) return '-'
+  const num = typeof n === 'string' ? parseInt(n, 10) : n
+  if (isNaN(num)) return String(n)
+  return num.toLocaleString()
 }
 
-export function formatTime(date: string | Date): string {
-  const d = new Date(date)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-export function formatDateTime(date: string | Date): string {
-  const d = new Date(date)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms/1000).toFixed(1)}s`
-  return `${(ms/60000).toFixed(1)}min`
+export function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '-'
+  const now = Date.now()
+  const then = new Date(dateStr.replace(' ', 'T')).getTime()
+  if (isNaN(then)) return dateStr.length > 10 ? dateStr.substring(0, 16) : dateStr
+  const diff = Math.floor((now - then) / 1000)
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} 天前`
+  return dateStr.length > 10 ? dateStr.substring(0, 10) : dateStr
 }

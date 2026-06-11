@@ -333,121 +333,215 @@
   transition: opacity 0.15s;
 }
 
-.transfer-anim-particle {
+.transfer-anim-beam-wrapper {
   position: absolute;
-  width: 16px;
-  height: 16px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  will-change: transform, left, top;
+  justify-content: center;
+  will-change: transform, opacity;
+  transform-origin: center center;
+  /* 初始不可见，使用计算好的角度 */
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0) rotate(var(--angle, 0deg));
 }
 
-.transfer-anim-trail {
+.beam-core {
+  width: 120rpx;
+  height: 6rpx;
+  background: linear-gradient(90deg, transparent 0%, #fff 80%, rgba(10, 132, 255, 0.8) 100%);
+  border-radius: 6rpx;
+  box-shadow: 0 0 12rpx 4rpx rgba(10, 132, 255, 0.9),
+              0 0 24rpx 8rpx rgba(10, 132, 255, 0.4);
+}
+
+.beam-trail {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  right: 60rpx; /* 跟随在核心后面 */
+  width: 200rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent 0%, rgba(10, 132, 255, 0.6) 100%);
+  filter: blur(2px);
+}
+
+.beam-rings {
+  position: absolute;
+  right: -10rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid rgba(0, 200, 255, 0.8);
+  box-shadow: 0 0 10rpx rgba(0, 200, 255, 0.6);
+  transform: scaleY(0.4) rotate(90deg); /* 让圆环垂直于光束 */
+}
+
+/* 终点命中反馈（冲击波 Ripple） */
+.impact-ripple-container {
+  position: absolute;
+  width: 2rpx;
+  height: 2rpx;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  will-change: transform, left, top;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 140;
 }
 
-.transfer-anim-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #6aabff, rgba(10, 132, 255, 0.5));
-  box-shadow: 0 0 16px 6px rgba(10, 132, 255, 0.7),
-              0 0 32px 12px rgba(10, 132, 255, 0.4),
-              0 0 48px 20px rgba(10, 132, 255, 0.2);
-}
-
-.transfer-anim-dot-trail {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(10, 132, 255, 0.6), rgba(10, 132, 255, 0.2));
-  box-shadow: 0 0 10px 4px rgba(10, 132, 255, 0.4);
-}
-
-.dot-trail-2 {
-  width: 8px;
-  height: 8px;
-  background: radial-gradient(circle, rgba(120, 180, 255, 0.5), rgba(10, 132, 255, 0.1));
-  box-shadow: 0 0 8px 3px rgba(10, 132, 255, 0.3);
-}
-
-.transfer-anim-amount {
+.impact-ripple-wave {
   position: absolute;
-  top: -36px;
-  white-space: nowrap;
-  font-size: 36rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(0, 255, 255, 0.8);
+  opacity: 0;
+  transform: scale(0.1);
+  box-shadow: inset 0 0 20rpx rgba(0, 255, 255, 0.4),
+              0 0 20rpx rgba(0, 255, 255, 0.6);
+}
+
+.impact-ripple-hex {
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  background: radial-gradient(circle, rgba(10, 132, 255, 0.4) 0%, transparent 60%);
+  opacity: 0;
+  transform: scale(0.1) rotate(0deg);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+/* 终点命中飘字（Decryption Float Text） */
+.impact-float-text {
+  position: absolute;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 48rpx;
   font-weight: 800;
-  color: var(--text-primary);
-  text-shadow: 0 0 12px rgba(10, 132, 255, 0.9),
-               0 0 24px rgba(10, 132, 255, 0.5),
-               0 2px 4px rgba(0, 0, 0, 0.3);
-  font-variant-numeric: tabular-nums;
+  color: #00ffcc;
+  text-shadow: 0 0 10rpx rgba(0, 255, 204, 0.8),
+               0 4rpx 8rpx rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transform: translate(-50%, 0) scale(0.5);
+  pointer-events: none;
+  z-index: 160;
 }
 
-/* CSS 驱动的粒子飞行动画 */
-.transfer-anim-particle.is-flying {
-  animation: particleFlight 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+/* ===== 动画绑定 ===== */
+.transfer-anim-beam-wrapper.is-flying {
+  /* 波纹先扩散，激光延迟 300ms 触发，并变慢（1200ms）以抵消网络延迟 */
+  animation: warpBeamFlight 1200ms cubic-bezier(0.4, 0.1, 0.2, 1) 300ms forwards;
 }
 
-.transfer-anim-trail.is-flying {
-  animation: particleTrail 900ms var(--sr-ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+.launch-ripple-container {
+  position: absolute;
+  width: 2rpx;
+  height: 2rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 130;
 }
 
-.transfer-anim-trail.is-flying.trail-1 {
-  animation-delay: 80ms;
+.launch-ripple-container.is-active .launch-ripple-wave {
+  animation: launchRippleExpand 600ms ease-out forwards;
 }
 
-.transfer-anim-trail.is-flying.trail-2 {
-  animation-delay: 160ms;
+.launch-ripple-wave {
+  position: absolute;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(0, 200, 255, 0.9);
+  opacity: 0;
+  transform: scale(0.1);
+  box-shadow: inset 0 0 20rpx rgba(0, 200, 255, 0.5),
+              0 0 20rpx rgba(0, 200, 255, 0.7);
+}
+
+.impact-ripple-container.is-impacting .impact-ripple-wave {
+  animation: rippleExpand 500ms ease-out forwards;
+}
+
+.impact-ripple-container.is-impacting .impact-ripple-hex {
+  animation: hexBurst 600ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+.impact-float-text.is-floating {
+  animation: floatUpDecrypt 1000ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 
 .transfer-anim-flash.is-active {
   animation: particleFlash 120ms ease-out forwards;
 }
 
-@keyframes particleFlight {
+/* ===== 关键帧定义 ===== */
+@keyframes warpBeamFlight {
   0% {
     opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.5);
+    transform: translate3d(0, 0, 0) scaleX(0.1) rotate(var(--angle));
   }
-  11% {
+  15% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(0.8);
+    transform: translate3d(calc(var(--dx) * 0.1), calc(var(--dy) * 0.1), 0) scaleX(1.5) rotate(var(--angle));
   }
-  70% {
+  80% {
     opacity: 1;
-    transform: translate3d(calc(var(--dx, 0px) * 0.7), calc(var(--dy, 0px) * 0.7 + var(--arc, -80px) * 0.4), 0) scale(1.2);
+    transform: translate3d(calc(var(--dx) * 0.9), calc(var(--dy) * 0.9), 0) scaleX(1) rotate(var(--angle));
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.6);
+    transform: translate3d(var(--dx), var(--dy), 0) scaleX(0.2) rotate(var(--angle));
   }
 }
 
-@keyframes particleTrail {
+@keyframes rippleExpand {
   0% {
-    opacity: 0;
-    transform: translate3d(0, 0, 0) scale(0.4);
-  }
-  15% {
-    opacity: 0.6;
-    transform: translate3d(0, 0, 0) scale(0.5);
-  }
-  70% {
-    opacity: 0.4;
-    transform: translate3d(calc(var(--dx, 0px) * 0.65), calc(var(--dy, 0px) * 0.65 + var(--arc, -80px) * 0.5), 0) scale(0.5);
+    opacity: 1;
+    transform: scale(0.1);
+    border-width: 8rpx;
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--dx, 0px), var(--dy, 0px), 0) scale(0.3);
+    transform: scale(1.5);
+    border-width: 0rpx;
   }
+}
+
+@keyframes hexBurst {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.2) rotate(-30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2) rotate(30deg);
+  }
+}
+
+@keyframes floatUpDecrypt {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.5);
+    filter: blur(4rpx);
+    color: #fff;
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -20rpx) scale(1.1);
+    filter: blur(0);
+    color: #00ffcc;
+  }
+  70% {
+    opacity: 0.8;
+    transform: translate(-50%, -60rpx) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -80rpx) scale(0.9);
+  }
+}
+
+@keyframes launchRippleExpand {
+  0% { opacity: 1; transform: scale(0.1); border-width: 10rpx; }
+  100% { opacity: 0; transform: scale(1.5); border-width: 0rpx; }
 }
 
 @keyframes particleFlash {

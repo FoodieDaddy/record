@@ -55,7 +55,7 @@
 }
 
 /* 头像主体 */
-.ha__img {
+.ha__img, .ha__img-fallback {
   position: absolute;
   left: 10%;
   top: 10%;
@@ -63,6 +63,20 @@
   height: 80%;
   border-radius: 50%;
 }
+
+.ha__img-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  font-size: 32rpx;
+  text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.2);
+}
+
+.ha--sm .ha__img-fallback { font-size: 24rpx; }
+.ha--xs .ha__img-fallback { font-size: 20rpx; }
+.ha--lg .ha__img-fallback { font-size: 48rpx; }
 
 /* 玻璃面罩 */
 .ha__visor {

@@ -51,12 +51,7 @@ async function uploadAvatar(tempFilePath) {
  * CloudBase 直传
  */
 async function _uploadViaCloudBase(tempFilePath) {
-  const app = getApp();
-  const userId = app.globalData.userId || 'anon';
-  const ts = Date.now();
-  const rand = Math.random().toString(36).slice(2, 8);
-  // 路径格式：users/{userId}/avatar/{timestamp}_{random}.jpg
-  const cloudPath = `users/${userId}/avatar/${ts}_${rand}.jpg`;
+  const cloudPath = `images/${Date.now()}.png`;
 
   return new Promise((resolve, reject) => {
     wx.cloud.uploadFile({

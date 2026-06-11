@@ -2,6 +2,7 @@ package com.smartrecord.controller.admin;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smartrecord.common.Result;
+import com.smartrecord.dto.admin.AdminFormationResp;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.service.admin.AdminFormationService;
@@ -22,16 +23,18 @@ public class AdminFormationController {
 
     @Operation(summary = "编队列表")
     @GetMapping
-    public Result<Page<Room>> list(
+    public Result<?> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return Result.ok(formationService.listFormations(page, size));
+        Page<Room> roomPage = formationService.listFormations(page, size);
+        return Result.ok(roomPage.convert(AdminFormationResp::from));
     }
 
     @Operation(summary = "编队详情")
     @GetMapping("/{id}")
-    public Result<Room> detail(@PathVariable Long id) {
-        return Result.ok(formationService.getDetail(id));
+    public Result<AdminFormationResp> detail(@PathVariable Long id) {
+        Room room = formationService.getDetail(id);
+        return Result.ok(AdminFormationResp.from(room));
     }
 
     @Operation(summary = "编队成员列表")

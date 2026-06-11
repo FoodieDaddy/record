@@ -1,26 +1,28 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useLocaleStore } from '@/stores/locale'
 
 const route = useRoute()
 const router = useRouter()
+const locale = useLocaleStore()
 
-const routeNames: Record<string, string> = {
-  'dashboard': '基地总览',
-  'users': '航船用户',
-  'user-detail': '用户详情',
-  'formations': '任务编队',
-  'formation-detail': '编队详情',
-  'traces': '航迹中心',
-  'directive-logs': '指令日志',
-  'directive-detail': '指令详情',
-  'mirrors': '镜像档案',
-  'mirror-detail': '镜像详情',
-  'system-health': '系统监控',
-  'system-alerts': '告警中心',
-  'admins': '管理员',
-  'roles': '角色权限',
-  'audit': '审计日志',
+const routeNameKeys: Record<string, string> = {
+  'dashboard': 'nav.overview',
+  'users': 'nav.users',
+  'user-detail': 'user.title',
+  'formations': 'nav.formations',
+  'formation-detail': 'formation.title',
+  'traces': 'nav.traces',
+  'directive-logs': 'nav.directives',
+  'directive-detail': 'nav.directives',
+  'mirrors': 'nav.mirrors',
+  'mirror-detail': 'nav.mirrors',
+  'system-health': 'nav.system',
+  'system-alerts': 'nav.system',
+  'admins': 'nav.admins',
+  'roles': 'nav.admins',
+  'audit': 'nav.audit',
 }
 
 const crumbs = computed(() => {
@@ -28,21 +30,20 @@ const crumbs = computed(() => {
   const matched = route.matched
 
   for (const m of matched) {
-    if (m.name && routeNames[m.name as string]) {
+    if (m.name && routeNameKeys[m.name as string]) {
       items.push({
-        name: routeNames[m.name as string],
+        name: locale.t(routeNameKeys[m.name as string]),
         path: m.path,
         clickable: m.name !== route.name,
       })
     }
   }
 
-  // 当前路由未在 matched 中时追加
-  if (route.name && routeNames[route.name as string]) {
+  if (route.name && routeNameKeys[route.name as string]) {
     const last = items[items.length - 1]
-    if (!last || last.name !== routeNames[route.name as string]) {
+    if (!last || last.name !== locale.t(routeNameKeys[route.name as string])) {
       items.push({
-        name: routeNames[route.name as string],
+        name: locale.t(routeNameKeys[route.name as string]),
         path: route.path,
         clickable: false,
       })

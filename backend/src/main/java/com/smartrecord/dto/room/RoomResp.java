@@ -73,5 +73,20 @@ public class RoomResp {
 
         @Schema(description = "最终净胜分（仅历史房间有值）")
         private Integer finalScore;
+
+        @Schema(description = "当前装备的特殊标识称号徽章")
+        private String equippedBadge;
+
+        @Schema(description = "当前装备的头像框皮肤特效")
+        private String equippedAvatarBorder;
+
+        @Schema(description = "MBTI战绩人格称号", example = "冷静型控场者")
+        private String mbtiTitle;
+
+        @Schema(description = "MBTI编码", example = "1")
+        private Integer mbtiCode;
+
+        @Schema(description = "五维雷达战绩统计值")
+        private java.util.Map<String, Object> radarStats;
     }
 }

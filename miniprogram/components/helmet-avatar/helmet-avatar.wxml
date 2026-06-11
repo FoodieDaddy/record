@@ -2,11 +2,15 @@
   <view class="ha__glow"></view>
   <view class="ha__shell">
     <image
+      wx:if="{{imgSrc}}"
       class="ha__img"
-      src="{{imgSrc || defaultAvatar}}"
+      src="{{imgSrc}}"
       mode="aspectFill"
       binderror="onImgError"
     />
+    <view wx:else class="ha__img-fallback" style="background-color: {{fallbackColor || '#30D158'}}">
+      <text>{{fallbackChar || '?'}}</text>
+    </view>
     <view class="ha__visor"></view>
     <view class="ha__reflection"></view>
     <view class="ha__frame"></view>

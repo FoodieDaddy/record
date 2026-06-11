@@ -81,7 +81,7 @@ function speakTransfer(fromName, toName, amount) {
   const settings = getSettings();
   if (DEBUG_TTS) console.log('[TTS] speakTransfer:', fromName, toName, amount, 'enabled:', settings.enabled);
   if (!settings.enabled) return;
-  const text = `${toName} 收到 ${fromName} 的 ${amount} 分`;
+  const text = `${toName} 收到 ${fromName} 的 ${amount} 脉冲`;
   _queue.push(text);
   if (!_speaking) _dequeue();
 }

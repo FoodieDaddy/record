@@ -2,6 +2,7 @@ package com.smartrecord.controller.admin;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smartrecord.common.Result;
+import com.smartrecord.dto.admin.AdminMirrorResp;
 import com.smartrecord.entity.UserMirrorProfile;
 import com.smartrecord.service.admin.AdminMirrorService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,15 +20,17 @@ public class AdminMirrorController {
 
     @Operation(summary = "镜像档案列表")
     @GetMapping
-    public Result<Page<UserMirrorProfile>> list(
+    public Result<?> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return Result.ok(mirrorService.listProfiles(page, size));
+        Page<UserMirrorProfile> profilePage = mirrorService.listProfiles(page, size);
+        return Result.ok(profilePage.convert(AdminMirrorResp::from));
     }
 
     @Operation(summary = "镜像档案详情")
     @GetMapping("/{userId}")
-    public Result<UserMirrorProfile> detail(@PathVariable Long userId) {
-        return Result.ok(mirrorService.getDetail(userId));
+    public Result<AdminMirrorResp> detail(@PathVariable Long userId) {
+        UserMirrorProfile profile = mirrorService.getDetail(userId);
+        return Result.ok(AdminMirrorResp.from(profile));
     }
 }

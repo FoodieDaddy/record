@@ -55,21 +55,22 @@ class ScoreWS {
     const config = require('../config');
     // token 通过 Sec-WebSocket-Protocol 头传输，不放入 URL，避免日志/工具泄露
     // AnyService WebSocket 接入需在真机环境中单独验证，当前走 config 统一配置
-    const wsUrl = config.getWsUrl(roomId);
     const token = app.globalData.token;
+    const wsUrl = config.getWsUrl(roomId);
 
     debugLog('[score-ws] connecting roomId:', roomId);
-    this.socketTask = wx.connectSocket({
-      url: wsUrl,
-      // 后端已支持 Sec-WebSocket-Protocol: access_token.<jwt> 认证
-      protocols: ['access_token.' + token],
-      success: () => debugLog('[WS] 连接中...'),
-      fail: (err) => {
-        debugWarn('[WS] 连接失败', err);
-        this.isConnecting = false;
-        this._emit('error', err);
-      }
-    });
+    const connectOptions = { url: wsUrl };
+    // token 通过 Sec-WebSocket-Protocol 头传输，不在 URL 中暴露
+    if (token) {
+      connectOptions.protocols = ['access_token.' + token];
+    }
+    connectOptions.success = () => debugLog('[WS] 连接中...');
+    connectOptions.fail = (err) => {
+      debugWarn('[WS] 连接失败', err);
+      this.isConnecting = false;
+      this._emit('error', err);
+    };
+    this.socketTask = wx.connectSocket(connectOptions);
 
     this.socketTask.onOpen(() => {
       debugLog('[WS] 已连接');
@@ -78,6 +79,13 @@ class ScoreWS {
       this._lastMessageTime = Date.now();
       this._startHeartbeat();
       this._emit('open');
+      
+      // 上报连接成功状态
+      try {
+        const behaviorLogger = require('./behavior-logger');
+        behaviorLogger.track('WEBSOCKET_STATUS', { status: 'OPEN', roomId: this.roomId });
+      } catch (e) {}
+
       // 重连成功时触发 reconnected 事件，通知页面主动同步状态
       if (this._reconnecting) {
         this._reconnecting = false;
@@ -101,6 +109,13 @@ class ScoreWS {
       this.isConnecting = false;
       this.socketTask = null;
       this._stopHeartbeat();
+
+      // 上报连接关闭状态
+      try {
+        const behaviorLogger = require('./behavior-logger');
+        behaviorLogger.track('WEBSOCKET_STATUS', { status: 'CLOSE', roomId: this.roomId, code: res ? res.code : '' });
+      } catch (e) {}
+
       // 被服务器踢出（封禁/注销）
       if (res && res.code === 4003) {
         this._emit('kicked', res);
@@ -118,6 +133,13 @@ class ScoreWS {
       debugWarn('[WS] 错误', err);
       this.isConnected = false;
       this.isConnecting = false;
+      
+      // 上报连接异常状态
+      try {
+        const behaviorLogger = require('./behavior-logger');
+        behaviorLogger.track('WEBSOCKET_STATUS', { status: 'ERROR', roomId: this.roomId, errMsg: err.errMsg || String(err) });
+      } catch (e) {}
+
       this._emit('error', err);
     });
   }
@@ -176,6 +198,12 @@ class ScoreWS {
   _scheduleReconnect() {
     if (!this._reconnectCount) this._reconnectCount = 0;
     this._reconnectCount++;
+
+    // 上报重连尝试状态
+    try {
+      const behaviorLogger = require('./behavior-logger');
+      behaviorLogger.track('WEBSOCKET_STATUS', { status: 'RECONNECT_ATTEMPT', roomId: this.roomId, count: this._reconnectCount });
+    } catch (e) {}
 
     // 最多重连 5 次
     if (this._reconnectCount > 5) {
