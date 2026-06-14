@@ -8,6 +8,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!token.value)
 
+  /** 检查是否拥有指定角色（SUPER_ADMIN 拥有所有权限） */
+  function hasRole(required: string): boolean {
+    if (!role.value) return false
+    if (role.value === 'SUPER_ADMIN') return true
+    return role.value === required
+  }
+
+  /** 检查是否拥有任一角色 */
+  function hasAnyRole(roles: string[]): boolean {
+    if (!role.value) return false
+    if (role.value === 'SUPER_ADMIN') return true
+    return roles.includes(role.value)
+  }
+
   function setAuth(data: { token: string; username: string; role: string }) {
     token.value = data.token
     username.value = data.username
@@ -26,5 +40,5 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('admin_role')
   }
 
-  return { token, username, role, isLoggedIn, setAuth, logout }
+  return { token, username, role, isLoggedIn, setAuth, logout, hasRole, hasAnyRole }
 })

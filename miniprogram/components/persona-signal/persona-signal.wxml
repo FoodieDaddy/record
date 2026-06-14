@@ -1,7 +1,6 @@
 <view class="behavior-signal">
   <view class="signal-header">
     <view class="signal-title">本轮行为信号</view>
-    <view class="signal-kicker">SIGNAL</view>
     <view class="signal-line"></view>
   </view>
 

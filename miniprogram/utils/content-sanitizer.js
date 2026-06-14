@@ -34,7 +34,7 @@ var DIRECTIVE_REPLACEMENTS = [
   [new RegExp('必' + '胜', 'g'), '稳定执行'],
   [new RegExp('稳' + '赚', 'g'), '稳态执行'],
   [/校准者/g, '今日指令'],
-  [/THE CALIBRATOR/gi, 'DIRECTIVE'],
+  [/THE CALIBRATOR/gi, '今日指令'],
   [/LOW-NOISE/gi, '低噪'],
   [/MEDIUM-NOISE/gi, '中噪'],
   [/HIGH-NOISE/gi, '高噪'],

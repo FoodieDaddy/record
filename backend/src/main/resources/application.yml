@@ -39,6 +39,12 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: alpha
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
 app:
   room:
     no-charset: "ABCDEFGHJKMNPQRSTUVWXYZ23456789"

@@ -19,6 +19,7 @@ const props = defineProps<{
 const themeStore = useThemeStore()
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
+let resizeObserver: ResizeObserver | null = null
 
 function buildDefaultOption() {
   const colors = getChartColors(themeStore.theme)
@@ -80,12 +81,16 @@ function handleResize() {
 
 onMounted(() => {
   initChart()
-  window.addEventListener('resize', handleResize)
+  if (chartRef.value) {
+    resizeObserver = new ResizeObserver(() => handleResize())
+    resizeObserver.observe(chartRef.value)
+  }
 })
 
 onUnmounted(() => {
+  resizeObserver?.disconnect()
+  resizeObserver = null
   chart?.dispose()
-  window.removeEventListener('resize', handleResize)
 })
 
 watch(() => props.option, (opt) => {
@@ -112,14 +117,14 @@ watch(() => themeStore.theme, () => {
 <style scoped>
 .hud-chart {
   position: relative;
-  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.58));
-  border: 1px solid rgba(255,255,255,0.38);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-glass);
   border-radius: 24px;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  box-shadow: 0 18px 42px rgba(31,52,88,0.09), 0 4px 14px rgba(31,52,88,0.05), inset 0 1px 0 rgba(255,255,255,0.78);
+  box-shadow: var(--panel-shadow);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   overflow: hidden;
@@ -139,13 +144,13 @@ watch(() => themeStore.theme, () => {
   justify-content: space-between;
   height: 52px;
   padding: 0 20px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.22));
-  border-bottom: 1px solid rgba(255,255,255,0.30);
+  background: var(--panel-header-bg);
+  border-bottom: 1px solid var(--panel-header-border);
 }
 .hud-chart__title {
   font-size: 14px;
   font-weight: 700;
-  color: #2A3442;
+  color: var(--text-main);
 }
 .hud-chart__canvas-wrap {
   flex: 1;

@@ -368,8 +368,8 @@ Component({
 
       // ===== 组装文本 =====
       const timeStr = this._fmtTime(ts);
-      // 行1: TIME 11:02  结余 -55
-      const labelTime = 'TIME';
+      // 行1: 时间 11:02  结余 -55
+      const labelTime = '时间';
       const text1b = timeStr;
       const labelBal = '结余';
       const text1d = String(currentScore);
@@ -454,7 +454,7 @@ Component({
       ctx.save();
       ctx.textBaseline = 'top';
 
-      // 第一行：TIME 11:02  结余 -55
+      // 第一行：时间 11:02  结余 -55
       let cx = boxX + padX;
       const y1 = boxY + padY;
 

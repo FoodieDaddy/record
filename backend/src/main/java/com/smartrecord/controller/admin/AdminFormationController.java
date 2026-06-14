@@ -25,8 +25,10 @@ public class AdminFormationController {
     @GetMapping
     public Result<?> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Page<Room> roomPage = formationService.listFormations(page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status) {
+        Page<Room> roomPage = formationService.listFormations(page, size, keyword, status);
         return Result.ok(roomPage.convert(AdminFormationResp::from));
     }
 
@@ -41,5 +43,19 @@ public class AdminFormationController {
     @GetMapping("/{id}/members")
     public Result<List<RoomMember>> members(@PathVariable Long id) {
         return Result.ok(formationService.getMembers(id));
+    }
+
+    @Operation(summary = "封存编队")
+    @PostMapping("/{id}/seal")
+    public Result<Void> seal(@PathVariable Long id) {
+        formationService.sealFormation(id);
+        return Result.ok();
+    }
+
+    @Operation(summary = "强制解散编队")
+    @PostMapping("/{id}/dissolve")
+    public Result<Void> dissolve(@PathVariable Long id) {
+        formationService.dissolveFormation(id);
+        return Result.ok();
     }
 }

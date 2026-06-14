@@ -9,7 +9,6 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -21,6 +20,7 @@ public class JacksonConfig {
     private static final String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
 
     @Bean
+    @SuppressWarnings("null")
     public Jackson2ObjectMapperBuilderCustomizer jacksonCustomizer() {
         return builder -> {
             // Long → String，防止 JavaScript 精度丢失

@@ -1,5 +1,7 @@
 package com.smartrecord.service.impl;
 
+import com.smartrecord.common.BizException;
+import com.smartrecord.common.ErrorCode;
 import com.smartrecord.service.IdempotencyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import java.time.Duration;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class IdempotencyServiceImpl implements IdempotencyService {
 
     private static final String KEY_PREFIX = "sr:idempotent:";
@@ -34,9 +37,9 @@ public class IdempotencyServiceImpl implements IdempotencyService {
             // 重复请求，返回当前值（PROCESSING 或已缓存的结果 JSON）
             return stringRedisTemplate.opsForValue().get(key);
         } catch (Exception e) {
-            // Redis 异常时降级为无幂等保护，不阻断业务
-            log.warn("幂等检查 Redis 异常，降级放行: key={}, error={}", key, e.getMessage());
-            return null;
+            // 写操作不能在失去幂等保护时继续执行，否则可能重复计分。
+            log.error("幂等检查 Redis 异常，拒绝写入: key={}, error={}", key, e.getMessage());
+            throw new BizException(ErrorCode.SYSTEM_BUSY);
         }
     }
 

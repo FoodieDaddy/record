@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class CacheWarmUpRunner implements ApplicationRunner {
 
     private static final int EXPIRE_HOURS = 24;

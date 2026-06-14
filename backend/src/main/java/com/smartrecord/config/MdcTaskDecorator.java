@@ -2,6 +2,7 @@ package com.smartrecord.config;
 
 import org.slf4j.MDC;
 import org.springframework.core.task.TaskDecorator;
+import org.springframework.lang.NonNull;
 
 import java.util.Map;
 
@@ -11,7 +12,8 @@ import java.util.Map;
 public class MdcTaskDecorator implements TaskDecorator {
 
     @Override
-    public Runnable decorate(Runnable runnable) {
+    @NonNull
+    public Runnable decorate(@NonNull Runnable runnable) {
         // 获取当前主线程的 MDC 上下文复制
         Map<String, String> contextMap = MDC.getCopyOfContextMap();
         return () -> {

@@ -474,7 +474,7 @@ onMounted(() => {
 .hud-tabs {
   display: flex;
   background: var(--bg-panel-strong);
-  border: 1px solid rgba(120, 140, 170, 0.10);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 2px;
 }
@@ -505,10 +505,10 @@ onMounted(() => {
   gap: 16px;
 }
 .chart-panel {
-  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.58));
-  border: 1px solid rgba(255,255,255,0.38);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-glass);
   border-radius: 24px;
-  box-shadow: 0 18px 42px rgba(31,52,88,0.09), inset 0 1px 0 rgba(255,255,255,0.78);
+  box-shadow: var(--panel-shadow);
   overflow: hidden;
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
@@ -518,13 +518,13 @@ onMounted(() => {
   padding: 0 20px;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.30);
-  background: linear-gradient(180deg, rgba(255,255,255,0.46), rgba(255,255,255,0.22));
+  border-bottom: 1px solid var(--panel-header-border);
+  background: var(--panel-header-bg);
 }
 .chart-panel__title {
   font-size: 14px;
   font-weight: 700;
-  color: #2A3442;
+  color: var(--text-main);
 }
 .chart-panel__body {
   padding: 8px;
@@ -557,7 +557,7 @@ onMounted(() => {
 .progress-bar-bg {
   width: 100%;
   height: 6px;
-  background: rgba(120, 140, 170, 0.08);
+  background: var(--border-subtle);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -590,8 +590,8 @@ onMounted(() => {
 .hud-select, .hud-input {
   width: 100%;
   height: 36px;
-  background: rgba(255, 255, 255, 0.45);
-  border: 1px solid rgba(130, 150, 180, 0.18);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 0 12px;
   font-size: 12px;
@@ -601,7 +601,7 @@ onMounted(() => {
 }
 .hud-select:focus, .hud-input:focus {
   border-color: var(--color-cyan);
-  background: rgba(255, 255, 255, 0.65);
+  background: var(--bg-panel-strong);
 }
 .filter-actions {
   display: flex;

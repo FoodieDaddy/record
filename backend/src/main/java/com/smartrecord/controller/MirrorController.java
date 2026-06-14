@@ -6,7 +6,6 @@ import com.smartrecord.dto.mirror.MbtiDirectReq;
 import com.smartrecord.dto.mirror.MbtiTestReq;
 import com.smartrecord.dto.mirror.MirrorProfileResp;
 import com.smartrecord.dto.mirror.MirrorStatsResp;
-import com.smartrecord.service.BattlePersonaService;
 import com.smartrecord.service.MirrorProfileService;
 import com.smartrecord.service.MirrorStatsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +21,6 @@ import org.springframework.web.bind.annotation.*;
 public class MirrorController {
 
     private final MirrorProfileService mirrorProfileService;
-    private final BattlePersonaService battlePersonaService;
     private final MirrorStatsService mirrorStatsService;
 
     @Operation(summary = "获取镜像画像")

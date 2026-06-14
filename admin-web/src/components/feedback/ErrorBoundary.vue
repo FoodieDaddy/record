@@ -3,6 +3,9 @@
  * 全局错误边界 — 捕获未处理的 Vue 渲染错误并展示降级 UI
  */
 import { ref, onErrorCaptured } from 'vue'
+import { useLocaleStore } from '@/stores/locale'
+
+const locale = useLocaleStore()
 
 const error = ref<string | null>(null)
 const errorInfo = ref('')
@@ -28,10 +31,10 @@ function handleRetry() {
         <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
       </svg>
     </div>
-    <h2 class="error-boundary__title">系统异常</h2>
+    <h2 class="error-boundary__title">{{ locale.t('error.title') }}</h2>
     <p class="error-boundary__desc">{{ error }}</p>
     <button class="cmd-btn cmd-btn--primary" @click="handleRetry" style="margin-top:20px;">
-      重试
+      {{ locale.t('common.retry') }}
     </button>
   </div>
   <slot v-else />

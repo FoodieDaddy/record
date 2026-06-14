@@ -1,6 +1,5 @@
 package com.smartrecord.service.impl;
 
-import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -18,7 +17,6 @@ import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.AsyncTaskService;
 import com.smartrecord.service.RoomService;
-import com.smartrecord.service.StorageService;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import org.springframework.context.ApplicationEventPublisher;
 import com.smartrecord.event.RoomClosedEvent;
@@ -32,19 +30,15 @@ import com.smartrecord.mapper.UserAchievementMapper;
 import com.smartrecord.mapper.AchievementMapper;
 import com.smartrecord.service.MirrorProfileService;
 import com.smartrecord.service.MirrorStatsService;
-import com.aliyun.oss.OSS;
-import com.aliyun.oss.model.ObjectMetadata;
-import com.aliyun.oss.model.PutObjectRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayInputStream;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -55,6 +49,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class RoomServiceImpl implements RoomService {
 
     private final RoomMapper roomMapper;
@@ -65,25 +60,20 @@ public class RoomServiceImpl implements RoomService {
     private final StringRedisTemplate redisTemplate;
     private final OssConfig ossConfig;
     private final ScoreWebSocket scoreWebSocket;
-    private final StorageService storageService;
     private final AsyncTaskService asyncTaskService;
     private final ApplicationEventPublisher eventPublisher;
-    private final ObjectProvider<OSS> ossClientProvider;
     private final UserAchievementMapper userAchievementMapper;
     private final AchievementMapper achievementMapper;
     private final MirrorProfileService mirrorProfileService;
     private final MirrorStatsService mirrorStatsService;
+    private final RedissonClient redissonClient;
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
 
+    @SuppressWarnings("deprecation")
     @CreateCache(name = "achievement:id:", cacheType = CacheType.BOTH, expire = 3600)
     private Cache<Long, Achievement> achievementCache;
     @Qualifier("asyncExecutor")
     private final Executor asyncExecutor;
-
-    @Value("${wechat.appid:}")
-    private String appId;
-
-    @Value("${wechat.secret:}")
-    private String appSecret;
 
     private static final String ROOM_NO_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
     private static final int ROOM_NO_LEN = 6;
@@ -138,7 +128,6 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    @Transactional
     public RoomResp joinRoom(Long userId, JoinRoomReq req) {
         String roomNo = req.getRoomNo() != null ? req.getRoomNo() : req.getScanRoomNo();
         if (roomNo == null || roomNo.isBlank()) {
@@ -158,116 +147,135 @@ public class RoomServiceImpl implements RoomService {
             roomId = room.getId();
         }
 
-        // 2. 检查是否为活跃成员（先查 active Hash，再兼容旧 meta）
         Long rid = roomId;
-        if (isActiveMemberWithFallback(rid, userId)) {
-            throw new BizException(ErrorCode.ROOM_ALREADY_JOINED);
-        }
+        RLock lock = redissonClient.getLock("lock:room:" + rid);
+        try {
+            if (!lock.tryLock(5, 5, TimeUnit.SECONDS)) {
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
+            }
+            return transactionTemplate.execute(status -> {
+                // 2. 检查是否为活跃成员（先查 active Hash，再兼容旧 meta）
+                if (isActiveMemberWithFallback(rid, userId)) {
+                    throw new BizException(ErrorCode.ROOM_ALREADY_JOINED);
+                }
 
-        // 3. 检查房间状态
-        Room room = roomMapper.selectById(rid);
-        if (room == null || room.getStatus() != 0) {
-            throw new BizException(ErrorCode.ROOM_CLOSED);
-        }
+                // 3. 检查房间状态
+                Room room = roomMapper.selectById(rid);
+                if (room == null || room.getStatus() != 0) {
+                    throw new BizException(ErrorCode.ROOM_CLOSED);
+                }
 
-        // 4. 检查房间人数上限。如果超过 16 人上限，尝试寻找“WebSocket 掉线且积分为 0”的僵尸成员进行强制腾退
-        Long memberCount = countActiveMembers(rid);
-        if (memberCount >= 16) {
-            // 获取当前房间在 WebSocket 中的在线用户 ID 集合
-            Set<Long> onlineUserIds = scoreWebSocket.getOnlineUserIds(String.valueOf(rid));
-            // 读取当前房间的所有活跃成员快照
-            Map<Long, JSONObject> activeMembersMap = readActiveMembers(rid);
-            String scoresKey = "sr:room:" + rid + ":scores";
-            
-            Long victimUserId = null;
-            for (Long activeUid : activeMembersMap.keySet()) {
-                // 如果该成员当前不在线（不在 WebSocket 在线列表中）
-                if (!onlineUserIds.contains(activeUid)) {
-                    // 查询该离线成员的当前积分
-                    Double score = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(activeUid));
-                    // 必须满足积分未变动（为 0 分）且非房主本人，才被判定为可清退的僵尸用户
-                    if ((score == null || score.intValue() == 0) && !room.getOwnerId().equals(activeUid)) {
-                        victimUserId = activeUid;
-                        break; // 找到一个离线零分用户即可
+                // 4. 检查房间人数上限。如果超过 16 人上限，尝试寻找“WebSocket 掉线且积分为 0”的僵尸成员进行强制腾退
+                Long memberCount = countActiveMembers(rid);
+                if (memberCount >= 16) {
+                    // 获取当前房间在 WebSocket 中的在线用户 ID 集合
+                    Set<Long> onlineUserIds = scoreWebSocket.getOnlineUserIds(String.valueOf(rid));
+                    // 读取当前房间的所有活跃成员快照
+                    Map<Long, JSONObject> activeMembersMap = readActiveMembers(rid);
+                    String scoresKey = "sr:room:" + rid + ":scores";
+                    
+                    Long victimUserId = null;
+                    for (Long activeUid : activeMembersMap.keySet()) {
+                        // 如果该成员当前不在线（不在 WebSocket 在线列表中）
+                        if (!onlineUserIds.contains(activeUid)) {
+                            // 查询该离线成员的当前积分
+                            Double score = redisTemplate.opsForZSet().score(scoresKey, String.valueOf(activeUid));
+                            // 必须满足积分未变动（为 0 分）且非房主本人，才被判定为可清退的僵尸用户
+                            if ((score == null || score.intValue() == 0) && !room.getOwnerId().equals(activeUid)) {
+                                victimUserId = activeUid;
+                                break; // 找到一个离线零分用户即可
+                            }
+                        }
+                    }
+                    
+                    if (victimUserId != null) {
+                        // 执行强制自动腾退以挪出空位
+                        log.info("房间 {} 达到 16 人上限，自动清退离线零分僵尸用户: userId={}", rid, victimUserId);
+                        removeActiveMember(rid, victimUserId);
+                        redisTemplate.opsForSet().remove("sr:user:rooms:" + victimUserId, String.valueOf(rid));
+                        // 异步广播该成员离席事件，通知同编队其他成员
+                        asyncPushMemberLeave(rid, victimUserId);
+                    } else {
+                        // 实在无法腾退（所有成员均在线，或者离线成员都有大局积分产生），抛出满员异常
+                        throw new BizException(ErrorCode.ROOM_FULL);
                     }
                 }
+
+                // 5. 加载用户信息并检查重名
+                Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
+                String nickname;
+                String avatarUrl;
+                if (cached != null) {
+                    JSONObject userObj = JSONUtil.parseObj((String) cached);
+                    nickname = userObj.getStr("nickname");
+                    avatarUrl = userObj.getStr("avatarUrl");
+                } else {
+                    User user = userMapper.selectById(userId);
+                    if (user == null) throw new BizException(ErrorCode.USER_NOT_FOUND);
+                    nickname = user.getNickname();
+                    avatarUrl = user.getAvatarUrl();
+                }
+
+                // 重名检查：遍历活跃成员，碰撞则拦截（排除自身，防止重新接入时与自己发生冲突）
+                Map<Long, JSONObject> activeMembers = readActiveMembers(rid);
+                for (Map.Entry<Long, JSONObject> entry : activeMembers.entrySet()) {
+                    if (entry.getKey().equals(userId)) {
+                        continue;
+                    }
+                    JSONObject memberObj = entry.getValue();
+                    if (nickname.equals(memberObj.getStr("nickname"))) {
+                        throw new BizException(ErrorCode.ROOM_MEMBER_NAME_DUPLICATE);
+                    }
+                }
+
+                // 6. 加入房间（支持重新接入：已有记录则清空 quitTime 和 finalScore）
+                RoomMember existingRecord = roomMemberMapper.selectOne(
+                        new LambdaQueryWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, rid)
+                                .eq(RoomMember::getUserId, userId));
+                RoomMember member;
+                if (existingRecord != null) {
+                    // 重新接入：清空 quitTime 和 finalScore
+                    existingRecord.setQuitTime(null);
+                    existingRecord.setFinalScore(null);
+                    roomMemberMapper.updateById(existingRecord);
+                    member = existingRecord;
+                } else {
+                    // 新成员
+                    member = new RoomMember();
+                    member.setId(idGenerator.nextId());
+                    member.setRoomId(rid);
+                    member.setUserId(userId);
+                    roomMemberMapper.insert(member);
+                }
+
+                // 7. 更新 Redis 房间成员缓存
+                upsertActiveMember(rid, userId, nickname, avatarUrl);
+                upsertArchiveMember(rid, userId, nickname, avatarUrl);
+                redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
+
+                // 初始化新成员排行榜 0 分（确保 0 分成员也能出现在排行榜）
+                String scoresKey = "sr:room:" + rid + ":scores";
+                if (redisTemplate.opsForZSet().score(scoresKey, String.valueOf(userId)) == null) {
+                    redisTemplate.opsForZSet().add(scoresKey, String.valueOf(userId), 0);
+                }
+
+                // 8. 异步 WebSocket 广播 MEMBER_JOIN（通知房间内已有成员）
+                asyncPushMemberJoin(rid, userId, nickname, avatarUrl);
+
+                // 5. 异步生成专属小程序码
+                generateQrCodeAsync(room.getId(), roomNo);
+
+                return buildRoomResp(room, Collections.singletonList(member), null);
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException(ErrorCode.SYSTEM_BUSY);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
-            
-            if (victimUserId != null) {
-                // 执行强制自动腾退以挪出空位
-                log.info("房间 {} 达到 16 人上限，自动清退离线零分僵尸用户: userId={}", rid, victimUserId);
-                removeActiveMember(rid, victimUserId);
-                redisTemplate.opsForSet().remove("sr:user:rooms:" + victimUserId, String.valueOf(rid));
-                // 异步广播该成员离席事件，通知同编队其他成员
-                asyncPushMemberLeave(rid, victimUserId);
-            } else {
-                // 实在无法腾退（所有成员均在线，或者离线成员都有大局积分产生），抛出满员异常
-                throw new BizException(ErrorCode.ROOM_FULL);
-            }
         }
-
-        // 5. 加载用户信息并检查重名
-        Object cached = redisTemplate.opsForHash().get("sr:user:" + userId, "info");
-        String nickname;
-        String avatarUrl;
-        if (cached != null) {
-            JSONObject userObj = JSONUtil.parseObj((String) cached);
-            nickname = userObj.getStr("nickname");
-            avatarUrl = userObj.getStr("avatarUrl");
-        } else {
-            User user = userMapper.selectById(userId);
-            if (user == null) throw new BizException(ErrorCode.USER_NOT_FOUND);
-            nickname = user.getNickname();
-            avatarUrl = user.getAvatarUrl();
-        }
-
-        // 重名检查：遍历活跃成员，碰撞则拦截
-        Map<Long, JSONObject> activeMembers = readActiveMembers(rid);
-        for (JSONObject memberObj : activeMembers.values()) {
-            if (nickname.equals(memberObj.getStr("nickname"))) {
-                throw new BizException(ErrorCode.ROOM_MEMBER_NAME_DUPLICATE);
-            }
-        }
-
-        // 6. 加入房间（支持重新接入：已有记录则清空 quitTime 和 finalScore）
-        RoomMember existingRecord = roomMemberMapper.selectOne(
-                new LambdaQueryWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, rid)
-                        .eq(RoomMember::getUserId, userId));
-        RoomMember member;
-        if (existingRecord != null) {
-            // 重新接入：清空 quitTime 和 finalScore
-            existingRecord.setQuitTime(null);
-            existingRecord.setFinalScore(null);
-            roomMemberMapper.updateById(existingRecord);
-            member = existingRecord;
-        } else {
-            // 新成员
-            member = new RoomMember();
-            member.setId(idGenerator.nextId());
-            member.setRoomId(rid);
-            member.setUserId(userId);
-            roomMemberMapper.insert(member);
-        }
-
-        // 7. 更新 Redis 房间成员缓存
-        upsertActiveMember(rid, userId, nickname, avatarUrl);
-        upsertArchiveMember(rid, userId, nickname, avatarUrl);
-        redisTemplate.opsForSet().add("sr:user:rooms:" + userId, String.valueOf(rid));
-
-        // 初始化新成员排行榜 0 分（确保 0 分成员也能出现在排行榜）
-        String scoresKey = "sr:room:" + rid + ":scores";
-        if (redisTemplate.opsForZSet().score(scoresKey, String.valueOf(userId)) == null) {
-            redisTemplate.opsForZSet().add(scoresKey, String.valueOf(userId), 0);
-        }
-
-        // 8. 异步 WebSocket 广播 MEMBER_JOIN（通知房间内已有成员）
-        asyncPushMemberJoin(rid, userId, nickname, avatarUrl);
-
-        List<RoomMember> allMembers = new ArrayList<>();
-        allMembers.add(member);
-        String qrCodeUrl = getQrCodeUrlFromRedis(room.getId());
-        return buildRoomResp(room, allMembers, qrCodeUrl);
     }
 
     @Override
@@ -338,98 +346,126 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    @Transactional
     public void quitRoom(Long userId, Long roomId) {
-        Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
+        RLock lock = redissonClient.getLock("lock:room:" + roomId);
+        try {
+            if (!lock.tryLock(5, 5, TimeUnit.SECONDS)) {
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
+            }
+            transactionTemplate.executeWithoutResult(status -> {
+                Room room = roomMapper.selectById(roomId);
+                if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
 
-        // 已结束的房间：保留 room_member 历史记录（final_score/quit_time），不删除
-        // doSettleRoom 已清理 Redis 映射，此处仅确保幂等
-        if (room.getStatus() != 0) {
-            redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
-            return;
+                // 已结束的房间：保留 room_member 历史记录（final_score/quit_time），不删除
+                // doSettleRoom 已清理 Redis 映射，此处仅确保幂等
+                if (room.getStatus() != 0) {
+                    redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
+                    return;
+                }
+
+                if (room.getOwnerId().equals(userId)) {
+                    // 房主退出 = 解散房间
+                    dissolveRoom(userId, roomId);
+                    return;
+                }
+
+                // 普通成员退出：不删除 room_member 记录，quitTime 作为离席标记，封存时会统一覆盖为封存时间
+                roomMemberMapper.update(null,
+                        new LambdaUpdateWrapper<RoomMember>()
+                                .eq(RoomMember::getRoomId, roomId)
+                                .eq(RoomMember::getUserId, userId)
+                                .set(RoomMember::getQuitTime, java.time.LocalDateTime.now()));
+                // 从 active 成员组移除，保留 archive 快照和 scores
+                removeActiveMember(roomId, userId);
+                redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
+
+                // 广播成员离开
+                asyncPushMemberLeave(roomId, userId);
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException(ErrorCode.SYSTEM_BUSY);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-
-        if (room.getOwnerId().equals(userId)) {
-            // 房主退出 = 解散房间
-            dissolveRoom(userId, roomId);
-            return;
-        }
-
-        // 普通成员退出：不删除 room_member 记录，quitTime 作为离席标记，封存时会统一覆盖为封存时间
-        roomMemberMapper.update(null,
-                new LambdaUpdateWrapper<RoomMember>()
-                        .eq(RoomMember::getRoomId, roomId)
-                        .eq(RoomMember::getUserId, userId)
-                        .set(RoomMember::getQuitTime, java.time.LocalDateTime.now()));
-        // 从 active 成员组移除，保留 archive 快照和 scores
-        removeActiveMember(roomId, userId);
-        redisTemplate.opsForSet().remove("sr:user:rooms:" + userId, String.valueOf(roomId));
-
-        // 广播成员离开
-        asyncPushMemberLeave(roomId, userId);
     }
 
     @Override
-    @Transactional
     public void dissolveRoom(Long userId, Long roomId) {
-        Room room = roomMapper.selectById(roomId);
-        if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
-        if (!room.getOwnerId().equals(userId)) {
-            throw new BizException(ErrorCode.NOT_OWNER_DISSOLVE);
-        }
-
-        // 标记归档（使用显式 Wrapper 确保 status 字段写入）
-        room.setStatus(1);
-        roomMapper.update(null, new LambdaUpdateWrapper<Room>()
-                .eq(Room::getId, roomId)
-                .set(Room::getStatus, 1));
-
-        // 解散房间时，将该房间下所有处于“录入中”或“待确认”状态的本局录记录更新为“已取消”，防止数据库状态失真。因 RoundRecord 实体不包含 updatedAt 字段，故不单独进行设置
-        roundRecordMapper.update(null, new LambdaUpdateWrapper<com.smartrecord.entity.RoundRecord>()
-                .eq(com.smartrecord.entity.RoundRecord::getRoomId, roomId)
-                .in(com.smartrecord.entity.RoundRecord::getStatus, List.of(1, 2)) // 1-等待成员填写, 2-等待全员确认
-                .set(com.smartrecord.entity.RoundRecord::getStatus, 5)); // 5-已取消
-
-        // 获取所有成员并清理 Redis
-        List<RoomMember> members = roomMemberMapper.selectList(
-                new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
-        for (RoomMember m : members) {
-            redisTemplate.opsForSet().remove("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
-        }
-
-        // 更新成员记录：设置离开时间和最终分数
-        roomMemberMapper.update(null, new LambdaUpdateWrapper<RoomMember>()
-                .eq(RoomMember::getRoomId, roomId)
-                .isNull(RoomMember::getQuitTime)
-                .set(RoomMember::getQuitTime, java.time.LocalDateTime.now())
-                .set(RoomMember::getFinalScore, 0));
-
-        // 广播房间解散消息
+        RLock lock = redissonClient.getLock("lock:room:" + roomId);
         try {
-            Map<String, Object> pushData = new HashMap<>();
-            pushData.put("type", "ROOM_DISBANDED");
-            pushData.put("roomId", String.valueOf(roomId));
-            scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
-        } catch (Exception e) {
-            log.error("推送房间解散消息失败: roomId={}", roomId, e);
+            if (!lock.tryLock(5, 5, TimeUnit.SECONDS)) {
+                throw new BizException(ErrorCode.SYSTEM_BUSY);
+            }
+            transactionTemplate.executeWithoutResult(status -> {
+                Room room = roomMapper.selectById(roomId);
+                if (room == null) throw new BizException(ErrorCode.ROOM_NOT_FOUND);
+                if (!room.getOwnerId().equals(userId)) {
+                    throw new BizException(ErrorCode.NOT_OWNER_DISSOLVE);
+                }
+
+                // 标记归档（使用显式 Wrapper 确保 status 字段写入）
+                room.setStatus(1);
+                roomMapper.update(null, new LambdaUpdateWrapper<Room>()
+                        .eq(Room::getId, roomId)
+                        .set(Room::getStatus, 1));
+
+                // 解散房间时，将该房间下所有处于“录入中”或“待确认”状态 of 本局录记录更新为“已取消”，防止数据库状态失真。因 RoundRecord 实体不包含 updatedAt 字段，故不单独进行设置
+                roundRecordMapper.update(null, new LambdaUpdateWrapper<com.smartrecord.entity.RoundRecord>()
+                        .eq(com.smartrecord.entity.RoundRecord::getRoomId, roomId)
+                        .in(com.smartrecord.entity.RoundRecord::getStatus, List.of(1, 2)) // 1-等待成员填写, 2-等待全员确认
+                        .set(com.smartrecord.entity.RoundRecord::getStatus, 5)); // 5-已取消
+
+                // 获取所有成员并清理 Redis
+                List<RoomMember> members = roomMemberMapper.selectList(
+                        new LambdaQueryWrapper<RoomMember>().eq(RoomMember::getRoomId, roomId));
+                for (RoomMember m : members) {
+                    redisTemplate.opsForSet().remove("sr:user:rooms:" + m.getUserId(), String.valueOf(roomId));
+                }
+
+                // 更新成员记录：设置离开时间和最终分数
+                roomMemberMapper.update(null, new LambdaUpdateWrapper<RoomMember>()
+                        .eq(RoomMember::getRoomId, roomId)
+                        .isNull(RoomMember::getQuitTime)
+                        .set(RoomMember::getQuitTime, java.time.LocalDateTime.now())
+                        .set(RoomMember::getFinalScore, 0));
+
+                // 广播房间解散消息
+                try {
+                    Map<String, Object> pushData = new HashMap<>();
+                    pushData.put("type", "ROOM_DISBANDED");
+                    pushData.put("roomId", String.valueOf(roomId));
+                    scoreWebSocket.pushToRoom(String.valueOf(roomId), pushData);
+                } catch (Exception e) {
+                    log.error("推送房间解散消息失败: roomId={}", roomId, e);
+                }
+
+                // 清理房间 Redis key
+                String prefix = "sr:room:" + roomId + ":";
+
+                List<String> keysToDelete = new ArrayList<>(List.of(
+                        dataKey(roomId),
+                        prefix + "scores",
+                        prefix + "events",
+                        prefix + "round:data",
+                        prefix + "transfer:amount"));
+                redisTemplate.delete(keysToDelete);
+
+                redisTemplate.delete("sr:room_no:" + room.getRoomNo());
+
+                // 发布房间关闭（解散）事件，异步清理二维码资源
+                eventPublisher.publishEvent(new RoomClosedEvent(this, room.getRoomNo()));
+            });
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException(ErrorCode.SYSTEM_BUSY);
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
-
-        // 清理房间 Redis key
-        String prefix = "sr:room:" + roomId + ":";
-
-        List<String> keysToDelete = new ArrayList<>(List.of(
-                dataKey(roomId),
-                prefix + "scores",
-                prefix + "events",
-                prefix + "round:data",
-                prefix + "transfer:amount"));
-        redisTemplate.delete(keysToDelete);
-
-        redisTemplate.delete("sr:room_no:" + room.getRoomNo());
-
-        // 发布房间关闭（解散）事件，异步清理二维码资源
-        eventPublisher.publishEvent(new RoomClosedEvent(this, room.getRoomNo()));
     }
 
     @Override
@@ -452,9 +488,6 @@ public class RoomServiceImpl implements RoomService {
                         .eq(Room::getStatus, 1)
                         .orderByDesc(Room::getCreatedAt));
         if (rooms.isEmpty()) return Collections.emptyList();
-
-        Map<Long, RoomMember> memberMap = memberships.stream()
-                .collect(Collectors.toMap(RoomMember::getRoomId, m -> m, (a, b) -> a));
 
         // 批量加载所有房间的成员（含 finalScore）
         List<RoomMember> allMembers = roomMemberMapper.selectList(
@@ -583,21 +616,6 @@ public class RoomServiceImpl implements RoomService {
                 String field = (String) entry.getKey();
                 if (!field.startsWith(ACTIVE_PREFIX)) continue;
                 Long userId = Long.parseLong(field.substring(ACTIVE_PREFIX.length()));
-                JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
-                result.put(userId, obj);
-            }
-        }
-        return result;
-    }
-
-    private Map<Long, JSONObject> readArchiveMembers(Long roomId) {
-        Map<Object, Object> entries = redisTemplate.opsForHash().entries(dataKey(roomId));
-        Map<Long, JSONObject> result = new HashMap<>();
-        if (entries != null) {
-            for (Map.Entry<Object, Object> entry : entries.entrySet()) {
-                String field = (String) entry.getKey();
-                if (!field.startsWith(ARCHIVE_PREFIX)) continue;
-                Long userId = Long.parseLong(field.substring(ARCHIVE_PREFIX.length()));
                 JSONObject obj = JSONUtil.parseObj((String) entry.getValue());
                 result.put(userId, obj);
             }
@@ -763,25 +781,6 @@ public class RoomServiceImpl implements RoomService {
         return isActiveMember(roomId, userId);
     }
 
-    /**
-     * 三源合并：archive + scores 中的 playerTotalMap + events 中的 eventUserIds
-     */
-    private Set<Long> collectArchiveUserIdsForSettle(Long roomId, Map<Long, Integer> playerTotalMap, Set<Long> eventUserIds) {
-        Set<Long> userIds = new HashSet<>();
-        // 1. 归档成员
-        Map<Long, JSONObject> archiveMembers = readArchiveMembers(roomId);
-        userIds.addAll(archiveMembers.keySet());
-        // 2. 分数记录中的用户
-        if (playerTotalMap != null) {
-            userIds.addAll(playerTotalMap.keySet());
-        }
-        // 3. 事件记录中的用户
-        if (eventUserIds != null) {
-            userIds.addAll(eventUserIds);
-        }
-        return userIds;
-    }
-
     // ===== 私有方法 =====
 
     private void asyncPushMemberJoin(Long roomId, Long userId, String nickname, String avatarUrl) {
@@ -895,48 +894,6 @@ public class RoomServiceImpl implements RoomService {
         }
     }
 
-    private String generateQrCode(String roomNo) {
-        try {
-            String tokenUrl = String.format(
-                    "https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=%s&secret=%s",
-                    appId, appSecret);
-            String tokenResp = HttpUtil.get(tokenUrl);
-            String accessToken = JSONUtil.parseObj(tokenResp).getStr("access_token");
-            if (accessToken == null) {
-                log.error("获取 access_token 失败: {}", tokenResp);
-                return null;
-            }
-
-            String qrUrl = "https://api.weixin.qq.com/wxa/getunlimited?access_token=" + accessToken;
-            JSONObject body = JSONUtil.createObj()
-                    .set("scene", roomNo)
-                    .set("page", "pages/room/room")
-                    .set("width", 280);
-            byte[] qrBytes = HttpUtil.createPost(qrUrl)
-                    .body(body.toString(), "application/json")
-                    .execute()
-                    .bodyBytes();
-
-            String objectKey = "qrcode/" + roomNo + ".png";
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentType("image/png");
-            PutObjectRequest putRequest = new PutObjectRequest(
-                    ossConfig.getBucketName(), objectKey,
-                    new ByteArrayInputStream(qrBytes), metadata);
-            OSS client = ossClientProvider.getIfAvailable();
-            if (client != null) {
-                client.putObject(putRequest);
-            } else {
-                log.warn("OSS 客户端未配置，跳过小程序码上传");
-            }
-
-            return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
-        } catch (Exception e) {
-            log.error("生成小程序码失败", e);
-            return null;
-        }
-    }
-
     private RoomResp buildRoomResp(Room room, List<RoomMember> members, String qrCodeUrl) {
         Map<Long, JSONObject> activeMembers = readActiveMembers(room.getId());
 
@@ -1022,6 +979,7 @@ public class RoomServiceImpl implements RoomService {
 
     private String buildFullUrl(String objectKey) {
         if (objectKey == null || objectKey.isEmpty()) return "";
+        if (objectKey.startsWith("cloud://")) return objectKey;
         if (objectKey.startsWith("http")) return objectKey;
         return "https://" + ossConfig.getBucketName() + "." + ossConfig.getEndpoint() + "/" + objectKey;
     }

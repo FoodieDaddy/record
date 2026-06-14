@@ -2,6 +2,7 @@ package com.smartrecord.service;
 
 import com.smartrecord.common.BizException;
 import com.smartrecord.dto.score.SubmitScoreReq;
+import com.smartrecord.dto.score.TransferScoreReq;
 import com.smartrecord.entity.Room;
 import com.smartrecord.mapper.*;
 import com.smartrecord.service.impl.ScoreServiceImpl;
@@ -15,8 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.ZSetOperations;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -29,6 +33,7 @@ import static org.mockito.Mockito.*;
  * 计分服务单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class ScoreServiceTest {
 
     @InjectMocks
@@ -67,6 +72,35 @@ class ScoreServiceTest {
     private ZSetOperations<String, String> zSetOps;
     @Mock
     private RLock rLock;
+    @Mock
+    private HashOperations<String, Object, Object> hashOps;
+    @Mock
+    private ValueOperations<String, String> valueOps;
+
+    @Test
+    @DisplayName("自由流转：相同业务指纹正在处理时拒绝重复提交")
+    void testTransferScore_DuplicateFingerprintRejected() {
+        Room room = new Room();
+        room.setId(100L);
+        room.setStatus(0);
+        when(roomMapper.selectById(100L)).thenReturn(room);
+        when(redisTemplate.opsForHash()).thenReturn(hashOps);
+        when(hashOps.hasKey(anyString(), anyString())).thenReturn(true);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+        when(valueOps.setIfAbsent(anyString(), eq("request-2"), any(Duration.class))).thenReturn(false);
+
+        TransferScoreReq req = new TransferScoreReq();
+        req.setRoomId(100L);
+        req.setToUserId(2L);
+        req.setAmount(667);
+        req.setClientRequestId("request-2");
+
+        BizException ex = assertThrows(BizException.class,
+                () -> scoreService.transferScore(1L, req));
+
+        assertEquals(4206, ex.getCode());
+        verify(redisTemplate, never()).execute(any(), anyList(), any());
+    }
 
     @Test
     @DisplayName("提交分数：房间不存在时抛出异常")

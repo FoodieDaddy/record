@@ -5,6 +5,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.lang.NonNull;
 
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -24,7 +25,7 @@ public class ConfigValidationRunner implements EnvironmentAware {
     private Environment environment;
 
     @Override
-    public void setEnvironment(Environment environment) {
+    public void setEnvironment(@NonNull Environment environment) {
         this.environment = environment;
     }
 
@@ -67,7 +68,7 @@ public class ConfigValidationRunner implements EnvironmentAware {
     /**
      * 检查单个配置项是否为空或空白
      */
-    private void checkProperty(String key, List<String> missing) {
+    private void checkProperty(@NonNull String key, @NonNull List<String> missing) {
         String value = environment.getProperty(key);
         if (value == null || value.isBlank()) {
             missing.add(key);

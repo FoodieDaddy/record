@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import com.smartrecord.event.MirrorPersonaRebuildEvent;
@@ -46,10 +45,10 @@ public class RoomSettledListener {
     private final SubscribeMessageService subscribeMessageService;
     private final ScoreWebSocket scoreWebSocket;
     private final UserMapper userMapper;
-    private final StringRedisTemplate redisTemplate;
     private final ApplicationEventPublisher eventPublisher;
 
     @CreateCache(name = "sr:fortune:", cacheType = CacheType.BOTH, expire = 14400)
+    @SuppressWarnings("deprecation")
     private Cache<String, FortuneResp> fortuneCache;
 
     @Async("asyncExecutor")

@@ -1,7 +1,5 @@
 {
-  "navigationBarTitleText": "全息舱",
-  "navigationBarBackgroundColor": "#0A0A0A",
-  "navigationBarTextStyle": "white",
+  "navigationStyle": "custom",
   "usingComponents": {
     "radar-chart": "/components/radar-chart/radar-chart",
     "mbti-swipe-test": "/components/mbti-swipe-test/mbti-swipe-test",

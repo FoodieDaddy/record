@@ -12,6 +12,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
+@SuppressWarnings("null")
 class ScoreWebSocketTest {
 
     @Test
@@ -20,7 +21,8 @@ class ScoreWebSocketTest {
         ScoreWebSocket webSocket = new ScoreWebSocket(
                 mock(StringRedisTemplate.class),
                 new ObjectMapper(),
-                mock(JwtUtil.class)
+                mock(JwtUtil.class),
+                mock(java.util.concurrent.Executor.class)
         );
 
         Map<String, Object> original = Map.of(

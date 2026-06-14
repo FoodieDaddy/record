@@ -9,15 +9,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.common.ErrorCode;
-import com.smartrecord.config.interceptor.JwtInterceptor;
 import com.smartrecord.dto.user.*;
 import com.smartrecord.entity.User;
 import com.smartrecord.entity.UserDetail;
-import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
-import com.smartrecord.mapper.RoomMapper;
 import com.smartrecord.mapper.RoomMemberMapper;
-import com.smartrecord.config.OssConfig;
 import com.smartrecord.mapper.UserDetailMapper;
 import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.StorageService;
@@ -51,24 +47,22 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"deprecation", "null"})
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final UserDetailMapper userDetailMapper;
     private final RoomMemberMapper roomMemberMapper;
-    private final RoomMapper roomMapper;
     private final SnowflakeIdGenerator idGenerator;
     private final JwtUtil jwtUtil;
     private final StringRedisTemplate redisTemplate;
     private final ScoreWebSocket scoreWebSocket;
     private final StorageService storageService;
-    private final OssConfig ossConfig;
     private final TransactionTemplate transactionTemplate;
     private final UserAchievementMapper userAchievementMapper;
     private final AchievementMapper achievementMapper;
@@ -202,14 +196,10 @@ public class UserServiceImpl implements UserService {
         String cachedJson = cachedRaw != null ? (String) cachedRaw : null;
         String oldAvatarUrl = null;
         String oldNickname = null;
-        int oldStatus = 0;
-        String oldCreatedAt = "";
         if (cachedJson != null) {
             JSONObject obj = JSONUtil.parseObj(cachedJson);
             oldAvatarUrl = obj.getStr("avatarUrl", "");
             oldNickname = obj.getStr("nickname", "");
-            oldStatus = obj.getInt("status", 0);
-            oldCreatedAt = obj.getStr("createdAt", "");
         }
 
         String avatarUrl = req.getAvatarUrl();
@@ -221,10 +211,13 @@ public class UserServiceImpl implements UserService {
                     && !avatarUrl.startsWith("avatars/") && !avatarUrl.startsWith("images/")) {
                 throw new BizException(400, "非法头像路径");
             }
+            // CloudBase 临时签名 URL（含 sign= 参数）不可持久化，拒绝入库
+            if (avatarUrl.contains("tcb.qcloud.la") && avatarUrl.contains("sign=")) {
+                throw new BizException(400, "不可使用临时访问链接作为头像");
+            }
         }
 
         // 头像变更时，异步删除旧的 OSS 文件
-        String newAvatarUrl = avatarUrl != null ? avatarUrl : oldAvatarUrl;
         if (avatarUrl != null && oldAvatarUrl != null && !avatarUrl.equals(oldAvatarUrl)) {
             deleteOldAvatarAsync(oldAvatarUrl);
         }

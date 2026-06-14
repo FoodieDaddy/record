@@ -3,7 +3,6 @@ package com.smartrecord.util;
 import lombok.Getter;
 
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 记分场景昵称生成器（≤6 字符版）

@@ -57,6 +57,7 @@ public enum ErrorCode {
     SCORE_ONLY_SELF(4203, "请填写自己的积分"),
     SCORE_ONLY_ROOM_MEMBERS(4204, "只能记录当前编队内的成员"),
     SCORE_ROOM_ARCHIVED(4205, "编队已封存，无法提交"),
+    SCORE_DUPLICATE_TRANSFER(4206, "脉冲正在发送，请勿重复提交"),
 
     // ── 文件上传 ──
     UNSUPPORTED_FILE_TYPE(4301, "不支持的文件类型"),

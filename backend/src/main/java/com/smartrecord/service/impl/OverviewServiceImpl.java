@@ -18,12 +18,12 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"null", "unchecked"})
 public class OverviewServiceImpl implements OverviewService {
 
     private final RoomMapper roomMapper;

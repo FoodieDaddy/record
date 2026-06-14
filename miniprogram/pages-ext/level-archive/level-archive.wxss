@@ -106,10 +106,6 @@
   flex-direction: column;
 }
 
-.term-card__header-text .term-kicker-sub {
-  margin-bottom: 0;
-}
-
 .term-kicker {
   display: block;
   font-size: 22rpx;
@@ -118,15 +114,6 @@
   letter-spacing: 4rpx;
   margin-bottom: 4rpx;
 }
-
-.term-kicker-sub {
-  display: block;
-  font-size: 18rpx;
-  letter-spacing: 2rpx;
-  color: rgba(126, 156, 180, 0.34);
-  font-weight: 400;
-}
-
 
 /* ===== 等级进度 ===== */
 .term-card--access {

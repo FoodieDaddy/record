@@ -355,5 +355,13 @@
   "profile.tip1": "使用至少 8 位包含大小写字母、数字和特殊字符的强密码",
   "profile.tip2": "不要在其他平台重复使用相同密码",
   "profile.tip3": "定期更换密码，建议每 90 天更换一次",
-  "profile.tip4": "完成操作后及时登出，不要在不信任的设备上保持登录状态"
+  "profile.tip4": "完成操作后及时登出，不要在不信任的设备上保持登录状态",
+  "error.title": "系统异常",
+  "common.retry": "重试",
+  "alerts.title": "告警中心",
+  "alerts.level": "级别",
+  "alerts.message": "告警信息",
+  "alerts.time": "时间",
+  "alerts.searchPlaceholder": "搜索告警信息...",
+  "alerts.loadError": "加载告警数据失败"
 }

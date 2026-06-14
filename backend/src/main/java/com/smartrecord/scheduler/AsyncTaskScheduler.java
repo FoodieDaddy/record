@@ -19,7 +19,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executor;
 
 /**
@@ -45,8 +44,6 @@ public class AsyncTaskScheduler {
     /** 每次扫描的任务数量上限 */
     private static final int BATCH_SIZE = 10;
 
-    /** Redis 缓存过期时间（小时） */
-    private static final long QR_CACHE_EXPIRE_HOURS = 24;
 
     /** 任务类型：二维码生成 */
     private static final String TASK_TYPE_QR_CODE = "QR_CODE_GENERATE";

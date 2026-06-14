@@ -1,9 +1,9 @@
 package com.smartrecord.controller;
 
-import com.smartrecord.aop.CurrentUser;
 import com.smartrecord.common.Result;
 import com.smartrecord.dto.behavior.BehaviorReportReq;
 import com.smartrecord.event.BehaviorLogReportEvent;
+import com.smartrecord.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,14 +31,25 @@ import java.util.List;
 public class BehaviorLogController {
 
     private final ApplicationEventPublisher eventPublisher;
+    private final JwtUtil jwtUtil;
 
     @Operation(summary = "批量上报用户关键行为日志", description = "前端缓存批量打包上报，接口收到请求后立即异步事件解耦，零延迟响应。")
     @PostMapping("/report")
     public Result<Void> report(
-            @CurrentUser Long userId,
             @RequestBody @Valid List<BehaviorReportReq> reqList,
             HttpServletRequest request) {
         
+        Long userId = null;
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            try {
+                userId = jwtUtil.parseUserId(token.substring(7));
+            } catch (Exception e) {
+                // 忽略非法/过期的 token，允许匿名上报行为日志
+                log.debug("行为日志上报解析 Token 失败，允许以匿名身份继续", e);
+            }
+        }
+
         String ip = request.getRemoteAddr();
         String userAgent = request.getHeader("User-Agent");
         

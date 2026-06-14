@@ -3,7 +3,6 @@
   <!-- 退出确认遮罩 -->
   <view class="exit-overlay {{showExitConfirm ? 'exit-active' : ''}}" wx:if="{{showExitConfirm}}">
     <view class="exit-dialog">
-      <text class="exit-kicker">EXIT</text>
       <text class="exit-title">退出修改</text>
       <text class="exit-msg">当前协议修改尚未写入，退出后不会保存。</text>
       <view class="exit-actions">

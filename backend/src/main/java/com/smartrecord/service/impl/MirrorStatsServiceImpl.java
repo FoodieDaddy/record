@@ -7,7 +7,6 @@ import com.smartrecord.mapper.RoomMemberMapper;
 import com.smartrecord.service.MirrorStatsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.alicp.jetcache.Cache;
@@ -18,8 +17,6 @@ import com.alicp.jetcache.anno.Cached;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,14 +25,11 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
 
     private final RoomMemberMapper roomMemberMapper;
     private final RoomMapper roomMapper;
-    private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
+    @SuppressWarnings("deprecation")
     @CreateCache(name = "sr:user:stats:", cacheType = CacheType.BOTH, expire = 1800)
     private Cache<Long, MirrorStatsResp> statsCache;
-
-    private static final String USER_KEY_PREFIX = "sr:user:";
-    private static final String CACHE_FIELD = "mirror:stats";
 
     @Override
     @Cached(name = "sr:user:stats:", key = "#userId", cacheType = CacheType.BOTH, expire = 1800)
@@ -205,7 +199,8 @@ public class MirrorStatsServiceImpl implements MirrorStatsService {
         if (netScores.isEmpty()) return 0;
 
         double avgAbs = netScores.stream()
-                .mapToInt(Math::abs)
+                .mapToInt(Integer::intValue)
+                .map(Math::abs)
                 .average()
                 .orElse(0);
 

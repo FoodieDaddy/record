@@ -25,10 +25,13 @@ public class AdminUserService {
     private final RoomMapper roomMapper;
     private final RoomMemberMapper roomMemberMapper;
 
-    public Page<User> listUsers(int page, int size, String keyword) {
+    public Page<User> listUsers(int page, int size, String keyword, Integer status) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
             wrapper.like(User::getNickname, keyword);
+        }
+        if (status != null) {
+            wrapper.eq(User::getStatus, status);
         }
         wrapper.orderByDesc(User::getCreatedAt);
         return userMapper.selectPage(new Page<>(page, size), wrapper);

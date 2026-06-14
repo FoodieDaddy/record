@@ -2,7 +2,6 @@ package com.smartrecord.service;
 
 import com.smartrecord.common.BizException;
 import com.smartrecord.dto.room.CreateRoomReq;
-import com.smartrecord.dto.room.RoomResp;
 import com.smartrecord.entity.Room;
 import com.smartrecord.entity.RoomMember;
 import com.smartrecord.mapper.RoomMapper;
@@ -11,7 +10,6 @@ import com.smartrecord.mapper.UserMapper;
 import com.smartrecord.service.impl.RoomServiceImpl;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
 import com.smartrecord.util.SnowflakeIdGenerator;
-import com.aliyun.oss.OSS;
 import com.smartrecord.config.OssConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +21,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.concurrent.Executor;
 
@@ -35,6 +32,7 @@ import static org.mockito.Mockito.*;
  * 编队服务单元测试（最小覆盖）
  */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class RoomServiceTest {
 
     @InjectMocks
@@ -51,13 +49,9 @@ class RoomServiceTest {
     @Mock
     private StringRedisTemplate redisTemplate;
     @Mock
-    private OSS ossClient;
-    @Mock
     private OssConfig ossConfig;
     @Mock
     private ScoreWebSocket scoreWebSocket;
-    @Mock
-    private StorageService storageService;
     @Mock
     private Executor asyncExecutor;
 
@@ -68,8 +62,6 @@ class RoomServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(roomService, "appId", "test-app-id");
-        ReflectionTestUtils.setField(roomService, "appSecret", "test-app-secret");
     }
 
     @Test

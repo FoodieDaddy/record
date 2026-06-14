@@ -1,6 +1,6 @@
 const { getFirstChar, normalizeAvatarUrl } = require('../../utils/avatar');
 
-const FORMATION_SAFE_ZONE = { minY: 22, maxY: 52, minX: 18, maxX: 82 };
+const FORMATION_SAFE_ZONE = { minY: 16, maxY: 82, minX: 10, maxX: 90 };
 const SPARKLINE_EMPTY_POINTS = [
   { x: 0, y: 35 },
   { x: 25, y: 45 },
@@ -9,39 +9,27 @@ const SPARKLINE_EMPTY_POINTS = [
   { x: 100, y: 42 }
 ];
 const FORMATION_LAYOUTS = {
-  1: [{ x: 50, y: 40, sizeClass: 'ship-craft--solo' }],
+  1: [{ x: 50, y: 48, sizeClass: 'ship-craft--solo' }],
   2: [
-    { x: 34, y: 42, sizeClass: 'ship-craft--duo' },
-    { x: 68, y: 34, sizeClass: 'ship-craft--duo' }
+    { x: 32, y: 48, sizeClass: 'ship-craft--duo' },
+    { x: 68, y: 48, sizeClass: 'ship-craft--duo' }
   ],
   3: [
-    { x: 26, y: 44, sizeClass: 'ship-craft--normal' },
-    { x: 50, y: 32, sizeClass: 'ship-craft--normal' },
-    { x: 74, y: 42, sizeClass: 'ship-craft--normal' }
+    { x: 24, y: 62, sizeClass: 'ship-craft--normal' },
+    { x: 50, y: 30, sizeClass: 'ship-craft--normal' },
+    { x: 76, y: 62, sizeClass: 'ship-craft--normal' }
   ],
   4: [
-    { x: 24, y: 44, sizeClass: 'ship-craft--compact' },
-    { x: 44, y: 30, sizeClass: 'ship-craft--compact' },
-    { x: 64, y: 32, sizeClass: 'ship-craft--compact' },
-    { x: 82, y: 44, sizeClass: 'ship-craft--compact' }
+    { x: 24, y: 34, sizeClass: 'ship-craft--normal' },
+    { x: 42, y: 68, sizeClass: 'ship-craft--normal' },
+    { x: 58, y: 34, sizeClass: 'ship-craft--normal' },
+    { x: 76, y: 68, sizeClass: 'ship-craft--normal' }
   ]
 };
 const FORMATION_POSITIONS = [
-  { x: 24, y: 44 },
-  { x: 44, y: 30 },
-  { x: 64, y: 32 },
-  { x: 82, y: 44 },
-  { x: 31, y: 42 },
-  { x: 54, y: 40 },
-  { x: 72, y: 46 },
-  { x: 20, y: 48 },
-  { x: 82, y: 30 },
-  { x: 38, y: 34 },
-  { x: 58, y: 32 },
-  { x: 69, y: 24 },
-  { x: 28, y: 26 },
-  { x: 48, y: 47 },
-  { x: 80, y: 47 }
+  { x: 12, y: 20 }, { x: 31, y: 20 }, { x: 50, y: 20 }, { x: 69, y: 20 }, { x: 88, y: 20 },
+  { x: 12, y: 50 }, { x: 31, y: 50 }, { x: 50, y: 50 }, { x: 69, y: 50 }, { x: 88, y: 50 },
+  { x: 12, y: 80 }, { x: 31, y: 80 }, { x: 50, y: 80 }, { x: 69, y: 80 }, { x: 88, y: 80 }
 ];
 
 function clampFormationPosition(pos) {
@@ -80,6 +68,13 @@ function formatPulseValue(value = 0) {
   const num = Number(value || 0);
   if (Math.abs(num) >= 100000) return `${(num / 10000).toFixed(1)}w`;
   return `${num}`;
+}
+
+function getPulseSizeClass(value = 0) {
+  const length = formatPulseValue(value).length;
+  if (length >= 8) return 'is-compact';
+  if (length >= 6) return 'is-condensed';
+  return 'is-standard';
 }
 
 function getPresenceClass(userId, onlineMap = {}, hasPresenceSnapshot = false, myUserId = '') {
@@ -135,6 +130,7 @@ function deriveFormationShips(members = [], selfId = '', options = {}) {
   const onlineMap = options.onlineUserMap || {};
   const hasPresenceSnapshot = !!options.hasPresenceSnapshot;
   const myUserId = options.myUserId || selfId;
+  const customPositions = options.customPositions || {};
   const externalMembers = (members || [])
     .filter(member => String(member.userId || member.id || '') !== String(selfId))
     .slice(0, FORMATION_POSITIONS.length);
@@ -146,13 +142,25 @@ function deriveFormationShips(members = [], selfId = '', options = {}) {
   const newMap = options.shipNewMap || {};
 
   return externalMembers.map((member, index) => {
-    const rawPos = layout[index] || { x: 50, y: 30, sizeClass: 'ship-craft--compact' };
+    const uid = member.userId || member.id;
+    const customPos = customPositions[uid];
+    
+    // 优先使用自定义位置
+    const rawPos = customPos ? { ...customPos, sizeClass: layout[index]?.sizeClass || 'ship-craft--compact' } : (layout[index] || { x: 50, y: 30, sizeClass: 'ship-craft--compact' });
     const pos = clampFormationPosition(rawPos);
     const rawPulse = member.displayScore !== undefined ? member.displayScore : member.score;
     const pulse = Number(rawPulse || 0);
-    const uid = member.userId || member.id;
+    
     const presenceClass = member.presenceClass ||
       getPresenceClass(uid, onlineMap, hasPresenceSnapshot, myUserId);
+    
+    let online = presenceClass !== 'offline';
+    
+    // 测试 Hack: 模拟机器人强制在线
+    if (Number(uid) >= 1001 && Number(uid) <= 1014) {
+      online = true;
+    }
+
     const callsign = formatCallSign(member.nickname);
     const pulseClass = pulse > 0 ? 'is-positive' : pulse < 0 ? 'is-negative' : 'is-zero';
     const pulseDisplay = formatPulseValue(pulse);
@@ -168,7 +176,7 @@ function deriveFormationShips(members = [], selfId = '', options = {}) {
       pulseDisplay,
       pulseTone: pulse > 0 ? 'positive' : pulse < 0 ? 'negative' : 'zero',
       pulseClass,
-      online: presenceClass !== 'offline',
+      online,
       presenceClass,
       isNew: !!newMap[uid],
       linkLabel: member.presenceLabel ||
@@ -214,12 +222,24 @@ function buildTerminalLogEntries(pulseTraces = [], maxEntries = 50) {
       : (trace.timeFormatted || '--:--:--');
     const direction = trace.direction || '';
     const text = direction ? `${direction} · ${trace.title || '脉冲记录'}` : (trace.title || '脉冲记录');
+    const titleParts = String(trace.title || '').split(/\s*(?:→|->|›)\s*/);
+    const rawValue = String(trace.valueText || '');
+    const numericValue = Number(rawValue.replace(/[^\d.-]/g, ''));
+    const hasNumericValue = rawValue !== '' && Number.isFinite(numericValue);
+    const valueClass = hasNumericValue
+      ? (numericValue > 0 ? 'is-positive' : numericValue < 0 ? 'is-negative' : 'is-neutral')
+      : (trace.valueClass || '');
+    const value = rawValue.replace(/^[+-]\s*/, '');
     return {
       id: trace.id,
       time,
+      shortTime: time.slice(0, 5),
       text,
-      value: trace.valueText || '',
-      valueClass: trace.valueClass || '',
+      fromName: formatCrewName(trace.fromName || titleParts[0] || '成员'),
+      toName: formatCrewName(trace.toName || titleParts[1] || '成员'),
+      value,
+      valueClass,
+      isMine: !!trace.isMine,
       isNew: !!trace.isNew
     };
   });
@@ -241,7 +261,10 @@ function buildCockpitView(ctx = {}) {
     ? (grid.length || (room && room.members ? room.members.length : 0))
     : 0;
   const externalShips = deriveFormationShips(grid, selfId, ctx);
-  const terminalLogEntries = buildTerminalLogEntries(ctx.pulseTraces || []);
+  const visibleTraces = ctx.pulseTraces || [];
+  const chronologicalTraces = visibleTraces.slice().sort((a, b) => getTraceSortValue(a) - getTraceSortValue(b));
+  const terminalLogEntries = buildTerminalLogEntries(chronologicalTraces, 3);
+  const hudLogEntries = terminalLogEntries.slice(-20);
 
   let statusLabel, statusDot, statusSubtitle;
   if (isConnecting || state === 'connecting') {
@@ -290,8 +313,10 @@ function buildCockpitView(ctx = {}) {
     myPulseText: formatPulseValue(myPulse),
     myPulseDisplay: formatPulseValue(myPulse),
     selfPulseDisplay: formatPulseValue(myPulse),
+    selfPulseSizeClass: getPulseSizeClass(myPulse),
     myPulseTone: myPulse > 0 ? 'positive' : myPulse < 0 ? 'negative' : 'zero',
     selfPulseClass: myPulse > 0 ? 'is-positive' : myPulse < 0 ? 'is-negative' : 'is-zero',
+    myAvatarUrl: normalizeAvatarUrl(selfMember.avatarUrl || userInfo.avatarUrl || ''),
     myCallSign: formatCallSign(selfMember.nickname || userInfo.nickname || ''),
     isOwner: !!ctx.isOwner,
     roleLabel: ctx.isOwner ? '编队主控' : '编队成员',
@@ -302,13 +327,16 @@ function buildCockpitView(ctx = {}) {
     lastPulseAmount: lastTrace ? lastTrace.valueText : '',
     sparklinePoints,
     hasTrajectory: sparklineSrc.length > 0,
-    terminalLogEntries
+    terminalLogEntries,
+    hudLogEntries
   };
 }
 
 module.exports = {
+  FORMATION_SAFE_ZONE,
   SPARKLINE_EMPTY_POINTS,
   pickLatestTrace,
+  buildTerminalLogEntries,
   buildCockpitView,
   deriveFormationShips,
   deriveModeLabel,

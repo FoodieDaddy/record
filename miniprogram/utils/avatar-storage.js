@@ -18,6 +18,7 @@ const { normalizeAvatarUrl } = require('./avatar');
 // ── cloud:// → https 临时 URL 内存缓存 ──
 
 const _tempUrlCache = new Map();
+const _resolvingMap = new Map(); // 记录正在进行的解析请求，防止重复发起
 const CACHE_TTL = 8 * 60 * 1000; // 8 分钟（临时链接默认 10 分钟有效期）
 
 /**
@@ -132,33 +133,53 @@ async function resolveAvatarSrc(avatarUrl) {
   // 非 cloud:// 直接返回
   if (!normalized.startsWith('cloud://')) return normalized;
 
-  // 检查内存缓存
+  // 1. 检查内存缓存
   const cached = _tempUrlCache.get(normalized);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return cached.url;
   }
 
-  // 调用 wx.cloud.getTempFileURL
-  try {
-    const res = await new Promise((resolve, reject) => {
-      wx.cloud.getTempFileURL({
-        fileList: [normalized],
-        success: resolve,
-        fail: reject
-      });
-    });
-
-    if (res.fileList && res.fileList.length > 0 && res.fileList[0].tempFileURL) {
-      const httpsUrl = res.fileList[0].tempFileURL;
-      _tempUrlCache.set(normalized, { url: httpsUrl, ts: Date.now() });
-      return httpsUrl;
-    }
-  } catch (e) {
-    // 解析失败，回退
+  // 2. 检查是否有正在进行的相同请求（并发去重）
+  if (_resolvingMap.has(normalized)) {
+    return _resolvingMap.get(normalized);
   }
 
-  // 解析失败，返回空串（触发首字头像回退）
-  return '';
+  // 3. 发起请求并记录到 resolvingMap
+  const resolvePromise = new Promise(async (resolve) => {
+    try {
+      const res = await new Promise((resInner, rejInner) => {
+        wx.cloud.getTempFileURL({
+          fileList: [normalized],
+          success: resInner,
+          fail: rejInner
+        });
+      });
+
+      if (res.fileList && res.fileList.length > 0) {
+        const item = res.fileList[0];
+        if (item.status === 0 && item.tempFileURL) {
+          const httpsUrl = item.tempFileURL;
+          _tempUrlCache.set(normalized, { url: httpsUrl, ts: Date.now() });
+          resolve(httpsUrl);
+        } else {
+          console.warn('[avatar-storage] 单个云头像解析失败:', normalized, '原因:', item.errMsg, '状态码:', item.status);
+          resolve('');
+        }
+      } else {
+        console.warn('[avatar-storage] 单个云头像解析返回为空列表:', normalized);
+        resolve('');
+      }
+    } catch (e) {
+      console.error('[avatar-storage] 解析单个云头像异常:', e);
+      resolve('');
+    } finally {
+      // 完成后清理记录
+      _resolvingMap.delete(normalized);
+    }
+  });
+
+  _resolvingMap.set(normalized, resolvePromise);
+  return resolvePromise;
 }
 
 /**
@@ -203,15 +224,19 @@ async function resolveAvatarSrcBatch(avatarUrls) {
       });
       if (res.fileList) {
         for (const item of res.fileList) {
-          if (item.tempFileURL) {
+          if (item.status === 0 && item.tempFileURL) {
             _tempUrlCache.set(item.fileID, { url: item.tempFileURL, ts: Date.now() });
             // 在原始 avatarUrls 中找到匹配项
             result[item.fileID] = item.tempFileURL;
+          } else {
+            console.warn('[avatar-storage] 批量解析失败项:', item.fileID, '原因:', item.errMsg, '状态码:', item.status);
+            // 明确将其标记为空字符串，代表解析失败，不要让它成为 undefined
+            result[item.fileID] = '';
           }
         }
       }
     } catch (e) {
-      // 批量解析失败，逐个回退
+      console.error('[avatar-storage] 批量解析异常:', e);
     }
   }
 
@@ -230,5 +255,21 @@ module.exports = {
   uploadAvatar,
   resolveAvatarSrc,
   resolveAvatarSrcBatch,
-  getProvider
+  getProvider,
+  /** 清除指定 cloud:// URL 的临时 URL 缓存，用于过期后重试 */
+  clearTempUrlCache,
+  _tempUrlCache,
+  _resolvingMap
 };
+
+/**
+ * 清除临时 URL 缓存（全部或指定 cloud:// URL）
+ * @param {string} [cloudUrl] 可选，指定则只清除该条
+ */
+function clearTempUrlCache(cloudUrl) {
+  if (cloudUrl) {
+    _tempUrlCache.delete(cloudUrl);
+  } else {
+    _tempUrlCache.clear();
+  }
+}

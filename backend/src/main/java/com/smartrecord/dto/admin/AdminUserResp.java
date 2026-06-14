@@ -19,6 +19,9 @@ public class AdminUserResp {
     private LocalDateTime updatedAt;
 
     public static AdminUserResp from(com.smartrecord.entity.User user) {
+        if (user == null) {
+            return null;
+        }
         AdminUserResp resp = new AdminUserResp();
         resp.setId(user.getId());
         resp.setNickname(user.getNickname());

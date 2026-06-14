@@ -5,7 +5,6 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartrecord.common.BizException;
-import com.smartrecord.common.ErrorCode;
 import com.smartrecord.dto.achievement.UserAchievementResp;
 import com.smartrecord.entity.Achievement;
 import com.smartrecord.entity.UserAchievement;
@@ -18,13 +17,11 @@ import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
@@ -37,7 +34,6 @@ import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.net.URL;
 import javax.imageio.ImageIO;
 
 /**
@@ -54,7 +50,6 @@ public class AchievementServiceImpl implements AchievementService {
     private final RoomMemberMapper roomMemberMapper;
     private final AchievementMapper achievementMapper;
     private final UserService userService;
-    private final com.smartrecord.mapper.UserMapper userMapper;
 
     @Override
     @Cached(name = "achievement:id:", key = "#achievementId", cacheType = CacheType.BOTH, expire = 3600)
@@ -490,7 +485,7 @@ public class AchievementServiceImpl implements AchievementService {
             Image avatarImg = null;
             if (avatarUrl != null && !avatarUrl.isEmpty() && (avatarUrl.startsWith("http") || avatarUrl.startsWith("https"))) {
                 try {
-                    avatarImg = ImageIO.read(new URL(avatarUrl));
+                    avatarImg = ImageIO.read(java.net.URI.create(avatarUrl).toURL());
                     avatarLoaded = true;
                 } catch (Exception e) {
                     log.warn("海报渲染下载用户头像失败: avatarUrl={}", avatarUrl, e);

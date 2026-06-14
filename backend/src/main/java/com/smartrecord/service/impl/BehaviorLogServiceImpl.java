@@ -106,7 +106,6 @@ public class BehaviorLogServiceImpl implements BehaviorLogService {
         );
 
         List<String> dates = new ArrayList<>();
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-day"); // 我们格式化为 MM-dd
         DateTimeFormatter displayFmt = DateTimeFormatter.ofPattern("MM-dd");
         for (int i = 6; i >= 0; i--) {
             dates.add(now.minusDays(i).format(displayFmt));

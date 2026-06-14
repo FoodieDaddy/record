@@ -145,9 +145,20 @@ Page({
     // 弹窗控制
     showMbtiPicker: false,
     showExitConfirm: false,
+// 校准进度
+calibrationProgress: '01 / 20',
 
-    // 校准进度
-    calibrationProgress: '01 / 20',
+// Custom Nav
+customNavTop: 44,
+customNavBarHeight: 44,
+customNavHeight: 88,
+cockpitState: 'idle',
+cockpitView: {
+  statusDot: 'idle',
+  statusLabel: '全息舱待机中',
+  roomNo: '--',
+  memberCountText: '0/16'
+},
     calibrationSubmitStep: 0,
     calibrationSubmitStepViews: [
       { text: '协议写入中', status: 'pending' },
@@ -188,6 +199,7 @@ Page({
   },
 
   onLoad() {
+    this.initCustomNav()
     var animEnabled = app.globalData.animationEnabled !== false;
     this.setData({ animationEnabled: animEnabled, reduceMotion: !animEnabled });
     this._toastRef = null;
@@ -228,6 +240,7 @@ Page({
       this.getTabBar().setData({ selected: 2 })
     }
     getApp().globalData.activeTabKey = 'holo'
+    this.syncRoomStatus()
     if (!this.data.loadedOnce) return;
     // 距离上次刷新 < 30s 不刷新
     var now = Date.now();
@@ -1188,11 +1201,6 @@ Page({
     var maxNameW = W - padL - nameX - 40;
     ctx.fillText(truncateCanvasText(ctx, displayName, maxNameW), nameX, y + 30);
 
-    // 副标 IDENTITY
-    ctx.fillStyle = 'rgba(0,200,255,0.58)';
-    ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'IDENTITY', nameX, y + 58);
-
     // 状态点
     ctx.beginPath();
     ctx.arc(W - padL - 20, y + avatarSize / 2, 5, 0, Math.PI * 2);
@@ -1262,7 +1270,6 @@ Page({
     ctx.fillStyle = 'rgba(255,255,255,0.36)';
     ctx.font = '16px sans-serif';
     this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER', padL, 72);
-    this._fillLetterSpacedRight(ctx, 'HOLO PROJECTION', W - padL, 72);
 
     // MBTI 核心
     var coreY = 280;
@@ -1338,7 +1345,7 @@ Page({
 
     ctx.fillStyle = 'rgba(10,132,255,0.42)';
     ctx.font = '16px sans-serif';
-    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER · HOLO BAY', padL, H - 50);
+    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER', padL, H - 50);
   },
 
   /**
@@ -1623,6 +1630,53 @@ Page({
   },
 
   // ==================== 分享 ====================
+
+  initCustomNav() {
+    let statusBarHeight = 44;
+    let navBarHeight = 44;
+    try {
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      statusBarHeight = windowInfo.statusBarHeight || statusBarHeight;
+      const menuRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+      if (menuRect && menuRect.height && menuRect.top > statusBarHeight) {
+        navBarHeight = (menuRect.top - statusBarHeight) * 2 + menuRect.height;
+      }
+    } catch (e) {}
+    this.setData({
+      customNavTop: statusBarHeight,
+      customNavBarHeight: navBarHeight,
+      customNavHeight: statusBarHeight + navBarHeight
+    });
+  },
+
+  syncRoomStatus() {
+    const roomId = wx.getStorageSync('currentRoomId');
+    if (!roomId) {
+      this.setData({
+        cockpitState: 'idle',
+        cockpitView: {
+          statusDot: 'idle',
+          statusLabel: '全息舱待机中',
+          roomNo: '--',
+          memberCountText: '0/16'
+        }
+      });
+      return;
+    }
+
+    const currentRoomNo = wx.getStorageSync('currentRoomNo') || '--';
+    const memberCount = wx.getStorageSync('currentMemberCount') || 0;
+    
+    this.setData({
+      cockpitState: 'active',
+      cockpitView: {
+        statusDot: 'online',
+        statusLabel: '全息舱已接入',
+        roomNo: currentRoomNo,
+        memberCountText: `${memberCount}/16`
+      }
+    });
+  },
 
   onShareAppMessage() {
     var mbti = this.data.mbti || {};

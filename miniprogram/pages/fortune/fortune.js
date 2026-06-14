@@ -20,7 +20,6 @@ const STRATEGY_TEXT_REPLACEMENTS = [
   [new RegExp('必' + '胜', 'g'), '稳定执行'],
   [new RegExp('稳' + '赚', 'g'), '稳态执行'],
   [/校准者/g, '今日指令'],
-  [/THE CALIBRATOR/gi, 'DIRECTIVE'],
   [/LOW-NOISE/gi, '低噪'],
   [/MEDIUM-NOISE/gi, '中噪'],
   [/HIGH-NOISE/gi, '高噪'],
@@ -52,7 +51,6 @@ function sanitizeStrategy(strategy) {
   return {
     ...strategy,
     title: sanitizeStrategyText(strategy.title),
-    subtitle: sanitizeStrategyText(strategy.subtitle),
     verdict: sanitizeStrategyText(strategy.verdict),
     tag: sanitizeStrategyText(strategy.tag),
     buffs: (strategy.buffs || []).map(sanitizeStrategyText),
@@ -92,9 +90,9 @@ function deriveStrategyMeta(strategy) {
 /** 提炼舰载指令主句 */
 function deriveDirectiveText(strategy) {
   if (!strategy) return '保持低速推进，优先修正节奏。'
-  if (strategy.subtitle) return strategy.subtitle
   if (strategy.verdict && strategy.verdict.length <= 30) return strategy.verdict
   if (strategy.verdict) return strategy.verdict.slice(0, 28) + '...'
+  if (strategy.title) return strategy.title
   return '保持低速推进，优先修正节奏。'
 }
 
@@ -115,19 +113,18 @@ function mapUserTagToLabel(userTag) {
   return map[userTag] || '待同步'
 }
 
-/** 补充 CloudBase AI 来源缺失的 archetype 字段（title/subtitle/tags） */
+/** 补充 CloudBase AI 来源缺失的 archetype 字段（title/tags） */
 const ARCHETYPE_MAP = {
-  WINNING_STREAK: { title: '控场者', subtitle: 'THE CONTROLLER', tags: ['顺行', '连续', '控场'] },
-  LOSING_STREAK: { title: '校准者', subtitle: 'THE CALIBRATOR', tags: ['回稳', '校准', '观察'] },
-  HIGH_RISK: { title: '高波动体', subtitle: 'THE FLUCTUATOR', tags: ['波动', '高风险', '节奏'] },
-  STABLE: { title: '巡航者', subtitle: 'THE CRUISER', tags: ['稳健', '巡航', '节奏'] },
+  WINNING_STREAK: { title: '控场者', tags: ['顺行', '连续', '控场'] },
+  LOSING_STREAK: { title: '校准者', tags: ['回稳', '校准', '观察'] },
+  HIGH_RISK: { title: '高波动体', tags: ['波动', '高风险', '节奏'] },
+  STABLE: { title: '巡航者', tags: ['稳健', '巡航', '节奏'] },
 }
 
 function _fillArchetypeIfMissing(strategy) {
-  if (strategy.title && strategy.subtitle && strategy.tags) return
+  if (strategy.title && strategy.tags) return
   const archetype = ARCHETYPE_MAP[strategy.userTag] || ARCHETYPE_MAP.STABLE
   if (!strategy.title) strategy.title = archetype.title
-  if (!strategy.subtitle) strategy.subtitle = archetype.subtitle
   if (!strategy.tags || strategy.tags.length === 0) strategy.tags = archetype.tags
 }
 
@@ -234,6 +231,18 @@ Page({
 
     // Page layout
     pageHeight: 0,
+
+    // Custom Nav
+    customNavTop: 44,
+    customNavBarHeight: 44,
+    customNavHeight: 88,
+    cockpitState: 'idle',
+    cockpitView: {
+      statusDot: 'idle',
+      statusLabel: '导航舱待机中',
+      roomNo: '--',
+      memberCountText: '0/16'
+    }
   },
 
   /* ===== 实例字段（非 data） ===== */
@@ -259,6 +268,7 @@ Page({
   /* ==================== 生命周期 ==================== */
 
   onLoad() {
+    this.initCustomNav()
     const now = new Date()
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
@@ -282,6 +292,7 @@ Page({
     app.globalData.activeTabKey = 'nav'
     wx.setNavigationBarTitle({ title: '导航舱' })
     this._startCountdown()
+    this.syncRoomStatus()
     // pageReady 立即为 true，避免空暗场；骨架屏仅用于极端冷启动
     if (!this.data.pageReady) {
       this.setData({ pageReady: true })
@@ -293,6 +304,54 @@ Page({
     }
     // 每次展示重新计算高度，防止横竖屏切换等场景
     this._calcPageHeight()
+  },
+
+  initCustomNav() {
+    let statusBarHeight = 44;
+    let navBarHeight = 44;
+    try {
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      statusBarHeight = windowInfo.statusBarHeight || statusBarHeight;
+      const menuRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+      if (menuRect && menuRect.height && menuRect.top > statusBarHeight) {
+        navBarHeight = (menuRect.top - statusBarHeight) * 2 + menuRect.height;
+      }
+    } catch (e) {}
+    this.setData({
+      customNavTop: statusBarHeight,
+      customNavBarHeight: navBarHeight,
+      customNavHeight: statusBarHeight + navBarHeight
+    });
+  },
+
+  syncRoomStatus() {
+    const roomId = wx.getStorageSync('currentRoomId');
+    if (!roomId) {
+      this.setData({
+        cockpitState: 'idle',
+        cockpitView: {
+          statusDot: 'idle',
+          statusLabel: '导航舱待机中',
+          roomNo: '--',
+          memberCountText: '0/16'
+        }
+      });
+      return;
+    }
+
+    // 从本地获取编队基本信息，如果没有则降级
+    const currentRoomNo = wx.getStorageSync('currentRoomNo') || '--';
+    const memberCount = wx.getStorageSync('currentMemberCount') || 0;
+    
+    this.setData({
+      cockpitState: 'active',
+      cockpitView: {
+        statusDot: 'online',
+        statusLabel: '导航舱已接入',
+        roomNo: currentRoomNo,
+        memberCountText: `${memberCount}/16`
+      }
+    });
   },
 
   _calcPageHeight() {
@@ -1065,23 +1124,14 @@ Page({
     ctx.textAlign = 'center'
     ctx.fillText('今日指令投影', W / 2, 100)
 
-    ctx.fillStyle = 'rgba(0,175,255,0.24)'
-    ctx.font = '14px Courier New'
-    this._fillLetterSpaced(ctx, 'FLIGHT DIRECTIVE', W / 2 - 70, 122)
-
     ctx.fillStyle = 'rgba(126,156,180,0.16)'
     ctx.font = '14px Courier New'
     ctx.textAlign = 'left'
     ctx.fillText(this.data.currentDate, padL, 122)
 
-    ctx.textAlign = 'right'
-    ctx.fillStyle = 'rgba(0,175,255,0.18)'
-    this._fillLetterSpaced(ctx, 'NAV BAY', padR, 122)
-    ctx.textAlign = 'left'
-
     /* ========== 舰载指令（strategy-section--directive） ========== */
     let y = 160
-    this._drawSectionHead(ctx, padL, y, contentW, '今日指令', 'DIRECTIVE', '#00C8FF')
+    this._drawSectionHead(ctx, padL, y, contentW, '今日指令', '#00C8FF')
     y += 40
 
     // strategy-reading 卡片
@@ -1116,7 +1166,7 @@ Page({
 
     /* ========== 状态读数（strategy-insight） ========== */
     y += 186
-    this._drawSectionHead(ctx, padL, y, contentW, '状态读数', 'STATUS', '#00C8FF')
+    this._drawSectionHead(ctx, padL, y, contentW, '状态读数', '#00C8FF')
     y += 40
 
     const sLines = this._wrapText(ctx, statusText, contentW - 48)
@@ -1148,7 +1198,7 @@ Page({
 
     /* ========== 推进节奏（strategy-section + strategy-list-card） ========== */
     y += (s.tag ? 72 : 24)
-    this._drawSectionHead(ctx, padL, y, contentW, '推进节奏', 'THRUST', '#00C8FF', '+')
+    this._drawSectionHead(ctx, padL, y, contentW, '推进节奏', '#00C8FF', '+')
     y += 40
 
     buffs.forEach((b, i) => {
@@ -1157,7 +1207,7 @@ Page({
 
     /* ========== 安全边界（strategy-section + strategy-list-card--risk） ========== */
     y += 20
-    this._drawSectionHead(ctx, padL, y, contentW, '安全边界', 'SAFETY', '#FF9F0A', '!')
+    this._drawSectionHead(ctx, padL, y, contentW, '安全边界', '#FF9F0A', '!')
     y += 40
 
     debuffs.forEach((d, i) => {
@@ -1181,12 +1231,12 @@ Page({
 
     ctx.textAlign = 'right'
     ctx.fillStyle = 'rgba(0,175,255,0.18)'
-    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER · NAV BAY', padR, H - 48)
+    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER', padR, H - 48)
     ctx.textAlign = 'left'
   },
 
   /** 绘制区块标题（与页面 strategy-section-head 对齐） */
-  _drawSectionHead(ctx, x, y, w, title, kicker, color, icon) {
+  _drawSectionHead(ctx, x, y, w, title, color, icon) {
     // icon（可选）
     let titleX = x
     if (icon) {
@@ -1199,12 +1249,6 @@ Page({
     ctx.fillStyle = color
     ctx.font = 'bold 22px sans-serif'
     ctx.fillText(title, titleX, y + 2)
-
-    ctx.fillStyle = 'rgba(126,156,180,0.22)'
-    ctx.font = '14px Courier New'
-    ctx.textAlign = 'right'
-    this._fillLetterSpaced(ctx, kicker, x + w, y + 2)
-    ctx.textAlign = 'left'
   },
 
   /** 绘制卡片背景（与页面 strategy-reading / strategy-insight 对齐） */

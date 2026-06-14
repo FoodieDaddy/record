@@ -43,7 +43,7 @@ const ENV = {
     /** 当前存储 provider: cloudbase / cos / aliyun */
     provider: 'cloudbase',
     /** CloudBase 环境 ID（provider=cloudbase 时必填） */
-    cloudbaseEnvId: ''
+    cloudbaseEnvId: 'cloud1-d3g6oa11id960ba31'
   },
 
   /** AI 代理配置 */

@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.lang.NonNull;
 
 /**
  * WebSocket 分布式 Pub/Sub 广播消息订阅容器配置类。
@@ -15,8 +16,8 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 public class WebSocketRedisConfig {
 
     @Bean
-    public RedisMessageListenerContainer webSocketRedisContainer(RedisConnectionFactory connectionFactory,
-                                                                 WebSocketRedisSubscriber subscriber) {
+    public RedisMessageListenerContainer webSocketRedisContainer(@NonNull RedisConnectionFactory connectionFactory,
+                                                                 @NonNull WebSocketRedisSubscriber subscriber) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         container.addMessageListener(subscriber, new PatternTopic("sr:ws:pubsub"));

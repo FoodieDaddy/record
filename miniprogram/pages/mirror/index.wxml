@@ -1,4 +1,20 @@
-<view class="mirror-bay {{reduceMotion ? 'reduce-motion' : ''}}">
+<view class="mirror-bay {{reduceMotion ? 'reduce-motion' : ''}}" style="padding-top: {{customNavHeight}}px;">
+
+  <!-- 统一沉浸式导航条 -->
+  <view
+    class="sr-custom-nav"
+    style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;"
+  >
+    <view class="sr-custom-nav__stars"></view>
+    <view class="sr-custom-nav__bar" style="height: {{customNavBarHeight}}px;">
+      <view class="cockpit-nav-hud">
+        <view class="cockpit-nav-hud__link">
+          <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
+          <text>{{cockpitView.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 
   <!-- 深空背景层 -->
   <view class="mirror-space-bg" wx:if="{{!isInitialLoading}}">
@@ -22,8 +38,8 @@
 
     <view class="mirror-main {{mainDimmed ? 'mirror-main--dimmed' : ''}}">
 
-      <!-- ===== 一级：全息总览 ===== -->
-      <view class="bay-header" style="opacity: {{headerOpacity}};">
+      <!-- ===== 一级：全息总览 (沉浸式方案中完全移除) ===== -->
+      <view class="bay-header hide-page-title" style="opacity: {{headerOpacity}}; display: none;">
         <view class="bay-status-tab bay-status-tab--{{bayStatusState}}">
           <view class="bay-status-tab__dot"></view>
           <text class="bay-status-tab__label">{{bayStatusText}}</text>
@@ -94,7 +110,6 @@
           <view class="card-header">
             <view class="card-title-row">
               <text class="card-title">航迹档案</text>
-              <text class="card-kicker">TRACK ARCHIVE</text>
             </view>
             <view class="sr-card-line card-line"></view>
           </view>
@@ -127,7 +142,6 @@
           <view class="card-header">
             <view class="card-title-row analysis-toggle" bindtap="toggleAnalysis">
               <text class="card-title">协议分析</text>
-              <text class="card-kicker">PROTOCOL ANALYSIS</text>
               <text class="analysis-toggle__state">{{analysisExpanded ? '收起' : '展开'}}</text>
             </view>
             <view class="sr-card-line card-line"></view>
@@ -139,7 +153,6 @@
             <view class="analysis-section">
               <view class="analysis-section-header">
                 <text class="analysis-section-title">系统判读</text>
-                <text class="analysis-section-kicker">SYSTEM READING</text>
               </view>
 
               <block wx:if="{{reading.available}}">
@@ -178,7 +191,6 @@
             <view class="analysis-section">
               <view class="analysis-section-header">
                 <text class="analysis-section-title">协议偏移</text>
-                <text class="analysis-section-kicker">DEVIATION</text>
               </view>
 
               <block wx:if="{{personaMatch.available}}">
@@ -232,7 +244,6 @@
             <view class="analysis-section">
               <view class="analysis-section-header">
                 <text class="analysis-section-title">协议演化</text>
-                <text class="analysis-section-kicker">EVOLUTION</text>
               </view>
 
               <block wx:if="{{evolution.length > 0}}">
@@ -278,7 +289,6 @@
       <!-- 顶部 -->
       <view class="cal-header">
         <text class="cal-title">协议校准</text>
-        <text class="cal-subtitle">CALIBRATION</text>
       </view>
 
       <!-- 扫描环 -->
@@ -338,7 +348,6 @@
     wx:if="{{showExitConfirm}}"
     visible="{{showExitConfirm}}"
     title="退出校准"
-    subtitle="EXIT"
     content="本次校准尚未写入协议，确认退出？"
     cancelText="继续校准"
     confirmText="确认退出"
@@ -404,7 +413,6 @@
     wx:if="{{showPermDialog}}"
     visible="{{showPermDialog}}"
     title="需要相册权限"
-    subtitle="PERMISSION"
     content="保存镜像图片需要相册访问权限。"
     cancelText="取消"
     confirmText="去设置"

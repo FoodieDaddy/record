@@ -17,9 +17,9 @@ const error = ref('')
 
 const columns = [
   { key: 'alertId', label: 'ID', width: '140px' },
-  { key: 'level', label: locale.isZh ? '级别' : 'Level', width: '80px' },
-  { key: 'message', label: locale.isZh ? '告警信息' : 'Alert Message' },
-  { key: 'createdAt', label: locale.isZh ? '时间' : 'Time', width: '140px' },
+  { key: 'level', label: locale.t('alerts.level'), width: '80px' },
+  { key: 'message', label: locale.t('alerts.message') },
+  { key: 'createdAt', label: locale.t('alerts.time'), width: '140px' },
 ]
 
 async function load() {
@@ -32,7 +32,7 @@ async function load() {
     data.value = res.records || []
     total.value = res.total || 0
   } catch {
-    error.value = locale.isZh ? '加载告警数据失败' : 'Failed to load alerts'
+    error.value = locale.t('alerts.loadError')
   } finally { loading.value = false }
 }
 
@@ -43,16 +43,16 @@ onMounted(load)
 <template>
   <div class="page-header">
     <div class="page-header__left">
-      <h1 class="page-header__title">{{ locale.isZh ? '告警中心' : 'Alert Center' }}</h1>
+      <h1 class="page-header__title">{{ locale.t('alerts.title') }}</h1>
     </div>
   </div>
   <div class="base-panel">
     <div class="base-panel__header">
-      <span class="base-panel__title">{{ locale.isZh ? '告警中心' : 'Alert Center' }}</span>
+      <span class="base-panel__title">{{ locale.t('alerts.title') }}</span>
     </div>
     <div class="toolbar">
       <div style="display:flex;gap:8px;align-items:center;">
-        <input v-model="search" class="input-field" style="width:240px;" :placeholder="locale.isZh ? '搜索告警信息...' : 'Search alerts...'" @keyup.enter="page=1;load()" />
+        <input v-model="search" class="input-field" style="width:240px;" :placeholder="locale.t('alerts.searchPlaceholder')" @keyup.enter="page=1;load()" />
         <button class="cmd-btn cmd-btn--secondary" @click="page=1;load()">{{ locale.t('common.search') }}</button>
       </div>
     </div>

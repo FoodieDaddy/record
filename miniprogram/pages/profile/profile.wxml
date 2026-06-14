@@ -31,7 +31,6 @@
     <view class="profile-hud">
       <view class="profile-hud__kicker">
         <text class="profile-hud__kicker-zh">本舰档案</text>
-        <text class="profile-hud__kicker-en">SHIP PROFILE</text>
       </view>
 
       <!-- 铭牌主体：识别徽标 + 呼号 + 等级 + 最强成就 -->
@@ -39,7 +38,7 @@
         <view class="profile-hud__left">
           <button class="profile-hud__avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
             <helmet-avatar
-              src="{{avatarUrl || ''}}"
+              src="{{resolvedAvatarUrl || avatarUrl || ''}}"
               nickname="{{nickname}}"
               size="lg"
               active="{{true}}"
@@ -76,7 +75,6 @@
     <!-- 2. 授权状态 -->
     <view class="term-card term-card--ship-status">
       <text class="term-kicker">授权状态</text>
-      <text class="term-kicker-sub">IDENTITY STATUS</text>
       <view class="ship-status__row">
         <view class="ship-status__item">
           <text class="ship-status__label">航行经验</text>
@@ -99,16 +97,15 @@
     <!-- 3. 装备协议 -->
     <view class="term-card term-card--equip">
       <text class="term-kicker">装备协议</text>
-      <text class="term-kicker-sub">EQUIPMENT</text>
 
       <!-- 通讯协议 -->
       <view class="equip-slot">
         <view class="equip-slot__info">
           <text class="equip-slot__name">通讯协议</text>
-          <text class="equip-slot__value">{{voiceEnabled ? '声波链路 ON' : '声波链路 OFF'}}</text>
+          <text class="equip-slot__value">{{voiceEnabled ? '声波链路已开启' : '声波链路已关闭'}}</text>
         </view>
         <view class="equip-slot__toggle {{voiceEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onVoiceSwitch">
-          <text class="equip-slot__toggle-text">{{voiceEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+          <text class="equip-slot__toggle-text">{{voiceEnabled ? '开启' : '关闭'}}</text>
         </view>
       </view>
 
@@ -125,10 +122,10 @@
       <view class="equip-slot">
         <view class="equip-slot__info">
           <text class="equip-slot__name">视觉协议</text>
-          <text class="equip-slot__value">{{animEnabled ? '动态扫描 ON' : '动态扫描 OFF'}}</text>
+          <text class="equip-slot__value">{{animEnabled ? '动态扫描已开启' : '动态扫描已关闭'}}</text>
         </view>
         <view class="equip-slot__toggle {{animEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onAnimSwitch">
-          <text class="equip-slot__toggle-text">{{animEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+          <text class="equip-slot__toggle-text">{{animEnabled ? '开启' : '关闭'}}</text>
         </view>
       </view>
 
@@ -136,10 +133,10 @@
       <view class="equip-slot">
         <view class="equip-slot__info">
           <text class="equip-slot__name">触感协议</text>
-          <text class="equip-slot__value">{{vibrateEnabled ? '触感反馈 ON' : '触感反馈 OFF'}}</text>
+          <text class="equip-slot__value">{{vibrateEnabled ? '触感反馈已开启' : '触感反馈已关闭'}}</text>
         </view>
         <view class="equip-slot__toggle {{vibrateEnabled ? 'equip-slot__toggle--on' : ''}}" bindtap="onVibrateSwitch">
-          <text class="equip-slot__toggle-text">{{vibrateEnabled ? 'ONLINE' : 'OFFLINE'}}</text>
+          <text class="equip-slot__toggle-text">{{vibrateEnabled ? '开启' : '关闭'}}</text>
         </view>
       </view>
     </view>
@@ -147,9 +144,7 @@
     <!-- 4. 终端控制 -->
     <view class="terminal-control">
       <text class="term-kicker">终端控制</text>
-      <text class="term-kicker-sub">TERMINAL CONTROL</text>
       <view class="terminate-btn" bindtap="onLogout">
-        <text class="terminate-btn__en">TERMINATE</text>
         <text class="terminate-btn__zh">断开终端</text>
       </view>
     </view>
@@ -208,7 +203,6 @@
     <view class="voice-sheet__handle"></view>
     <view class="voice-sheet__close" bindtap="closeVoiceSheet">关闭</view>
     <view class="voice-sheet__header">
-      <text class="voice-sheet__kicker">VOICE CHANNEL</text>
       <text class="voice-sheet__title">通讯频道校准</text>
     </view>
     <view class="voice-sheet__body">
@@ -221,7 +215,6 @@
           data-cat-id="{{item.id}}"
           bindtap="onCatTap"
         >
-          <text class="voice-sheet__cat-en">{{item.enLabel}}</text>
           <text class="voice-sheet__cat-zh">{{item.zhLabel}}</text>
         </view>
       </scroll-view>
@@ -235,7 +228,7 @@
         scroll-with-animation
       >
         <block wx:for="{{voiceCategories}}" wx:key="id" wx:for-item="cat" wx:for-index="catIdx">
-          <view class="voice-sheet__group-header" id="cat-{{cat.id}}">{{cat.enLabel}}</view>
+          <view class="voice-sheet__group-header" id="cat-{{cat.id}}">{{cat.zhLabel}}</view>
           <view
             class="voice-sheet__voice-item {{item.id === selectedVoiceId ? 'voice-sheet__voice-item--active' : ''}} {{playingVoiceId === item.id ? 'voice-sheet__voice-item--playing' : ''}}"
             wx:for="{{cat.voices}}"

@@ -4,7 +4,6 @@
   <view class="flp-header">
     <view class="flp-title-group">
       <text class="flp-cn">流向日志</text>
-      <text class="flp-en">FLOW LOG</text>
     </view>
     <view class="flp-controls">
       <segment-switch options="{{['身份视角', '全域视角']}}" active="{{filterMine ? 0 : 1}}" bind:change="onViewChange" />
@@ -19,7 +18,6 @@
   <view wx:if="{{groupedRecords.length === 0}}" class="flp-empty">
     <view class="flp-empty-pulse"></view>
     <text class="flp-empty-hint-cn">暂无流向数据</text>
-    <text class="flp-empty-hint-en">NO FLOW DATA</text>
     <text class="flp-empty-desc">完成一次数值流转后，数据将在此呈现</text>
   </view>
 
@@ -57,7 +55,6 @@
     <!-- 结束提示 -->
     <view wx:if="{{noMore && groupedRecords.length > 0}}" class="flp-end">
       <text class="flp-end-cn">脉冲流已结束</text>
-      <text class="flp-end-en">END OF STREAM</text>
     </view>
   </view>
 </view>

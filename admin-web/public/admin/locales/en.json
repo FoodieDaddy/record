@@ -355,5 +355,13 @@
   "profile.tip1": "Use a strong password with at least 8 characters including upper/lower case, numbers and special characters",
   "profile.tip2": "Do not reuse passwords across different platforms",
   "profile.tip3": "Change your password regularly, recommended every 90 days",
-  "profile.tip4": "Log out after use and avoid staying signed in on untrusted devices"
+  "profile.tip4": "Log out after use and avoid staying signed in on untrusted devices",
+  "error.title": "System Error",
+  "common.retry": "Retry",
+  "alerts.title": "Alert Center",
+  "alerts.level": "Level",
+  "alerts.message": "Alert Message",
+  "alerts.time": "Time",
+  "alerts.searchPlaceholder": "Search alerts...",
+  "alerts.loadError": "Failed to load alerts"
 }

@@ -2,7 +2,6 @@
   <view class="modal" catchtap>
     <view class="header">
       <view class="title-area">
-        <text class="kicker">HOST</text>
         <text class="title">主控填写</text>
       </view>
     </view>

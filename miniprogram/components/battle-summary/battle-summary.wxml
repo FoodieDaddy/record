@@ -2,7 +2,6 @@
   <!-- 顶部标题区 -->
   <view class="summary-header">
     <view class="summary-title">任务复盘</view>
-    <view class="summary-kicker">REPORT</view>
     <view class="summary-line"></view>
   </view>
 

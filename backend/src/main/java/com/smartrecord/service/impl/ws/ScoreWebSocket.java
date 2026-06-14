@@ -6,13 +6,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartrecord.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
-import org.springframework.web.socket.WebSocketHttpHeaders;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,6 +35,7 @@ import java.nio.ByteBuffer;
  */
 @Slf4j
 @Component
+@SuppressWarnings("null")
 public class ScoreWebSocket extends TextWebSocketHandler {
 
     private static final String USER_ID_ATTR = "userId";
@@ -52,15 +53,17 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final JwtUtil jwtUtil;
+    private final java.util.concurrent.Executor asyncExecutor;
 
-    public ScoreWebSocket(StringRedisTemplate redisTemplate, ObjectMapper objectMapper, JwtUtil jwtUtil) {
+    public ScoreWebSocket(StringRedisTemplate redisTemplate, ObjectMapper objectMapper, JwtUtil jwtUtil, @Qualifier("asyncExecutor") java.util.concurrent.Executor asyncExecutor) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.jwtUtil = jwtUtil;
+        this.asyncExecutor = asyncExecutor;
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         // 1. 校验 token
         Long userId = authenticateSession(session);
         if (userId == null) {
@@ -90,7 +93,7 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) {
         // 更新活跃时间，客户端发任何消息都视为心跳
         LAST_ACTIVE.put(session.getId(), System.currentTimeMillis());
 
@@ -103,13 +106,13 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handlePongMessage(WebSocketSession session, org.springframework.web.socket.PongMessage message) {
+    protected void handlePongMessage(@NonNull WebSocketSession session, @NonNull org.springframework.web.socket.PongMessage message) {
         // 原生 pong 帧响应
         LAST_ACTIVE.put(session.getId(), System.currentTimeMillis());
     }
 
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         LAST_ACTIVE.remove(session.getId());
         String roomId = getRoomId(session);
         if (roomId != null) {
@@ -189,7 +192,7 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     }
 
     /**
-     * 真正向本地连接发送消息的底层方法（线程安全）
+     * 真正向本地连接发送消息的底层方法（基于 JDK 21 虚拟线程做异步多路并发推送）
      */
     public void sendLocalMessage(String roomId, String payload) {
         Set<WebSocketSession> sessions = ROOM_SESSIONS.get(roomId);
@@ -198,14 +201,18 @@ public class ScoreWebSocket extends TextWebSocketHandler {
         TextMessage textMessage = new TextMessage(payload);
         for (WebSocketSession session : sessions) {
             if (session.isOpen()) {
-                try {
-                    // 并发写同步保护，防止 TEXT_FULL_WRITING 错误
-                    synchronized (session) {
-                        session.sendMessage(textMessage);
+                asyncExecutor.execute(() -> {
+                    try {
+                        // 并发写同步保护，防止 TEXT_FULL_WRITING 错误
+                        synchronized (session) {
+                            if (session.isOpen()) {
+                                session.sendMessage(textMessage);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("WebSocket 本地异步推送失败: sessionId={}", session.getId(), e);
                     }
-                } catch (Exception e) {
-                    log.warn("WebSocket 本地推送失败: sessionId={}", session.getId(), e);
-                }
+                });
             }
         }
     }
@@ -326,7 +333,6 @@ public class ScoreWebSocket extends TextWebSocketHandler {
     @org.springframework.scheduling.annotation.Scheduled(fixedRate = 25_000)
     public void sendHeartbeat() {
         long now = System.currentTimeMillis();
-        int pinged = 0;
         int closed = 0;
 
         for (Map.Entry<String, Set<WebSocketSession>> entry : ROOM_SESSIONS.entrySet()) {
@@ -346,7 +352,6 @@ public class ScoreWebSocket extends TextWebSocketHandler {
                 // 发送 PING
                 try {
                     session.sendMessage(new PingMessage(ByteBuffer.wrap(new byte[0])));
-                    pinged++;
                 } catch (Exception e) {
                     log.warn("WebSocket PING 发送失败: {}", session.getId());
                 }

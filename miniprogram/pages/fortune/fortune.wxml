@@ -1,4 +1,20 @@
-<scroll-view class="strategy-page {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px;">
+<scroll-view class="strategy-page {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px; padding-top: {{customNavHeight}}px;">
+
+  <!-- 统一沉浸式导航条 -->
+  <view
+    class="sr-custom-nav"
+    style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;"
+  >
+    <view class="sr-custom-nav__stars"></view>
+    <view class="sr-custom-nav__bar" style="height: {{customNavBarHeight}}px;">
+      <view class="cockpit-nav-hud">
+        <view class="cockpit-nav-hud__link">
+          <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
+          <text>{{cockpitView.statusLabel}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 
   <!-- 跨 Tab 骨架屏 -->
   <view wx:if="{{!pageReady}}" class="page-skeleton">
@@ -9,8 +25,8 @@
   <!-- 飞行甲板统一舞台（贯穿 idle -> result） -->
   <view class="flight-deck flight-deck--{{flightStage}}" wx:if="{{pageReady}}">
 
-    <!-- 左上角舱位状态 Tab -->
-    <view class="bay-status-tab bay-status-tab--{{pageMode === 'generating' ? 'starting' : pageMode === 'result' || pageMode === 'relaunchReady' ? 'online' : 'standby'}}">
+    <!-- 左上角舱位状态 Tab (已迁移至导航栏，此页面内隐藏) -->
+    <view class="bay-status-tab bay-status-tab--{{pageMode === 'generating' ? 'starting' : pageMode === 'result' || pageMode === 'relaunchReady' ? 'online' : 'standby'}}" style="display: none;">
       <view class="bay-status-tab__dot"></view>
       <text class="bay-status-tab__label">{{pageMode === 'generating' ? '导航舱启动中' : pageMode === 'result' || pageMode === 'relaunchReady' ? '导航舱已接入' : '导航舱待机中'}}</text>
     </view>
@@ -24,10 +40,9 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
-    <!-- 顶部标题（idle/arming 态可见） -->
-    <view class="flight-deck-header {{flightStage === 'idle' || flightStage === 'arming' ? 'fdh-visible' : 'fdh-hidden'}}">
+    <!-- 顶部标题（沉浸式方案中完全移除） -->
+    <view class="flight-deck-header hide-page-title" style="display: none;">
       <text class="flight-deck-title">导航舱</text>
-      <text class="flight-deck-kicker">NAV BAY ONLINE</text>
       <text class="flight-deck-date">{{currentDate}}</text>
     </view>
 
@@ -88,116 +103,77 @@
       <view class="hud-mark"></view>
     </view>
 
-    <!-- 导航控制器（永远存在，class 控制可见性） -->
-    <view class="ignition-console {{_ignitionEntered ? 'ignition-console--entered' : ''}} {{flightStage === 'pressed' || flightStage === 'plasma' ? 'ignition-console--active' : ''}} {{flightStage === 'arming' ? 'ignition-console--arming' : ''}} {{flightStage === 'lifting' ? 'ignition-console--fading' : ''}} {{flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--hidden' : ''}}">
-
-      <!-- 保险状态头 -->
-      <view class="ignition-arm-header">
-        <text class="ignition-arm-label">{{flightStage === 'idle' ? 'ARM LOCK' : 'READY'}}</text>
-        <view class="ignition-arm-dots">
-          <view class="ignition-arm-dot"></view>
-          <view class="ignition-arm-dot"></view>
-        </view>
-      </view>
-
+    <!-- idle 态：点火控制器 -->
+    <view class="ignition-console {{flightStage === 'idle' ? '' : flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--hidden' : 'ignition-console--fading'}} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{pageMode === 'launch' || pageMode === 'generating'}}">
       <!-- 四角铆点 -->
       <view class="ignition-bolt ignition-bolt--tl"></view>
       <view class="ignition-bolt ignition-bolt--tr"></view>
       <view class="ignition-bolt ignition-bolt--bl"></view>
       <view class="ignition-bolt ignition-bolt--br"></view>
 
-      <!-- 状态灯 - 左 -->
+      <!-- 状态灯 -->
       <view class="ignition-led ignition-led--left">
         <view class="ignition-led-dot"></view>
         <view class="ignition-led-dot"></view>
       </view>
-
-      <!-- 状态灯 - 右 -->
       <view class="ignition-led ignition-led--right">
         <view class="ignition-led-dot"></view>
         <view class="ignition-led-dot"></view>
       </view>
 
-      <!-- 保险栅（计算时左右打开） -->
+      <view class="ignition-arm-header">
+        <text class="ignition-arm-label">ARMING</text>
+        <view class="ignition-arm-dots">
+          <view class="ignition-arm-dot"></view>
+          <view class="ignition-arm-dot"></view>
+        </view>
+      </view>
+
       <view class="ignition-safety-rail {{flightStage !== 'idle' ? 'rail-open' : ''}}">
         <view class="rail-half rail-half--left"></view>
         <view class="rail-gap"></view>
         <view class="rail-half rail-half--right"></view>
       </view>
 
-      <!-- 安全护框 + 主计算按钮 -->
       <view class="ignition-guard">
         <view class="ignition-button" bindtap="onTapLaunchCore">
-          <text class="ignition-button-text">开始导航计算</text>
-          <text class="ignition-button-kicker">PRESS TO CALC</text>
+          <view class="plasma-flame {{flightStage === 'pressed' || flightStage === 'plasma' ? 'plasma-flame--active' : ''}}">
+            <view class="plasma-flame-core"></view>
+          </view>
+          <text class="ignition-button-text">IGNITE</text>
         </view>
       </view>
 
-      <!-- 离子火（仅 pressed/plasma 态短暂出现） -->
-      <view class="plasma-flame {{flightStage === 'plasma' || flightStage === 'pressed' ? 'plasma-flame--active' : ''}}">
-        <view class="plasma-flame-core"></view>
-      </view>
-
-      <!-- 底部能量槽 -->
       <view class="ignition-energy-slot">
-        <view class="ignition-energy-fill {{flightStage === 'pressed' || flightStage === 'plasma' ? 'ignition-energy-fill--active' : ''}}"></view>
+        <view class="ignition-energy-fill {{flightStage !== 'idle' ? 'ignition-energy-fill--active' : ''}}"></view>
       </view>
 
-      <!-- 底部状态 -->
       <view class="ignition-status">
         <view class="ignition-status-item">
           <view class="ignition-status-dot"></view>
-          <text class="ignition-status-text">航迹协议</text>
+          <text class="ignition-status-text">PWR_ON</text>
         </view>
         <view class="ignition-status-item">
           <view class="ignition-status-dot"></view>
-          <text class="ignition-status-text">航迹档案</text>
+          <text class="ignition-status-text">SYS_OK</text>
         </view>
       </view>
     </view>
 
-    <!-- 底部说明（idle 态） -->
-    <view class="flight-deck-info {{flightStage === 'idle' ? (firstEnter === false ? 'fdi-visible fdi-entered' : 'fdi-visible') : 'fdi-hidden'}}">
-      <text class="flight-deck-info-text">接入航迹协议与航迹样本</text>
-      <text class="flight-deck-info-text">等待今日指令投影</text>
-    </view>
+    <!-- done 态：结果投影内容 -->
+    <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{pageMode === 'result'}}">
 
-    <!-- 结果投影层（projecting/done 态，内嵌于 flight-deck） -->
-    <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{flightStage === 'projecting' || flightStage === 'done'}}" style="--accent: {{themeColor}};">
-
-      <!-- 投影标题区 -->
-      <view class="dp-header projection-card">
+      <view class="dp-header projection-card hide-page-title" style="display: none;">
         <text class="dp-title">今日指令投影</text>
-        <text class="dp-kicker">FLIGHT DIRECTIVE</text>
         <text class="dp-date">{{currentDate}}</text>
       </view>
 
-      <!-- 舰载指令（主视觉，首屏优先） -->
-      <view class="strategy-section strategy-section--directive projection-card" wx:if="{{directiveText}}">
-        <view class="strategy-section-head">
-          <text class="strategy-section-title">今日指令</text>
-          <text class="strategy-section-kicker">DIRECTIVE</text>
-        </view>
-        <view class="strategy-reading">
-          <view class="strategy-reading-head">
-            <text class="strategy-reading-name">{{directiveText}}</text>
-          </view>
-          <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
-            <text class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="index">{{item}}</text>
-          </view>
-        </view>
+      <!-- 状态胶囊 -->
+      <view class="strategy-tag-pill projection-card" style="color: {{themeColor}}; border-color: {{themeColor + '40'}}; background: {{themeColor + '10'}};">
+        <text>{{strategy.tag || '节奏校准'}}</text>
       </view>
 
-      <!-- 状态读数 -->
-      <view class="strategy-insight projection-card" wx:if="{{strategy.verdict}}">
-        <view class="strategy-section-head">
-          <text class="strategy-section-title">状态读数</text>
-          <text class="strategy-section-kicker">STATUS</text>
-        </view>
-        <text class="strategy-insight-text">{{strategy.verdict}}</text>
-      </view>
-
-      <!-- HUD 芯片（单行轻量 HUD） -->
+      <!-- HUD 芯片 -->
       <view class="strategy-hud-chips projection-card">
         <view class="strategy-hud-chip">
           <text class="strategy-hud-chip-label">指令源</text>
@@ -211,117 +187,141 @@
         <view class="strategy-hud-chip-divider"></view>
         <view class="strategy-hud-chip">
           <text class="strategy-hud-chip-label">状态噪声</text>
-          <text class="strategy-hud-chip-value" style="color: {{userTagColor}};">{{userTagLabel}}</text>
+          <text class="strategy-hud-chip-value" style="color: {{userTagColor}}">{{userTagLabel}}</text>
         </view>
       </view>
 
-      <!-- 状态胶囊 -->
-      <view class="strategy-tag-pill projection-card" wx:if="{{strategy.tag}}" style="border-color: {{themeColor}}40; background: {{themeColor}}12; color: {{themeColor}};">
-        <text>{{strategy.tag}}</text>
+      <!-- 舰载指令（主视觉） -->
+      <view class="strategy-section--directive projection-card">
+        <view class="strategy-reading">
+          <view class="strategy-reading-head">
+            <text class="strategy-reading-name">{{directiveText}}</text>
+          </view>
+          <view class="strategy-reading-tags">
+            <view class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
+          </view>
+        </view>
       </view>
 
-      <!-- 推进节奏 -->
-      <view class="strategy-section projection-card" wx:if="{{strategy.buffs && strategy.buffs.length}}">
+      <!-- 状态读数 -->
+      <view class="strategy-insight projection-card">
+        <text class="strategy-insight-text">{{strategy.verdict}}</text>
+      </view>
+
+      <!-- 推进节奏 (Buffs) -->
+      <view class="strategy-section projection-card" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
         <view class="strategy-section-head">
-          <text class="strategy-section-icon strategy-section-icon--pos">+</text>
-          <text class="strategy-section-title strategy-section-title--pos">推进节奏</text>
-          <text class="strategy-section-kicker">THRUST</text>
+          <view class="flex-row gap-xs">
+            <view class="strategy-section-icon strategy-section-icon--pos">+</view>
+            <text class="strategy-section-title strategy-section-title--pos">推进节奏</text>
+          </view>
         </view>
         <view class="strategy-list-card">
-          <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="index">
-            <text class="strategy-list-index strategy-list-index--pos">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+          <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="*this">
+            <view class="strategy-list-index strategy-list-index--pos">{{index + 1}}</view>
             <text class="strategy-list-text">{{item}}</text>
           </view>
         </view>
       </view>
 
-      <!-- 安全边界 -->
-      <view class="strategy-section projection-card" wx:if="{{strategy.debuffs && strategy.debuffs.length}}">
+      <!-- 安全边界 (Debuffs) -->
+      <view class="strategy-section projection-card" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
         <view class="strategy-section-head">
-          <text class="strategy-section-icon strategy-section-icon--neg">!</text>
-          <text class="strategy-section-title strategy-section-title--neg">安全边界</text>
-          <text class="strategy-section-kicker strategy-section-kicker--neg">SAFETY</text>
+          <view class="flex-row gap-xs">
+            <view class="strategy-section-icon strategy-section-icon--neg">!</view>
+            <text class="strategy-section-title strategy-section-title--neg">安全边界</text>
+          </view>
         </view>
         <view class="strategy-list-card strategy-list-card--risk">
-          <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="index">
-            <text class="strategy-list-index strategy-list-index--neg">{{index + 1 < 10 ? '0' + (index + 1) : index + 1}}</text>
+          <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="*this">
+            <view class="strategy-list-index strategy-list-index--neg">{{index + 1}}</view>
             <text class="strategy-list-text">{{item}}</text>
           </view>
         </view>
       </view>
 
-      <!-- 下次校准倒计时 -->
-      <view class="countdown-bar projection-card" wx:if="{{countdownText}}">
-        <text class="countdown-label">下次校准</text>
-        <text class="countdown-value">{{countdownText}}</text>
-        <text class="countdown-kicker">NEXT CALIBRATION</text>
-      </view>
+      <!-- 底部占位 -->
+      <view class="strategy-result-spacer"></view>
 
       <!-- 底部操作区 -->
-      <view class="strategy-result-spacer"></view>
       <view class="strategy-actions projection-card">
         <view class="strategy-action-btn strategy-action-btn--secondary" bindtap="onTapRegenerate">
-          <text class="strategy-action-text">重新计算</text>
-          <text class="strategy-action-kicker">RECALCULATE</text>
+          <text class="strategy-action-text">重新点火</text>
         </view>
         <view class="strategy-action-btn strategy-action-btn--primary" bindtap="onTapGeneratePoster">
-          <text class="strategy-action-text">生成指令卡</text>
-          <text class="strategy-action-kicker">DIRECTIVE CARD</text>
+          <text class="strategy-action-text">投影档案卡</text>
         </view>
       </view>
+
+      <!-- 次要操作 -->
+      <view class="countdown-bar projection-card" wx:if="{{countdownText}}">
+        <text class="countdown-label">下一次校准</text>
+        <text class="countdown-value">{{countdownText}}</text>
+      </view>
+
+    </view>
+
+    <!-- 底部说明（idle 态显示） -->
+    <view class="flight-deck-info {{flightStage === 'idle' ? 'fdi-visible' : 'fdi-hidden'}} {{firstEnter === false ? 'fdi-entered' : ''}}">
+      <text class="flight-deck-info-text">NAV_UNIT: MK-IV STATUS: STANDBY</text>
+      <text class="flight-deck-info-text">LAST_SYNC: {{currentDate}}</text>
     </view>
 
   </view>
 
-  <!-- 海报弹层（z-index 足够高，覆盖 tabbar 和全局 fixed 元素） -->
-  <view wx:if="{{phase === 'poster_generating' || phase === 'poster_preview' || phase === 'poster_error'}}" class="poster-mask" catchtap="noop" catchtouchmove="noop">
+  <!-- 重新点火弹窗 -->
+  <terminal-popup
+    wx:if="{{showRegenerateModal}}"
+    visible="{{showRegenerateModal}}"
+    title="确认重新点火？"
+    content="每日指令校准仅限一次，强制重新点火可能导致导航轨迹偏移。确认执行？"
+    cancelText="维持现状"
+    confirmText="强制点火"
+    confirmType="primary"
+    reduce-motion="{{reduceMotion}}"
+    bind:cancel="onCancelRegenerate"
+    bind:confirm="onConfirmRegenerate"
+  />
+
+  <!-- 海报弹层 -->
+  <view class="poster-mask" wx:if="{{posterModalVisible}}" catchtouchmove="noop">
     <view class="poster-container">
 
+      <!-- 生成中 -->
       <view class="poster-gen" wx:if="{{phase === 'poster_generating'}}">
         <view class="poster-gen-dots">
           <view class="poster-gen-dot"></view>
           <view class="poster-gen-dot"></view>
           <view class="poster-gen-dot"></view>
         </view>
-        <text class="poster-gen-text">指令卡生成中</text>
-        <text class="poster-gen-kicker">RENDERING DIRECTIVE</text>
+        <text class="poster-gen-text">档案卡封存中...</text>
       </view>
 
-      <view class="poster-preview" wx:if="{{phase === 'poster_preview' && posterPath}}">
-        <image class="poster-image" src="{{posterPath}}" mode="widthFix" show-menu-by-longpress />
+      <!-- 预览 -->
+      <view class="poster-preview" wx:if="{{phase === 'poster_preview'}}">
+        <image class="poster-image" src="{{posterPath}}" mode="widthFix" show-menu-by-longpress="{{true}}"></image>
       </view>
 
+      <!-- 错误 -->
       <view class="poster-error" wx:if="{{phase === 'poster_error'}}">
-        <text class="poster-error-text">{{posterError}}</text>
+        <text class="poster-error-text">{{posterError || '档案卡封存失败'}}</text>
         <view class="poster-error-actions">
           <view class="poster-error-btn" bindtap="onPosterRetry">重试</view>
-          <view class="poster-error-btn" bindtap="onPosterCancel">关闭</view>
+          <view class="poster-error-btn" bindtap="onClosePoster">取消</view>
         </view>
       </view>
 
-      <view class="poster-actions poster-actions--two" wx:if="{{phase === 'poster_preview' && posterPath}}">
+      <!-- 操作按钮 -->
+      <view class="poster-actions {{canUseWxShare ? 'poster-actions--three' : 'poster-actions--two'}}" wx:if="{{phase === 'poster_preview'}}">
         <view class="poster-btn poster-btn--save" bindtap="onSavePoster">保存图片</view>
+        <button class="poster-btn poster-btn--share" open-type="share" wx:if="{{canUseWxShare}}">分享朋友</button>
         <view class="poster-btn poster-btn--close" bindtap="onClosePoster">关闭</view>
       </view>
 
     </view>
   </view>
 
-  <canvas type="2d" id="posterCanvas" class="poster-canvas"></canvas>
-
-  <!-- 重新计算弹窗（terminal-popup） -->
-  <terminal-popup
-    visible="{{showRegenerateModal}}"
-    title="重新计算"
-    subtitle="RECALCULATE DIRECTIVE"
-    content="当前指令投影将被收起。确认后返回导航待机，由你重新开始导航计算。"
-    cancel-text="保持当前"
-    confirm-text="确认计算"
-    confirm-type="primary"
-    reduce-motion="{{reduceMotion}}"
-    bind:cancel="onCancelRegenerate"
-    bind:confirm="onConfirmRegenerate"
-  />
+  <canvas type="2d" id="posterCanvas" class="poster-canvas" style="width: 750px; height: 1300px;"></canvas>
 
   <!-- 系统全局左上角提示 -->
   <sr-toast id="srToast" reduceMotion="{{!animationEnabled}}" />

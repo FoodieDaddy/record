@@ -31,6 +31,7 @@ const pulseHandler = {
     if (code === 4041) return '编队链路已断开，请返回后重试';
     if (code === 4031) return '目标航船已断开';
     if (code === 4201 || code === 4202 || code === 4203) return '请输入脉冲数值';
+    if (code === 4206 || code === 409) return '脉冲正在发送，请勿重复提交';
     // 降级：按文案匹配
     if (msg.includes('已封存') || msg.includes('已关闭') || msg.includes('不可重复')) return '航程已封存，无法继续记录';
     if (msg.includes('不存在')) return '编队链路已断开，请返回后重试';
@@ -97,7 +98,8 @@ const pulseHandler = {
       showNumpad: true,
       numpadValue: 0,
       transferPreview: null,
-      isInputOpen: true
+      isInputOpen: true,
+      pulseReadoutDisplay: (this.data.cockpitView || {}).selfPulseDisplay || ''
     });
   },
 
@@ -146,6 +148,7 @@ const pulseHandler = {
       const fromMember = this.data.memberGrid.find(m => String(m.userId) === selfId) || {};
       this.addPulseTrace('我', this.data.selectedCrew.displayName, amount, {
         fromUserId: selfId,
+        toUserId: targetId,
         fromAvatarUrl: fromMember.avatarUrl || '',
         toAvatarUrl: this.data.selectedCrew.avatarUrl || ''
       });

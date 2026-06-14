@@ -34,15 +34,20 @@ class ScoreWS {
 
   /**
    * 连接到编队的 WebSocket
+   * @param {string} roomId
+   * @param {boolean} [force=false] - 是否强制重新连接
    */
-  connect(roomId) {
+  connect(roomId, force = false) {
     if (!roomId) return;
-    if (this.isConnecting) return;
-    if (this.isConnected && this.roomId === roomId) return;
+    if (this.isConnecting && !force) return;
+    if (this.isConnected && this.roomId === roomId && !force) return;
 
     // 防御性关闭已有连接
     if (this.socketTask) {
-      this.socketTask.close();
+      debugLog('[score-ws] 强制关闭旧连接，准备重新连接');
+      try {
+        this.socketTask.close();
+      } catch (e) {}
       this.socketTask = null;
     }
 

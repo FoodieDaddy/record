@@ -1,7 +1,5 @@
 {
-  "navigationBarTitleText": "导航舱",
-  "navigationBarBackgroundColor": "#0a0a0a",
-  "navigationBarTextStyle": "white",
+  "navigationStyle": "custom",
   "usingComponents": {
     "terminal-popup": "/components/terminal-popup/terminal-popup"
   }

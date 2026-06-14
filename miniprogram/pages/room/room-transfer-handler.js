@@ -5,6 +5,7 @@
  */
 const { vibrateShort } = require('../../utils/haptic');
 const scoreService = require('../../services/score-service');
+const { createRequestId } = require('../../utils/request');
 const app = getApp();
 
 const roomTransferHandler = {
@@ -22,7 +23,8 @@ const roomTransferHandler = {
       showNumpad: true,
       numpadValue: 0,
       transferPreview: null,
-      isInputOpen: true
+      isInputOpen: true,
+      pulseReadoutDisplay: (this.data.cockpitView || {}).selfPulseDisplay || ''
     });
   },
 
@@ -43,6 +45,7 @@ const roomTransferHandler = {
   },
 
   onNumpadKey(e) {
+    if (this._transferSubmitLocked) return;
     const key = e.currentTarget.dataset.key;
     let val = this.data.numpadValue;
     const str = String(val);
@@ -54,6 +57,7 @@ const roomTransferHandler = {
   },
 
   tapTransferSuggestion(e) {
+    if (this._transferSubmitLocked) return;
     const amount = Number(e.currentTarget.dataset.amount || 0);
     if (!amount) return;
     this.setData({
@@ -64,6 +68,7 @@ const roomTransferHandler = {
   },
 
   confirmNumpad() {
+    if (this._transferSubmitLocked) return;
     const amount = this.data.numpadValue;
     if (!amount || amount <= 0) {
       wx.showToast({ title: '请输入数值', icon: 'none' });
@@ -83,6 +88,7 @@ const roomTransferHandler = {
 
   /** 键盘统一点击事件处理 */
   onTransferKeyTap(e) {
+    if (this._transferSubmitLocked) return;
     const type = e.currentTarget.dataset.type;
     const value = e.currentTarget.dataset.value;
     
@@ -102,7 +108,8 @@ const roomTransferHandler = {
 
   preventClose() {},
 
-  cancelTransfer() {
+  cancelTransfer(preserveReadout) {
+    if (this._transferSubmitLocked && preserveReadout !== true) return;
     this.setData({
       transferTo: '',
       transferToInfo: null,
@@ -112,12 +119,49 @@ const roomTransferHandler = {
       numpadValue: 0,
       isInputOpen: false,
       numpadLaunching: false,
-      submitting: false
+      submitting: false,
+      pulseReadoutDisplay: preserveReadout === true ? this.data.pulseReadoutDisplay : ''
+    });
+  },
+
+  releaseTransferSubmission() {
+    if (this._transferLockTimer) {
+      clearTimeout(this._transferLockTimer);
+      this._transferLockTimer = null;
+    }
+    this._transferSubmitLocked = false;
+    this._activeTransferRequestId = '';
+    this.setData({ submitting: false, numpadLaunching: false });
+  },
+
+  triggerPulseReadoutRoll(nextDisplay) {
+    if (this._pulseReadoutTimer) {
+      clearTimeout(this._pulseReadoutTimer);
+      this._pulseReadoutTimer = null;
+    }
+    this.setData({ pulseReadoutRolling: false }, () => {
+      wx.nextTick(() => {
+        if (this._destroyed) return;
+        this.setData({
+          pulseReadoutRolling: true,
+          pulseReadoutDisplay: nextDisplay === undefined || nextDisplay === null
+            ? ((this.data.cockpitView || {}).selfPulseDisplay || '')
+            : String(nextDisplay)
+        });
+        this._pulseReadoutTimer = setTimeout(() => {
+          if (this._destroyed) return;
+          this.setData({
+            pulseReadoutRolling: false,
+            pulseReadoutDisplay: ''
+          });
+          this._pulseReadoutTimer = null;
+        }, 920);
+      });
     });
   },
 
   async submitTransfer(amount) {
-    if (this.data.submitting) return;
+    if (this._transferSubmitLocked) return;
     const room = this.data.currentRoom;
     if (!room) return;
 
@@ -127,31 +171,46 @@ const roomTransferHandler = {
       return;
     }
 
+    this._transferSubmitLocked = true;
+    const clientRequestId = createRequestId();
+    this._activeTransferRequestId = clientRequestId;
+    this._transferLockTimer = setTimeout(() => {
+      if (this._destroyed || !this._transferSubmitLocked) return;
+      this.releaseTransferSubmission();
+      this.updateAllData(room.roomId);
+    }, 15000);
+
     this.setData({ submitting: true, numpadLaunching: true });
     const fromUserId = app.globalData.userId;
 
-    // 先冻结旧分数（粒子动画期间保持显示旧值），再更新 ranking
+    // 请求确认前冻结旧分数；后端成功后才播放激光并更新本地数值。
     const grid = this.data.memberGrid;
     const fromMember = grid.find(m => String(m.userId) === String(fromUserId));
     const toMember = grid.find(m => String(m.userId) === String(transferTo));
-    this._animatingScores = {};
-    this._animatingScores[fromUserId] = fromMember ? fromMember.displayScore : 0;
-    this._animatingScores[transferTo] = toMember ? toMember.displayScore : 0;
-    this._optimisticScoreUpdate(fromUserId, transferTo, amount);
-    
-    // 取消立即关闭，等待动画结束时由动画逻辑调用 cancelTransfer() 或静默关闭
-    this.playTransferAnimation(fromUserId, transferTo, amount, () => {
-      this.cancelTransfer();
-      return this.loadScoreRecords(room.roomId, true).finally(() => this.buildMemberGrid());
-    });
+    const oldFromScore = fromMember ? Number(fromMember.displayScore || 0) : 0;
+    this.setData({ pulseReadoutDisplay: this.formatPulseValue(oldFromScore) });
 
-    // API 请求并行执行
     try {
       await scoreService.transferScore({
         roomId: room.roomId,
         toUserId: transferTo,
-        amount
+        amount,
+        clientRequestId
       });
+
+      this._animatingScores = {};
+      this._animatingScores[fromUserId] = fromMember ? fromMember.displayScore : 0;
+      this._animatingScores[transferTo] = toMember ? toMember.displayScore : 0;
+      this._optimisticScoreUpdate(fromUserId, transferTo, amount);
+
+      this.playTransferAnimation(fromUserId, transferTo, amount, () => {
+        this.cancelTransfer(true);
+        this.appendLocalTransferRecord(fromUserId, transferTo, amount);
+        this.buildMemberGrid();
+        this.triggerPulseReadoutRoll(this.formatPulseValue(this.getLocalScore(fromUserId)));
+        this.releaseTransferSubmission();
+      });
+
       this.loadTransferAmountSuggestions(room.roomId);
       this.showToast('脉冲已记录');
     } catch (e) {
@@ -168,8 +227,7 @@ const roomTransferHandler = {
         }
       }
       this.showToast(errMsg, 'error');
-    } finally {
-      this.setData({ submitting: false });
+      this.releaseTransferSubmission();
     }
   },
 

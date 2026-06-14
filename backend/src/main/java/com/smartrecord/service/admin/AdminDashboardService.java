@@ -82,15 +82,23 @@ public class AdminDashboardService {
     }
 
     /**
-     * 获取航迹中心统计数据：近 30 天封存趋势、高活跃用户、高活跃编队
+     * 获取航迹中心统计数据：封存趋势、高活跃用户、高活跃编队
+     * @param range 时间范围: 7d / 30d / all
      */
-    public TraceStatsResp getTraceStats() {
-        // 近 30 天封存航程趋势
+    public TraceStatsResp getTraceStats(String range) {
+        int days;
+        switch (range != null ? range : "7d") {
+            case "30d": days = 30; break;
+            case "all": days = 365; break;
+            default: days = 7; break;
+        }
+
+        // 封存航程趋势
         List<String> dates = new ArrayList<>();
         List<Long> sealedCounts = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
-        for (int i = 29; i >= 0; i--) {
+        for (int i = days - 1; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
             dates.add(date.getMonthValue() + "/" + date.getDayOfMonth());
 

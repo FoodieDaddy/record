@@ -2,7 +2,6 @@ package com.smartrecord.aop;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartrecord.aop.Idempotent;
 import com.smartrecord.common.Result;
 import com.smartrecord.service.IdempotencyService;
 import jakarta.servlet.http.HttpServletRequest;

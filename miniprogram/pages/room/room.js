@@ -18,6 +18,7 @@ const roomSettleHandler = require('./room-settle-handler');
 const roomTransferHandler = require('./room-transfer-handler');
 const roomRoundHandler = require('./room-round-handler');
 const {
+  FORMATION_SAFE_ZONE,
   SPARKLINE_EMPTY_POINTS,
   pickLatestTrace,
   buildCockpitView: buildCockpitViewModel,
@@ -46,7 +47,8 @@ Page(Object.assign(
   roomRoundHandler,
   {
     data: {
-      isLoggedIn: false,
+      isReady: false,
+      isLoggedIn: !!app.globalData.token,
       pageVisible: false,
       customNavTop: 44,
       customNavBarHeight: 44,
@@ -59,6 +61,9 @@ Page(Object.assign(
       showNameCollisionModal: false,
       // 记分模式：1=自由流转 2=本局录入
       scoreMode: 1,
+      // 确认弹窗状态
+      leaveConfirmVisible: false,
+      showRejectConfirm: false,
       // 本局录入配置
       roundInputMethod: 1,
       trustMode: 1,
@@ -84,6 +89,9 @@ Page(Object.assign(
       // 成员网格
       memberGrid: [],
       myUserId: '',
+      // 拖拽自定义位置
+      draggingUserId: '',
+      customPositions: {},
       // 计分目标
       transferTo: '',
       transferToInfo: null,
@@ -107,6 +115,9 @@ Page(Object.assign(
       scoreRecords: [],
       groupedRecords: [],
       filterMine: false,
+      showPulseLogPanel: false,
+      pulseReadoutRolling: false,
+      pulseReadoutDisplay: '',
       loadingMore: false,
       noMore: false,
       // 脉冲总览弹窗
@@ -203,6 +214,7 @@ Page(Object.assign(
         myPulseText: '0',
         myPulseDisplay: '0',
         selfPulseDisplay: '0',
+        selfPulseSizeClass: 'is-standard',
         myPulseTone: 'zero',
         selfPulseClass: 'is-positive',
         myCallSign: '未命名本舰',
@@ -215,7 +227,8 @@ Page(Object.assign(
         lastPulseAmount: '',
         sparklinePoints: SPARKLINE_EMPTY_POINTS,
         hasTrajectory: false,
-        terminalLogEntries: []
+        terminalLogEntries: [],
+        hudLogEntries: []
       },
       cockpitState: 'idle',       // 'idle' | 'connecting' | 'active' | 'sealing' | 'sealed'
       shipNewMap: {},
@@ -261,10 +274,28 @@ Page(Object.assign(
       sealHeartbeatText: '脉冲轨迹封装中',
       seatLayoutMode: 'solo',
       pulseFlight: { visible: false, fromX: 0, fromY: 0, dx: 0, dy: 0, value: '' },
-      impactCrewId: null
+      impactCrewId: null,
+      showCommandCenter: false
     },
 
-    onShow() {
+    toggleCommandCenter() {
+      vibrateShort('light');
+      const newState = !this.data.showCommandCenter;
+      this.setData({ showCommandCenter: newState });
+      if (newState) {
+        this.syncCockpitView();
+      }
+    },
+
+    hideCommandCenter() {
+      if (this.data.showCommandCenter) {
+        this.setData({ showCommandCenter: false });
+      }
+    },
+
+    noop() {},
+
+    async onShow() {
       if (typeof this.getTabBar === 'function' && this.getTabBar()) {
         this.getTabBar().setData({ selected: 0 })
       }
@@ -333,20 +364,31 @@ Page(Object.assign(
       }
       this._hideTime = 0;
       // 如果正在通过 onLoad 的参数加入房间，暂缓执行 onShow 的恢复逻辑
-      if (this._isJoiningFromOptions) return;
+      if (this._isJoiningFromOptions) {
+        this.setData({ isReady: true });
+        return;
+      }
 
+      // 如果已有当前房间且正在查看（说明是切回来的），但结算层还开着，保持不变
+      // 如果没有当前房间（说明刚退出了），保持结算层开着（作为任务报告）
+      // 如果后续逻辑识别到进入了新房间，会自动在 restore/join 时触发数据重置
+      
       // 检查是否需要恢复房间状态
       if (app.globalData.token && (!this.data.viewingRoom || !this.data.currentRoom)) {
         const savedRoomId = wx.getStorageSync('currentRoomId');
-        console.log('[room.onShow] 检查房间恢复', {
+        console.log('[room.onShow] 尝试恢复编队状态', {
           savedRoomId,
-          viewingRoom: this.data.viewingRoom,
-          hasCurrentRoom: !!this.data.currentRoom
+          viewingRoom: this.data.viewingRoom
         });
-        if (savedRoomId) {
-          this.restoreRoom(savedRoomId);
+        if (savedRoomId && String(savedRoomId) !== 'undefined') {
+          // 恢复用户自定义布局
+          const customPosKey = `custom_pos_${savedRoomId}`;
+          const customPositions = wx.getStorageSync(customPosKey) || {};
+          this.setData({ customPositions });
+          
+          await this.restoreRoom(savedRoomId);
         } else {
-          this.loadMyRooms();
+          await this.loadMyRooms();
           this.loadRecentRooms();
         }
       } else if (app.globalData.token && this.data.viewingRoom && this.data.currentRoom) {
@@ -354,14 +396,17 @@ Page(Object.assign(
           roomId: this.data.currentRoom.roomId,
           wsConnected: scoreWS.isConnected
         });
-        if (!scoreWS.isConnected && !scoreWS.isConnecting) {
-          this.connectWS(this.data.currentRoom.roomId);
+        if (!scoreWS.isConnected || !scoreWS.isConnecting) {
+          this.connectWS(this.data.currentRoom.roomId, true);
         }
       }
       this.updateCockpitState();
+      this.setData({ isReady: true });
     },
 
     onLoad(options) {
+      this._animationQueue = [];
+      this._animating = false;
       this.initCustomNav();
       let hasJoinParam = false;
       if (options.scene) {
@@ -396,6 +441,8 @@ Page(Object.assign(
 
     onUnload() {
       this._destroyed = true;
+      this._animationQueue = [];
+      this._animating = false;
       if (this._onWsMessage) {
         scoreWS.off('message', this._onWsMessage);
       }
@@ -415,6 +462,20 @@ Page(Object.assign(
       if (this._rollTimer) {
         clearTimeout(this._rollTimer);
         this._rollTimer = null;
+      }
+      if (this._pulseReadoutTimer) {
+        clearTimeout(this._pulseReadoutTimer);
+        this._pulseReadoutTimer = null;
+      }
+      if (this._transferLockTimer) {
+        clearTimeout(this._transferLockTimer);
+        this._transferLockTimer = null;
+      }
+      this._transferSubmitLocked = false;
+      this._activeTransferRequestId = '';
+      if (this._seenTransferEvents) {
+        this._seenTransferEvents.clear();
+        this._seenTransferEvents = null;
       }
       if (this._toastTimer) {
         clearTimeout(this._toastTimer);
@@ -499,14 +560,108 @@ Page(Object.assign(
         scoreRecords: this.data.scoreRecords || [],
         pulseStats: this.data.pulseStats,
         pulseTraces: this.data.pulseTraces || [],
+        filterMine: this.data.filterMine,
         traceChartSparkline: this.data.traceChartSparkline || [],
         wsReconnecting: this.data.wsReconnecting,
         wsConnected: this.data.wsConnected,
         roundRecord: this.data.roundRecord,
         shipNewMap: this.data.shipNewMap || {},
         onlineUserMap: this.data.onlineUserMap || {},
-        hasPresenceSnapshot: !!this.data.hasPresenceSnapshot
+        hasPresenceSnapshot: !!this.data.hasPresenceSnapshot,
+        customPositions: this.data.customPositions
       });
+    },
+
+    // ========== 拖拽排布 ==========
+
+    handleShipTouchStart(e) {
+      const userId = String(e.currentTarget.dataset.userId || '');
+      if (!userId) return;
+      
+      const touch = e.touches[0];
+      const ship = (this.data.cockpitView.externalShips || []).find(s => String(s.userId) === userId);
+      if (!ship) return;
+
+      // 动态获取容器宽高，以支持更精确的百分比换算
+      const query = this.createSelectorQuery();
+      query.select('#formation-window').boundingClientRect(rect => {
+        if (!rect) return;
+        this._dragData = {
+          userId,
+          startX: touch.pageX,
+          startY: touch.pageY,
+          initialX: ship.x,
+          initialY: ship.y,
+          containerWidth: rect.width,
+          containerHeight: rect.height,
+          moved: false
+        };
+        this.setData({ draggingUserId: userId });
+      }).exec();
+    },
+
+    handleShipTouchMove(e) {
+      if (!this._dragData) return;
+      const touch = e.touches[0];
+      const dx = touch.pageX - this._dragData.startX;
+      const dy = touch.pageY - this._dragData.startY;
+
+      // 判定是否发生了移动（防抖/防误点）
+      if (!this._dragData.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+        this._dragData.moved = true;
+      }
+
+      if (!this._dragData.moved) return;
+
+      // 计算百分比位移
+      const pxToPercentX = (dx / this._dragData.containerWidth) * 100;
+      const pxToPercentY = (dy / this._dragData.containerHeight) * 100;
+
+      const newX = Math.max(
+        FORMATION_SAFE_ZONE.minX,
+        Math.min(FORMATION_SAFE_ZONE.maxX, this._dragData.initialX + pxToPercentX)
+      );
+      const newY = Math.max(
+        FORMATION_SAFE_ZONE.minY,
+        Math.min(FORMATION_SAFE_ZONE.maxY, this._dragData.initialY + pxToPercentY)
+      );
+
+      // ===== 1. 物理碰撞检测 (防重叠) =====
+      const COLLISION_THRESHOLD = 14;
+      const otherShips = (this.data.cockpitView.externalShips || [])
+        .filter(s => String(s.userId) !== this._dragData.userId);
+
+      const isCollidingWithOthers = otherShips.some(s => {
+        const dist = Math.sqrt(Math.pow(newX - s.x, 2) + Math.pow(newY - s.y, 2));
+        return dist < COLLISION_THRESHOLD;
+      });
+
+      if (isCollidingWithOthers) return;
+
+      const customPositions = { ...this.data.customPositions };
+      customPositions[this._dragData.userId] = { x: newX, y: newY };
+
+      this.setData({ customPositions });
+      this.syncCockpitView();
+    },
+
+    handleShipTouchEnd(e) {
+      if (!this._dragData) return;
+      
+      // 如果没有实质移动，视作点击，触发原有的选中逻辑
+      if (!this._dragData.moved) {
+        this.handleTapShip(e);
+      } else {
+        // 拖拽结束，持久化位置偏好
+        const roomId = this.data.currentRoom?.roomId;
+        if (roomId) {
+          const key = `custom_pos_${roomId}`;
+          wx.setStorageSync(key, this.data.customPositions);
+        }
+      }
+
+      this._dragData = null;
+      this.setData({ draggingUserId: '' });
     },
 
     syncCockpitView(memberGridOverride) {
@@ -594,9 +749,8 @@ Page(Object.assign(
 
     handleSelectCrew(e) {
       const userId = String(e.currentTarget.dataset.userId || '');
-      const isActive = e.currentTarget.dataset.active;
-
-      if (!userId || isActive === false || isActive === 'false') {
+      // 移除对 isActive 的严格校验，允许点击任何成员
+      if (!userId) {
         return;
       }
 
@@ -641,7 +795,11 @@ Page(Object.assign(
       this._traceSeq = (this._traceSeq || 0) + 1;
       const id = this._traceSeq;
       const myId = String(app.globalData.userId || '');
-      const isMine = extra.fromUserId ? String(extra.fromUserId) === myId : fromName === '我';
+      const fromUserId = String(extra.fromUserId || '');
+      const toUserId = String(extra.toUserId || '');
+      const isMine = fromUserId || toUserId
+        ? fromUserId === myId || toUserId === myId
+        : fromName === '我' || toName === '我';
       traces.push({
         id,
         title: `${fromName} → ${toName}`,
@@ -654,6 +812,8 @@ Page(Object.assign(
         timeFormatted: '刚刚',
         valueText: `${amount}`,
         valueClass: amount < 0 ? 'is-negative' : '',
+        fromUserId,
+        toUserId,
         isMine,
         isNew: true
       });
@@ -776,7 +936,19 @@ Page(Object.assign(
     /** 重新编译后从本地存储恢复房间状态 */
     async restoreRoom(roomId) {
       try {
-        const room = await roomService.getRoomDetail(roomId);
+        const preloads = app.globalData.preloads || {};
+        let roomPromise = preloads.roomDetail;
+        
+        // 校验预加载是否匹配当前要恢复的 roomId
+        // 注意：preloads.roomDetail 可能是 Promise，也可能是 null
+        if (roomPromise) {
+          // 清理，防止重复使用旧数据
+          delete preloads.roomDetail;
+        } else {
+          roomPromise = roomService.getRoomDetail(roomId);
+        }
+
+        const room = await roomPromise;
         if (!room) {
           wx.removeStorageSync('currentRoomId');
           this.loadMyRooms();
@@ -794,20 +966,22 @@ Page(Object.assign(
           isOwner: String(room.ownerId) === String(app.globalData.userId)
         });
         this.enrichMembers(room);
+        this._resolveCloudAvatars(room);
         this.loadRoomData(room.roomId);
-        this.connectWS(room.roomId);
+        this.connectWS(room.roomId, true);
         this.updateCockpitState();
         if (room.scoreMode === 2) {
           this.loadPendingRound(room.roomId);
         }
       } catch (e) {
-        console.error('[restoreRoom] 恢复房间失败', e);
-        if (e && (e.message === '编队不存在' || e.message === '房间已关闭' || e.code === 400)) {
+        console.error('[restoreRoom] 恢复房间详情失败', e);
+        // 如果是因为权限（403）或其他原因导致详情拉取失败，
+        // 尝试通过 loadMyRooms 进行一次全量对账，而不是直接清除存储。
+        if (e && (e.message === '编队不存在' || e.message === '房间已关闭' || e.code === 400 || e.code === 403)) {
           this.handleRoomNotFoundError(e);
         } else {
-          wx.removeStorageSync('currentRoomId');
+          // 网络抖动等其他异常：尝试二次恢复
           this.loadMyRooms();
-          this.loadRecentRooms();
         }
       }
     },
@@ -824,7 +998,16 @@ Page(Object.assign(
       }, 6000);
 
       try {
-        const rooms = await roomService.getMyRooms();
+        const preloads = app.globalData.preloads || {};
+        let roomsPromise = preloads.myRooms;
+        
+        if (roomsPromise) {
+          delete preloads.myRooms;
+        } else {
+          roomsPromise = roomService.getMyRooms();
+        }
+
+        const rooms = await roomsPromise;
         if (rooms && rooms.length > 0) {
           const room = rooms[0];
           wx.setStorageSync('currentRoomId', room.roomId);
@@ -834,8 +1017,9 @@ Page(Object.assign(
             isOwner: String(room.ownerId) === String(app.globalData.userId)
           });
           this.enrichMembers(room);
+          this._resolveCloudAvatars(room);
           this.loadRoomData(room.roomId);
-          this.connectWS(room.roomId);
+          this.connectWS(room.roomId, true);
           this.updateCockpitState();
           if (room.scoreMode === 2) {
             this.loadPendingRound(room.roomId);
@@ -888,25 +1072,219 @@ Page(Object.assign(
     /** 批量解析 cloud:// 格式的成员头像 */
     async _resolveCloudAvatars(room) {
       if (!room || !room.members) return;
-      const cloudUrls = room.members
-        .map(m => m.avatarUrl)
-        .filter(u => u && u.startsWith('cloud://'));
-      if (cloudUrls.length === 0) return;
+      
+      const cloudUrls = new Set(
+        room.members
+          .map(m => m.avatarUrl)
+          .filter(u => u && u.startsWith('cloud://'))
+      );
+
+      // 也将用户自身的头像纳入解析
+      const myAvatar = app.globalData.userInfo?.avatarUrl;
+      if (myAvatar && myAvatar.startsWith('cloud://')) {
+        cloudUrls.add(myAvatar);
+      }
+
+      if (cloudUrls.size === 0) return;
 
       try {
-        const resolved = await resolveAvatarSrcBatch(cloudUrls);
-        const members = this.data.currentRoom.members.map(m => {
-          if (m.avatarUrl && resolved[m.avatarUrl]) {
-            return { ...m, avatarUrl: resolved[m.avatarUrl] };
+        const resolved = await resolveAvatarSrcBatch(Array.from(cloudUrls));
+        
+        const members = (this.data.currentRoom.members || []).map(m => {
+          if (m.avatarUrl && m.avatarUrl.startsWith('cloud://')) {
+            return { ...m, avatarUrl: resolved[m.avatarUrl] || '' };
           }
           return m;
         });
+
+        // 只要处理过 cloud 链接，无论成功失败都进行全量刷新
         this.setData({ 'currentRoom.members': members });
-        this._cellRectsCache = null;
+
+        // 如果我自己的头像也被解析了，同步更新 globalData，这样派生模型就能拿到 https 链接
+        if (myAvatar && myAvatar.startsWith('cloud://') && resolved[myAvatar]) {
+           app.globalData.userInfo.avatarUrl = resolved[myAvatar];
+        }
+
         this.buildMemberGrid();
       } catch (e) {
-        // 解析失败回退为首字头像
+        console.error('[room] 批量解析云头像失败', e);
       }
+    },
+
+    async updateAllData(roomId) {
+      if (!roomId) return;
+      try {
+        await this.loadRoomData(roomId);
+        this.buildMemberGrid();
+        if (this.data.currentRoom) {
+          this._resolveCloudAvatars(this.data.currentRoom);
+        }
+      } catch (e) {
+        console.error('[updateAllData] 全量更新数据失败', e);
+      }
+    },
+
+    appendLocalTransferRecord(fromUserId, toUserId, amount, now = Date.now()) {
+      const room = this.data.currentRoom;
+      if (!room || !room.members) return;
+
+      const fromMember = room.members.find(m => String(m.userId) === String(fromUserId));
+      const toMember = room.members.find(m => String(m.userId) === String(toUserId));
+      if (!fromMember || !toMember) return;
+
+      const myId = String(app.globalData.userId || '');
+      const newRecord = {
+        id: now,
+        fromName: fromMember.nickname,
+        fromAvatarUrl: normalizeAvatarUrl(fromMember.avatarUrl),
+        fromColor: fromMember.avatarUrl ? '' : getColor(fromMember.nickname),
+        fromChar: fromMember.avatarUrl ? '' : getFirstChar(fromMember.nickname),
+        toName: toMember.nickname,
+        toAvatarUrl: normalizeAvatarUrl(toMember.avatarUrl),
+        toColor: toMember.avatarUrl ? '' : getColor(toMember.nickname),
+        toChar: toMember.avatarUrl ? '' : getFirstChar(toMember.nickname),
+        amount: amount,
+        createdAt: now,
+        timeFormatted: '刚刚',
+        fromUserId: String(fromUserId),
+        toUserId: String(toUserId),
+        myRole: String(fromUserId) === myId ? 'from' : String(toUserId) === myId ? 'to' : '',
+        isNew: true
+      };
+
+      const exists = (this.data.scoreRecords || []).some(r => {
+        return String(r.fromUserId) === String(fromUserId) &&
+               String(r.toUserId) === String(toUserId) &&
+               Math.abs(r.amount) === Math.abs(amount) &&
+               Math.abs(r.createdAt - now) < 2000;
+      });
+
+      if (exists) return;
+
+      const allRecords = [newRecord, ...(this.data.scoreRecords || [])];
+      if (allRecords.length > 100) {
+        allRecords.length = 100;
+      }
+
+      this.setData({
+        scoreRecords: allRecords,
+        relationMap: this.buildRelationMap(allRecords)
+      });
+      this.rebuildGroupedRecords();
+      this.rebuildPulseStats();
+      this.rebuildRoomInsight();
+      this.updateCanSealRoom();
+      setTimeout(() => {
+        if (this._destroyed) return;
+        const settledRecords = (this.data.scoreRecords || []).map(record => (
+          record.id === newRecord.id ? { ...record, isNew: false } : record
+        ));
+        this.setData({ scoreRecords: settledRecords });
+        this.rebuildPulseStats();
+      }, 2800);
+    },
+
+    rebuildRoomInsight() {
+      const records = this.data.scoreRecords || [];
+      let totalTransfer = 0;
+      let maxSingle = 0;
+      const userCount = {};
+
+      records.forEach(r => {
+        const amount = Math.abs(r.amount);
+        totalTransfer += amount;
+        if (amount > maxSingle) maxSingle = amount;
+        userCount[r.fromUserId] = (userCount[r.fromUserId] || 0) + 1;
+        userCount[r.toUserId] = (userCount[r.toUserId] || 0) + 1;
+      });
+
+      let topUserId = null;
+      let topCount = 0;
+      Object.keys(userCount).forEach(uid => {
+        if (userCount[uid] > topCount) {
+          topCount = userCount[uid];
+          topUserId = uid;
+        }
+      });
+
+      let activeUser = null;
+      if (topUserId) {
+        const member = (this.data.currentRoom?.members || []).find(m => String(m.userId) === String(topUserId));
+        activeUser = {
+          userId: topUserId,
+          nickname: member ? member.nickname : '未知',
+          avatarUrl: member ? member.avatarUrl : null,
+          count: topCount
+        };
+      }
+
+      const memberIds = new Set();
+      records.forEach(r => {
+        memberIds.add(String(r.fromUserId));
+        memberIds.add(String(r.toUserId));
+      });
+      const n = memberIds.size;
+      const eventCount = records.length;
+      const density = (n > 1) ? eventCount / (n * (n - 1)) : 0;
+      const densityLevel = density > 0.3 ? 'HIGH' : density > 0.1 ? 'MEDIUM' : 'LOW';
+
+      this.setData({
+        roomInsight: {
+          totalTransfer,
+          maxSingleTransfer: maxSingle,
+          mostActiveUser: activeUser,
+          transferCount: eventCount,
+          networkDensity: densityLevel
+        }
+      });
+    },
+
+    pushWsTransferToQueue(task) {
+      if (!this._animationQueue) this._animationQueue = [];
+      
+      if (this._animationQueue.length >= 3) {
+        console.log('[Queue] 动画积压严重，快速丢弃动画并执行直接落态: size=', this._animationQueue.length);
+        this._animationQueue.forEach(t => {
+          this._optimisticScoreUpdateFromWS(t.fromUserId, t.toUserId, t.fromNewScore, t.toNewScore);
+          this.appendLocalTransferRecord(t.fromUserId, t.toUserId, t.amount, t.now || Date.now());
+        });
+        this._animationQueue = [];
+        this._animating = false;
+        
+        this._optimisticScoreUpdateFromWS(task.fromUserId, task.toUserId, task.fromNewScore, task.toNewScore);
+        this.appendLocalTransferRecord(task.fromUserId, task.toUserId, task.amount, task.now || Date.now());
+        this.buildMemberGrid();
+        return;
+      }
+
+      this._animationQueue.push(task);
+      this._processAnimationQueue();
+    },
+
+    _processAnimationQueue() {
+      if (this._animating || !this._animationQueue || this._animationQueue.length === 0) return;
+      
+      this._animating = true;
+      const t = this._animationQueue.shift();
+
+      const g = this.data.memberGrid;
+      const fM = g.find(m => String(m.userId) === String(t.fromUserId));
+      const tM = g.find(m => String(m.userId) === String(t.toUserId));
+      this._animatingScores = {};
+      this._animatingScores[t.fromUserId] = fM ? fM.displayScore : 0;
+      this._animatingScores[t.toUserId] = tM ? tM.displayScore : 0;
+
+      this._optimisticScoreUpdateFromWS(t.fromUserId, t.toUserId, t.fromNewScore, t.toNewScore);
+
+      this.playTransferAnimation(t.fromUserId, t.toUserId, t.amount, () => {
+        this.appendLocalTransferRecord(t.fromUserId, t.toUserId, t.amount, t.now || Date.now());
+        this.buildMemberGrid();
+        
+        setTimeout(() => {
+          this._animating = false;
+          this._processAnimationQueue();
+        }, 300);
+      });
     },
 
     buildMemberGrid() {
@@ -963,7 +1341,8 @@ Page(Object.assign(
         ...extraState
       };
       const pulsePatch = this._calcPulseStatsPatch(grid);
-      this.scheduleRoomPatch({ ...memberPatch, ...pulsePatch }, { immediate: true });
+      const isBusy = this._animating || (this._animationQueue && this._animationQueue.length > 0);
+      this.scheduleRoomPatch({ ...memberPatch, ...pulsePatch }, { immediate: !isBusy, delay: 60 });
     },
 
     async loadRoomData(roomId) {
@@ -973,6 +1352,24 @@ Page(Object.assign(
       ]);
       this.loadInsightData(roomId);
       this.loadTransferAmountSuggestions(roomId);
+    },
+
+    /** 刷新编队基本信息 */
+    async reloadRoomInfo(roomId) {
+      if (!roomId) return;
+      try {
+        const room = await roomService.getRoomDetail(roomId);
+        if (room) {
+          this.setData({
+            currentRoom: room,
+            isOwner: String(room.ownerId) === String(app.globalData.userId)
+          });
+          this.buildMemberGrid();
+          this._resolveCloudAvatars(room);
+        }
+      } catch (e) {
+        console.error('[room] 刷新编队信息失败', e);
+      }
     },
 
     /** 重连后主动拉取最新状态，恢复编队数据链路 */
@@ -1025,7 +1422,16 @@ Page(Object.assign(
 
     async loadRanking(roomId) {
       try {
-        const ranking = await scoreService.getRoomRanking(roomId);
+        const preloads = app.globalData.preloads || {};
+        let rankingPromise = preloads.roomRanking;
+        
+        if (rankingPromise) {
+          delete preloads.roomRanking;
+        } else {
+          rankingPromise = scoreService.getRoomRanking(roomId);
+        }
+
+        const ranking = await rankingPromise;
         if (!ranking) return;
 
         const maxScore = Math.max(...ranking.map(r => Math.abs(r.score || 0)), 1);
@@ -1125,7 +1531,16 @@ Page(Object.assign(
       }
       const page = this._transferPage || 1;
       try {
-        const res = await scoreService.getRoomTransfers(roomId, page, 20);
+        const preloads = app.globalData.preloads || {};
+        let resPromise = (reset && page === 1) ? preloads.roomTransfers : null;
+        
+        if (resPromise) {
+          delete preloads.roomTransfers;
+        } else {
+          resPromise = scoreService.getRoomTransfers(roomId, page, 20);
+        }
+
+        const res = await resPromise;
         if (!res) return;
 
         const myId = app.globalData.userId;
@@ -1199,6 +1614,9 @@ Page(Object.assign(
 
       const today = this.formatDay(new Date());
       const groups = filtered.reduce((acc, r) => {
+        const displayRecord = Object.assign({}, r, {
+          amountDisplay: String(Math.abs(Number(r.amount || 0)))
+        });
         const safeDate = typeof r.createdAt === 'string' ? r.createdAt.replace(/-/g, '/') : r.createdAt;
         const d = new Date(safeDate);
         const key = this.formatTime(r.createdAt);
@@ -1208,9 +1626,9 @@ Page(Object.assign(
           : key;
         const last = acc[acc.length - 1];
         if (last && last.timeKey === key) {
-          last.records.push(r);
+          last.records.push(displayRecord);
         } else {
-          acc.push({ timeKey: key, timeDisplay: display, records: [r] });
+          acc.push({ timeKey: key, timeDisplay: display, records: [displayRecord] });
         }
         return acc;
       }, []);
@@ -1240,10 +1658,10 @@ Page(Object.assign(
           toAvatarUrl: r.toAvatarUrl || '',
           createdAt: r.createdAt,
           timeFormatted: r.timeFormatted || '',
-          valueText: this.formatPulseValue(r.amount),
+          valueText: this.formatPulseValue(Math.abs(Number(r.amount || 0))),
           valueClass: isMine ? 'is-related' : '',
           isMine,
-          isNew: false
+          isNew: !!r.isNew
         };
       });
 
@@ -1388,13 +1806,50 @@ Page(Object.assign(
     },
 
     toggleFilterMine() {
-      this.setData({ filterMine: !this.data.filterMine });
-      this.rebuildGroupedRecords();
+      this.setData({ filterMine: !this.data.filterMine }, () => {
+        this.rebuildGroupedRecords();
+        this.syncCockpitView();
+      });
     },
 
     onToggleFilter(e) {
-      this.setData({ filterMine: e.detail.filterMine });
-      this.rebuildGroupedRecords();
+      this.setData({ filterMine: e.detail.filterMine }, () => {
+        this.rebuildGroupedRecords();
+        this.syncCockpitView();
+      });
+    },
+
+    openPulseLogPanel() {
+      this.setData({ filterMine: false }, () => {
+        this.rebuildGroupedRecords();
+        this.syncCockpitView();
+        this.setData({ showPulseLogPanel: true });
+      });
+    },
+
+    closePulseLogPanel() {
+      this.setData({ showPulseLogPanel: false });
+    },
+
+    showAllPulseLogs() {
+      if (!this.data.filterMine) return;
+      this.setData({ filterMine: false }, () => {
+        this.rebuildGroupedRecords();
+        this.syncCockpitView();
+      });
+    },
+
+    showMyPulseLogs() {
+      if (this.data.filterMine) return;
+      this.setData({ filterMine: true }, () => {
+        this.rebuildGroupedRecords();
+        this.syncCockpitView();
+      });
+    },
+
+    openFormationManageFromBeacon() {
+      this.closeShareSheet();
+      setTimeout(() => this.confirmLeaveOrDisband(), 180);
     },
 
     onScoreScrollToLower() {
@@ -1612,6 +2067,8 @@ Page(Object.assign(
         this.resetJoinState();
         this.setData({ currentRoom: room, viewingRoom: true, isOwner: true });
         wx.setStorageSync('currentRoomId', room.roomId);
+        wx.setStorageSync('currentRoomNo', room.roomNo);
+        wx.setStorageSync('currentMemberCount', room.members ? room.members.length : 1);
         await this.reloadRoomInfo(room.roomId);
         this.loadRoomData(room.roomId);
         this.connectWS(room.roomId);
@@ -1645,6 +2102,8 @@ Page(Object.assign(
         });
         this.resetJoinState();
         wx.setStorageSync('currentRoomId', room.roomId);
+        wx.setStorageSync('currentRoomNo', room.roomNo);
+        wx.setStorageSync('currentMemberCount', room.members ? room.members.length : 0);
         this.saveRecentRoom(roomNo, room.scoreMode);
         await this.loadRoomData(room.roomId);
         this.reloadRoomInfo(room.roomId);

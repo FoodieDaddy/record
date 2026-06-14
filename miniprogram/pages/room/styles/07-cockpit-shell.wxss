@@ -22,15 +22,12 @@
 
 .room-custom-nav {
   position: relative;
-  margin: -32rpx -28rpx 0;
+  margin: -24rpx -24rpx 24rpx;
   flex-shrink: 0;
   box-sizing: border-box;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 22% 10%, rgba(0,200,255,0.12), transparent 34%),
-    radial-gradient(circle at 78% 0%, rgba(94,92,230,0.10), transparent 30%),
-    linear-gradient(180deg, rgba(1,8,18,0.98), rgba(4,12,24,0.92));
-  border-bottom: 1rpx solid rgba(0,200,255,0.12);
+  background: transparent;
+  border-bottom: none;
 }
 
 .room-custom-nav::after {
@@ -40,18 +37,17 @@
   right: 0;
   bottom: 0;
   height: 120rpx;
-  background: linear-gradient(180deg, transparent, rgba(5,14,26,0.84));
+  background: linear-gradient(180deg, transparent, rgba(5,14,26,0.3));
   pointer-events: none;
 }
 
 .room-custom-nav__stars {
   position: absolute;
   inset: 0;
-  opacity: 0.34;
+  opacity: 0.15;
   background-image:
-    radial-gradient(circle at 18% 48%, rgba(226,242,255,0.40) 0 2rpx, transparent 3rpx),
-    radial-gradient(circle at 62% 32%, rgba(0,200,255,0.34) 0 2rpx, transparent 3rpx),
-    radial-gradient(circle at 86% 62%, rgba(226,242,255,0.28) 0 1rpx, transparent 2rpx);
+    radial-gradient(circle at 18% 48%, rgba(226,242,255,0.20) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 62% 32%, rgba(0,200,255,0.15) 0 1rpx, transparent 2rpx);
   pointer-events: none;
 }
 
@@ -60,8 +56,8 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 210rpx;
+  justify-content: flex-start;
+  padding: 0 32rpx;
   box-sizing: border-box;
 }
 
@@ -676,6 +672,12 @@
   font-size: 28rpx;
   font-weight: 600;
   color: rgba(226,242,255,0.92);
+}
+
+.reentry-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .reentry-code {

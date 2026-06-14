@@ -50,19 +50,20 @@ function request(options) {
 
   const requestId = createRequestId();
   const start = Date.now();
+  const requestToken = app.globalData.token;
 
   const header = {
     'Content-Type': 'application/json',
     'X-Request-Id': requestId,
     ...options.header
   };
-  if (app.globalData.token) {
-    header['Authorization'] = `Bearer ${app.globalData.token}`;
+  if (requestToken) {
+    header['Authorization'] = `Bearer ${requestToken}`;
   }
 
   const useCloud = config.mode === 'anyservice' && wx.cloud;
-  // wx.request 不传 timeout 时默认 60s；callContainer 需显式传入
-  const timeout = options.timeout || (useCloud ? config.timeout.normal : undefined);
+  // wx.request 不传 timeout 时默认 60s，显式限制避免长时间挂起
+  const timeout = options.timeout || config.timeout.normal;
 
   const promise = new Promise((resolve, reject) => {
     const onSuccess = (res) => {
@@ -75,6 +76,17 @@ function request(options) {
       const isAccountError = errCode === 4003 || errCode === 4005;
       if (res.statusCode === 401 || isAuthError || isAccountError) {
         const msg = isAccountError ? (resData.message || '账号异常') : '接入已过期';
+        
+        // 校验 token 是否一致：如果当前 token 已经变化（说明用户已重新登录），则忽略旧请求带来的 401
+        const currentToken = app.globalData.token;
+        const isStaleRequest = requestToken && currentToken && requestToken !== currentToken;
+        
+        if (isStaleRequest) {
+          console.warn(`[request] 忽略旧请求带来的 401 错误 (reqToken: ${requestToken.slice(-6)}, curToken: ${currentToken.slice(-6)})`);
+          reject(new Error('请求已失效'));
+          return;
+        }
+
         // 防抖：避免并发 401 重复登出
         if (!_loggingOut) {
           _loggingOut = true;

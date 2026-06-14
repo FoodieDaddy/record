@@ -996,6 +996,115 @@ page {
 }
 
 /* ===== 终端弹窗遮罩 ===== */
+/* ===== 飞控座舱导航条 (sr-custom-nav) - 沉浸式 HUD 方案 ===== */
+.sr-custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  /* 背景透明，透出页面背景 */
+  background: transparent;
+  overflow: hidden;
+  transition: all 0.4s ease;
+}
+
+.sr-custom-nav__stars {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 18% 48%, rgba(226,242,255,0.20) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 62% 32%, rgba(0,200,255,0.15) 0 1rpx, transparent 2rpx);
+}
+
+.sr-custom-nav__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 32rpx;
+  box-sizing: border-box;
+}
+
+/* 沉浸式状态条：左对齐 HUD */
+.cockpit-nav-hud {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  width: 100%;
+}
+
+.cockpit-nav-hud__link {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: rgba(204, 231, 242, 0.70);
+  font-size: 20rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.css-status-dot {
+  width: 9rpx;
+  height: 9rpx;
+  border-radius: 50%;
+  background: rgba(226,242,255,0.22);
+}
+
+.css-status-dot--online, .css-status-dot--on {
+  background: #30D158;
+  box-shadow: 0 0 10rpx rgba(48, 209, 88, 0.5);
+  animation: statusPulse 2s infinite;
+}
+
+.css-status-dot--warning {
+  background: #FF9F0A;
+  box-shadow: 0 0 10rpx rgba(255, 159, 10, 0.5);
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+.cockpit-nav-hud__formation {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 4rpx 18rpx;
+  background: rgba(0, 175, 255, 0.06);
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  border-radius: 4rpx;
+}
+
+.cockpit-nav-hud__code {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 21rpx;
+  font-weight: 700;
+  color: rgba(0, 200, 255, 0.88);
+  letter-spacing: 1rpx;
+}
+
+.cockpit-nav-hud__divider {
+  width: 1rpx;
+  height: 18rpx;
+  background: rgba(0, 175, 255, 0.2);
+}
+
+.cockpit-nav-hud__crew {
+  font-family: Menlo, Monaco, Consolas, monospace;
+  font-size: 19rpx;
+  font-weight: 700;
+  color: rgba(0, 200, 255, 0.62);
+}
+
+/* 页面内的大标题统一去除/隐藏类 */
+.hide-page-title {
+  display: none !important;
+}
+
 .terminal-overlay {
   position: fixed;
   inset: 0;

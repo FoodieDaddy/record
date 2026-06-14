@@ -4,6 +4,7 @@ import com.smartrecord.config.interceptor.JwtInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.NonNull;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
@@ -23,36 +25,39 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private String allowedOrigins;
 
     @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
+    public void addArgumentResolvers(@NonNull List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new CurrentUserResolver());
     }
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
+    public void addInterceptors(@NonNull InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/user/login",
                         "/admin/login",
+                        "/behavior/report",
                         "/tts/**",
                         "/voice/**",
                         "/voices/**",
+                        "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
-                        "/webjars/**"
+                        "/webjars/**",
+                        "/actuator/**"
                 );
     }
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/voices/**")
                 .addResourceLocations("classpath:static/voices/");
     }
 
     @Override
-    public void addCorsMappings(CorsRegistry registry) {
+    public void addCorsMappings(@NonNull CorsRegistry registry) {
         String[] origins = allowedOrigins.split(",");
-        registry.addMapping("/api/**")
+        registry.addMapping("/**")
                 .allowedOriginPatterns(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

@@ -5,22 +5,18 @@
   <!-- 数值总览弹窗 -->
   <view class="matrix-panel-overlay {{visible ? 'mp-show' : ''}}" catchtap="closePanel">
     <view class="matrix-panel-sheet" catchtap="preventClose" catchtouchmove="preventClose">
-      <!-- 终端标题栏 -->
-      <view class="vo-header">
-        <view class="vo-title-group">
-          <text class="vo-cn">数值总览</text>
-          <text class="vo-en">VALUE OVERVIEW</text>
-        </view>
-        <view class="vo-close" bindtap="closePanel">
-          <view class="vo-close-ring">
-            <view class="vo-close-icon"></view>
-          </view>
+      <view class="matrix-ar-corner matrix-ar-corner--tl"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--tr"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--bl"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--br"></view>
+      <view class="vo-close matrix-ar-close" bindtap="closePanel">
+        <view class="vo-close-ring">
+          <view class="vo-close-icon"></view>
         </view>
       </view>
-      <view class="vo-header-line"></view>
 
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
-        <text class="text-tertiary">至少需要 2 名成员</text>
+        <view class="matrix-ar-empty-dot"></view>
       </view>
       <view wx:else class="panel-body">
 
@@ -35,15 +31,8 @@
         <scroll-view scroll-y="{{true}}" scroll-x="{{false}}" class="relation-scroll" catchtouchmove="preventClose"
           bindscrolltolower="onRelationScrollLower" lower-threshold="100">
           <view class="relation-section">
-            <view class="relation-header">
-              <view class="relation-header-left">
-                <text class="relation-title">往来成员</text>
-                <text class="relation-en">FLOW LINKS</text>
-              </view>
-              <text class="relation-count">{{relationList.length}}人</text>
-            </view>
             <view wx:if="{{relationListDisplay.length === 0}}" class="empty-batches">
-              <text class="text-tertiary">暂无流向数据</text>
+              <view class="matrix-ar-empty-dot"></view>
             </view>
             <view class="relation-list" wx:else>
               <view class="relation-item" wx:for="{{relationListDisplay}}" wx:key="userId"
@@ -51,12 +40,12 @@
                 <view class="relation-left">
                   <helmet-avatar
                     src="{{item.avatarUrl || ''}}"
+                    nickname="{{item.nickname}}"
                     size="sm"
                     showStatus="{{false}}"
                   />
                   <view class="relation-info">
                     <text class="relation-name">{{t.truncateName(item.nickname)}}</text>
-                    <text class="relation-label">LINKED</text>
                   </view>
                 </view>
                 <text class="relation-score {{item.netScore > 0 ? 'rs-pos' : 'rs-neg'}}">{{item.display}}</text>
@@ -71,25 +60,22 @@
   <!-- 数值明细弹窗 -->
   <view class="matrix-detail-overlay {{showMatrixDetail ? 'detail-show' : ''}}" catchtap="closeMatrixDetail" catchtouchmove="preventClose">
     <view class="matrix-detail-sheet" catchtap="preventClose" catchtouchmove="preventClose">
-      <!-- 终端标题栏 -->
-      <view class="vo-header">
-        <view class="vo-title-group">
-          <text class="vo-cn">数值明细</text>
-          <text class="vo-en">FLOW DETAIL</text>
-        </view>
-        <view class="vo-close" bindtap="closeMatrixDetail">
-          <view class="vo-close-ring">
-            <view class="vo-close-icon"></view>
-          </view>
+      <view class="matrix-ar-corner matrix-ar-corner--tl"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--tr"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--bl"></view>
+      <view class="matrix-ar-corner matrix-ar-corner--br"></view>
+      <view class="vo-close matrix-ar-close" bindtap="closeMatrixDetail">
+        <view class="vo-close-ring">
+          <view class="vo-close-icon"></view>
         </view>
       </view>
-      <view class="vo-header-line"></view>
 
       <!-- 成员流向通道 -->
       <view class="detail-parties">
         <view class="detail-party">
           <helmet-avatar
             src="{{detailFrom.avatarUrl || ''}}"
+            nickname="{{detailFrom.nickname}}"
             size="md"
             showStatus="{{false}}"
           />
@@ -103,6 +89,7 @@
         <view class="detail-party">
           <helmet-avatar
             src="{{detailTo.avatarUrl || ''}}"
+            nickname="{{detailTo.nickname}}"
             size="md"
             showStatus="{{false}}"
           />
@@ -112,15 +99,9 @@
 
       <!-- 净数值总结条 -->
       <view class="detail-summary-bar">
-        <text class="detail-summary-label">净数值</text>
         <text class="detail-summary-val {{detailNet > 0 ? 'ds-pos' : detailNet < 0 ? 'ds-neg' : 'ds-zero'}}">{{fmt.formatScore(detailNet)}}</text>
       </view>
 
-      <!-- 流向记录 -->
-      <view class="flow-log-header">
-        <text class="flow-log-title">流向记录</text>
-        <text class="flow-log-en">FLOW LOG</text>
-      </view>
       <scroll-view scroll-y="{{true}}" class="detail-scroll-list" catchtouchmove="preventClose">
         <view class="detail-item" wx:for="{{detailRecords}}" wx:key="id">
           <view class="detail-item-dot {{item.amount > 0 ? 'dot-pos' : item.amount < 0 ? 'dot-neg' : 'dot-zero'}}"></view>
@@ -128,7 +109,7 @@
           <text class="detail-item-time">{{item.timeFormatted}}</text>
         </view>
         <view wx:if="{{detailRecords.length === 0}}" class="empty-batches" style="padding:24rpx 0;">
-          <text class="text-tertiary">暂无脉冲记录</text>
+          <view class="matrix-ar-empty-dot"></view>
         </view>
       </scroll-view>
     </view>

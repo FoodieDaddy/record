@@ -40,7 +40,8 @@ App({
     vibrateEnabled: true,
     enableWechatShare: false,
     activeTabKey: 'cockpit',
-    storageProvider: config.storageProvider || 'cloudbase'
+    storageProvider: config.storageProvider || 'cloudbase',
+    preloads: {}
   },
 
   onLaunch() {
@@ -78,9 +79,10 @@ App({
       // 从本地缓存恢复用户信息，避免冷启动时的空窗期
       const cached = wx.getStorageSync('userInfo');
       if (cached) {
+        const cleanAvatar = normalizeAvatarUrl(cached.avatarUrl || cached.avatar || cached.headUrl || '');
         this.globalData.userInfo = {
           ...cached,
-          avatarUrl: normalizeAvatarUrl(cached.avatarUrl || cached.avatar || cached.headUrl || '')
+          avatarUrl: cleanAvatar
         };
         wx.setStorageSync('userInfo', this.globalData.userInfo);
       }
@@ -161,8 +163,8 @@ App({
   },
 
   /** 连接房间 WebSocket（进入房间时调用） */
-  connectWS(roomId) {
-    scoreWS.connect(roomId);
+  connectWS(roomId, force = false) {
+    scoreWS.connect(roomId, force);
   },
 
   /** 断开 WebSocket（退出登录/退出房间时调用） */

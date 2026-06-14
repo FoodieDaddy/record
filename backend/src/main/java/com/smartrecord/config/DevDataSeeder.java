@@ -1,6 +1,5 @@
 package com.smartrecord.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartrecord.entity.*;
 import com.smartrecord.mapper.*;
 import com.smartrecord.util.SnowflakeIdGenerator;
@@ -53,7 +52,7 @@ public class DevDataSeeder implements CommandLineRunner {
             user.setId(uid);
             user.setOpenid("dev_openid_" + i);
             user.setNickname(names[i]);
-            user.setAvatarUrl("https://api.dicebear.com/7.x/bottts-neutral/svg?seed=" + i);
+            user.setAvatarUrl("https://api.dicebear.com/7.x/bottts-neutral/png?seed=" + i);
             user.setStatus(1);
             userMapper.insert(user);
             userIds.add(uid);

@@ -2,8 +2,18 @@
 
 ## 未发布
 
+### 修复
+
+- 后端集成测试与鉴权状态码一致性修复：
+  - 修复 `IntegrationSmokeTest` 中未登录请求（`/user/info`）和 Swagger UI 入口（`/swagger-ui.html`）的断言失败。
+  - 将 `GlobalExceptionHandler` 的异常响应调整为使用 `ResponseEntity` 承载，以返回符合 API 标准的 HTTP 状态码（如 401 Unauthorized, 403 Forbidden, 400 Bad Request 等），使得管理端后台 Axios 拦截器能正常处理 Token 过期与重定向。
+  - 调整 `WebMvcConfig` 的鉴权拦截器配置，将 `/swagger-ui.html` 与 `/actuator/**` 加入拦截器排除路径，确保系统监控和接口文档在测试/开发环境免登录连通。
+  - 在 `application.yml` 中新增默认暴露 Actuator 的 `health` 和 `info` 端点，支持集成测试运行。
+
 ### 变更
 
+- 小程序运行时不再显示英文副标题、英文翻译和英文装饰标签；登录、驾驶舱、导航舱、全息舱、识别舱、航迹页面及弹窗统一使用中文信息层级。
+- 指令卡与镜像卡移除英文舱位副标题，保留独立品牌标识；英文开关状态、日志空状态和音色分类同步改为中文。
 - admin-web 玻璃质感未来家具风视觉升级：所有核心卡片和面板加入 `backdrop-filter: blur()` 毛玻璃效果、`::before` 高光伪元素、半透明白色渐变背景，整体从"浅色后台"升级为"白色飞船玻璃舱体"。
 - admin-web 白色飞船舰桥控制台视觉升级：全局背景改为径向冷光渐变、卡片改为 92px 悬浮设备卡（gradient 背景+48px 图标块+28px 大数字+双层阴影）、面板改为 22px 圆角 gradient header、导航改为白色毛玻璃侧舱、Dashboard 系统健康/实时事件改为 readout-row 设备条。
 - admin-web Dashboard 运行总览改造：基地态势面板从装饰 SVG 改为左侧小轨道图+右侧实际数据（活跃编队/今日脉冲/封存/事件/系统状态）。
@@ -82,9 +92,9 @@
 
 - 产品命名统一为「太空记分器 / Space Scorekeeper」，强调多人编队记分与航迹复盘；Smart Record 收敛为工程代号，脉冲终端不再作为用户可见品牌名。
 - 世界观名从「脉冲方舟」调整为「太空方舟」。
-- 产品副标题定为「多人编队记分与航迹复盘 / Crew scoring and flight-log review」。
-- 登录页英文标识从 PULSE TERMINAL 改为 SPACE SCOREKEEPER。
-- Canvas 海报标识从 SMART RECORD · NAV BAY 改为 SPACE SCOREKEEPER · NAV BAY，从 SMART RECORD · HOLO BAY 改为 SPACE SCOREKEEPER · HOLO BAY。
+- 产品副标题统一为「多人编队记分与航迹复盘」，不再附加英文翻译。
+- 登录页只保留中文品牌与接入文案。
+- Canvas 海报只保留独立的 Space Scorekeeper 品牌标识，不附加英文舱位副标题。
 - 小程序导航栏标题从「脉冲终端」改为「太空记分器」。
 - 产品定位补充：必须让用户一眼知道这是记分器，其次再通过太空编队、驾驶舱、航迹档案形成差异化。
 

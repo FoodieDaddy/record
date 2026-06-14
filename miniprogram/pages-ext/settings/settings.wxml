@@ -2,7 +2,6 @@
   <!-- 系统协议面板 -->
   <view class="sp-panel">
     <view class="sp-panel__head">
-      <text class="sp-panel__kicker">SYSTEM PROTOCOL</text>
       <text class="sp-panel__title">系统协议</text>
     </view>
     <view class="sp-panel__divider"></view>
@@ -11,13 +10,12 @@
     <view class="sys-row">
       <view class="sys-row__label-group">
         <text class="sys-row__label-zh">声音协议</text>
-        <text class="sys-row__label-en">VOICE</text>
       </view>
       <view class="avionics-switch {{voiceEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVoiceToggle">
         <view class="avionics-switch__track {{voiceEnabled ? 'is-on' : ''}}">
           <view class="avionics-switch__thumb"></view>
         </view>
-        <text class="avionics-switch__status">{{voiceEnabled ? 'ACTIVE' : 'OFF'}}</text>
+        <text class="avionics-switch__status">{{voiceEnabled ? '已开启' : '已关闭'}}</text>
       </view>
     </view>
 
@@ -25,7 +23,6 @@
     <view class="sys-row sys-row--sub {{voiceEnabled ? '' : 'sys-row--hidden'}}" bindtap="openVoiceSheet">
       <view class="sys-row__label-group">
         <text class="sys-row__label-zh">音色选择</text>
-        <text class="sys-row__label-en">TIMBRE</text>
       </view>
       <view class="sys-row__value">
         <text class="sys-row__value-text">{{voiceName}}</text>
@@ -37,13 +34,12 @@
     <view class="sys-row">
       <view class="sys-row__label-group">
         <text class="sys-row__label-zh">动效协议</text>
-        <text class="sys-row__label-en">FX</text>
       </view>
       <view class="avionics-switch {{animationEnabled ? 'avionics-switch--on' : ''}}" bindtap="onAnimationToggle">
         <view class="avionics-switch__track {{animationEnabled ? 'is-on' : ''}}">
           <view class="avionics-switch__thumb"></view>
         </view>
-        <text class="avionics-switch__status">{{animationEnabled ? 'ACTIVE' : 'OFF'}}</text>
+        <text class="avionics-switch__status">{{animationEnabled ? '已开启' : '已关闭'}}</text>
       </view>
     </view>
 
@@ -51,13 +47,12 @@
     <view class="sys-row sys-row--last">
       <view class="sys-row__label-group">
         <text class="sys-row__label-zh">触感协议</text>
-        <text class="sys-row__label-en">HAPTIC</text>
       </view>
       <view class="avionics-switch {{vibrateEnabled ? 'avionics-switch--on' : ''}}" bindtap="onVibrateToggle">
         <view class="avionics-switch__track {{vibrateEnabled ? 'is-on' : ''}}">
           <view class="avionics-switch__thumb"></view>
         </view>
-        <text class="avionics-switch__status">{{vibrateEnabled ? 'ACTIVE' : 'OFF'}}</text>
+        <text class="avionics-switch__status">{{vibrateEnabled ? '已开启' : '已关闭'}}</text>
       </view>
     </view>
   </view>

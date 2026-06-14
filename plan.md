@@ -1,5 +1,20 @@
 # 计划
 
+## 小程序英文副标题全局清理（2026-06-13） ✅
+
+- ✅ 更新产品语言、界面指南与内容安全规则，明确禁止英文副标题、英文翻译和英文装饰标签
+- ✅ 清理登录、编队、指令、镜像、身份、航迹及公共弹窗组件中的英文副标题
+- ✅ 将运行时英文状态改为中文，保留编队码、MBTI 类型、版本号等必要技术信息
+- ✅ 清理指令卡与镜像卡 Canvas 中的英文舱位副标题，仅保留独立品牌标识
+- ✅ 移除公共弹窗 `subtitle` 属性和主要失效样式
+
+## 后端集成测试与鉴权状态码一致性修复（2026-06-12） ✅
+
+- ✅ WebMvcConfig 排除 `/swagger-ui.html` 与 `/actuator/**` 拦截，解决开发环境 Swagger 及监控不可访问的问题
+- ✅ GlobalExceptionHandler 支持 ResponseEntity 包装，将 401/403/400 等业务/鉴权错误正确映射到 HTTP 状态码
+- ✅ application.yml 配置默认暴露 Actuator 的 health 与 info 端点，支持集成测试运行
+- ✅ 后端编译成功且集成测试（IntegrationSmokeTest/UserServiceIntegrationTest 等）全部通过，测试通过率 100%
+
 ## admin-web 玻璃质感未来家具风视觉升级（2026-06-11） ✅
 
 - ✅ tokens.css 全面重写：新增 `--border-glass`、`--blur-soft`/`--blur-panel`、`--highlight-inner`、主色改为 `#5E8BFF`、面板改为半透明 `rgba(255,255,255,0.62)`
@@ -266,7 +281,7 @@ Phase 6 子包拆分完成：主包 5 页（login/room/fortune/mirror/profile）
 - ✅ 外部航船标记层级：头像环 > 呼号 > 脉冲点 > 状态点。
 - ✅ 驾驶舱脉冲 HUD 环居中显示（`viewport-pulse-center`），编队码/成员数/模式/阶段/链路移至边缘。
 - ✅ 转积分面板精简：仅显示发送方头像和呼号，移除接收方信息，数字键盘和确认按钮并排。
-- ✅ 移除全部英文 kicker（COCKPIT ONLINE、FORWARD VIEW、FORMATION CORE、ACCESS CODE、FLOW SHIFT、FLOW PRESET 等）。
+- ✅ 移除驾驶舱全部英文 kicker。
 - ✅ `buildCockpitView()` 移除 kicker 字段，`deriveFormationShips()` 新增 `avatarUrl`/`avatarChar`。
 - ✅ 旧航船轮廓样式（ship-beam/ship-glyph/ship-label 等）已清除。
 - ✅ 静态检查通过：`node --check`、英文 kicker 扫描、kicker 引用残留扫描。
@@ -274,14 +289,14 @@ Phase 6 子包拆分完成：主包 5 页（login/room/fortune/mirror/profile）
 
 ### 指令页（导航舱）文案收敛与世界观重构（2026-06-08） ✅
 
-- ✅ 页面标题「导航核心」→「导航舱」，kicker「DECK ONLINE」→「NAV BAY ONLINE」。
-- ✅ 主按钮 kicker「PRESS TO IGNITE」→「PRESS TO CALC」。
+- ✅ 页面标题「导航核心」→「导航舱」，并移除英文 kicker。
+- ✅ 主按钮只保留中文「开始导航计算」。
 - ✅ 结果区「舰载指令」→「今日指令」。
-- ✅ 操作按钮「生成指令图」→「生成指令卡」，kicker「REIGNITE」→「RECALCULATE」。
-- ✅ 弹窗副标题「REIGNITE NAV CORE」→「RECALCULATE DIRECTIVE」，正文精简。
+- ✅ 操作按钮「生成指令图」→「生成指令卡」，移除英文副标题。
+- ✅ 弹窗移除英文副标题，正文精简。
 - ✅ 生成中日志「成员协议已同步」→「航迹协议已同步」。
 - ✅ 长等待文案「主引擎链路保持中」→「导航核心校准中」等。
-- ✅ 海报标识「NAV CORE」→「NAV BAY」。
+- ✅ 海报只保留独立品牌标识，不附加英文舱位副标题。
 - ✅ sanitize 映射扩展覆盖「策略 / 黑匣子 / 重新点火 / 预知 / 神谕」等旧词。
 - ✅ 文档同步更新（CHANGELOG / DEVELOPMENT_LOG / PRODUCT_LANGUAGE / UI_GUIDELINES / CONTENT_SAFETY / ACCEPTANCE_CHECKLIST）。
 - ⬜ 微信开发者工具编译验证。

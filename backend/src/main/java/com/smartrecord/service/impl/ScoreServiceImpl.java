@@ -36,7 +36,7 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings({"null", "unchecked"})
 public class ScoreServiceImpl implements ScoreService {
 
     private final RoomMapper roomMapper;
@@ -69,7 +70,7 @@ public class ScoreServiceImpl implements ScoreService {
     private static final String ROOM_PREFIX = "sr:room:";
     private static final int ROOM_EXPIRE_HOURS = 24;
     private static final int ROOM_STATUS_ACTIVE = 0;
-    private static final int ROOM_STATUS_ARCHIVED = 1;
+    private static final Duration TRANSFER_DEDUP_WINDOW = Duration.ofSeconds(4);
     private final ConcurrentHashMap<Long, Long> lastTtlRefresh = new ConcurrentHashMap<>();
 
     private String dataKey(Long roomId) { return ROOM_PREFIX + roomId + ":data"; }
@@ -647,7 +648,7 @@ public class ScoreServiceImpl implements ScoreService {
         // 2. 确保所有归档成员都在 playerTotalMap 中
         Map<Object, Object> allData = redisTemplate.opsForHash().entries(dataKey(roomId));
         Map<Long, JSONObject> memberMetaMap = new HashMap<>();
-        if (allData != null) {
+        if (allData != null && !allData.isEmpty()) {
             for (Map.Entry<Object, Object> e : allData.entrySet()) {
                 String f = (String) e.getKey();
                 if (!f.startsWith("r:")) continue;
@@ -1041,7 +1042,6 @@ public class ScoreServiceImpl implements ScoreService {
         for (Map<String, Object> record : room.getAllRecord()) {
             Object te = record.get("transferEvents");
             if (!(te instanceof List)) continue;
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> transfers = (List<Map<String, Object>>) te;
             for (Map<String, Object> evt : transfers) {
                 long from = ((Number) evt.get("from")).longValue();
@@ -1071,7 +1071,6 @@ public class ScoreServiceImpl implements ScoreService {
         for (Map<String, Object> record : room.getAllRecord()) {
             Object scoresObj = record.get("scores");
             if (!(scoresObj instanceof List)) continue;
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
             for (Map<String, Object> s : scores) {
                 memberIds.add(((Number) s.get("userId")).longValue());
@@ -1105,7 +1104,6 @@ public class ScoreServiceImpl implements ScoreService {
         for (Map<String, Object> record : room.getAllRecord()) {
             Object scoresObj = record.get("scores");
             if (!(scoresObj instanceof List)) continue;
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
             for (Map<String, Object> s : scores) {
                 long uid = ((Number) s.get("userId")).longValue();
@@ -1132,7 +1130,6 @@ public class ScoreServiceImpl implements ScoreService {
         for (Map<String, Object> record : room.getAllRecord()) {
             Object te = record.get("transferEvents");
             if (!(te instanceof List)) continue;
-            @SuppressWarnings("unchecked")
             List<Map<String, Object>> transfers = (List<Map<String, Object>>) te;
             for (Map<String, Object> evt : transfers) {
                 long from = ((Number) evt.get("from")).longValue();
@@ -1208,6 +1205,23 @@ public class ScoreServiceImpl implements ScoreService {
             throw new BizException(ErrorCode.SCORE_NOT_ROOM_MEMBER);
         }
 
+        String transferGuardKey = ROOM_PREFIX + roomId + ":transfer:guard:"
+                + userId + ":" + req.getToUserId() + ":" + req.getAmount();
+        try {
+            Boolean accepted = redisTemplate.opsForValue().setIfAbsent(
+                    transferGuardKey, req.getClientRequestId(), TRANSFER_DEDUP_WINDOW);
+            if (!Boolean.TRUE.equals(accepted)) {
+                throw new BizException(ErrorCode.SCORE_DUPLICATE_TRANSFER);
+            }
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("转分防重检查失败: roomId={}, from={}, to={}, requestId={}",
+                    roomId, userId, req.getToUserId(), req.getClientRequestId(), e);
+            throw new BizException(ErrorCode.SYSTEM_BUSY);
+        }
+
+        boolean scoreApplied = false;
         // 执行 Lua 脚本：原子完成 扣分 + 加分
         String scoresKey = ROOM_PREFIX + roomId + ":scores";
         try {
@@ -1221,9 +1235,16 @@ public class ScoreServiceImpl implements ScoreService {
             } else if (result == -2) {
                 throw new BizException(ErrorCode.ROOM_SETTLING);
             }
+            scoreApplied = true;
         } catch (BizException e) {
+            if (!scoreApplied) {
+                releaseTransferGuard(transferGuardKey);
+            }
             throw e;
         } catch (Exception e) {
+            if (!scoreApplied) {
+                releaseTransferGuard(transferGuardKey);
+            }
             log.error("Lua 计分执行异常: roomId={}, from={}, to={}, amount={}",
                     roomId, userId, req.getToUserId(), req.getAmount(), e);
             throw new BizException(ErrorCode.SYSTEM_BUSY);
@@ -1252,6 +1273,7 @@ public class ScoreServiceImpl implements ScoreService {
         event.put("to", req.getToUserId());
         event.put("amount", req.getAmount());
         event.put("time", now);
+        event.put("clientRequestId", req.getClientRequestId());
         if (req.getRemark() != null) event.put("remark", req.getRemark());
         redisTemplate.opsForZSet().add(
                 ROOM_PREFIX + roomId + ":events", JSONUtil.toJsonStr(event), now);
@@ -1269,6 +1291,8 @@ public class ScoreServiceImpl implements ScoreService {
         pushData.put("fromUserId", String.valueOf(userId));
         pushData.put("toUserId", String.valueOf(req.getToUserId()));
         pushData.put("amount", req.getAmount());
+        pushData.put("transferId", now);
+        pushData.put("clientRequestId", req.getClientRequestId());
         pushData.put("fromNewScore", fromScore != null ? fromScore.intValue() : 0);
         pushData.put("toNewScore", toScore != null ? toScore.intValue() : 0);
         asyncExecutor.execute(() -> {
@@ -1338,6 +1362,14 @@ public class ScoreServiceImpl implements ScoreService {
                 .remark(req.getRemark())
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    private void releaseTransferGuard(String transferGuardKey) {
+        try {
+            redisTemplate.delete(transferGuardKey);
+        } catch (Exception e) {
+            log.warn("释放转分防重标记失败: key={}, error={}", transferGuardKey, e.getMessage());
+        }
     }
 
 
@@ -1469,44 +1501,6 @@ public class ScoreServiceImpl implements ScoreService {
             }
         }
         return userMap;
-    }
-
-    private Map<Long, String> loadNicknameMap(List<Long> userIds) {
-        if (userIds.isEmpty()) return Collections.emptyMap();
-
-        Map<Long, String> map = new HashMap<>();
-        List<Long> missedIds = new ArrayList<>();
-        for (Long uid : userIds) {
-            Object cached = redisTemplate.opsForHash().get("sr:user:" + uid, "info");
-            if (cached != null) {
-                JSONObject userObj = JSONUtil.parseObj((String) cached);
-                map.put(uid, userObj.getStr("nickname", "玩家"));
-            } else {
-                missedIds.add(uid);
-            }
-        }
-
-        // 降级查数据库并回写缓存
-        if (!missedIds.isEmpty()) {
-            List<User> users = userMapper.selectBatchIds(missedIds);
-            for (User user : users) {
-                map.put(user.getId(), user.getNickname());
-                String createdAtStr = user.getCreatedAt() != null
-                        ? user.getCreatedAt().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                        : "";
-                String json = JSONUtil.toJsonStr(Map.of(
-                        "userId", user.getId(),
-                        "nickname", user.getNickname() != null ? user.getNickname() : "",
-                        "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
-                        "status", user.getStatus() != null ? user.getStatus() : 0,
-                        "createdAt", createdAtStr));
-                redisTemplate.opsForHash().put("sr:user:" + user.getId(), "info", json);
-            }
-            for (Long uid : missedIds) {
-                map.putIfAbsent(uid, "玩家");
-            }
-        }
-        return map;
     }
 
     /**
@@ -1748,5 +1742,61 @@ public class ScoreServiceImpl implements ScoreService {
 
         // 4. 异步重新计算数据总览缓存
         overviewService.computeOverview(roomId);
+    }
+
+    @Override
+    public TransferAmountSuggestionResp getTransferAmountSuggestions(Long roomId) {
+        List<TransferAmountSuggestionResp.SuggestionItem> items = new ArrayList<>();
+
+        // 固定推荐金额
+        int[] defaults = {1, 5, 10, 20, 50, 100};
+        for (int amt : defaults) {
+            items.add(TransferAmountSuggestionResp.SuggestionItem.builder()
+                    .amount(amt)
+                    .label(amt >= 50 ? "大额" : "常用")
+                    .source("space")
+                    .build());
+        }
+
+        // 从房间近期转分历史中提取常用金额
+        try {
+            String eventKey = ROOM_PREFIX + roomId + ":data:events";
+            List<String> recentEvents = redisTemplate.opsForList().range(eventKey, 0, 19);
+            if (recentEvents != null) {
+                Map<Integer, Integer> freqMap = new HashMap<>();
+                for (String json : recentEvents) {
+                    try {
+                        JSONObject obj = JSONUtil.parseObj(json);
+                        if ("TRANSFER".equals(obj.getStr("type"))) {
+                            int amount = obj.getInt("amount", 0);
+                            if (amount > 0) {
+                                freqMap.merge(amount, 1, Integer::sum);
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+                // 按频率排序取 top 3 常用金额
+                freqMap.entrySet().stream()
+                        .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
+                        .limit(3)
+                        .forEach(e -> items.add(TransferAmountSuggestionResp.SuggestionItem.builder()
+                                .amount(e.getKey())
+                                .label("常用")
+                                .source("crew")
+                                .build()));
+            }
+        } catch (Exception e) {
+            log.warn("获取转分推荐金额失败, roomId={}", roomId, e);
+        }
+
+        // 去重并按金额排序
+        Map<Integer, TransferAmountSuggestionResp.SuggestionItem> dedup = new LinkedHashMap<>();
+        for (TransferAmountSuggestionResp.SuggestionItem item : items) {
+            dedup.putIfAbsent(item.getAmount(), item);
+        }
+
+        return TransferAmountSuggestionResp.builder()
+                .items(new ArrayList<>(dedup.values()))
+                .build();
     }
 }

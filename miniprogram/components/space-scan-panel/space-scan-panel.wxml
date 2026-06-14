@@ -3,7 +3,6 @@
   <view class="ssp-header">
     <view class="ssp-title-group">
       <text class="ssp-cn">编队扫描</text>
-      <text class="ssp-en">FLEET SCAN</text>
     </view>
   </view>
   <view class="ssp-divider"></view>
@@ -19,7 +18,6 @@
     <!-- 活跃目标 -->
     <view class="ssp-cell">
       <text class="ssp-cell-label">活跃目标</text>
-      <text class="ssp-cell-en">ACTIVE TARGET</text>
       <text class="ssp-cell-value" wx:if="{{insight.mostActiveUser}}">{{insight.mostActiveUser.nickname}}</text>
       <text class="ssp-cell-value ssp-cell-na" wx:else>—</text>
       <text class="ssp-cell-sub" wx:if="{{insight.mostActiveUser}}">互动 {{insight.mostActiveUser.count}} 次</text>
@@ -28,7 +26,6 @@
     <!-- 峰值流向 -->
     <view class="ssp-cell">
       <text class="ssp-cell-label">峰值流向</text>
-      <text class="ssp-cell-en">PEAK FLOW</text>
       <text class="ssp-cell-num">{{insight.maxSingleTransfer}}</text>
       <text class="ssp-cell-sub">当前峰值事件</text>
     </view>
@@ -36,7 +33,6 @@
     <!-- 流转总量 -->
     <view class="ssp-cell">
       <text class="ssp-cell-label">流转总量</text>
-      <text class="ssp-cell-en">TOTAL VOLUME</text>
       <text class="ssp-cell-num">{{insight.totalTransfer}}</text>
       <text class="ssp-cell-sub">本轮累计</text>
     </view>
@@ -44,7 +40,6 @@
     <!-- 连接密度 -->
     <view class="ssp-cell">
       <text class="ssp-cell-label">连接密度</text>
-      <text class="ssp-cell-en">LINK DENSITY</text>
       <view class="ssp-density">
         <view class="ssp-density-track">
           <view class="ssp-density-fill ssp-density-{{densityLevel}}" style="width: {{densityPercent}}%;"></view>

@@ -16,7 +16,6 @@
     <!-- Header -->
     <view class="header">
       <view>
-        <text class="header-kicker">VOICE CHANNEL</text>
         <text class="header-title">通讯频道校准</text>
       </view>
       <view class="fi fi--close" bindtap="closeSheet"></view>

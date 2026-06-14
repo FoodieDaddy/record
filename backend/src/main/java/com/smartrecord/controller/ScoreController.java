@@ -144,4 +144,13 @@ public class ScoreController {
         scoreService.undoLastScore(userId, roomId);
         return Result.ok();
     }
+
+    @Operation(summary = "转分金额推荐", description = "基于固定金额和近期转分历史推荐金额")
+    @GetMapping("/room/{roomId}/transfer-amount-suggestions")
+    public Result<TransferAmountSuggestionResp> getTransferAmountSuggestions(
+            @CurrentUser Long userId,
+            @Parameter(description = "房间 ID") @PathVariable Long roomId) {
+        roomAccessGuard.assertRoomMember(roomId, userId);
+        return Result.ok(scoreService.getTransferAmountSuggestions(roomId));
+    }
 }

@@ -31,8 +31,9 @@ public class AdminUserController {
     public Result<?> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String keyword) {
-        Page<User> userPage = userService.listUsers(page, size, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status) {
+        Page<User> userPage = userService.listUsers(page, size, keyword, status);
         return Result.ok(userPage.convert(AdminUserResp::from));
     }
 

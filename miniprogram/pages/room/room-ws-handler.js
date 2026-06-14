@@ -10,10 +10,10 @@ const app = getApp();
 
 const roomWsHandler = {
   /** 连接编队 WebSocket（通过全局单例） */
-  connectWS(roomId) {
+  connectWS(roomId, force = false) {
     this._suppressWsReconnect = false;
     this.setData({ wsReconnecting: false });
-    app.connectWS(roomId);
+    app.connectWS(roomId, force);
   },
 
   /** WebSocket 消息处理（通过 scoreWS.on 绑定） */
@@ -36,7 +36,23 @@ const roomWsHandler = {
 
     // 房间解散通知
     if (data.type === 'ROOM_DISBANDED') {
-      this.handleRoomNotFoundError({ message: '房间已关闭' });
+      // 成员收到解散通知，清除驾驶舱状态
+      // 为了彻底关闭视图，我们重置整个 room 数据，但保留 showSettleOverlay 的处理
+      const room = this.data.currentRoom;
+      this.setData({
+        currentRoom: null,
+        viewingRoom: false,
+        cockpitState: 'idle',
+        memberGrid: [],
+        seatList: [],
+        ranking: [],
+        scoreRecords: []
+      });
+      
+      if (!this._settling && !this.data.showSettleOverlay) {
+        this.fetchAndShowSettle(roomId);
+      }
+      wx.showToast({ title: '编队已解散', icon: 'none', duration: 3000 });
       return;
     }
 
@@ -72,6 +88,12 @@ const roomWsHandler = {
           delete cur[String(data.userId)];
           this.setData({ shipNewMap: cur });
         }, 600);
+
+        if (data.avatarUrl && data.avatarUrl.startsWith('cloud://')) {
+          this._resolveCloudAvatars(room);
+        } else {
+          this.buildMemberGrid();
+        }
       }
       return;
     }
@@ -168,20 +190,43 @@ const roomWsHandler = {
     if (data.type === 'SCORE_UPDATE' || data.type === 'MEMBER_UPDATE' || data.type === 'TRANSFER') {
       // MEMBER_UPDATE：内存更新呼号和识别徽标，无需 HTTP 请求
       if (data.type === 'MEMBER_UPDATE' && data.userId) {
+        let hasCloud = false;
         const members = (this.data.currentRoom.members || []).map(m => {
           if (String(m.userId) === String(data.userId)) {
             const nickname = data.nickname || m.nickname;
-            return { ...m, nickname, ...getAvatarView(nickname, data.avatarUrl || m.avatarUrl) };
+            const avatarUrl = data.avatarUrl || m.avatarUrl;
+            if (avatarUrl && avatarUrl.startsWith('cloud://')) {
+              hasCloud = true;
+            }
+            return { ...m, nickname, avatarUrl, ...getAvatarView(nickname, avatarUrl) };
           }
           return m;
         });
         this.setData({ 'currentRoom.members': members });
-        this.buildMemberGrid();
+        
+        if (hasCloud) {
+          this._resolveCloudAvatars(this.data.currentRoom);
+        } else {
+          this.buildMemberGrid();
+        }
         return;
       }
 
       if (data.type === 'TRANSFER' && data.fromUserId && data.toUserId && data.amount) {
         const myId = String(app.globalData.userId);
+        const transferEventId = String(
+          data.clientRequestId ||
+          data.transferId ||
+          `${data.roomId}:${data.fromUserId}:${data.toUserId}:${data.amount}:${data.fromNewScore}:${data.toNewScore}`
+        );
+        const now = Date.now();
+        this._seenTransferEvents = this._seenTransferEvents || new Map();
+        for (const [eventId, seenAt] of this._seenTransferEvents) {
+          if (now - seenAt > 60000) this._seenTransferEvents.delete(eventId);
+        }
+        if (this._seenTransferEvents.has(transferEventId)) return;
+        this._seenTransferEvents.set(transferEventId, now);
+
         const isSender = String(data.fromUserId) === myId;
 
         // 出分方已在 submitTransfer 中本地处理动画和数据刷新，跳过
@@ -193,6 +238,7 @@ const roomWsHandler = {
         if (fromMember && toMember) {
           this.addPulseTrace(this.formatCrewName(fromMember.nickname), this.formatCrewName(toMember.nickname), data.amount, {
             fromUserId: data.fromUserId,
+            toUserId: data.toUserId,
             fromAvatarUrl: fromMember.avatarUrl || '',
             toAvatarUrl: toMember.avatarUrl || ''
           });
@@ -208,24 +254,24 @@ const roomWsHandler = {
           const toName = audioTo ? audioTo.nickname : '未知';
           speakTransfer(fromName, toName, String(data.amount));
         }
+        if (isReceiver && typeof this.triggerPulseReadoutRoll === 'function') {
+          this.triggerPulseReadoutRoll();
+        }
 
         // 优先用 WS 推送的权威分数更新本地，避免额外 HTTP 请求
         if (data.fromNewScore !== undefined && data.toNewScore !== undefined) {
-          // 先冻结旧分数（粒子动画期间保持显示旧值）
-          const g = this.data.memberGrid;
-          const fM = g.find(m => String(m.userId) === String(data.fromUserId));
-          const tM = g.find(m => String(m.userId) === String(data.toUserId));
-          this._animatingScores = {};
-          this._animatingScores[data.fromUserId] = fM ? fM.displayScore : 0;
-          this._animatingScores[data.toUserId] = tM ? tM.displayScore : 0;
-          this._optimisticScoreUpdateFromWS(data.fromUserId, data.toUserId, data.fromNewScore, data.toNewScore);
-          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-            return this.loadScoreRecords(roomId, true).finally(() => { this.buildMemberGrid(); this.loadInsightData(roomId); });
+          this.pushWsTransferToQueue({
+            fromUserId: data.fromUserId,
+            toUserId: data.toUserId,
+            amount: data.amount,
+            fromNewScore: data.fromNewScore,
+            toNewScore: data.toNewScore,
+            now: Date.now()
           });
         } else {
           // 兼容：旧版后端未携带分数时，走 updateAllData
           this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
-            return this.updateAllData(roomId).then(() => this.loadInsightData(roomId));
+            this.updateAllData(roomId);
           });
         }
       } else {

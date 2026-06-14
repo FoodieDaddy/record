@@ -2,15 +2,33 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useApi } from '@/composables/useApi'
 import { useLocaleStore } from '@/stores/locale'
+import { useThemeStore } from '@/stores/theme'
+import HudChart from '@/components/chart/HudChart.vue'
+import { getChartColors } from '@/utils/chart-theme'
+import { createErrorTrendOption, createSlowRequestsOption } from '@/utils/chart-factory'
 import EmptyState from '@/components/feedback/EmptyState.vue'
 
 const api = useApi()
 const locale = useLocaleStore()
+const themeStore = useThemeStore()
 const services = ref<any[]>([])
 const loading = ref(true)
 const sentinelInfo = ref<any>(null)
 const lastCheck = ref('')
 let timer: number
+
+const errorTrend = ref({ dates: [] as string[], jsErrors: [] as number[], networkErrors: [] as number[] })
+const slowRequests = ref<any[]>([])
+
+const errorTrendOption = computed(() => {
+  const colors = getChartColors(themeStore.theme)
+  return createErrorTrendOption(errorTrend.value, colors, locale.isZh)
+})
+
+const slowRequestsOption = computed(() => {
+  const colors = getChartColors(themeStore.theme)
+  return createSlowRequestsOption(slowRequests.value, colors, locale.isZh)
+})
 
 const defaultServices = [
   { name: 'API 服务', status: 'ok', latency: '-', detail: '运行中' },
@@ -76,6 +94,10 @@ onMounted(() => {
   loadHealth()
   timer = window.setInterval(loadHealth, 30000)
   api.get('/admin/system/sentinel').then((data: any) => { sentinelInfo.value = data }).catch(() => {})
+  api.get('/admin/behavior/dashboard').then((data: any) => {
+    if (data?.errorTrend) errorTrend.value = data.errorTrend
+    if (data?.slowRequests) slowRequests.value = data.slowRequests
+  }).catch(() => {})
 })
 
 onUnmounted(() => clearInterval(timer))
@@ -115,14 +137,14 @@ onUnmounted(() => clearInterval(timer))
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.slowRequests') }}</span></div>
-        <div class="base-panel__body empty-panel">
-          <EmptyState :title="locale.t('common.noDataYet')" :description="locale.t('common.afterConnect')" icon="data" />
+        <div class="base-panel__body" style="padding:8px;">
+          <HudChart :option="slowRequestsOption" style="height:260px;" />
         </div>
       </div>
       <div class="base-panel">
         <div class="base-panel__header"><span class="base-panel__title">{{ locale.t('system.errorRank') }}</span></div>
-        <div class="base-panel__body empty-panel">
-          <EmptyState :title="locale.t('common.noDataYet')" :description="locale.t('common.afterConnect')" icon="data" />
+        <div class="base-panel__body" style="padding:8px;">
+          <HudChart :option="errorTrendOption" style="height:260px;" />
         </div>
       </div>
     </div>
@@ -186,14 +208,14 @@ onUnmounted(() => clearInterval(timer))
 .health-card {
   padding: 18px;
   background: var(--bg-panel-strong);
-  border: 1px solid rgba(120, 140, 170, 0.10);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  box-shadow: 0 6px 18px rgba(31, 52, 88, 0.05);
+  box-shadow: var(--shadow-xs);
   transition: transform .18s ease, box-shadow .18s ease;
 }
 .health-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(31, 52, 88, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 .empty-panel {
   display: flex;

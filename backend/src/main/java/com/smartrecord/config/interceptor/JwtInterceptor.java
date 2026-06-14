@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.lang.NonNull;
 
 /**
  * JWT 鉴权拦截器 — 纯内存验签，零查库
@@ -27,7 +28,7 @@ public class JwtInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }

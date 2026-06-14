@@ -129,11 +129,9 @@ public class BattlePersonaServiceImpl implements BattlePersonaService {
     private int calcAggression(List<Integer> scores) {
         int positiveCount = 0;
         int maxGain = 0;
-        int totalPositive = 0;
         for (int s : scores) {
             if (s > 0) {
                 positiveCount++;
-                totalPositive += s;
                 maxGain = Math.max(maxGain, s);
             }
         }

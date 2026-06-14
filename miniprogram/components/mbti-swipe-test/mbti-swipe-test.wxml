@@ -15,7 +15,7 @@
       <!-- 当前题 -->
       <view wx:if="{{currentQuestion}}" wx:key="{{currentQuestion.id}}" class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
         <view class="card-scan-line"></view>
-        <text class="signal-header">SIGNAL #{{signalIndex}}</text>
+        <text class="signal-header">信号 {{signalIndex}}</text>
         <text class="signal-label">行为判断</text>
         <view class="question-divider-top"></view>
         <text class="question-text">{{currentQuestion.text}}</text>
@@ -36,15 +36,12 @@
   <!-- 底部操作 -->
   <view class="swipe-actions">
     <view class="action-btn action-reject" bindtap="onSwipeLeft">
-      <text class="action-kicker">REJECT</text>
       <text class="action-text">不符合</text>
     </view>
     <view class="action-btn action-skip" bindtap="onNotSure">
-      <text class="action-kicker">SKIP</text>
       <text class="action-text">跳过</text>
     </view>
     <view class="action-btn action-confirm" bindtap="onSwipeRight">
-      <text class="action-kicker">CONFIRM</text>
       <text class="action-text">符合</text>
     </view>
   </view>

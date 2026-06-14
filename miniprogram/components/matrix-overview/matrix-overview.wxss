@@ -527,3 +527,160 @@
   padding: 32rpx 0;
   gap: 8rpx;
 }
+
+/* ===== 航迹 AR：透明雷达层 ===== */
+.matrix-panel-overlay,
+.matrix-detail-overlay {
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(0, 145, 210, 0.12), transparent 48%),
+    rgba(0, 3, 7, 0.58);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.matrix-panel-sheet,
+.matrix-detail-sheet {
+  top: 11vh;
+  right: 30rpx;
+  bottom: calc(150rpx + env(safe-area-inset-bottom));
+  left: 30rpx;
+  width: auto;
+  max-height: none;
+  padding: 66rpx 24rpx 24rpx;
+  transform: translateY(18rpx) scale(0.97);
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.022) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.018) 1rpx, transparent 1rpx),
+    rgba(1, 10, 17, 0.72);
+  background-size: 32rpx 32rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.20);
+  border-radius: 0;
+  clip-path: polygon(22rpx 0, calc(100% - 22rpx) 0, 100% 22rpx, 100% calc(100% - 22rpx), calc(100% - 22rpx) 100%, 22rpx 100%, 0 calc(100% - 22rpx), 0 22rpx);
+  box-shadow:
+    inset 0 0 60rpx rgba(0, 175, 255, 0.035),
+    0 24rpx 70rpx rgba(0, 0, 0, 0.48);
+}
+
+.mp-show .matrix-panel-sheet,
+.detail-show .matrix-detail-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.matrix-ar-corner {
+  position: absolute;
+  z-index: 3;
+  width: 32rpx;
+  height: 32rpx;
+  pointer-events: none;
+}
+
+.matrix-ar-corner--tl {
+  top: 10rpx;
+  left: 10rpx;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.52);
+  border-left: 2rpx solid rgba(0, 200, 255, 0.52);
+}
+
+.matrix-ar-corner--tr {
+  top: 10rpx;
+  right: 10rpx;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.52);
+  border-right: 2rpx solid rgba(0, 200, 255, 0.52);
+}
+
+.matrix-ar-corner--bl {
+  bottom: 10rpx;
+  left: 10rpx;
+  border-bottom: 2rpx solid rgba(0, 200, 255, 0.28);
+  border-left: 2rpx solid rgba(0, 200, 255, 0.28);
+}
+
+.matrix-ar-corner--br {
+  right: 10rpx;
+  bottom: 10rpx;
+  border-right: 2rpx solid rgba(0, 200, 255, 0.28);
+  border-bottom: 2rpx solid rgba(0, 200, 255, 0.28);
+}
+
+.matrix-ar-close {
+  position: absolute;
+  top: 14rpx;
+  right: 16rpx;
+  z-index: 5;
+}
+
+.vo-close-ring {
+  background: rgba(0, 9, 15, 0.46);
+  border-color: rgba(0, 200, 255, 0.14);
+  border-radius: 0;
+  clip-path: polygon(7rpx 0, 100% 0, 100% calc(100% - 7rpx), calc(100% - 7rpx) 100%, 0 100%, 0 7rpx);
+}
+
+.panel-divider {
+  margin: 10rpx 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.14), transparent);
+}
+
+.chart-section {
+  padding: 0 4rpx 10rpx;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.08);
+}
+
+.relation-section {
+  margin: 0;
+}
+
+.relation-list {
+  gap: 0;
+}
+
+.relation-item {
+  min-height: 82rpx;
+  padding: 12rpx 16rpx;
+  background: transparent;
+  border: none;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.075);
+  border-radius: 0;
+}
+
+.relation-item:active {
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.12), transparent);
+  border-color: rgba(0, 200, 255, 0.16);
+}
+
+.relation-name {
+  font-size: 24rpx;
+}
+
+.relation-score {
+  font-family: Menlo, monospace;
+  font-size: 30rpx;
+}
+
+.detail-parties {
+  margin: 4rpx 0 18rpx;
+}
+
+.detail-summary-bar {
+  padding: 8rpx;
+  margin-bottom: 10rpx;
+  background: transparent;
+  border: none;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.10);
+  border-radius: 0;
+}
+
+.detail-summary-val {
+  font-family: Menlo, monospace;
+  font-size: 44rpx;
+}
+
+.detail-item {
+  padding: 14rpx 8rpx;
+  border-bottom-color: rgba(0, 200, 255, 0.075);
+}
+
+.empty-batches {
+  flex: 1;
+  justify-content: center;
+}

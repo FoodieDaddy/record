@@ -1,7 +1,7 @@
 const profileService = require('../../services/profile-service');
 const { get } = require('../../utils/request');
 const { getColor, getFirstChar, normalizeAvatarUrl } = require('../../utils/avatar');
-const { uploadAvatar, resolveAvatarSrc } = require('../../utils/avatar-storage');
+const { uploadAvatar } = require('../../utils/avatar-storage');
 const { generateNickname } = require('../../utils/nickname');
 const { truncate, getWidth } = require('../../utils/nickname-width');
 const { getMirrorProfile } = require('../../utils/mirror-api');
@@ -15,9 +15,9 @@ const HUD_FADE_DELAY = 1600;
 
 // 音色分类标签映射（后端 ID → 终端显示）
 const CATEGORY_LABELS = {
-  female:  { en: 'STANDARD', zh: '标准' },
-  male:    { en: 'MALE',     zh: '男声' },
-  funny:   { en: 'SPECIAL',  zh: '特殊' }
+  female: '标准',
+  male: '男声',
+  funny: '特殊'
 };
 
 // 等级名称映射
@@ -87,10 +87,23 @@ Page({
     activeVoiceCatId: 'female',
     scrollToCat: '',
     playingVoiceId: '',
-    pendingVoice: null
+    pendingVoice: null,
+
+    // Custom Nav
+    customNavTop: 44,
+    customNavBarHeight: 44,
+    customNavHeight: 88,
+    cockpitState: 'idle',
+    cockpitView: {
+      statusDot: 'idle',
+      statusLabel: '识别舱待机中',
+      roomNo: '--',
+      memberCountText: '0/16'
+    }
   },
 
   onLoad() {
+    this.initCustomNav()
     this.audioCtx = wx.createInnerAudioContext();
     this.audioCtx.obeyMuteSwitch = false;
     this._saveTimer = null;
@@ -105,6 +118,7 @@ Page({
       this.getTabBar().setData({ selected: 3 })
     }
     app.globalData.activeTabKey = 'identity'
+    this.syncRoomStatus()
     const loggedIn = !!app.globalData.token;
     this.setData({
       isLoggedIn: loggedIn,
@@ -116,10 +130,8 @@ Page({
 
     // 缓存优先
     const cached = app.globalData.userInfo;
-    let userTask = Promise.resolve();
     if (cached && cached.nickname) {
-      const rawAvatar = cached.avatarUrl || '';
-      const avatar = normalizeAvatarUrl(rawAvatar);
+      const avatar = normalizeAvatarUrl(cached.avatarUrl);
       const name = cached.nickname;
       this.setData({
         nickname: name,
@@ -129,18 +141,10 @@ Page({
         _lastSavedAvatar: avatar
       });
       this.updateAvatar();
-      // cloud:// 头像异步解析为 https 临时 URL
-      if (avatar.startsWith('cloud://')) {
-        resolveAvatarSrc(avatar).then(resolved => {
-          if (resolved) {
-            this.setData({ avatarUrl: resolved });
-            this.updateAvatar();
-          }
-        });
-      }
-    } else {
-      userTask = this.loadUserInfo();
     }
+
+    // 静默加载最新用户信息，确保签名 URL 刷新并显示头像
+    const userTask = this.loadUserInfo();
 
     // 并行加载数据
     const levelTask = this.loadIdentityLevel();
@@ -282,16 +286,7 @@ Page({
           avatarUrl: loadedAvatar
         });
         this.updateAvatar();
-
-        // cloud:// 头像异步解析为 https 临时 URL
-        if (loadedAvatar.startsWith('cloud://')) {
-          resolveAvatarSrc(loadedAvatar).then(resolved => {
-            if (resolved) {
-              this.setData({ avatarUrl: resolved });
-              this.updateAvatar();
-            }
-          });
-        }
+        // helmet-avatar 组件内部自行解析 cloud:// URL
 
         const uid = String(user.userId || '');
         this.setData({ playerCode: 'SR-' + uid.slice(-4).padStart(4, '0') });
@@ -353,9 +348,23 @@ Page({
     const { nickname, avatarUrl } = this.data;
     if (!avatarUrl) {
       this.setData({
+        resolvedAvatarUrl: '',
         avatarColor: getColor(nickname),
         avatarChar: getFirstChar(nickname)
       });
+      return;
+    }
+
+    if (avatarUrl.startsWith('cloud://')) {
+      const { resolveAvatarSrc } = require('../../utils/avatar-storage');
+      resolveAvatarSrc(avatarUrl).then(resolved => {
+        if (resolved) {
+          this.setData({ resolvedAvatarUrl: resolved });
+        }
+      });
+    } else {
+      // 乐观 UI：保留本地临时路径（wxfile:// 等），在上传和云解析期间维持画面不闪烁
+      this.setData({ resolvedAvatarUrl: avatarUrl });
     }
   },
 
@@ -379,8 +388,8 @@ Page({
       const catalog = await get('/voice/catalog');
       const rawCategories = catalog.categories || [];
       const categories = rawCategories.map(cat => {
-        const label = CATEGORY_LABELS[cat.id] || { en: cat.id.toUpperCase(), zh: cat.name };
-        return { ...cat, enLabel: label.en, zhLabel: label.zh };
+        const label = CATEGORY_LABELS[cat.id] || cat.name;
+        return { ...cat, zhLabel: label };
       });
       this.setData({ voiceCategories: categories });
       if (categories.length > 0 && !categories.find(c => c.id === this.data.activeVoiceCatId)) {
@@ -570,6 +579,11 @@ Page({
     try {
       const normalizedAvatarUrl = normalizeAvatarUrl(avatarUrl);
       let finalAvatarUrl = normalizedAvatarUrl;
+      // CloudBase 临时签名 URL（tcb.qcloud.la + sign=）不可持久化，回退到上次保存值
+      const isCbTempUrl = /tcb\.qcloud\.la\/.*[?&]sign=/.test(normalizedAvatarUrl);
+      if (isCbTempUrl) {
+        finalAvatarUrl = this.data._lastSavedAvatar || '';
+      }
       // 未标准化的本地路径（wxfile:// 临时文件）需要先上传
       if (avatarUrl && !normalizedAvatarUrl && !/^https?:\/\//.test(avatarUrl) && !/^cloud:\/\//.test(avatarUrl)) {
         try {
@@ -666,6 +680,53 @@ Page({
     }
     this.audioCtx.stop();
     this.audioCtx.destroy();
+  },
+
+  initCustomNav() {
+    let statusBarHeight = 44;
+    let navBarHeight = 44;
+    try {
+      const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+      statusBarHeight = windowInfo.statusBarHeight || statusBarHeight;
+      const menuRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+      if (menuRect && menuRect.height && menuRect.top > statusBarHeight) {
+        navBarHeight = (menuRect.top - statusBarHeight) * 2 + menuRect.height;
+      }
+    } catch (e) {}
+    this.setData({
+      customNavTop: statusBarHeight,
+      customNavBarHeight: navBarHeight,
+      customNavHeight: statusBarHeight + navBarHeight
+    });
+  },
+
+  syncRoomStatus() {
+    const roomId = wx.getStorageSync('currentRoomId');
+    if (!roomId) {
+      this.setData({
+        cockpitState: 'idle',
+        cockpitView: {
+          statusDot: 'idle',
+          statusLabel: '识别舱待机中',
+          roomNo: '--',
+          memberCountText: '0/16'
+        }
+      });
+      return;
+    }
+
+    const currentRoomNo = wx.getStorageSync('currentRoomNo') || '--';
+    const memberCount = wx.getStorageSync('currentMemberCount') || 0;
+    
+    this.setData({
+      cockpitState: 'active',
+      cockpitView: {
+        statusDot: 'online',
+        statusLabel: '识别舱已接入',
+        roomNo: currentRoomNo,
+        memberCountText: `${memberCount}/16`
+      }
+    });
   },
 
   noop() {

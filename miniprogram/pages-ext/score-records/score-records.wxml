@@ -11,7 +11,6 @@
 
   <!-- 终端标题 -->
   <view class="terminal-header">
-    <text class="terminal-kicker">TRACK REPLAY</text>
     <text class="terminal-title">航迹回放</text>
     <view class="terminal-line"></view>
   </view>
@@ -24,7 +23,6 @@
 
   <!-- 加载失败 -->
   <view class="error-state" wx:elif="{{loadError}}">
-    <text class="error-kicker">ERROR</text>
     <text class="error-text">航迹索引读取失败</text>
     <view class="error-retry" bindtap="loadSamples">
       <text class="error-retry-text">重新读取</text>
@@ -44,7 +42,6 @@
   <block wx:if="{{records.length > 0}}">
     <view class="section-header">
       <text class="section-label">航程样本</text>
-      <text class="section-kicker">SEALED SAMPLES</text>
     </view>
 
     <view class="sample-list">

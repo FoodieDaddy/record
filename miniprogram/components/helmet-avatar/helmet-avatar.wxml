@@ -1,4 +1,4 @@
-<view class="ha ha--{{size}} {{active ? 'is-active' : ''}} {{dimmed ? 'is-dimmed' : ''}} {{controller ? 'is-controller' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}">
+<view class="ha ha--{{size}} {{active ? 'is-active' : ''}} {{dimmed ? 'is-dimmed' : ''}} {{controller ? 'is-controller' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}" data-src="{{src}}" data-img-src="{{imgSrc}}">
   <view class="ha__glow"></view>
   <view class="ha__shell">
     <image

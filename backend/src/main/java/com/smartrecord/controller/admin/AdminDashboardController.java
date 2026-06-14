@@ -35,8 +35,9 @@ public class AdminDashboardController {
 
     @Operation(summary = "航迹中心统计数据")
     @GetMapping("/trace-stats")
-    public Result<TraceStatsResp> traceStats() {
-        return Result.ok(dashboardService.getTraceStats());
+    public Result<TraceStatsResp> traceStats(
+            @RequestParam(defaultValue = "7d") String range) {
+        return Result.ok(dashboardService.getTraceStats(range));
     }
 
     @Operation(summary = "近期事件流")

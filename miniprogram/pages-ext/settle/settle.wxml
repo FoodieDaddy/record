@@ -13,25 +13,22 @@
 
   <!-- 加载失败 -->
   <view class="error-state" wx:elif="{{loadError}}">
-    <text class="error-kicker">ERROR</text>
     <text class="error-text">航程档案加载失败</text>
     <text class="error-hint">请返回后重试</text>
   </view>
 
   <!-- 空数据 -->
   <view class="empty-state" wx:elif="{{rankedMembers.length === 0}}">
-    <text class="empty-kicker">EMPTY</text>
     <text class="empty-text">暂无航程数据</text>
     <text class="empty-hint">空间内未产生有效脉冲</text>
   </view>
 
   <block wx:else>
-    <!-- MATCH DOSSIER 标题 -->
+    <!-- 航程档案标题 -->
     <view class="dossier-header">
-      <text class="dossier-kicker">DOSSIER</text>
       <text class="dossier-title">航程档案</text>
       <view class="dossier-meta" wx:if="{{roomNo}}">
-        <text class="dossier-room">SPACE {{roomNo}}</text>
+        <text class="dossier-room">编队 {{roomNo}}</text>
         <text class="dossier-time" wx:if="{{settleTime}}">{{settleTime}}</text>
       </view>
     </view>
@@ -40,7 +37,6 @@
     <view class="section-card" wx:if="{{rankedMembers.length > 0}}">
       <view class="card-header">
         <view class="card-title">封存序列</view>
-        <view class="card-kicker">SEQUENCE</view>
         <view class="sr-card-line card-line"></view>
       </view>
       <view class="rank-list">
@@ -80,7 +76,6 @@
     <view class="section-card" wx:if="{{series.length > 0}}">
       <view class="card-header">
         <view class="card-title">数值演化轨迹</view>
-        <view class="card-kicker">TIMELINE</view>
         <view class="sr-card-line card-line"></view>
       </view>
       <view class="chart-wrap">

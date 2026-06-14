@@ -26,7 +26,7 @@
 LLM、LOW-NOISE、MEDIUM-NOISE、HIGH-NOISE、HIGH_RISK、fallback、oracle、fortune、strategy output、THE CALIBRATOR、校准者
 ```
 
-展示映射：LLM→主引擎、LOW-NOISE→低噪、MEDIUM-NOISE→中噪、HIGH-NOISE→高噪、HIGH_RISK→偏高、fallback→备用指令、strategy output→指令投影、THE CALIBRATOR/校准者→今日指令/DIRECTIVE。
+展示映射：LLM→主引擎、LOW-NOISE→低噪、MEDIUM-NOISE→中噪、HIGH-NOISE→高噪、HIGH_RISK→偏高、fallback→备用指令、strategy output→指令投影、THE CALIBRATOR/校准者→今日指令。
 
 ## 审核高风险词
 
@@ -65,7 +65,7 @@ LLM、LOW-NOISE、MEDIUM-NOISE、HIGH-NOISE、HIGH_RISK、fallback、oracle、fo
 | 登录页 | 登录/微信登录/用户登录 | 接入/终端接入/接入终端 |
 | 编队页 | 战斗/攻击/打击/伤害/击败/对手/敌人/胜负/输赢/决斗/PK、房间/房间号 | 任务/航程/读数/脉冲/流向/写入、编队/编队码 |
 
-镜像 Canvas 海报标识：「SPACE SCOREKEEPER · HOLO BAY」。
+镜像 Canvas 海报可独立使用「SPACE SCOREKEEPER」品牌标识，不附加英文舱位副标题。
 
 ## 运行时错误展示
 

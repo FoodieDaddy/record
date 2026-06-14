@@ -339,15 +339,6 @@
   letter-spacing: 6rpx;
 }
 
-.flight-deck-kicker {
-  display: block;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 18rpx;
-  color: rgba(0,175,255,0.24);
-  letter-spacing: 6rpx;
-  margin-top: 8rpx;
-}
-
 .flight-deck-date {
   display: block;
   font-family: 'Courier New', Courier, monospace;
@@ -738,14 +729,6 @@
   font-weight: 700;
   color: rgba(0,200,255,0.88);
   letter-spacing: 6rpx;
-}
-
-.ignition-button-kicker {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 14rpx;
-  color: rgba(0,200,255,0.2);
-  letter-spacing: 4rpx;
-  margin-top: 4rpx;
 }
 
 /* 离子火 */
@@ -1191,15 +1174,6 @@
   letter-spacing: 4rpx;
 }
 
-.dp-kicker {
-  display: block;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 18rpx;
-  color: rgba(0,175,255,0.24);
-  letter-spacing: 6rpx;
-  margin-top: 8rpx;
-}
-
 .dp-date {
   display: block;
   font-family: 'Courier New', Courier, monospace;
@@ -1312,17 +1286,6 @@
 
 .strategy-section-title--neg {
   color: #FF9F0A;
-}
-
-.strategy-section-kicker {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 16rpx;
-  letter-spacing: 3rpx;
-  color: rgba(126, 156, 180, 0.22);
-}
-
-.strategy-section-kicker--neg {
-  color: rgba(255,159,10,0.28);
 }
 
 /* 舰载指令卡片 */
@@ -1514,10 +1477,6 @@ button.strategy-action-btn::after {
   color: rgba(255,255,255,0.62);
 }
 
-.strategy-action-btn--secondary .strategy-action-kicker {
-  color: rgba(126, 156, 180, 0.18);
-}
-
 .strategy-action-btn--primary {
   border: 1rpx solid var(--accent, rgba(10,132,255,0.45));
   background: linear-gradient(135deg, rgba(10,132,255,0.15), rgba(0,200,255,0.06));
@@ -1532,23 +1491,11 @@ button.strategy-action-btn::after {
   color: var(--accent, #00C8FF);
 }
 
-.strategy-action-btn--primary .strategy-action-kicker {
-  color: rgba(0,175,255,0.35);
-}
-
 .strategy-action-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 26rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
-}
-
-.strategy-action-kicker {
-  display: block;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 16rpx;
-  letter-spacing: 3rpx;
-  margin-top: 2rpx;
 }
 
 /* ===== 16. 倒计时 ===== */
@@ -1643,13 +1590,6 @@ button.strategy-action-btn::after {
   color: rgba(0,200,255,0.65);
   letter-spacing: 4rpx;
   animation: posterBreathe 1.5s ease-in-out infinite;
-}
-
-.poster-gen-kicker {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 14rpx;
-  color: rgba(0,200,255,0.18);
-  letter-spacing: 4rpx;
 }
 
 @keyframes posterBreathe {

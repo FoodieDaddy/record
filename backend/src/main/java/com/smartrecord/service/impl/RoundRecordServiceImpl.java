@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null")
 public class RoundRecordServiceImpl implements RoundRecordService {
 
     private final RoomMapper roomMapper;
@@ -179,7 +180,6 @@ public class RoundRecordServiceImpl implements RoundRecordService {
             int inputMethod = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:inputMethod"));
             int trustMode = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:trustMode"));
             int zeroSum = Integer.parseInt((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:zeroSumRequired"));
-            long createdBy = Long.parseLong((String) redisTemplate.opsForHash().get(roomDataKey(roomId), "round:createdBy"));
 
             if (inputMethod == RoundInputMethod.HOST_FILL.getCode()) {
                 // 房主填写
@@ -481,7 +481,6 @@ public class RoundRecordServiceImpl implements RoundRecordService {
         deleteRoundKeys(roomId);
 
         // 生成情绪音频
-        Map<String, Object> scoresWithEmotion = new HashMap<>();
         List<Map<String, Object>> scoreList = new ArrayList<>();
         for (Map.Entry<String, String> entry : scoreEntries.entrySet()) {
             long uid = Long.parseLong(entry.getKey());

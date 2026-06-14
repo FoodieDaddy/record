@@ -2,7 +2,9 @@ package com.smartrecord.dto.score;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -25,6 +27,8 @@ public class TransferScoreReq {
     @Schema(description = "备注", example = "本轮数值变化")
     private String remark;
 
+    @NotBlank(message = "客户端请求 ID 不能为空")
+    @Size(max = 64, message = "客户端请求 ID 不能超过 64 个字符")
     @Schema(description = "客户端请求 ID，用于幂等去重", example = "1718000000000-a3f8b2")
     private String clientRequestId;
 }

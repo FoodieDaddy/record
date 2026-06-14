@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 
 @Data
@@ -13,7 +14,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "五维战力雷达图数据")
-public class MirrorStatsResp {
+public class MirrorStatsResp implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "五个维度")
     private List<StatDimension> dimensions;
@@ -29,7 +32,8 @@ public class MirrorStatsResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "维度数据")
-    public static class StatDimension {
+    public static class StatDimension implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "维度key", example = "aggression")
         private String key;
         @Schema(description = "维度标签", example = "进攻性")

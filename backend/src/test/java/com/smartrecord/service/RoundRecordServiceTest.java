@@ -29,6 +29,7 @@ import static org.mockito.Mockito.*;
  * 本局录入服务单元测试
  */
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("null")
 class RoundRecordServiceTest {
 
     @InjectMocks

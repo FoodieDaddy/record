@@ -2,12 +2,22 @@
 <wxs src="../../utils/truncate.wxs" module="t" />
 <view class="room-page cockpit-page {{!animationEnabled ? 'reduce-motion' : ''}} {{cockpitState === 'active' ? 'room-page--active' : ''}} {{isInputOpen ? 'room-page--input-open' : ''}}">
   <view
-    class="room-custom-nav"
+    class="room-custom-nav {{cockpitState === 'active' ? 'room-custom-nav--active' : ''}}"
     style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;"
   >
     <view class="room-custom-nav__stars"></view>
     <view class="room-custom-nav__bar" style="height: {{customNavBarHeight}}px;">
-      <text class="room-custom-nav__title">驾驶舱</text>
+      <view class="cockpit-nav-hud">
+        <view class="cockpit-nav-hud__link">
+          <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
+          <text>{{cockpitView.statusLabel}}</text>
+        </view>
+        <view class="cockpit-nav-hud__formation" wx:if="{{cockpitView.roomNo && cockpitView.roomNo !== '--'}}">
+          <text class="cockpit-nav-hud__code">编队 {{cockpitView.roomNo}}</text>
+          <view class="cockpit-nav-hud__divider"></view>
+          <text class="cockpit-nav-hud__crew">{{cockpitView.memberCountText}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
@@ -23,7 +33,7 @@
   </view>
 
   <!-- 驾驶舱状态条（极简） -->
-  <view wx:if="{{isLoggedIn}}" class="cockpit-status-strip">
+  <view wx:if="{{isLoggedIn && cockpitState !== 'active'}}" class="cockpit-status-strip">
     <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
     <text class="css-status-label">{{cockpitView.statusLabel}}</text>
   </view>
@@ -197,18 +207,6 @@
           <view class="deep-space-vignette"></view>
         </view>
 
-        <!-- HUD 顶部读数 -->
-        <view class="main-hud-row">
-          <view class="main-hud-tag main-hud-tag--code">
-            <text class="main-hud-tag__kicker">SYS//</text>
-            <text class="main-hud-tag__value">{{cockpitView.roomNo}}</text>
-          </view>
-          <view class="main-hud-tag main-hud-tag--members">
-            <text class="main-hud-tag__kicker">CRW</text>
-            <text class="main-hud-tag__value">{{cockpitView.memberCountText}}</text>
-          </view>
-        </view>
-
         <!-- 成员观测层 -->
         <view class="observation-zone" id="formation-window">
           <view
@@ -218,6 +216,10 @@
             class="hud-member {{item.online ? 'hud-member--online' : ''}} {{item.isNew ? 'hud-member--new' : ''}} {{impactCrewId == item.userId ? 'hud-member--impact' : ''}}"
             style="left: {{item.x}}%; top: {{item.y}}%;"
             bindtap="handleTapShip"
+            catchtouchstart="handleShipTouchStart"
+            catchtouchmove="handleShipTouchMove"
+            catchtouchend="handleShipTouchEnd"
+            catchtouchcancel="handleShipTouchEnd"
             hover-class="hud-member--tap"
             hover-stay-time="120"
             data-user-id="{{item.userId}}"
@@ -226,7 +228,7 @@
             <view class="hud-member__ring">
               <image wx:if="{{item.avatarUrl}}" class="hud-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" binderror="onHudAvatarError" data-user-id="{{item.userId}}" />
               <view wx:else class="hud-member__avatar hud-member__avatar--char">
-                <text>{{item.avatarChar || '?'}}</text>
+                <text class="hud-member__avatar-char-text">{{item.avatarChar || '?'}}</text>
               </view>
               <view class="hud-member__online-dot"></view>
             </view>
@@ -257,89 +259,60 @@
           </view>
         </view>
 
-        <!-- 本舰脉冲仪表（HUD下半区，不被遮挡） -->
-        <view class="pulse-instrument {{cockpitView.selfPulseClass}} {{animActive ? 'is-powering' : ''}}">
-          <view class="pulse-instrument__arc-outer"></view>
-          <view class="pulse-instrument__power-track"></view>
-          <view class="pulse-instrument__arc-inner"></view>
-          <view class="pulse-instrument__ticks">
-            <view class="pulse-instrument__tick" wx:for="{{11}}" wx:key="*this" style="transform: rotate({{-50 + index * 10}}deg);"></view>
-          </view>
-          <text class="pulse-instrument__title">本舰脉冲</text>
-          <text class="pulse-instrument__value">{{cockpitView.selfPulseDisplay}}</text>
-          <view class="pulse-instrument__status">
-            <view class="pulse-instrument__dot"></view>
-            <text>{{cockpitView.linkText}}</text>
-          </view>
-          <view class="pulse-instrument__base"></view>
-        </view>
-
         <!-- HUD 下沿唇缘 -->
         <view class="cockpit-dashboard-lip"></view>
       </view>
 
       <!-- ===== 飞船控制台（与HUD融合） ===== -->
       <view class="cockpit-console-v2">
-        <!-- 左右舂线装饰 -->
         <view class="ccv2-rail ccv2-rail--left"></view>
         <view class="ccv2-rail ccv2-rail--right"></view>
 
-        <!-- 主按键区 -->
         <view class="ccv2-panel">
-          <!-- 信标按钮 -->
-          <view class="ccv2-btn" bindtap="openBeacon" hover-class="ccv2-btn--press">
+          <view class="ccv2-btn ccv2-btn--beacon" bindtap="openBeacon" hover-class="ccv2-btn--press">
             <view class="ccv2-btn__glow"></view>
             <view class="ccv2-btn__body">
               <view class="ccv2-btn__indicator ccv2-btn__indicator--cyan"></view>
               <text class="ccv2-btn__label">信标</text>
-              <text class="ccv2-btn__sub">BEACON</text>
             </view>
           </view>
 
-          <!-- 中央竖线 -->
-          <view class="ccv2-divider"></view>
+          <view class="console-pulse-log" bindtap="openPulseLogPanel">
+            <view class="console-pulse-readout {{cockpitView.selfPulseClass}} {{cockpitView.selfPulseSizeClass}} {{pulseReadoutRolling ? 'is-rolling' : ''}}">
+              <view class="console-pulse-readout__ticks console-pulse-readout__ticks--left"></view>
+              <view class="console-pulse-readout__digits">
+                <view class="console-pulse-readout__digit-track">
+                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
+                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
+                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
+                </view>
+              </view>
+              <view class="console-pulse-readout__ticks console-pulse-readout__ticks--right"></view>
+              <view class="console-pulse-readout__dot"></view>
+            </view>
+            <view class="console-pulse-log__list" wx:if="{{cockpitView.terminalLogEntries.length > 0}}">
+              <view
+                class="console-pulse-log__item {{item.isMine ? 'console-pulse-log__item--mine' : ''}} {{item.isNew ? 'console-pulse-log__item--new' : ''}}"
+                wx:for="{{cockpitView.terminalLogEntries}}"
+                wx:key="id"
+              >
+                <text class="console-pulse-log__route">{{item.fromName}} → {{item.toName}}</text>
+                <text class="console-pulse-log__value {{item.valueClass}}">{{item.value}}</text>
+              </view>
+            </view>
+            <view class="console-pulse-log__empty" wx:else>
+              <view class="console-pulse-log__idle-line"></view>
+            </view>
+          </view>
 
-          <!-- 航迹按钮 -->
-          <view class="ccv2-btn" bindtap="goTrace" hover-class="ccv2-btn--press">
+          <view class="ccv2-btn ccv2-btn--trace" bindtap="goTrace" hover-class="ccv2-btn--press">
             <view class="ccv2-btn__glow"></view>
             <view class="ccv2-btn__body">
               <view class="ccv2-btn__indicator ccv2-btn__indicator--green"></view>
               <text class="ccv2-btn__label">航迹</text>
-              <text class="ccv2-btn__sub">TRACE</text>
             </view>
           </view>
         </view>
-
-        <!-- 紧急按钮：角落独立按钮（带安全护罩） -->
-        <view class="ccv2-emergency" bindtap="confirmLeaveOrDisband" hover-class="ccv2-emergency--press">
-          <view class="ccv2-emergency__guard"></view>
-          <view class="ccv2-emergency__btn">
-            <view class="ccv2-emergency__led"></view>
-            <text class="ccv2-emergency__text">{{isOwner ? '解散' : '撤离'}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- ===== 输出脉冲终端 ===== -->
-      <view class="output-terminal">
-        <view class="terminal-scanline"></view>
-
-        <scroll-view class="terminal-entries" scroll-y="true" enable-flex="true" 
-                     scroll-into-view="{{cockpitView.terminalLogEntries.length > 0 ? 'entry-' + cockpitView.terminalLogEntries[cockpitView.terminalLogEntries.length-1].id : ''}}"
-                     scroll-with-animation="true">
-          <view wx:if="{{cockpitView.terminalLogEntries.length > 0}}">
-            <view wx:for="{{cockpitView.terminalLogEntries}}" wx:key="id"
-                  id="entry-{{item.id}}"
-                  class="terminal-entry {{item.isNew ? 'terminal-entry--new' : ''}}">
-              <text class="terminal-entry__time">{{item.time}}</text>
-              <text class="terminal-entry__text">{{item.text}}</text>
-              <text class="terminal-entry__value {{item.valueClass}}">{{item.value}}</text>
-            </view>
-          </view>
-          <view class="terminal-empty" wx:else>
-            <text>等待输出</text>
-          </view>
-        </scroll-view>
       </view>
 
     </view>
@@ -375,6 +348,42 @@
           <button class="sr-btn sr-btn-danger-outline" bindtap="executeLeaveOrDisband">
             <text class="btn-text">{{isOwner ? '解散' : '撤离'}}</text>
           </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 脉冲记录详情：本人收发记录使用独立色彩 -->
+    <view wx:if="{{showPulseLogPanel}}" class="cockpit-mask pulse-log-mask" bindtap="closePulseLogPanel">
+      <view class="pulse-log-sheet" catchtap="preventClose">
+        <view class="pulse-log-ar__corner pulse-log-ar__corner--tl"></view>
+        <view class="pulse-log-ar__corner pulse-log-ar__corner--tr"></view>
+        <view class="pulse-log-ar__corner pulse-log-ar__corner--bl"></view>
+        <view class="pulse-log-ar__corner pulse-log-ar__corner--br"></view>
+        <scroll-view class="pulse-log-ar__stream" scroll-y="true">
+          <block wx:for="{{groupedRecords}}" wx:key="timeKey">
+            <view
+              class="pulse-log-ar__row {{rec.myRole ? 'pulse-log-ar__row--mine' : ''}} {{rec.myRole === 'from' ? 'pulse-log-ar__row--outgoing' : rec.myRole === 'to' ? 'pulse-log-ar__row--incoming' : ''}}"
+              wx:for="{{item.records}}"
+              wx:for-item="rec"
+              wx:key="id"
+            >
+              <text class="pulse-log-ar__time">{{item.timeDisplay}}</text>
+              <text class="pulse-log-ar__route">{{rec.fromName}} → {{rec.toName}}</text>
+              <text class="pulse-log-ar__amount {{rec.myRole === 'from' ? 'is-negative' : rec.myRole === 'to' ? 'is-positive' : ''}}">
+                {{rec.amountDisplay}}
+              </text>
+            </view>
+          </block>
+          <view class="pulse-log-ar__empty" wx:if="{{groupedRecords.length === 0}}">
+            <view class="pulse-log-ar__scan-dot"></view>
+          </view>
+        </scroll-view>
+        <view
+          class="pulse-log-ar__close-handle"
+          bindtap="closePulseLogPanel"
+          hover-class="pulse-log-ar__close-handle--press"
+        >
+          <view class="pulse-log-ar__close-line"></view>
         </view>
       </view>
     </view>
@@ -415,10 +424,11 @@
         <view class="pulse-vr-grid">
           <view class="transfer-key-row" wx:for="{{transferKeyRows}}" wx:for-item="row" wx:key="index">
             <button 
-              class="transfer-key {{item.type === 'close' ? 'transfer-key--close' : ''}} {{item.type === 'submit' ? 'transfer-key--launch' : ''}} {{item.type === 'submit' && numpadValue <= 0 ? 'transfer-key--disabled' : ''}}"
+              class="transfer-key {{item.type === 'close' ? 'transfer-key--close' : ''}} {{item.type === 'submit' ? 'transfer-key--launch' : ''}} {{item.type === 'submit' && (numpadValue <= 0 || submitting) ? 'transfer-key--disabled' : ''}}"
               wx:for="{{row}}"
               wx:for-item="item"
               wx:key="index"
+              disabled="{{submitting}}"
               bindtap="onTransferKeyTap"
               data-type="{{item.type}}"
               data-value="{{item.value}}"
@@ -527,19 +537,16 @@
   <view class="beacon-overlay {{showShareSheet ? 'beacon-overlay--show' : ''}}" catchtap="closeShareSheet" catchtouchmove="preventClose">
     <view class="beacon-panel" catchtap="preventClose">
       <view class="beacon-panel__scanline"></view>
-
-      <view class="beacon-panel__head">
-        <text class="beacon-panel__title">信标</text>
-        <view class="beacon-panel__close" bindtap="closeShareSheet">
-          <view class="beacon-close-x"></view>
-        </view>
+      <view class="beacon-panel__corner beacon-panel__corner--tl"></view>
+      <view class="beacon-panel__corner beacon-panel__corner--tr"></view>
+      <view class="beacon-panel__corner beacon-panel__corner--bl"></view>
+      <view class="beacon-panel__corner beacon-panel__corner--br"></view>
+      <view class="beacon-panel__close" bindtap="closeShareSheet">
+        <view class="beacon-close-x"></view>
       </view>
 
-      <!-- 编队码行 -->
-      <view class="beacon-code-row">
-        <text class="beacon-code-label">编队码</text>
+      <view class="beacon-code-row" bindtap="copyRoomNo">
         <text class="beacon-code-value">{{currentRoom.roomNo}}</text>
-        <button class="beacon-copy-btn" bindtap="copyRoomNo">复制</button>
       </view>
 
       <!-- 二维码：加载中 -->
@@ -567,11 +574,9 @@
         </view>
       </view>
 
-      <!-- 底部关闭 -->
-      <view class="beacon-bottom-bar">
-        <view class="beacon-bottom-close" bindtap="closeShareSheet">
-          <text>关闭</text>
-        </view>
+      <view class="beacon-manage-entry" bindtap="openFormationManageFromBeacon">
+        <view class="beacon-manage-entry__dot"></view>
+        <text>{{isOwner ? '解散编队' : '撤离编队'}}</text>
       </view>
     </view>
   </view>

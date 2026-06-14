@@ -24,9 +24,12 @@
 .tp-container {
   width: 100%;
   max-width: 580rpx;
-  background: #0B1018;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(0, 175, 255, 0.08), transparent 34%),
+    #081018;
   border: 1rpx solid rgba(0, 175, 255, 0.20);
-  border-radius: 16rpx;
+  border-radius: 0;
+  clip-path: polygon(18rpx 0, 100% 0, 100% calc(100% - 18rpx), calc(100% - 18rpx) 100%, 0 100%, 0 18rpx);
   box-shadow: 0 0 40rpx rgba(0, 175, 255, 0.10);
   overflow: hidden;
   transform: scale(0.95);
@@ -37,36 +40,39 @@
   transform: scale(1);
 }
 
-.tp-header {
-  padding: 32rpx 32rpx 0;
+.tp-body {
+  padding: 24rpx 28rpx 26rpx;
 }
 
-.tp-kicker {
-  display: block;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 17rpx;
-  letter-spacing: 3rpx;
-  color: rgba(0, 175, 255, 0.25);
-  text-transform: uppercase;
+.tp-signal {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 9rpx;
+}
+
+.tp-signal-dot {
+  width: 7rpx;
+  height: 7rpx;
+  border-radius: 50%;
+  background: rgba(0, 200, 255, 0.72);
+  box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.42);
 }
 
 .tp-subtitle {
   display: block;
-  margin-top: 6rpx;
-  font-size: 34rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 4rpx;
-}
-
-.tp-body {
-  padding: 20rpx 32rpx 28rpx;
+  letter-spacing: 2rpx;
 }
 
 .tp-content {
+  display: block;
+  margin-top: 12rpx;
   font-size: 24rpx;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .tp-actions {

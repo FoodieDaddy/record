@@ -38,6 +38,9 @@ public interface ScoreService {
     /** 积分关系网络 */
     RoomNetworkResp getRoomNetwork(Long roomId);
 
+    /** 转分金额推荐 */
+    TransferAmountSuggestionResp getTransferAmountSuggestions(Long roomId);
+
     /** 积分流水终端数据 */
     YieldLogResp getYieldLog(Long userId);
 

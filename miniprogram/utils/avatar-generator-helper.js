@@ -13,12 +13,19 @@ function triggerAvatarGenerationIfNeeded() {
   const token = app.globalData.token || wx.getStorageSync('token');
   if (!token) return;
 
+  // 增加设备级安全锁：如果该设备已经判定过或触发过，不再重复触发
+  if (wx.getStorageSync('avatar_generated_once')) {
+    console.log('[AvatarGen] 本设备已执行过生成逻辑，跳过生成');
+    return;
+  }
+
   const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo');
   const avatarUrl = userInfo ? (userInfo.avatarUrl || userInfo.avatar) : '';
 
-  // 如果已有永久头像（以 cloud:// 或 http(s):// 开头），跳过生成
+  // 如果已有永久头像（以 cloud:// 或 http(s):// 开头），跳过生成并打上标志位
   if (avatarUrl && (avatarUrl.startsWith('cloud://') || avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))) {
     console.log('[AvatarGen] 用户已有有效头像，跳过生成:', avatarUrl);
+    wx.setStorageSync('avatar_generated_once', true);
     return;
   }
 
@@ -28,8 +35,10 @@ function triggerAvatarGenerationIfNeeded() {
     return;
   }
 
-  console.log('[AvatarGen] 用户头像为空，开始异步调用云开发生图接口...');
+  console.log('[AvatarGen] 用户头像为空且未生成过，开始异步调用云开发生图接口...');
   wx.setStorageSync('generating_avatar_lock', true);
+  // 一旦决定触发生成，立即打上永久标志位，防止后续清空头像后再次触发
+  wx.setStorageSync('avatar_generated_once', true);
 
   wx.cloud.callFunction({
     name: 'generateImage-1M0y65',

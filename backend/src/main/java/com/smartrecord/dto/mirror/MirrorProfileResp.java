@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -14,7 +15,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(description = "镜像画像聚合响应")
-public class MirrorProfileResp {
+public class MirrorProfileResp implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Schema(description = "MBTI人格信息")
     private ProfileInfo mbti;
@@ -42,7 +45,8 @@ public class MirrorProfileResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "MBTI人格信息")
-    public static class ProfileInfo {
+    public static class ProfileInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "是否已校准", example = "true")
         private boolean calibrated;
         @Schema(description = "MBTI类型编号", example = "1")
@@ -60,7 +64,8 @@ public class MirrorProfileResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "人格与战绩匹配度")
-    public static class PersonaMatchInfo {
+    public static class PersonaMatchInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "是否可用", example = "true")
         private boolean available;
         @Schema(description = "一致性百分比 0-100", example = "87")
@@ -84,7 +89,8 @@ public class MirrorProfileResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "战绩人格画像")
-    public static class BattlePersonaInfo {
+    public static class BattlePersonaInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "是否已生成", example = "true")
         private boolean generated;
         @Schema(description = "样本数", example = "12")
@@ -106,7 +112,8 @@ public class MirrorProfileResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "行为维度")
-    public static class DimensionInfo {
+    public static class DimensionInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "维度key", example = "stability")
         private String key;
         @Schema(description = "维度标签", example = "稳定性")
@@ -122,7 +129,8 @@ public class MirrorProfileResp {
     @NoArgsConstructor
     @AllArgsConstructor
     @Schema(description = "镜像判读")
-    public static class ReadingInfo {
+    public static class ReadingInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
         @Schema(description = "是否可用", example = "true")
         private boolean available;
         @Schema(description = "判读文案（完整文本，向后兼容）")

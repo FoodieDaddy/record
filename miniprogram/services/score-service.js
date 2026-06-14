@@ -60,7 +60,8 @@ function submitScore(payload) {
 
 /** 发起转分 */
 function transferScore(payload) {
-  return post('/score/transfer', { ...payload, clientRequestId: createRequestId() }).then(res => {
+  const clientRequestId = payload.clientRequestId || createRequestId();
+  return post('/score/transfer', { ...payload, clientRequestId }).then(res => {
     try {
       const behaviorLogger = require('../utils/behavior-logger');
       behaviorLogger.track('PULSE_RECORD', {

@@ -1,5 +1,50 @@
 # 开发日志
 
+## 2026-06-13 — 小程序英文副标题全局清理
+
+### 变更原因
+
+- 中文标题下方大量重复英文翻译占用移动端空间，降低了驾驶舱信息的可读性。
+- 页面、公共组件和 Canvas 海报的语言规则不一致，需要统一为中文信息层级。
+
+### 变更内容
+
+- 更新 `CLAUDE.md`、`docs/PRODUCT_LANGUAGE.md`、`docs/UI_GUIDELINES.md` 和 `docs/CONTENT_SAFETY.md`，禁止运行时英文副标题、英文翻译和装饰性英文标签。
+- 清理登录、编队、指令、镜像、身份、航迹与扩展页面中的英文副标题，并将开关状态、日志空状态和音色分类改为中文。
+- 移除 `terminal-popup` 的 `subtitle` 属性，确认弹窗只保留中文标题与正文。
+- 清理指令卡和镜像卡 Canvas 中的英文舱位副标题，仅允许独立品牌标识。
+- 删除主要失效副标题样式，保留编队码、MBTI 类型、版本号等必要技术信息。
+
+### 验证方式
+
+- 扫描小程序 WXML，确认无静态英文副标题和纯英文按钮。
+- 对本次涉及的 JavaScript 文件执行 `node --check`。
+
+---
+
+## 2026-06-12 — 后端集成测试与鉴权状态码一致性修复
+
+### 变更原因
+
+- 后端集成测试（IntegrationSmokeTest）在检测 Swagger 入口和未登录 401 状态码时存在断言失败，暴露了两个设计缺陷：
+  1. 拦截器 WebMvcConfig 未排除入口 `/swagger-ui.html` 与监控 `/actuator/**` 路径。
+  2. 异常处理器 GlobalExceptionHandler 将所有业务异常（包括未登录 4001、无权 4031）捕获后直接返回了 Result.fail 并默认设置 HTTP Status 200。
+- 这导致管理端 Vue3 的 Axios 响应拦截器（检测 status 401/403）无法感知鉴权失效，Token 过期后无法自动触发刷新/登出。
+
+### 变更文件
+
+- `backend/src/main/java/com/smartrecord/config/WebMvcConfig.java` — 拦截器排除路径中追加 `/swagger-ui.html` 和 `/actuator/**`
+- `backend/src/main/java/com/smartrecord/common/GlobalExceptionHandler.java` — 拦截方法返回类型升级为 `ResponseEntity<Result<Void>>`，将未登录/过期 (401)、账号异常与越权 (403)、参数格式/绑定/校验失败 (400) 以及数据库/缓存故障 (503) 映射至标准的 HTTP 状态码
+- `backend/src/main/resources/application.yml` — management 端点配置中暴露 health 和 info，使集成测试环境正常工作
+- `plan.md` / `changelog.md` — 同步任务记录与变更日志
+
+### 验证方式
+
+- 运行 `JAVA_HOME=$(/usr/libexec/java_home -v 21) mvn test -Dgroups=integration -B` 结果为 BUILD SUCCESS，全部集成测试用例通过。
+- 编译通过无任何异常。
+
+---
+
 ## 2026-06-11 — admin-web 玻璃质感未来家具风视觉升级
 
 ### 变更原因

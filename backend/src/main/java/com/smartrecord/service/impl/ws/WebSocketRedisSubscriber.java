@@ -8,6 +8,9 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
 
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -23,7 +26,7 @@ public class WebSocketRedisSubscriber implements MessageListener {
     private final ScoreWebSocket scoreWebSocket;
 
     @Override
-    public void onMessage(Message message, byte[] pattern) {
+    public void onMessage(@NonNull Message message, @Nullable byte[] pattern) {
         try {
             // 解析收到广播消息的主体
             String body = new String(message.getBody(), StandardCharsets.UTF_8);

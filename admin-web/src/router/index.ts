@@ -1,25 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-
-type Role = 'SUPER_ADMIN' | 'OPERATOR' | 'VIEWER'
-
-/**
- * 角色权限映射：每个角色可访问的路由名称列表
- * SUPER_ADMIN 用 '*' 表示拥有所有权限
- */
-const rolePermissions: Record<Role, string[]> = {
-  SUPER_ADMIN: ['*'],
-  OPERATOR: [
-    'dashboard', 'users', 'user-detail', 'formations', 'formation-detail',
-    'traces', 'directive-logs', 'directive-detail', 'mirrors', 'mirror-detail',
-    'profile',
-  ],
-  VIEWER: [
-    'dashboard', 'users', 'user-detail', 'formations', 'formation-detail',
-    'traces', 'directive-logs', 'directive-detail', 'mirrors', 'mirror-detail',
-    'profile',
-  ],
-}
+import { useToastStore } from '@/stores/toast'
 
 const router = createRouter({
   history: createWebHistory('/admin'),
@@ -62,15 +43,24 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
 
+  // 已登录用户访问登录页 → 重定向到仪表盘
+  if (to.name === 'login' && auth.isLoggedIn) {
+    return { name: 'dashboard' }
+  }
+
   // 未登录 → 重定向到登录页
   if (!to.meta.public && !auth.isLoggedIn) {
     return { name: 'login' }
   }
 
-  // 已登录但角色权限不足 → 重定向到 dashboard
+  // 已登录但角色权限不足 → 重定向到 dashboard + 提示
   if (to.meta.roles && auth.role) {
     const allowedRoles = to.meta.roles as string[]
     if (!allowedRoles.includes(auth.role)) {
+      try {
+        const toast = useToastStore()
+        toast.error('权限不足，无法访问该页面')
+      } catch {}
       return { name: 'dashboard' }
     }
   }

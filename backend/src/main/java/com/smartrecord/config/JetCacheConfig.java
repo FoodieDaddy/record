@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @EnableMethodCache(basePackages = "com.smartrecord")
+@SuppressWarnings("deprecation")
 @EnableCreateCacheAnnotation
 public class JetCacheConfig {
 }

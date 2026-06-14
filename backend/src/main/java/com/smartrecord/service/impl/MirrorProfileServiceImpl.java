@@ -1,7 +1,5 @@
 package com.smartrecord.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartrecord.common.BizException;
 import com.smartrecord.common.ErrorCode;
 import com.smartrecord.dto.mirror.MbtiTestReq;
@@ -18,14 +16,12 @@ import com.alicp.jetcache.anno.CacheType;
 import com.alicp.jetcache.anno.Cached;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,15 +31,10 @@ public class MirrorProfileServiceImpl implements MirrorProfileService {
 
     private final UserMirrorProfileMapper profileMapper;
     private final BattlePersonaService battlePersonaService;
-    private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper;
 
+    @SuppressWarnings("deprecation")
     @CreateCache(name = "sr:user:profile:", cacheType = CacheType.BOTH, expire = 1800)
     private Cache<Long, MirrorProfileResp> profileCache;
-
-    private static final String USER_KEY_PREFIX = "sr:user:";
-    private static final String CACHE_FIELD = "mirror:profile";
-    private static final long CACHE_TTL_MINUTES = 30;
 
     /**
      * 镜像展示兜底净化：历史 DB/Redis 字段可能透出旧画像词。

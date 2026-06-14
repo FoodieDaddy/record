@@ -56,43 +56,7 @@ const roomSettleHandler = {
     });
   },
 
-  confirmLeaveOrDisband() {
-    if (this.data.submitting) return;
-    const room = this.data.currentRoom;
-    if (!room) return;
-
-    this.setData({ submitting: true, leaveConfirmVisible: false });
-    const isOwner = this.data.isOwner;
-    
-    const doDisband = () => {
-      wx.showLoading({ title: '正在解散...' });
-      return roomService.quitRoom(room.roomId).then(resp => {
-        wx.hideLoading();
-        this.onDisbandSuccess(resp);
-      }).catch(err => {
-        wx.hideLoading();
-        this.onDisbandFail(err);
-      }).finally(() => {
-        this.setData({ submitting: false });
-      });
-    };
-
-    const doLeave = () => {
-      return roomService.quitRoom(room.roomId).then(() => {
-        this.onLeaveSuccess();
-      }).catch(err => {
-        this.onLeaveFail(err);
-      }).finally(() => {
-        this.setData({ submitting: false });
-      });
-    };
-
-    if (isOwner) {
-      doDisband();
-    } else {
-      doLeave();
-    }
-  },
+  // 移除了重复且逻辑错误的 confirmLeaveOrDisband，改由 room-action-handler 处理弹窗
 
   onDisbandSuccess(resp) {
     wx.removeStorageSync('currentRoomId');

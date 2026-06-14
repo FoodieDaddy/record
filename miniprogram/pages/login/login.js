@@ -56,6 +56,24 @@ Page({
     timerMgr.clearAll();
   },
 
+  preloadHomeData() {
+    const roomService = require('../../services/room-service');
+    const scoreService = require('../../services/score-service');
+    
+    app.globalData.preloads = app.globalData.preloads || {};
+    
+    // 1. 预加载房间列表
+    app.globalData.preloads.myRooms = roomService.getMyRooms();
+    
+    // 2. 如果有缓存的房间ID，预加载房间详情和排行榜
+    const savedRoomId = wx.getStorageSync('currentRoomId');
+    if (savedRoomId) {
+      app.globalData.preloads.roomDetail = roomService.getRoomDetail(savedRoomId);
+      app.globalData.preloads.roomRanking = scoreService.getRoomRanking(savedRoomId);
+      app.globalData.preloads.roomTransfers = scoreService.getRoomTransfers(savedRoomId, 1, 20);
+    }
+  },
+
   playConnectingAnimation() {
     // 动效静默时直接跳过动画
     if (!this.data.animationEnabled) {
@@ -78,8 +96,7 @@ Page({
         if (i >= stepTexts.length) {
           timerMgr.setTimeout(() => {
             this.setData({
-              accessGranted: true,
-              connecting: false
+              accessGranted: true
             });
             timerMgr.setTimeout(resolve, 800);
           }, 400);
