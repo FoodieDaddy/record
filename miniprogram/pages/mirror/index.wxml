@@ -136,18 +136,51 @@
         </view>
       </view>
 
-      <!-- ===== 三级：协议分析（独立卡片） ===== -->
+      <!-- ===== 三级：人物行为画像 ===== -->
       <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
-        <view class="sr-card analysis-card">
+        <view class="sr-card behavior-profile-card">
           <view class="card-header">
-            <view class="card-title-row analysis-toggle" bindtap="toggleAnalysis">
-              <text class="card-title">协议分析</text>
-              <text class="analysis-toggle__state">{{analysisExpanded ? '收起' : '展开'}}</text>
+            <view class="card-title-row">
+              <text class="card-title">人物行为画像</text>
+              <text class="behavior-profile__sample">{{battlePersona.sampleSize}} 个样本</text>
             </view>
             <view class="sr-card-line card-line"></view>
           </view>
 
-          <view class="analysis-body" wx:if="{{analysisExpanded}}">
+          <block wx:if="{{battlePersona.generated}}">
+            <text class="behavior-profile__title">{{battlePersona.title}}</text>
+            <text class="behavior-profile__summary">{{battlePersona.summary}}</text>
+          </block>
+          <view class="behavior-profile__pending" wx:else>
+            <text>航迹样本采集中，完成更多任务后将生成稳定画像</text>
+          </view>
+
+          <view class="behavior-dimensions">
+            <view class="behavior-dimension" wx:for="{{radarDimensions}}" wx:key="key">
+              <view class="behavior-dimension__head">
+                <text>{{item.label}}</text>
+                <text>{{radarLocked ? '--' : item.value}}</text>
+              </view>
+              <view class="behavior-dimension__track">
+                <view class="behavior-dimension__fill" style="width: {{radarLocked ? 0 : item.value}}%;"></view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- ===== 三级：协议分析（独立卡片） ===== -->
+      <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
+        <view class="sr-card analysis-card">
+          <view class="card-header">
+            <view class="card-title-row analysis-toggle">
+              <text class="card-title">协议分析</text>
+              <text class="analysis-toggle__state">实时判读</text>
+            </view>
+            <view class="sr-card-line card-line"></view>
+          </view>
+
+          <view class="analysis-body">
 
             <!-- 系统判读 -->
             <view class="analysis-section">

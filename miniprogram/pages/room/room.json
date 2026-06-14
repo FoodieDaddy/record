@@ -14,7 +14,7 @@
     "battle-insight": "/components/battle-insight/battle-insight",
     "persona-signal": "/components/persona-signal/persona-signal",
     "helmet-avatar": "/components/helmet-avatar/helmet-avatar",
-    "flow-log-panel": "/components/flow-log-panel/flow-log-panel",
+    "pulse-stream": "/components/pulse-stream/pulse-stream",
     "space-scan-panel": "/components/space-scan-panel/space-scan-panel",
     "terminal-popup": "/components/terminal-popup/terminal-popup",
     "score-timeline": "/components/score-timeline/score-timeline"

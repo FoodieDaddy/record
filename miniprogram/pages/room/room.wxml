@@ -213,7 +213,7 @@
             wx:for="{{cockpitView.externalShips}}"
             wx:key="userId"
             id="seat-{{item.userId}}"
-            class="hud-member {{item.online ? 'hud-member--online' : ''}} {{item.isNew ? 'hud-member--new' : ''}} {{impactCrewId == item.userId ? 'hud-member--impact' : ''}}"
+            class="hud-member {{item.online ? 'hud-member--online' : ''}} {{item.isNew ? 'hud-member--new' : ''}} {{impactCrewId == item.userId ? 'hud-member--impact' : ''}} {{contactFxUserId == item.userId ? (contactFxRole === 'sending' ? 'hud-member--sending' : 'hud-member--receiving') : ''}}"
             style="left: {{item.x}}%; top: {{item.y}}%;"
             bindtap="handleTapShip"
             catchtouchstart="handleShipTouchStart"
@@ -225,15 +225,23 @@
             data-user-id="{{item.userId}}"
             data-active="{{item.online}}"
           >
-            <view class="hud-member__ring">
-              <image wx:if="{{item.avatarUrl}}" class="hud-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" binderror="onHudAvatarError" data-user-id="{{item.userId}}" />
-              <view wx:else class="hud-member__avatar hud-member__avatar--char">
-                <text class="hud-member__avatar-char-text">{{item.avatarChar || '?'}}</text>
+            <view class="contact-marker {{item.sizeClass}} {{item.online ? 'contact-marker--online' : 'contact-marker--offline'}}">
+              <view class="contact-marker__tick contact-marker__tick--left"></view>
+              <view class="contact-marker__tick contact-marker__tick--right"></view>
+              <view class="contact-marker__orbit"></view>
+              <view class="contact-marker__pulse-fx"></view>
+              <view class="contact-marker__core">
+                <image wx:if="{{item.avatarUrl}}" class="hud-member__avatar" src="{{item.avatarUrl}}" mode="aspectFill" binderror="onHudAvatarError" data-user-id="{{item.userId}}" />
+                <view wx:else class="hud-member__avatar hud-member__avatar--char">
+                  <text class="hud-member__avatar-char-text">{{item.avatarChar || '?'}}</text>
+                </view>
               </view>
-              <view class="hud-member__online-dot"></view>
+              <view class="contact-marker__status {{item.online ? 'is-on' : ''}}"></view>
             </view>
-            <text class="hud-member__name">{{item.nickname}}</text>
-            <text class="hud-member__score {{item.pulseClass}}">{{item.pulseDisplay}}</text>
+            <view class="hud-member__info">
+              <text class="hud-member__name">{{item.nickname}}</text>
+              <text class="hud-member__score {{item.pulseClass}}">{{item.pulseDisplay}}</text>
+            </view>
           </view>
 
           <!-- 空态：远距离信标扫描 -->
@@ -278,26 +286,36 @@
           </view>
 
           <view class="console-pulse-log" bindtap="openPulseLogPanel">
-            <view class="console-pulse-readout {{cockpitView.selfPulseClass}} {{cockpitView.selfPulseSizeClass}} {{pulseReadoutRolling ? 'is-rolling' : ''}}">
+            <view class="console-pulse-readout {{cockpitView.selfPulseClass}} {{cockpitView.selfPulseSizeClass}} {{pulseReadoutRolling ? (pulseReadoutDirection === 'loss' ? 'is-roll-down' : 'is-roll-up') : ''}}">
               <view class="console-pulse-readout__ticks console-pulse-readout__ticks--left"></view>
               <view class="console-pulse-readout__digits">
-                <view class="console-pulse-readout__digit-track">
-                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
-                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
-                  <text>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
+                <view class="pulse-odometer" wx:if="{{pulseReadoutColumns.length > 0}}">
+                  <view
+                    class="pulse-odometer__column {{item.numeric ? 'is-numeric' : 'is-symbol'}}"
+                    wx:for="{{pulseReadoutColumns}}"
+                    wx:key="id"
+                  >
+                    <view
+                      class="pulse-odometer__track {{item.animated ? 'is-animated' : ''}}"
+                      style="transform: translateY(-{{item.offset}}rpx);"
+                    >
+                      <text wx:for="{{item.values}}" wx:for-item="digit" wx:key="index">{{digit}}</text>
+                    </view>
+                  </view>
                 </view>
+                <text class="pulse-odometer__stable" wx:else>{{pulseReadoutDisplay || cockpitView.selfPulseDisplay}}</text>
               </view>
               <view class="console-pulse-readout__ticks console-pulse-readout__ticks--right"></view>
               <view class="console-pulse-readout__dot"></view>
             </view>
             <view class="console-pulse-log__list" wx:if="{{cockpitView.terminalLogEntries.length > 0}}">
               <view
-                class="console-pulse-log__item {{item.isMine ? 'console-pulse-log__item--mine' : ''}} {{item.isNew ? 'console-pulse-log__item--new' : ''}}"
+                class="console-pulse-log__item {{item.myRole === 'to' ? 'console-pulse-log__item--gain' : item.myRole === 'from' ? 'console-pulse-log__item--loss' : 'console-pulse-log__item--other'}} {{item.isNew ? 'console-pulse-log__item--new' : ''}}"
                 wx:for="{{cockpitView.terminalLogEntries}}"
                 wx:key="id"
               >
                 <text class="console-pulse-log__route">{{item.fromName}} → {{item.toName}}</text>
-                <text class="console-pulse-log__value {{item.valueClass}}">{{item.value}}</text>
+                <text class="console-pulse-log__value">{{item.value}}</text>
               </view>
             </view>
             <view class="console-pulse-log__empty" wx:else>
@@ -355,36 +373,15 @@
     <!-- 脉冲记录详情：本人收发记录使用独立色彩 -->
     <view wx:if="{{showPulseLogPanel}}" class="cockpit-mask pulse-log-mask" bindtap="closePulseLogPanel">
       <view class="pulse-log-sheet" catchtap="preventClose">
-        <view class="pulse-log-ar__corner pulse-log-ar__corner--tl"></view>
-        <view class="pulse-log-ar__corner pulse-log-ar__corner--tr"></view>
-        <view class="pulse-log-ar__corner pulse-log-ar__corner--bl"></view>
-        <view class="pulse-log-ar__corner pulse-log-ar__corner--br"></view>
-        <scroll-view class="pulse-log-ar__stream" scroll-y="true">
-          <block wx:for="{{groupedRecords}}" wx:key="timeKey">
-            <view
-              class="pulse-log-ar__row {{rec.myRole ? 'pulse-log-ar__row--mine' : ''}} {{rec.myRole === 'from' ? 'pulse-log-ar__row--outgoing' : rec.myRole === 'to' ? 'pulse-log-ar__row--incoming' : ''}}"
-              wx:for="{{item.records}}"
-              wx:for-item="rec"
-              wx:key="id"
-            >
-              <text class="pulse-log-ar__time">{{item.timeDisplay}}</text>
-              <text class="pulse-log-ar__route">{{rec.fromName}} → {{rec.toName}}</text>
-              <text class="pulse-log-ar__amount {{rec.myRole === 'from' ? 'is-negative' : rec.myRole === 'to' ? 'is-positive' : ''}}">
-                {{rec.amountDisplay}}
-              </text>
-            </view>
-          </block>
-          <view class="pulse-log-ar__empty" wx:if="{{groupedRecords.length === 0}}">
-            <view class="pulse-log-ar__scan-dot"></view>
-          </view>
-        </scroll-view>
-        <view
-          class="pulse-log-ar__close-handle"
-          bindtap="closePulseLogPanel"
-          hover-class="pulse-log-ar__close-handle--press"
-        >
-          <view class="pulse-log-ar__close-line"></view>
-        </view>
+        <pulse-stream
+          records="{{scoreRecords}}"
+          live="{{wsConnected}}"
+          loading="{{pulseRecordsLoading}}"
+          title="实时脉冲记录"
+          max-rows="{{12}}"
+          show-close
+          bind:close="closePulseLogPanel"
+        />
       </view>
     </view>
 
@@ -618,11 +615,59 @@
         roomNo="{{settleRoomNo}}"
         settleTime="{{settleTime}}" />
 
-      <!-- 2. 数值趋势图 -->
-      <view class="settle-card" wx:if="{{settleSeries.length > 0}}">
+      <view class="settle-card-tabs">
+        <view class="settle-card-tab {{settleActiveCard === 'overview' ? 'settle-card-tab--active' : ''}}"
+          data-card="overview" bindtap="switchSettleCard">总览</view>
+        <view class="settle-card-tab {{settleActiveCard === 'trend' ? 'settle-card-tab--active' : ''}}"
+          data-card="trend" bindtap="switchSettleCard">趋势</view>
+        <view class="settle-card-tab {{settleActiveCard === 'network' ? 'settle-card-tab--active' : ''}}"
+          data-card="network" bindtap="switchSettleCard">关系</view>
+        <view class="settle-card-tab {{settleActiveCard === 'signal' ? 'settle-card-tab--active' : ''}}"
+          data-card="signal" bindtap="switchSettleCard">信号</view>
+      </view>
+
+      <!-- 2. 总览卡片 -->
+      <block wx:if="{{settleActiveCard === 'overview'}}">
+        <battle-insight
+          wx:if="{{settleInsight}}"
+          mostActiveUser="{{settleInsight.mostActiveUser}}"
+          mostFocusedUser="{{settleLoser}}"
+          networkDensity="{{settleInsight.networkDensity}}"
+          transferCount="{{settleInsight.transferCount}}"
+          memberCount="{{settleMemberCount}}" />
+
+        <view class="settle-card" wx:if="{{settleRankedMembers.length > 0}}">
+          <view class="settle-card-header">
+            <view class="settle-card-title">实时序列</view>
+            <view class="settle-card-line"></view>
+          </view>
+          <view class="settle-rank-list">
+            <view class="settle-rank-item {{index === 0 ? 'settle-rank-champion' : ''}}"
+              wx:for="{{settleRankedMembers}}" wx:key="userId">
+              <view class="settle-rank-badge {{index < 3 ? 'settle-rank-top3' : ''}} {{index === 0 ? 'settle-badge-champion' : ''}}">
+                <text class="settle-rank-num">{{index + 1}}</text>
+              </view>
+              <view class="settle-rank-avatar" style="background: {{item.avatarColor}}">
+                <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="settle-rank-avatar-img" mode="aspectFill" />
+                <text wx:else class="settle-rank-avatar-char">{{item.avatarChar}}</text>
+              </view>
+              <text class="settle-rank-name" style="color: {{item.userId == myUserId ? '#00AFFF' : 'rgba(255,255,255,0.85)'}}">
+                {{item.nickname}}
+                <text wx:if="{{item.userId == myUserId}}" class="settle-me-tag">我</text>
+              </text>
+              <text class="settle-rank-score"
+                style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.35)'}}">
+                {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
+              </text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <!-- 3. 数值趋势卡片，切换后才挂载 Canvas -->
+      <view class="settle-card" wx:if="{{settleActiveCard === 'trend' && settleSeries.length > 0}}">
         <view class="settle-card-header">
           <view class="settle-card-title">数值演化轨迹</view>
-
           <view class="settle-card-line"></view>
         </view>
         <view class="settle-chart-wrap">
@@ -635,59 +680,44 @@
         </view>
       </view>
 
-      <!-- 3. 数值关系网络 -->
-      <score-network
-        wx:if="{{settleNetworkNodes.length > 0}}"
-        nodes="{{settleNetworkNodes}}"
-        links="{{settleNetworkLinks}}"
-        my-user-id="{{myUserId}}" />
-
-      <!-- 4. 编队洞察 -->
-      <battle-insight
-        wx:if="{{settleInsight}}"
-        mostActiveUser="{{settleInsight.mostActiveUser}}"
-        mostFocusedUser="{{settleLoser}}"
-        networkDensity="{{settleInsight.networkDensity}}"
-        transferCount="{{settleInsight.transferCount}}"
-        memberCount="{{settleMemberCount}}" />
-
-      <!-- 5. 实时序列 -->
-      <view class="settle-card" wx:if="{{settleRankedMembers.length > 0}}">
-        <view class="settle-card-header">
-          <view class="settle-card-title">实时序列</view>
-          <view class="settle-card-line"></view>
+      <!-- 4. 关系卡片，切换后才请求并挂载 Canvas -->
+      <block wx:if="{{settleActiveCard === 'network'}}">
+        <view class="settle-card settle-network-loading" wx:if="{{settleNetworkLoading}}">
+          <view class="settle-loading-dot"></view>
+          <text>正在构建成员关系...</text>
         </view>
-        <view class="settle-rank-list">
-          <view class="settle-rank-item {{index === 0 ? 'settle-rank-champion' : ''}}"
-            wx:for="{{settleRankedMembers}}" wx:key="userId">
-            <view class="settle-rank-badge {{index < 3 ? 'settle-rank-top3' : ''}} {{index === 0 ? 'settle-badge-champion' : ''}}">
-              <text class="settle-rank-num">{{index + 1}}</text>
-            </view>
-            <view class="settle-rank-avatar" style="background: {{item.avatarColor}}">
-              <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="settle-rank-avatar-img" mode="aspectFill" />
-              <text wx:else class="settle-rank-avatar-char">{{item.avatarChar}}</text>
-            </view>
-            <text class="settle-rank-name" style="color: {{item.userId == myUserId ? '#00AFFF' : 'rgba(255,255,255,0.85)'}}">
-              {{item.nickname}}
-              <text wx:if="{{item.userId == myUserId}}" class="settle-me-tag">我</text>
-            </text>
-            <text class="settle-rank-score"
-              style="color: {{item.finalScore > 0 ? '#32D74B' : item.finalScore < 0 ? '#FF453A' : 'rgba(255,255,255,0.35)'}}">
-              {{item.finalScore > 0 ? '+' : ''}}{{item.finalScore}}
-            </text>
-          </view>
+        <score-network
+          wx:elif="{{settleNetworkNodes.length > 0}}"
+          nodes="{{settleNetworkNodes}}"
+          links="{{settleNetworkLinks}}"
+          my-user-id="{{myUserId}}" />
+        <view class="settle-card settle-network-empty" wx:else>
+          <text>暂无可展示的成员关系</text>
         </view>
+
+      </block>
+
+      <!-- 5. 行为信号卡片 -->
+      <block wx:if="{{settleActiveCard === 'signal'}}">
+        <view class="settle-card settle-network-loading" wx:if="{{settleNetworkLoading}}">
+          <view class="settle-loading-dot"></view>
+          <text>正在分析行为信号...</text>
+        </view>
+        <persona-signal
+          wx:elif="{{settlePersonaSignals}}"
+          activity="{{settlePersonaSignals.socialActivity}}"
+          volatility="{{settlePersonaSignals.riskPreference}}"
+          concentration="{{settlePersonaSignals.resourceControl}}"
+          density="{{settlePersonaSignals.allianceTendency}}"
+          low-sample="{{settleTransferCount < 5}}" />
+        <view class="settle-card settle-network-empty" wx:else>
+          <text>暂无足够数据生成行为信号</text>
+        </view>
+      </block>
+
+      <view class="settle-report-actions">
+        <button class="settle-confirm-exit" bindtap="closeSettleOverlay">确认并退出</button>
       </view>
-
-      <!-- 6. 人格信号 -->
-      <persona-signal
-        wx:if="{{settlePersonaSignals}}"
-        socialActivity="{{settlePersonaSignals.socialActivity}}"
-        riskPreference="{{settlePersonaSignals.riskPreference}}"
-        resourceControl="{{settlePersonaSignals.resourceControl}}"
-        allianceTendency="{{settlePersonaSignals.allianceTendency}}" />
-
-      <view style="height: 60rpx;"></view>
     </scroll-view>
   </view>
 

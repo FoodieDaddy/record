@@ -1,73 +1,67 @@
 <view class="score-network">
-  <view class="network-header" bindtap="toggleExpand">
+  <view class="network-header">
     <view class="network-header-left">
       <view class="network-title">数值关系网络</view>
       <view class="sr-card-line network-line"></view>
     </view>
-    <view class="network-toggle">
-      <text class="toggle-text">{{expanded ? '收起' : '展开'}}</text>
-      <text class="toggle-arrow {{expanded ? 'toggle-arrow--up' : ''}}">›</text>
-    </view>
   </view>
 
-  <block wx:if="{{expanded}}">
-    <view class="network-graph-wrap" style="width:{{graphSize}}px;height:{{graphSize}}px;">
-      <!-- Canvas 画连线 -->
-      <canvas type="2d" id="networkCanvas" class="network-canvas"
-        style="width:{{graphSize}}px;height:{{graphSize}}px;">
-      </canvas>
+  <view class="network-graph-wrap" style="width:{{graphWidth}}px;height:{{graphHeight}}px;">
+    <!-- Canvas 画连线 -->
+    <canvas type="2d" id="networkCanvas" class="network-canvas"
+      style="width:{{graphWidth}}px;height:{{graphHeight}}px;">
+    </canvas>
 
-      <!-- View 节点头像层 -->
-      <block wx:for="{{positionedNodes}}" wx:key="userId">
-        <view class="network-node" style="left:{{item.posX}}px;top:{{item.posY}}px;"
-          data-index="{{index}}" bindtap="onNodeTap">
-          <view class="node-avatar {{item.isMe ? 'node-avatar--me' : ''}}"
-            style="{{item.avatarUrl ? '' : 'background:' + item.avatarColor}}">
-            <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="node-avatar-img"
-              mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
-            <text wx:else class="node-avatar-char">{{item.initial}}</text>
-          </view>
-          <text class="node-name" style="color:{{item.isMe ? '#00AFFF' : 'rgba(255,255,255,0.68)'}}">{{item.nickname}}</text>
-          <text class="node-score" style="color:{{item.scoreColor}}">{{item.score > 0 ? '+' : ''}}{{item.score || 0}}</text>
+    <!-- View 节点头像层 -->
+    <block wx:for="{{positionedNodes}}" wx:key="userId">
+      <view class="network-node" style="left:{{item.posX}}px;top:{{item.posY}}px;"
+        data-index="{{index}}" bindtap="onNodeTap">
+        <view class="node-avatar {{item.isMe ? 'node-avatar--me' : ''}}"
+          style="{{item.avatarUrl ? '' : 'background:' + item.avatarColor}}">
+          <image wx:if="{{item.avatarUrl}}" src="{{item.avatarUrl}}" class="node-avatar-img"
+            mode="aspectFill" binderror="onAvatarError" data-index="{{index}}" />
+          <text wx:else class="node-avatar-char">{{item.initial}}</text>
         </view>
-      </block>
-    </view>
+        <text class="node-name" style="color:{{item.isMe ? '#00AFFF' : 'rgba(255,255,255,0.68)'}}">{{item.nickname}}</text>
+        <text class="node-score" style="color:{{item.scoreColor}}">{{item.score > 0 ? '+' : ''}}{{item.score || 0}}</text>
+      </view>
+    </block>
+  </view>
 
-    <!-- 节点详情浮层 -->
-    <view class="node-detail {{selectedNode !== null ? 'node-detail--show' : ''}}" wx:if="{{nodeDetails}}">
-      <view class="detail-header">
-        <text class="detail-name" style="color: {{nodeDetails.isMe ? '#00AFFF' : 'rgba(255,255,255,0.92)'}}">{{nodeDetails.nickname}}</text>
-        <text class="detail-score" style="color: {{nodeDetails.score >= 0 ? '#32D74B' : '#FF453A'}}">
-          {{nodeDetails.score > 0 ? '+' : ''}}{{nodeDetails.score}}
+  <!-- 节点详情浮层 -->
+  <view class="node-detail {{selectedNode !== null ? 'node-detail--show' : ''}}" wx:if="{{nodeDetails}}">
+    <view class="detail-header">
+      <text class="detail-name" style="color: {{nodeDetails.isMe ? '#00AFFF' : 'rgba(255,255,255,0.92)'}}">{{nodeDetails.nickname}}</text>
+      <text class="detail-score" style="color: {{nodeDetails.score >= 0 ? '#32D74B' : '#FF453A'}}">
+        {{nodeDetails.score > 0 ? '+' : ''}}{{nodeDetails.score}}
+      </text>
+      <view class="detail-close" bindtap="closeDetail">
+        <view class="detail-close-icon"></view>
+      </view>
+    </view>
+    <view class="detail-grid">
+      <view class="detail-cell">
+        <text class="detail-cell-label">最大送出对象</text>
+        <text class="detail-cell-value">{{nodeDetails.topRecipientName}}</text>
+        <text class="detail-cell-amount" wx:if="{{nodeDetails.topRecipientAmount !== null}}"
+          style="color:#FF453A">-{{nodeDetails.topRecipientAmount}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">最大获得来源</text>
+        <text class="detail-cell-value">{{nodeDetails.topSenderName}}</text>
+        <text class="detail-cell-amount" wx:if="{{nodeDetails.topSenderAmount !== null}}"
+          style="color:#32D74B">+{{nodeDetails.topSenderAmount}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">互动次数</text>
+        <text class="detail-cell-value mono">{{nodeDetails.interactionCount}}</text>
+      </view>
+      <view class="detail-cell">
+        <text class="detail-cell-label">净数值</text>
+        <text class="detail-cell-value mono" style="color: {{nodeDetails.netGain >= 0 ? '#32D74B' : '#FF453A'}}">
+          {{nodeDetails.netGain > 0 ? '+' : ''}}{{nodeDetails.netGain}}
         </text>
-        <view class="detail-close" bindtap="closeDetail">
-          <view class="detail-close-icon"></view>
-        </view>
-      </view>
-      <view class="detail-grid">
-        <view class="detail-cell">
-          <text class="detail-cell-label">最大送出对象</text>
-          <text class="detail-cell-value">{{nodeDetails.topRecipientName}}</text>
-          <text class="detail-cell-amount" wx:if="{{nodeDetails.topRecipientAmount !== null}}"
-            style="color:#FF453A">-{{nodeDetails.topRecipientAmount}}</text>
-        </view>
-        <view class="detail-cell">
-          <text class="detail-cell-label">最大获得来源</text>
-          <text class="detail-cell-value">{{nodeDetails.topSenderName}}</text>
-          <text class="detail-cell-amount" wx:if="{{nodeDetails.topSenderAmount !== null}}"
-            style="color:#32D74B">+{{nodeDetails.topSenderAmount}}</text>
-        </view>
-        <view class="detail-cell">
-          <text class="detail-cell-label">互动次数</text>
-          <text class="detail-cell-value mono">{{nodeDetails.interactionCount}}</text>
-        </view>
-        <view class="detail-cell">
-          <text class="detail-cell-label">净数值</text>
-          <text class="detail-cell-value mono" style="color: {{nodeDetails.netGain >= 0 ? '#32D74B' : '#FF453A'}}">
-            {{nodeDetails.netGain > 0 ? '+' : ''}}{{nodeDetails.netGain}}
-          </text>
-        </view>
       </view>
     </view>
-  </block>
+  </view>
 </view>

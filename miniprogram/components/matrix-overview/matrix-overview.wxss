@@ -546,7 +546,7 @@
   left: 30rpx;
   width: auto;
   max-height: none;
-  padding: 66rpx 24rpx 24rpx;
+  padding: 24rpx 24rpx calc(66rpx + env(safe-area-inset-bottom));
   transform: translateY(18rpx) scale(0.97);
   background:
     linear-gradient(rgba(0, 200, 255, 0.022) 1rpx, transparent 1rpx),
@@ -614,6 +614,33 @@
   border-color: rgba(0, 200, 255, 0.14);
   border-radius: 0;
   clip-path: polygon(7rpx 0, 100% 0, 100% calc(100% - 7rpx), calc(100% - 7rpx) 100%, 0 100%, 0 7rpx);
+}
+
+.matrix-close-handle {
+  position: absolute;
+  right: 0;
+  bottom: calc(5rpx + env(safe-area-inset-bottom));
+  left: 0;
+  z-index: 8;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-close-line {
+  width: 82rpx;
+  height: 5rpx;
+  border-radius: 5rpx;
+  background: rgba(166, 218, 235, 0.48);
+  box-shadow: 0 0 14rpx rgba(0, 175, 255, 0.16);
+  transition: width 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.matrix-close-handle--press .matrix-close-line {
+  width: 104rpx;
+  background: rgba(197, 239, 252, 0.82);
+  box-shadow: 0 0 20rpx rgba(0, 200, 255, 0.34);
 }
 
 .panel-divider {

@@ -1,0 +1,180 @@
+/* Final cockpit instrument and bounded pulse stream layout. */
+.room-page {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.room-page--active .cockpit-console-v2 {
+  height: 208rpx;
+  padding-top: 26rpx !important;
+  border-radius: 50% 50% 0 0 / 62rpx 62rpx 0 0;
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 198rpx;
+}
+
+.room-page--active .ccv2-panel {
+  grid-template-columns: 98rpx minmax(0, 1fr) 98rpx;
+}
+
+.room-page--active .console-pulse-log {
+  height: 170rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.13);
+  border-radius: 40rpx 40rpx 20rpx 20rpx;
+  background:
+    linear-gradient(180deg, rgba(0, 200, 255, 0.07), transparent 48%),
+    rgba(0, 7, 12, 0.70);
+}
+
+.room-page--active .console-pulse-readout {
+  top: -10rpx;
+  width: 94%;
+  height: 78rpx;
+  border-color: rgba(73, 218, 255, 0.32);
+  border-radius: 42rpx;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(0, 200, 255, 0.20), transparent 70%),
+    rgba(1, 18, 27, 0.90);
+  box-shadow:
+    inset 0 0 28rpx rgba(0, 175, 255, 0.10),
+    0 0 24rpx rgba(0, 175, 255, 0.10);
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: calc(100% - 80rpx);
+  height: 52rpx;
+  overflow: hidden;
+}
+
+.pulse-odometer {
+  height: 52rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.pulse-odometer__column {
+  height: 52rpx;
+  overflow: hidden;
+}
+
+.pulse-odometer__column.is-numeric {
+  width: 27rpx;
+}
+
+.pulse-odometer__column.is-symbol {
+  min-width: 18rpx;
+}
+
+.pulse-odometer__track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.pulse-odometer__track.is-animated {
+  transition: transform 680ms cubic-bezier(0.18, 0.82, 0.24, 1);
+}
+
+.pulse-odometer__track text,
+.pulse-odometer__stable {
+  height: 52rpx;
+  display: block;
+  flex: 0 0 52rpx;
+  color: inherit;
+  font-family: Menlo, 'SF Mono', monospace;
+  font-size: 42rpx;
+  font-weight: 800;
+  line-height: 52rpx;
+  text-align: center;
+  text-shadow: inherit;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .pulse-odometer__track text,
+.room-page--active .console-pulse-readout.is-condensed .pulse-odometer__stable {
+  font-size: 36rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .pulse-odometer__track text,
+.room-page--active .console-pulse-readout.is-compact .pulse-odometer__stable {
+  font-size: 31rpx;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .pulse-odometer__track text {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.58);
+}
+
+.room-page--active .console-pulse-readout.is-roll-down .pulse-odometer__track text {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.56);
+}
+
+.room-page--active .console-pulse-readout.is-positive .pulse-odometer__stable {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.50);
+}
+
+.room-page--active .console-pulse-readout.is-negative .pulse-odometer__stable {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.50);
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 74rpx;
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 78rpx;
+  right: 12rpx;
+  bottom: 8rpx;
+  left: 12rpx;
+  justify-content: flex-start;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 27rpx;
+  min-height: 27rpx;
+  font-size: 16rpx;
+  line-height: 27rpx;
+}
+
+.room-page--active .console-pulse-log__value {
+  font-size: 17rpx;
+}
+
+.pulse-log-mask {
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 44rpx calc(170rpx + env(safe-area-inset-bottom));
+}
+
+.pulse-log-sheet {
+  width: 92%;
+  max-width: 650rpx;
+  height: auto;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 28rpx;
+  clip-path: none;
+  background: transparent;
+  box-shadow: 0 26rpx 80rpx rgba(0, 0, 0, 0.56);
+}
+
+.cockpit-viewport--idle {
+  min-height: 0;
+  height: calc(100vh - 310rpx - env(safe-area-inset-bottom));
+  margin-bottom: 0;
+}
+
+.reduce-motion .pulse-odometer__track,
+.reduce-motion .pulse-stream__signal-dot,
+.reduce-motion .pulse-stream__signal-ring,
+.reduce-motion .pulse-stream__scanline {
+  animation: none !important;
+  transition: none !important;
+}

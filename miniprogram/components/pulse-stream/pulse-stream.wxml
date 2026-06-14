@@ -1,0 +1,57 @@
+<view class="pulse-stream">
+  <view class="pulse-stream__header">
+    <view class="pulse-stream__status {{live ? 'is-live' : ''}}">
+      <view class="pulse-stream__signal">
+        <view class="pulse-stream__signal-ring"></view>
+        <view class="pulse-stream__signal-dot"></view>
+      </view>
+      <view>
+        <text class="pulse-stream__title">{{title}}</text>
+        <text class="pulse-stream__subtitle">{{live ? '实时链路接收中' : '封存航迹数据'}}</text>
+      </view>
+    </view>
+    <view class="pulse-stream__close" wx:if="{{showClose}}" bindtap="close">
+      <view class="pulse-stream__close-icon"></view>
+    </view>
+  </view>
+
+  <view class="pulse-stream__viewport">
+    <view class="pulse-stream__scanline" wx:if="{{live}}"></view>
+
+    <view class="pulse-stream__loading" wx:if="{{loading && visibleRecords.length === 0}}">
+      <view class="pulse-stream__loading-bars">
+        <view></view><view></view><view></view><view></view>
+      </view>
+      <text>链路同步中</text>
+    </view>
+
+    <view class="pulse-stream__empty" wx:elif="{{visibleRecords.length === 0}}">
+      <view class="pulse-stream__empty-signal"></view>
+      <text>{{live ? '等待下一组脉冲数据' : '该航程暂无脉冲记录'}}</text>
+    </view>
+
+    <scroll-view
+      wx:else
+      class="pulse-stream__rows"
+      scroll-y="{{visibleRecords.length > 8}}"
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view
+        class="pulse-stream__row {{item.myRole === 'from' ? 'is-outgoing' : item.myRole === 'to' ? 'is-incoming' : ''}} {{item.isNew ? 'is-new' : ''}}"
+        wx:for="{{visibleRecords}}"
+        wx:key="id"
+      >
+        <text class="pulse-stream__time">{{item.timeDisplay}}</text>
+        <text class="pulse-stream__route">{{item.routeDisplay}}</text>
+        <text class="pulse-stream__amount">{{item.amountDisplay}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="pulse-stream__footer">
+    <text>显示最近 {{visibleRecords.length}} 条</text>
+    <text wx:if="{{hiddenCount > 0}}">其余 {{hiddenCount}} 条已折叠</text>
+    <text wx:elif="{{live}}">增量刷新已开启</text>
+  </view>
+</view>

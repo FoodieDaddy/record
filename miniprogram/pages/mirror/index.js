@@ -139,9 +139,6 @@ Page({
     // 协议演化
     evolution: [],
 
-    // 协议分析折叠
-    analysisExpanded: false,
-
     // 弹窗控制
     showMbtiPicker: false,
     showExitConfirm: false,
@@ -303,10 +300,6 @@ cockpitView: {
   },
 
   noop() {},
-
-  toggleAnalysis() {
-    this.setData({ analysisExpanded: !this.data.analysisExpanded });
-  },
 
   _hideCustomTabBar() {
     // 只使用自定义 tabbar 的方法，不要用 wx.hideTabBar

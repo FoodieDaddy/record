@@ -38,6 +38,10 @@ function resetRoomData() {
     pulseValue: '',
     pulseTraces: [],
     showSettleOverlay: false,
+    settleActiveCard: 'overview',
+    settleRoomId: '',
+    settleNetworkLoading: false,
+    settleNetworkLoaded: false,
     showMatrixPanel: false,
     showPulsePanel: false,
     showNumpad: false,
@@ -225,6 +229,8 @@ const roomSettleHandler = {
         // 2. 断开 WS
         this.suppressWsReconnect();
         app.disconnectWS();
+        wx.removeStorageSync('currentRoomId');
+        this.setData(resetRoomData());
         this._settling = false;
         // 3. 有记分数据则展示结算弹层，否则提示空数据并回到编队待机
         const hasData = settleResp && (
@@ -232,10 +238,11 @@ const roomSettleHandler = {
           (settleResp.series && settleResp.series.some(s => s.scores && s.scores.length > 0))
         );
         if (hasData) {
-          this.showSettleFromResp(settleResp);
+          this.showSettleFromResp({
+            ...settleResp,
+            roomId: settleResp.roomId || roomId
+          });
         } else {
-          this.setData(resetRoomData());
-          wx.removeStorageSync('currentRoomId');
           wx.showToast({ title: '编队已关闭', icon: 'none', duration: 2000 });
         }
       } else {
@@ -265,6 +272,8 @@ const roomSettleHandler = {
   /** 从 SettleResp 构建结算弹层数据并展示 */
   async showSettleFromResp(resp) {
     this._showingSettle = true;
+    const reportToken = `${Date.now()}-${Math.random()}`;
+    this._settleReportToken = reportToken;
     const timestamps = resp.timestamps || [];
     const series = resp.series || [];
     const visibleUsers = series.map(s => String(s.userId));
@@ -304,6 +313,8 @@ const roomSettleHandler = {
 
     this.setData({
       showSettleOverlay: true,
+      settleActiveCard: 'overview',
+      settleRoomId: String(resp.roomId || (this.data.currentRoom && this.data.currentRoom.roomId) || ''),
       settleTimestamps: timestamps,
       settleSeries: series,
       settleVisibleUsers: visibleUsers,
@@ -314,35 +325,123 @@ const roomSettleHandler = {
       settleMaxSingle: maxSingle,
       settleMemberCount: rankedMembers.length,
       settleTime,
-      settleEventMarkers: eventMarkers
+      settleEventMarkers: eventMarkers,
+      settleTotalTransfer: 0,
+      settleTransferCount: 0,
+      settleInsight: null,
+      settleNetworkNodes: [],
+      settleNetworkLinks: [],
+      settleNetworkLoading: false,
+      settleNetworkLoaded: false,
+      settlePersonaSignals: null
     });
 
     const roomId = resp.roomId || (this.data.currentRoom && this.data.currentRoom.roomId);
     if (roomId) {
-      Promise.all([
-        scoreService.getRoomInsight(roomId).catch(() => null),
-        scoreService.getRoomNetwork(roomId).catch(() => null)
-      ]).then(([insightData, networkData]) => {
-        const updates = {};
-        if (insightData) {
-          updates.settleInsight = insightData;
-          updates.settleTotalTransfer = insightData.totalTransfer || 0;
-          updates.settleTransferCount = insightData.transferCount || 0;
-          if (insightData.maxSingleTransfer > maxSingle) {
-            updates.settleMaxSingle = insightData.maxSingleTransfer;
-          }
+      scoreService.getRoomInsight(roomId).then((insightData) => {
+        if (this._settleReportToken !== reportToken || !this.data.showSettleOverlay) return;
+        const updates = {
+          settleInsight: insightData,
+          settleTotalTransfer: insightData.totalTransfer || 0,
+          settleTransferCount: insightData.transferCount || 0
+        };
+        if (insightData.maxSingleTransfer > maxSingle) {
+          updates.settleMaxSingle = insightData.maxSingleTransfer;
         }
-        if (networkData) {
-          updates.settleNetworkNodes = (networkData.nodes || []).map(n => ({
-            ...n,
-            ...getAvatarView(n.nickname, n.avatarUrl)
-          }));
-          updates.settleNetworkLinks = networkData.links || [];
+        if (this.data.settleNetworkLoaded) {
+          updates.settlePersonaSignals = this._calcSettlePersonaSignals(
+            rankedMembers,
+            insightData,
+            { nodes: this.data.settleNetworkNodes, links: this.data.settleNetworkLinks }
+          );
         }
-        updates.settlePersonaSignals = this._calcSettlePersonaSignals(rankedMembers, insightData, networkData);
         this.setData(updates);
-      });
+      }).catch(() => {});
     }
+  },
+
+  switchSettleCard(e) {
+    const card = e.currentTarget.dataset.card;
+    if (!['overview', 'trend', 'network', 'signal'].includes(card) || card === this.data.settleActiveCard) {
+      return;
+    }
+    this.setData({ settleActiveCard: card });
+    if ((card === 'network' || card === 'signal') &&
+        !this.data.settleNetworkLoaded &&
+        !this.data.settleNetworkLoading) {
+      this._loadSettleNetwork();
+    }
+  },
+
+  async _loadSettleNetwork() {
+    const roomId = this.data.settleRoomId;
+    if (!roomId) return;
+
+    const reportToken = this._settleReportToken;
+    const rankedMembers = this.data.settleRankedMembers || [];
+    this.setData({ settleNetworkLoading: true });
+
+    let networkData = null;
+    try {
+      networkData = await scoreService.getRoomNetwork(roomId);
+    } catch (e) {
+      console.warn('加载结算关系网络失败', e);
+    }
+    if (this._settleReportToken !== reportToken || !this.data.showSettleOverlay) return;
+
+    const normalized = this._normalizeSettleNetwork(networkData, rankedMembers);
+    this.setData({
+      settleNetworkNodes: normalized.nodes,
+      settleNetworkLinks: normalized.links,
+      settleNetworkLoading: false,
+      settleNetworkLoaded: true,
+      settlePersonaSignals: this._calcSettlePersonaSignals(
+        rankedMembers,
+        this.data.settleInsight,
+        normalized
+      )
+    });
+  },
+
+  _normalizeSettleNetwork(networkData, rankedMembers) {
+    const nodeMap = new Map();
+    (rankedMembers || []).forEach(member => {
+      const userId = String(member.userId);
+      nodeMap.set(userId, {
+        userId,
+        nickname: member.nickname || '?',
+        score: member.finalScore || 0,
+        ...getAvatarView(member.nickname, member.avatarUrl)
+      });
+    });
+
+    ((networkData && networkData.nodes) || []).forEach(node => {
+      const userId = String(node.userId);
+      const fallback = nodeMap.get(userId) || {};
+      const nickname = node.nickname || fallback.nickname || '?';
+      nodeMap.set(userId, {
+        ...fallback,
+        ...node,
+        userId,
+        nickname,
+        score: node.score == null ? (fallback.score || 0) : node.score,
+        ...getAvatarView(nickname, node.avatarUrl || fallback.avatarUrl)
+      });
+    });
+
+    const nodes = Array.from(nodeMap.values());
+    const nodeIds = new Set(nodes.map(node => String(node.userId)));
+    const links = ((networkData && networkData.links) || [])
+      .map(link => ({
+        ...link,
+        from: String(link.from),
+        to: String(link.to),
+        netAmount: Number(link.netAmount) || 0,
+        count: Number(link.count) || 0
+      }))
+      .filter(link => nodeIds.has(link.from) && nodeIds.has(link.to) && link.from !== link.to);
+
+    return { nodes, links };
   },
 
   /** 非房主收到 SETTLE WS 通知后拉取结算数据 */
@@ -426,6 +525,10 @@ const roomSettleHandler = {
   closeSettleOverlay() {
     this._showingSettle = false;
     this._settling = false;
+    this._settleReportToken = null;
+    wx.removeStorageSync('currentRoomId');
+    this.suppressWsReconnect();
+    app.disconnectWS();
     this.setData({
       ...resetRoomData(),
       settleTimestamps: [],
@@ -444,7 +547,11 @@ const roomSettleHandler = {
       settleNetworkLinks: [],
       settleInsight: null,
       settlePersonaSignals: null,
-      settleEventMarkers: []
+      settleEventMarkers: [],
+      settleActiveCard: 'overview',
+      settleRoomId: '',
+      settleNetworkLoading: false,
+      settleNetworkLoaded: false
     });
   },
 

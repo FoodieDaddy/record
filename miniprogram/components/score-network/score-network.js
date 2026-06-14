@@ -1,4 +1,4 @@
-const { getColor, getFirstChar, getAvatarView } = require('../../utils/avatar')
+const { getFirstChar, getAvatarView } = require('../../utils/avatar')
 
 Component({
   properties: {
@@ -8,45 +8,77 @@ Component({
   },
 
   data: {
-    graphSize: 300,
+    graphWidth: 300,
+    graphHeight: 220,
     positionedNodes: [],
     selectedNode: null,
     nodeDetails: null,
-    canvasReady: false,
-    expanded: false
+    canvasReady: false
   },
 
   observers: {
     'nodes, links'() {
-      if (this.data.nodes.length > 0 && this.data.expanded) {
-        this._buildLayout()
+      if (this._componentReady) {
+        this._updateGraphMetrics(true)
       }
     }
   },
 
   lifetimes: {
     ready() {
-      const sysInfo = wx.getWindowInfo()
-      const graphSize = Math.min(sysInfo.windowWidth - 80, 340)
-      this.setData({ graphSize })
-      // 不自动构建布局，等用户展开后再构建
+      this._componentReady = true
+      this._updateGraphMetrics(true)
+    },
+    detached() {
+      this._componentReady = false
     }
   },
 
   methods: {
+    _updateGraphMetrics(buildLayout) {
+      const sysInfo = wx.getWindowInfo()
+      const graphWidth = Math.min(sysInfo.windowWidth - 80, 340)
+      const count = this.data.nodes.length
+      const graphHeight = count <= 1
+        ? 150
+        : count === 2
+          ? 180
+          : count <= 4
+            ? Math.min(graphWidth, 240)
+            : graphWidth
+
+      const afterUpdate = () => {
+        if (buildLayout && this.data.nodes.length > 0) {
+          wx.nextTick(() => this._buildLayout())
+        }
+      }
+      if (graphWidth !== this.data.graphWidth || graphHeight !== this.data.graphHeight) {
+        this.setData({ graphWidth, graphHeight }, afterUpdate)
+      } else {
+        afterUpdate()
+      }
+    },
+
     _buildLayout() {
-      const { nodes, links, graphSize, myUserId } = this.data
+      const { nodes, graphWidth, graphHeight, myUserId } = this.data
       const n = nodes.length
       if (n === 0) return
 
-      const cx = graphSize / 2
-      const cy = graphSize / 2
-      const radius = n <= 2 ? 0 : graphSize * 0.32
+      const cx = graphWidth / 2
+      const cy = graphHeight * (n <= 2 ? 0.42 : 0.48)
+      const radiusX = graphWidth * 0.34
+      const radiusY = Math.min(graphHeight * 0.30, graphWidth * 0.28)
 
       const positionedNodes = nodes.map((node, i) => {
-        const angle = (2 * Math.PI * i) / n - Math.PI / 2
-        const x = cx + radius * Math.cos(angle)
-        const y = cy + radius * Math.sin(angle)
+        let x = cx
+        let y = cy
+        if (n === 2) {
+          x = graphWidth * (i === 0 ? 0.26 : 0.74)
+        } else if (n > 2) {
+          const angle = (2 * Math.PI * i) / n - Math.PI / 2
+          x = cx + radiusX * Math.cos(angle)
+          y = cy + radiusY * Math.sin(angle)
+        }
         const av = getAvatarView(node.nickname, node.avatarUrl)
         return {
           ...node,
@@ -60,8 +92,7 @@ Component({
         }
       })
 
-      this.setData({ positionedNodes, canvasReady: false })
-      this._drawLines()
+      this.setData({ positionedNodes, canvasReady: false }, () => this._drawLines())
     },
 
     _drawLines() {
@@ -74,17 +105,18 @@ Component({
           const canvas = res[0].node
           const ctx = canvas.getContext('2d')
           const dpr = wx.getWindowInfo().pixelRatio
-          const size = this.data.graphSize
+          const width = this.data.graphWidth
+          const height = this.data.graphHeight
 
-          canvas.width = size * dpr
-          canvas.height = size * dpr
+          canvas.width = width * dpr
+          canvas.height = height * dpr
           ctx.scale(dpr, dpr)
-          ctx.clearRect(0, 0, size, size)
+          ctx.clearRect(0, 0, width, height)
 
-          const { nodes, links, positionedNodes } = this.data
+          const { links, positionedNodes } = this.data
           const nodeMap = {}
           positionedNodes.forEach((pn, i) => {
-            nodeMap[String(nodes[i].userId)] = i
+            nodeMap[String(pn.userId)] = i
           })
 
           for (const link of links) {
@@ -178,21 +210,6 @@ Component({
       }
 
       this.setData({ selectedNode: idx, nodeDetails: details })
-    },
-
-    toggleExpand() {
-      const expanded = !this.data.expanded
-      this.setData({ expanded })
-      if (expanded && this.data.nodes.length > 0) {
-        // 延迟一帧确保 wx:if 渲染完毕，canvas 已在 DOM 中
-        wx.nextTick(() => {
-          if (this.data.positionedNodes.length === 0) {
-            this._buildLayout()
-          } else {
-            this._drawLines()
-          }
-        })
-      }
     },
 
     onAvatarError(e) {

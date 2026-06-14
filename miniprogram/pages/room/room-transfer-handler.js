@@ -7,6 +7,59 @@ const { vibrateShort } = require('../../utils/haptic');
 const scoreService = require('../../services/score-service');
 const { createRequestId } = require('../../utils/request');
 const app = getApp();
+const ODOMETER_ROW_HEIGHT = 52;
+
+function buildDigitSequence(oldDigit, newDigit, direction) {
+  const from = Number(oldDigit);
+  const to = Number(newDigit);
+  if (Number.isNaN(from) || Number.isNaN(to)) return [newDigit];
+  if (from === to) return [String(to)];
+
+  const values = [String(from)];
+  let current = from;
+  for (let i = 0; i < 10 && current !== to; i++) {
+    current = direction === 'loss'
+      ? (current + 9) % 10
+      : (current + 1) % 10;
+    values.push(String(current));
+  }
+  return values;
+}
+
+function buildOdometerColumns(oldValue, newValue, direction) {
+  const oldText = String(oldValue == null ? '' : oldValue);
+  const newText = String(newValue == null ? '' : newValue);
+  const width = Math.max(oldText.length, newText.length);
+  const oldChars = oldText.padStart(width, ' ').split('');
+  const newChars = newText.padStart(width, ' ').split('');
+
+  return newChars.map((newChar, index) => {
+    const oldChar = oldChars[index];
+    const numeric = /\d/.test(oldChar) && /\d/.test(newChar);
+    if (!numeric) {
+      return {
+        id: `symbol-${index}`,
+        numeric: false,
+        values: [newChar === ' ' ? '' : newChar],
+        offset: 0,
+        targetOffset: 0,
+        animated: false
+      };
+    }
+
+    const sequence = buildDigitSequence(oldChar, newChar, direction);
+    const values = direction === 'loss' ? sequence.slice().reverse() : sequence;
+    const finalOffset = (values.length - 1) * ODOMETER_ROW_HEIGHT;
+    return {
+      id: `digit-${index}`,
+      numeric: true,
+      values,
+      offset: direction === 'loss' ? finalOffset : 0,
+      targetOffset: direction === 'loss' ? 0 : finalOffset,
+      animated: false
+    };
+  });
+}
 
 const roomTransferHandler = {
   onTapMember(e) {
@@ -134,28 +187,74 @@ const roomTransferHandler = {
     this.setData({ submitting: false, numpadLaunching: false });
   },
 
-  triggerPulseReadoutRoll(nextDisplay) {
+  triggerPulseReadoutRoll(nextDisplay, direction) {
     if (this._pulseReadoutTimer) {
       clearTimeout(this._pulseReadoutTimer);
       this._pulseReadoutTimer = null;
     }
-    this.setData({ pulseReadoutRolling: false }, () => {
+    const oldDisplay = this.data.pulseReadoutDisplay ||
+      ((this.data.cockpitView || {}).selfPulseDisplay || '0');
+    const resolvedDisplay = nextDisplay === undefined || nextDisplay === null
+      ? ((this.data.cockpitView || {}).selfPulseDisplay || '0')
+      : String(nextDisplay);
+    const resolvedDirection = direction === 'loss' ? 'loss' : 'gain';
+    const columns = buildOdometerColumns(oldDisplay, resolvedDisplay, resolvedDirection);
+
+    this.setData({
+      pulseReadoutRolling: false,
+      pulseReadoutDirection: '',
+      pulseReadoutColumns: columns,
+      pulseReadoutDisplay: resolvedDisplay
+    }, () => {
       wx.nextTick(() => {
         if (this._destroyed) return;
         this.setData({
           pulseReadoutRolling: true,
-          pulseReadoutDisplay: nextDisplay === undefined || nextDisplay === null
-            ? ((this.data.cockpitView || {}).selfPulseDisplay || '')
-            : String(nextDisplay)
+          pulseReadoutDirection: resolvedDirection,
+          pulseReadoutColumns: columns.map(column => ({
+            ...column,
+            animated: column.numeric && column.values.length > 1,
+            offset: column.targetOffset
+          }))
         });
         this._pulseReadoutTimer = setTimeout(() => {
           if (this._destroyed) return;
           this.setData({
             pulseReadoutRolling: false,
-            pulseReadoutDisplay: ''
+            pulseReadoutDisplay: '',
+            pulseReadoutDirection: '',
+            pulseReadoutColumns: []
           });
           this._pulseReadoutTimer = null;
-        }, 920);
+        }, 760);
+      });
+    });
+  },
+
+  triggerContactTransferFx(userId, role) {
+    if (!userId || !app.globalData.animationEnabled) return;
+    if (this._contactFxTimer) {
+      clearTimeout(this._contactFxTimer);
+      this._contactFxTimer = null;
+    }
+    this.setData({
+      contactFxUserId: '',
+      contactFxRole: ''
+    }, () => {
+      wx.nextTick(() => {
+        if (this._destroyed) return;
+        this.setData({
+          contactFxUserId: String(userId),
+          contactFxRole: role === 'sending' ? 'sending' : 'receiving'
+        });
+        this._contactFxTimer = setTimeout(() => {
+          if (this._destroyed) return;
+          this.setData({
+            contactFxUserId: '',
+            contactFxRole: ''
+          });
+          this._contactFxTimer = null;
+        }, 980);
       });
     });
   },
@@ -202,12 +301,13 @@ const roomTransferHandler = {
       this._animatingScores[fromUserId] = fromMember ? fromMember.displayScore : 0;
       this._animatingScores[transferTo] = toMember ? toMember.displayScore : 0;
       this._optimisticScoreUpdate(fromUserId, transferTo, amount);
+      this.triggerContactTransferFx(transferTo, 'receiving');
 
       this.playTransferAnimation(fromUserId, transferTo, amount, () => {
         this.cancelTransfer(true);
         this.appendLocalTransferRecord(fromUserId, transferTo, amount);
         this.buildMemberGrid();
-        this.triggerPulseReadoutRoll(this.formatPulseValue(this.getLocalScore(fromUserId)));
+        this.triggerPulseReadoutRoll(this.formatPulseValue(this.getLocalScore(fromUserId)), 'loss');
         this.releaseTransferSubmission();
       });
 

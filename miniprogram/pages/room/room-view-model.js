@@ -230,6 +230,7 @@ function buildTerminalLogEntries(pulseTraces = [], maxEntries = 50) {
       ? (numericValue > 0 ? 'is-positive' : numericValue < 0 ? 'is-negative' : 'is-neutral')
       : (trace.valueClass || '');
     const value = rawValue.replace(/^[+-]\s*/, '');
+    const myRole = trace.myRole === 'from' || trace.myRole === 'to' ? trace.myRole : '';
     return {
       id: trace.id,
       time,
@@ -239,6 +240,7 @@ function buildTerminalLogEntries(pulseTraces = [], maxEntries = 50) {
       toName: formatCrewName(trace.toName || titleParts[1] || '成员'),
       value,
       valueClass,
+      myRole,
       isMine: !!trace.isMine,
       isNew: !!trace.isNew
     };

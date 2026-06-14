@@ -1,0 +1,2360 @@
+/* ===== 编队页最终布局：第一人称 HUD + 底部控制台 ===== */
+.room-page--active {
+  min-height: 100vh;
+  height: 100vh;
+  padding-bottom: var(--sr-tabbar-safe-height, calc(140rpx + env(safe-area-inset-bottom))) !important;
+  overflow: hidden;
+}
+
+.room-page--active .room-custom-nav {
+  margin-bottom: 0;
+  background: rgba(2, 8, 16, 0.76);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.10);
+}
+
+.room-page--active .room-custom-nav::after {
+  display: none;
+}
+
+.room-page--active .room-custom-nav__bar {
+  justify-content: flex-start;
+  padding: 0 32rpx;
+}
+
+.room-page--active .cockpit-nav-hud {
+  max-width: calc(100% - 190rpx);
+  gap: 14rpx;
+}
+
+.room-page--active .cockpit-nav-hud__link {
+  color: rgba(204, 231, 242, 0.68);
+  font-size: 20rpx;
+}
+
+.room-page--active .cockpit-nav-hud__formation {
+  overflow: hidden;
+}
+
+.room-page--active .cockpit-nav-hud__code {
+  font-family: Menlo, monospace;
+  font-size: 20rpx;
+}
+
+.room-page--active .cockpit-nav-hud__crew {
+  font-size: 18rpx;
+}
+
+.room-page--active .cockpit-active {
+  position: relative;
+  width: auto;
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #02070d;
+}
+
+.room-page--active .cockpit-active-screen {
+  position: relative;
+  inset: auto;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0 12rpx;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.room-page--active .cockpit-hud-zone {
+  position: absolute;
+  top: 0;
+  right: 12rpx;
+  bottom: 168rpx;
+  left: 12rpx;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none !important;
+  overflow: hidden;
+  border: 1rpx solid rgba(0, 200, 255, 0.16);
+  border-bottom: none;
+  clip-path: none;
+}
+
+.room-page--active .main-hud-row {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 12;
+  padding: 12rpx 22rpx 0;
+}
+
+.room-page--active .main-hud-tag {
+  padding: 6rpx 14rpx;
+  background: rgba(1, 10, 18, 0.62);
+}
+
+.room-page--active .observation-zone {
+  position: absolute !important;
+  top: 62rpx !important;
+  right: 26rpx;
+  bottom: 126rpx;
+  left: 26rpx;
+  width: auto;
+  height: auto !important;
+  overflow: visible;
+}
+
+.room-page--active .pulse-instrument {
+  bottom: -2rpx !important;
+  z-index: 14;
+  transform: translateX(-50%) scale(0.82);
+  transform-origin: center bottom;
+}
+
+.room-page--active .cockpit-dashboard-lip {
+  bottom: 0;
+}
+
+.room-page--active .cockpit-console-v2,
+.room-page--active .output-terminal {
+  position: absolute;
+  bottom: 0;
+  z-index: 30;
+  height: 168rpx;
+  min-height: 0;
+  max-height: none !important;
+  box-sizing: border-box;
+}
+
+.room-page--active .output-terminal {
+  left: 12rpx;
+  width: 42%;
+  margin: 0 !important;
+  padding: 12rpx 12rpx 8rpx;
+  background:
+    linear-gradient(180deg, rgba(5, 18, 29, 0.96), rgba(1, 7, 12, 0.99));
+  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  border-left: 3rpx solid rgba(0, 200, 255, 0.42);
+  clip-path: polygon(0 14rpx, 12rpx 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.room-page--active .terminal-entries {
+  flex: 1;
+  min-height: 0;
+}
+
+.room-page--active .terminal-entry {
+  min-height: 30rpx;
+  font-size: 16rpx;
+  line-height: 30rpx;
+}
+
+.room-page--active .terminal-entry__time {
+  font-size: 13rpx;
+}
+
+.room-page--active .terminal-entry__value {
+  font-size: 16rpx;
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 12rpx;
+  width: calc(58% - 4rpx);
+  padding: 18rpx 16rpx 12rpx !important;
+  background:
+    linear-gradient(180deg, rgba(19, 37, 50, 0.98), rgba(5, 12, 18, 0.99) 42%, #020507 100%) !important;
+  border: 1rpx solid rgba(92, 164, 196, 0.22) !important;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.25) !important;
+  clip-path: polygon(12rpx 0, 100% 14rpx, 100% 100%, 0 100%, 0 14rpx);
+  box-shadow: 0 -12rpx 30rpx rgba(0, 0, 0, 0.70) !important;
+}
+
+.room-page--active .ccv2-panel {
+  height: 100%;
+  gap: 6rpx;
+}
+
+.room-page--active .ccv2-divider {
+  width: 1rpx;
+  height: 74%;
+}
+
+.room-page--active .ccv2-btn {
+  height: 100% !important;
+  min-height: 0;
+  padding: 18rpx 4rpx 10rpx;
+  background:
+    linear-gradient(180deg, rgba(24, 44, 57, 0.94), rgba(5, 12, 17, 0.99)) !important;
+  border: 1rpx solid rgba(89, 147, 172, 0.26);
+  border-bottom: 5rpx solid rgba(0, 0, 0, 0.86);
+  border-radius: 4rpx !important;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.room-page--active .ccv2-btn__indicator {
+  width: 22rpx !important;
+  height: 4rpx !important;
+  margin-bottom: 12rpx !important;
+  border-radius: 2rpx !important;
+}
+
+.room-page--active .ccv2-btn__label {
+  font-size: 24rpx;
+  letter-spacing: 2rpx;
+}
+
+.room-page--active .ccv2-btn--press {
+  transform: translateY(3rpx) !important;
+}
+
+/* ===== 控制台三段式：信标 / 最近脉冲 / 航迹 ===== */
+.room-page--active .cockpit-hud-zone {
+  bottom: 178rpx;
+}
+
+.room-page--active .observation-zone {
+  top: 18rpx !important;
+}
+
+.room-page--active .main-hud-row {
+  display: none;
+}
+
+.room-page--active .output-terminal {
+  display: none;
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 12rpx;
+  left: 12rpx;
+  width: auto;
+  height: 178rpx;
+  padding: 14rpx 16rpx 12rpx !important;
+  clip-path: polygon(18rpx 0, calc(100% - 18rpx) 0, 100% 16rpx, 100% 100%, 0 100%, 0 16rpx);
+}
+
+.room-page--active .ccv2-panel {
+  display: grid;
+  grid-template-columns: 116rpx minmax(0, 1fr) 116rpx;
+  align-items: stretch;
+  gap: 10rpx;
+}
+
+.room-page--active .ccv2-btn {
+  width: 116rpx;
+  height: 100% !important;
+  padding: 20rpx 4rpx 12rpx;
+}
+
+.room-page--active .ccv2-btn__indicator {
+  margin-bottom: 16rpx !important;
+}
+
+.room-page--active .ccv2-btn__label {
+  font-size: 25rpx;
+}
+
+.console-pulse-log {
+  position: relative;
+  min-width: 0;
+  padding: 12rpx 14rpx 10rpx;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.025) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.02) 1rpx, transparent 1rpx),
+    rgba(1, 8, 14, 0.90);
+  background-size: 18rpx 18rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  clip-path: polygon(10rpx 0, calc(100% - 10rpx) 0, 100% 10rpx, 100% 100%, 0 100%, 0 10rpx);
+  box-sizing: border-box;
+}
+
+.console-pulse-log::after {
+  position: absolute;
+  right: 12%;
+  bottom: 0;
+  left: 12%;
+  height: 1rpx;
+  content: '';
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.46), transparent);
+}
+
+.console-pulse-log__head {
+  height: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.10);
+}
+
+.console-pulse-log__title {
+  color: rgba(207, 235, 246, 0.62);
+  font-size: 17rpx;
+  font-weight: 650;
+  letter-spacing: 1rpx;
+}
+
+.console-pulse-log__filter {
+  padding: 3rpx 8rpx;
+  color: rgba(0, 200, 255, 0.66);
+  font-size: 14rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  border-radius: 3rpx;
+}
+
+.console-pulse-log__list {
+  padding-top: 5rpx;
+}
+
+.console-pulse-log__item {
+  height: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 0 6rpx;
+  color: rgba(170, 203, 216, 0.46);
+  font-size: 15rpx;
+  box-sizing: border-box;
+  border-left: 2rpx solid transparent;
+}
+
+.console-pulse-log__item--mine {
+  color: rgba(220, 243, 251, 0.84);
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.11), transparent);
+  border-left-color: rgba(0, 200, 255, 0.72);
+}
+
+.console-pulse-log__route {
+  min-width: 0;
+  max-width: calc(100% - 96rpx);
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.console-pulse-log__value {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  color: rgba(205, 232, 242, 0.62);
+  font-family: Menlo, monospace;
+  font-size: 16rpx;
+  font-weight: 700;
+}
+
+.console-pulse-log__value.is-positive {
+  color: #32D74B;
+}
+
+.console-pulse-log__value.is-negative {
+  color: #FF9F0A;
+}
+
+.console-pulse-log__empty {
+  height: 94rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(126, 174, 194, 0.30);
+  font-size: 16rpx;
+  letter-spacing: 2rpx;
+}
+
+/* 无标题栏的脉冲详情面板 */
+
+
+/* ===== 座舱 AR 统一视觉 ===== */
+.room-page--active .pulse-instrument {
+  bottom: -12rpx !important;
+  transform: translateX(-50%) scale(0.88);
+}
+
+.room-page--active .pulse-instrument__title {
+  display: none;
+}
+
+.room-page--active .pulse-instrument__value {
+  top: 44rpx;
+  margin: 0;
+  font-size: 58rpx;
+  line-height: 58rpx;
+}
+
+.room-page--active .pulse-instrument__status {
+  top: 108rpx;
+  margin: 0;
+}
+
+.room-page--active .pulse-instrument__dot {
+  width: 7rpx;
+  height: 7rpx;
+}
+
+.room-page--active .cockpit-console-v2 {
+  overflow: visible;
+  background:
+    radial-gradient(ellipse 34% 90% at 50% 0, rgba(0, 175, 255, 0.075), transparent 70%),
+    linear-gradient(180deg, rgba(13, 30, 42, 0.98), rgba(3, 9, 14, 0.995)) !important;
+  border-top-color: rgba(0, 200, 255, 0.20) !important;
+}
+
+.room-page--active .cockpit-console-v2::before {
+  position: absolute;
+  top: -42rpx;
+  left: 50%;
+  width: 300rpx;
+  height: 58rpx;
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.22);
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, rgba(5, 18, 27, 0.56), rgba(5, 18, 27, 0));
+  box-shadow: 0 -8rpx 24rpx rgba(0, 175, 255, 0.045);
+}
+
+.room-page--active .ccv2-btn {
+  background:
+    linear-gradient(180deg, rgba(18, 39, 51, 0.78), rgba(3, 10, 15, 0.96)) !important;
+  border-color: rgba(78, 145, 174, 0.20);
+  border-bottom-color: rgba(0, 0, 0, 0.72);
+  clip-path: polygon(10rpx 0, calc(100% - 10rpx) 0, 100% 10rpx, 100% 100%, 0 100%, 0 10rpx);
+}
+
+.console-pulse-log {
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.018) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.015) 1rpx, transparent 1rpx),
+    rgba(1, 7, 12, 0.72);
+  background-size: 18rpx 18rpx;
+  border-color: rgba(0, 200, 255, 0.12);
+}
+
+/* 脉冲记录：悬浮于实景前方的单层数据流 */
+
+
+/* 信标：仅保留识别核心 */
+.beacon-overlay {
+  padding: 48rpx;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(0, 145, 210, 0.13), transparent 34%),
+    rgba(0, 3, 7, 0.60);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.beacon-panel {
+  width: auto;
+  min-width: 410rpx;
+  max-width: 500rpx;
+  padding: 58rpx 30rpx 22rpx;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(0, 175, 255, 0.08), transparent 55%),
+    rgba(1, 10, 16, 0.70);
+  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  box-shadow:
+    inset 0 0 54rpx rgba(0, 175, 255, 0.035),
+    0 24rpx 70rpx rgba(0, 0, 0, 0.48);
+}
+
+.beacon-panel__head,
+.beacon-code-label,
+.beacon-copy-btn,
+.beacon-bottom-bar {
+  display: none;
+}
+
+.beacon-panel__close {
+  top: 10rpx;
+  right: 10rpx;
+  width: 42rpx;
+  height: 42rpx;
+  background: transparent;
+  border-color: rgba(0, 200, 255, 0.12);
+}
+
+.beacon-code-row {
+  margin: 0 0 12rpx;
+  padding: 0;
+  align-items: center;
+  border: none;
+}
+
+.beacon-code-value {
+  font-size: 34rpx;
+  line-height: 42rpx;
+  letter-spacing: 8rpx;
+}
+
+.beacon-qr-section {
+  margin: 0;
+}
+
+.beacon-qr-frame {
+  width: 300rpx;
+  height: 300rpx;
+  padding: 12rpx;
+}
+
+.beacon-manage-entry {
+  height: 38rpx;
+  margin-top: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  color: rgba(255, 126, 118, 0.30);
+  font-size: 16rpx;
+}
+
+.beacon-manage-entry__dot {
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: rgba(255, 69, 58, 0.38);
+}
+
+/* ===== 弧形投影控制台 ===== */
+.room-page--active .pulse-instrument {
+  display: none !important;
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 8rpx;
+  left: 8rpx;
+  width: auto;
+  height: 190rpx;
+  padding: 34rpx 18rpx 10rpx !important;
+  overflow: hidden;
+  clip-path: none;
+  border: 0 !important;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.22) !important;
+  border-radius: 50% 50% 0 0 / 54rpx 54rpx 0 0;
+  background:
+    radial-gradient(ellipse 48% 82% at 50% 0, rgba(0, 175, 255, 0.11), transparent 72%),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.04), transparent 18%, transparent 82%, rgba(0, 200, 255, 0.04)),
+    linear-gradient(180deg, rgba(9, 26, 37, 0.94), rgba(1, 7, 11, 0.99) 72%) !important;
+  box-shadow:
+    0 -16rpx 42rpx rgba(0, 0, 0, 0.70),
+    inset 0 18rpx 34rpx rgba(0, 175, 255, 0.025) !important;
+}
+
+.room-page--active .cockpit-console-v2::before {
+  position: absolute;
+  top: 10rpx;
+  right: 12rpx;
+  left: 12rpx;
+  display: block;
+  height: 58rpx;
+  content: '';
+  pointer-events: none;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.17);
+  border-radius: 50% 50% 0 0 / 42rpx 42rpx 0 0;
+  background: radial-gradient(ellipse at 50% 0, rgba(0, 200, 255, 0.055), transparent 68%);
+}
+
+.room-page--active .cockpit-console-v2::after {
+  position: absolute;
+  right: 18%;
+  bottom: 7rpx;
+  left: 18%;
+  height: 1rpx;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.18), transparent);
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 176rpx;
+}
+
+.room-page--active .ccv2-rail {
+  display: none;
+}
+
+.room-page--active .ccv2-panel {
+  position: relative;
+  z-index: 2;
+  grid-template-columns: 110rpx minmax(0, 1fr) 110rpx;
+  align-items: stretch;
+  gap: 8rpx;
+}
+
+.room-page--active .ccv2-btn {
+  position: relative;
+  width: 110rpx;
+  height: 126rpx !important;
+  align-self: end;
+  padding: 20rpx 4rpx 8rpx;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 50% !important;
+  clip-path: none;
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(0, 175, 255, 0.09), transparent 62%) !important;
+  box-shadow: none !important;
+}
+
+.room-page--active .ccv2-btn::before {
+  position: absolute;
+  top: 20rpx;
+  left: 50%;
+  width: 90rpx;
+  height: 66rpx;
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.46);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.15);
+  border-left: 1rpx solid rgba(0, 200, 255, 0.15);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 10rpx 22rpx rgba(0, 175, 255, 0.04),
+    0 -4rpx 14rpx rgba(0, 175, 255, 0.07);
+}
+
+.room-page--active .ccv2-btn::after {
+  position: absolute;
+  bottom: 16rpx;
+  left: 50%;
+  width: 64rpx;
+  height: 1rpx;
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.50), transparent);
+}
+
+.room-page--active .ccv2-btn--beacon {
+  transform: rotate(-4deg) translateY(5rpx);
+}
+
+.room-page--active .ccv2-btn--trace {
+  transform: rotate(4deg) translateY(5rpx);
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(48, 209, 88, 0.075), transparent 62%) !important;
+}
+
+.room-page--active .ccv2-btn--trace::before {
+  border-top-color: rgba(48, 209, 88, 0.42);
+  border-right-color: rgba(48, 209, 88, 0.13);
+  border-left-color: rgba(48, 209, 88, 0.13);
+  box-shadow:
+    inset 0 10rpx 22rpx rgba(48, 209, 88, 0.035),
+    0 -4rpx 14rpx rgba(48, 209, 88, 0.055);
+}
+
+.room-page--active .ccv2-btn--trace::after {
+  background: linear-gradient(90deg, transparent, rgba(48, 209, 88, 0.48), transparent);
+}
+
+.room-page--active .ccv2-btn__body {
+  gap: 7rpx;
+  text-shadow: 0 0 12rpx rgba(0, 175, 255, 0.20);
+}
+
+.room-page--active .ccv2-btn__glow {
+  display: none;
+}
+
+.room-page--active .ccv2-btn__indicator {
+  width: 28rpx !important;
+  height: 3rpx !important;
+  margin-bottom: 8rpx !important;
+  opacity: 0.92;
+}
+
+.room-page--active .ccv2-btn__label {
+  color: rgba(210, 241, 252, 0.88);
+  font-size: 26rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+}
+
+.room-page--active .ccv2-btn--press,
+.room-page--active .ccv2-btn--beacon.ccv2-btn--press,
+.room-page--active .ccv2-btn--trace.ccv2-btn--press {
+  transform: scale(0.94) translateY(5rpx) !important;
+  filter: brightness(1.35);
+}
+
+.console-pulse-log {
+  height: 142rpx;
+  align-self: end;
+  padding: 8rpx 10rpx 7rpx;
+  overflow: hidden;
+  border: 0;
+  clip-path: none;
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.012) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.01) 1rpx, transparent 1rpx),
+    radial-gradient(ellipse at 50% 12%, rgba(0, 175, 255, 0.065), transparent 68%);
+  background-size: 20rpx 20rpx, 20rpx 20rpx, auto;
+  box-shadow: none;
+}
+
+.console-pulse-log::before {
+  position: absolute;
+  top: 38rpx;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 14rpx;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(2, 12, 18, 0.92), transparent);
+}
+
+.console-pulse-readout {
+  position: absolute;
+  top: -2rpx;
+  left: 50%;
+  z-index: 4;
+  width: 220rpx;
+  height: 46rpx;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.20);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.07) 18%, rgba(0, 200, 255, 0.07) 82%, transparent),
+    radial-gradient(ellipse at 50% 58%, rgba(0, 175, 255, 0.12), transparent 68%);
+  pointer-events: none;
+}
+
+.console-pulse-readout::before,
+.console-pulse-readout::after {
+  position: absolute;
+  top: 9rpx;
+  width: 1rpx;
+  height: 24rpx;
+  content: '';
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.48), transparent);
+}
+
+.console-pulse-readout::before {
+  left: 42rpx;
+}
+
+.console-pulse-readout::after {
+  right: 42rpx;
+}
+
+.console-pulse-readout__digits {
+  width: 152rpx;
+  height: 38rpx;
+  overflow: hidden;
+}
+
+.console-pulse-readout__digit-track {
+  height: 114rpx;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-38rpx);
+}
+
+.console-pulse-readout__digit-track text {
+  flex-shrink: 0;
+  height: 38rpx;
+  color: rgba(226, 244, 252, 0.96);
+  font-family: Menlo, monospace;
+  font-size: 31rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+  text-align: center;
+  letter-spacing: 1rpx;
+  text-shadow:
+    0 0 6rpx rgba(0, 200, 255, 0.34),
+    0 0 18rpx rgba(0, 175, 255, 0.13);
+}
+
+.console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 27rpx;
+  letter-spacing: 0;
+}
+
+.console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 23rpx;
+  letter-spacing: -1rpx;
+}
+
+.console-pulse-readout.is-rolling .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.console-pulse-readout.is-positive .console-pulse-readout__digit-track text {
+  color: #32D74B;
+}
+
+.console-pulse-readout.is-negative .console-pulse-readout__digit-track text {
+  color: #FF9F0A;
+}
+
+.console-pulse-readout__ticks {
+  position: absolute;
+  top: 18rpx;
+  width: 34rpx;
+  height: 8rpx;
+  opacity: 0.62;
+  background: repeating-linear-gradient(90deg, rgba(0, 200, 255, 0.58) 0 2rpx, transparent 2rpx 7rpx);
+}
+
+.console-pulse-readout__ticks--left {
+  left: 2rpx;
+}
+
+.console-pulse-readout__ticks--right {
+  right: 2rpx;
+  transform: scaleX(-1);
+}
+
+.console-pulse-readout__dot {
+  position: absolute;
+  bottom: 1rpx;
+  left: 50%;
+  width: 5rpx;
+  height: 5rpx;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #32D74B;
+  box-shadow: 0 0 8rpx rgba(50, 215, 75, 0.68);
+}
+
+.console-pulse-log__list {
+  position: absolute;
+  inset: 0 10rpx;
+  padding-top: 40rpx;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.console-pulse-log__item {
+  position: relative;
+  height: 26rpx;
+  min-height: 26rpx;
+  padding-right: 5rpx;
+  padding-left: 5rpx;
+  color: rgba(167, 211, 226, 0.38);
+  background: transparent;
+  transform-origin: left center;
+}
+
+.console-pulse-log__item--new {
+  color: rgba(207, 239, 249, 0.80);
+  animation: pulse-stream-write 760ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(1) {
+  animation: pulse-stream-rise-old 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(2) {
+  animation: pulse-stream-rise-mid 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(3) {
+  animation: pulse-stream-rise-new 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item--new:nth-child(1),
+.console-pulse-log__item--new:nth-child(2),
+.console-pulse-log__item--new:nth-child(3) {
+  animation: pulse-stream-write 760ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+
+.console-pulse-log__item--new::after {
+  position: absolute;
+  top: 3rpx;
+  bottom: 3rpx;
+  left: 0;
+  width: 2rpx;
+  content: '';
+  background: #00C8FF;
+  box-shadow: 0 0 12rpx rgba(0, 200, 255, 0.78);
+}
+
+.console-pulse-log__empty {
+  position: absolute;
+  inset: 0 10rpx;
+  padding-top: 40rpx;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 30%, rgba(0, 175, 255, 0.025), transparent 72%);
+}
+
+.console-pulse-log__idle-line {
+  width: 42%;
+  height: 1rpx;
+  margin: 28rpx auto 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.22), transparent);
+  animation: pulse-idle-scan 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-readout-roll {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.28;
+  }
+  56% {
+    transform: translateY(-76rpx);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-38rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-stream-rise-old {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.28;
+  }
+}
+
+@keyframes pulse-stream-rise-mid {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0.16;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.62;
+  }
+}
+
+@keyframes pulse-stream-rise-new {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0.34;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.94;
+  }
+}
+
+@keyframes pulse-stream-write {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    transform: translateY(25rpx);
+    opacity: 0;
+  }
+  38% {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+    opacity: 0.92;
+  }
+}
+
+@keyframes pulse-idle-scan {
+  0%,
+  100% {
+    transform: scaleX(0.45);
+    opacity: 0.28;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.75;
+  }
+}
+
+/* 脉冲记录：收发方向配色，底部短线关闭 */
+
+
+/* 控制台：主读数舱与遥测流分层 */
+.room-page--active .console-pulse-log {
+  height: 150rpx;
+  padding: 8rpx 8rpx 6rpx;
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.022) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.018) 1rpx, transparent 1rpx),
+    radial-gradient(ellipse 72% 54% at 50% 0, rgba(0, 175, 255, 0.12), transparent 72%),
+    linear-gradient(180deg, rgba(2, 16, 24, 0.90), rgba(0, 6, 10, 0.96));
+  background-size: 18rpx 18rpx, 18rpx 18rpx, auto, auto;
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 49rpx;
+  height: 15rpx;
+  background: linear-gradient(180deg, rgba(1, 12, 18, 0.96), rgba(1, 12, 18, 0.44), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 9%;
+  bottom: 2rpx;
+  left: 9%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.18) 20%, rgba(0, 200, 255, 0.52) 50%, rgba(0, 200, 255, 0.18) 80%, transparent);
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.12);
+}
+
+.room-page--active .console-pulse-readout {
+  top: 0;
+  width: 228rpx;
+  height: 46rpx;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.16);
+  border-bottom-color: rgba(0, 200, 255, 0.32);
+  clip-path: polygon(18rpx 0, calc(100% - 18rpx) 0, 100% 12rpx, calc(100% - 12rpx) 100%, 12rpx 100%, 0 12rpx);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.09) 22%, rgba(0, 200, 255, 0.09) 78%, transparent),
+    radial-gradient(ellipse at 50% 45%, rgba(0, 175, 255, 0.18), transparent 72%);
+  box-shadow:
+    inset 0 -8rpx 18rpx rgba(0, 175, 255, 0.035),
+    0 8rpx 20rpx rgba(0, 0, 0, 0.26);
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  width: 40rpx;
+  opacity: 0.72;
+  background: repeating-linear-gradient(90deg, rgba(0, 214, 255, 0.70) 0 2rpx, transparent 2rpx 7rpx);
+}
+
+.room-page--active .console-pulse-readout__ticks--left {
+  left: 8rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks--right {
+  right: 8rpx;
+}
+
+.room-page--active .console-pulse-readout__dot {
+  bottom: 0;
+  width: 4rpx;
+  height: 4rpx;
+  background: #39E6C0;
+  box-shadow: 0 0 10rpx rgba(57, 230, 192, 0.72);
+}
+
+.room-page--active .console-pulse-readout.is-positive .console-pulse-readout__digit-track text {
+  color: #39E6C0;
+  text-shadow: 0 0 8rpx rgba(57, 230, 192, 0.36), 0 0 22rpx rgba(57, 230, 192, 0.14);
+}
+
+.room-page--active .console-pulse-readout.is-negative .console-pulse-readout__digit-track text {
+  color: #FF6473;
+  text-shadow: 0 0 8rpx rgba(255, 100, 115, 0.34), 0 0 22rpx rgba(255, 100, 115, 0.12);
+}
+
+.room-page--active .console-pulse-log__list {
+  inset: 0 8rpx;
+  padding-top: 58rpx;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 25rpx;
+  min-height: 25rpx;
+  justify-content: center;
+  font-size: 15rpx;
+  color: rgba(133, 157, 168, 0.40);
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 88rpx);
+  color: inherit;
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 10rpx;
+  color: inherit;
+  font-size: 16rpx;
+  text-shadow: none;
+}
+
+.room-page--active .console-pulse-log__item--gain {
+  color: rgba(57, 230, 192, 0.92);
+}
+
+.room-page--active .console-pulse-log__item--gain .console-pulse-log__value {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.28);
+}
+
+.room-page--active .console-pulse-log__item--loss {
+  color: rgba(255, 126, 138, 0.88);
+}
+
+.room-page--active .console-pulse-log__item--loss .console-pulse-log__value {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.26);
+}
+
+.room-page--active .console-pulse-log__item--other {
+  color: rgba(139, 164, 176, 0.38);
+}
+
+.room-page--active .console-pulse-log__item--gain::after {
+  background: #39E6C0;
+  box-shadow: 0 0 12rpx rgba(57, 230, 192, 0.62);
+}
+
+.room-page--active .console-pulse-log__item--loss::after {
+  background: #FF6473;
+  box-shadow: 0 0 12rpx rgba(255, 100, 115, 0.58);
+}
+
+.room-page--active .console-pulse-log__empty {
+  padding-top: 58rpx;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  margin-top: 25rpx;
+}
+
+/* 脉冲记录：本人得分冷青绿，转出警戒红，其他成员蓝灰 */
+
+
+/* 成员航船：头像作为驾驶舱舷窗，外层构成微型舰体 */
+.room-page--active .hud-member {
+  width: 164rpx;
+}
+
+.room-page--active .ship-craft {
+  width: 104rpx;
+  height: 86rpx;
+  transform-origin: center center;
+  filter: drop-shadow(0 8rpx 12rpx rgba(0, 0, 0, 0.42));
+}
+
+.room-page--active .ship-craft.ship-craft--solo {
+  transform: scale(1.20);
+}
+
+.room-page--active .ship-craft.ship-craft--duo {
+  transform: scale(1.10);
+}
+
+.room-page--active .ship-craft.ship-craft--normal {
+  transform: scale(1);
+}
+
+.room-page--active .ship-craft.ship-craft--compact {
+  transform: scale(0.88);
+}
+
+.room-page--active .ship-hull {
+  position: relative;
+  z-index: 3;
+  width: 72rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(0, 200, 255, 0.38);
+  border-radius: 46% 46% 40% 40%;
+  background:
+    linear-gradient(135deg, rgba(197, 239, 252, 0.12), transparent 32%),
+    radial-gradient(circle at 50% 44%, rgba(0, 175, 255, 0.18), rgba(1, 10, 17, 0.96) 72%);
+  box-shadow:
+    inset 0 0 16rpx rgba(0, 175, 255, 0.12),
+    0 0 16rpx rgba(0, 175, 255, 0.10);
+}
+
+.room-page--active .ship-nose {
+  top: -2rpx;
+  z-index: 4;
+  border-right-width: 9rpx;
+  border-bottom: 16rpx solid rgba(131, 224, 249, 0.82);
+  border-left-width: 9rpx;
+  filter: drop-shadow(0 0 6rpx rgba(0, 200, 255, 0.42));
+}
+
+.room-page--active .ship-wing {
+  top: 48%;
+  z-index: 1;
+  width: 34rpx;
+  height: 26rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.28);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(7, 32, 46, 0.92), rgba(0, 175, 255, 0.08));
+  clip-path: polygon(0 62%, 100% 0, 100% 100%, 18% 88%);
+}
+
+.room-page--active .ship-wing--left {
+  left: -1rpx;
+  transform: translateY(-50%) rotate(-8deg);
+}
+
+.room-page--active .ship-wing--right {
+  right: -1rpx;
+  transform: translateY(-50%) rotate(8deg) scaleX(-1);
+}
+
+.room-page--active .ship-thruster {
+  position: absolute;
+  bottom: -5rpx;
+  left: 50%;
+  z-index: 0;
+  width: 26rpx;
+  height: 28rpx;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(0, 200, 255, 0.66), rgba(0, 175, 255, 0.10) 52%, transparent);
+  clip-path: polygon(28% 0, 72% 0, 100% 100%, 50% 70%, 0 100%);
+  opacity: 0.72;
+  filter: drop-shadow(0 8rpx 8rpx rgba(0, 175, 255, 0.30));
+}
+
+.room-page--active .ship-thruster__core {
+  width: 4rpx;
+  height: 20rpx;
+  margin: 2rpx auto 0;
+  background: linear-gradient(180deg, #D8FAFF, #00C8FF 42%, transparent);
+  box-shadow: 0 0 10rpx rgba(0, 200, 255, 0.72);
+}
+
+.room-page--active .ship-craft--offline .ship-thruster {
+  opacity: 0.16;
+  filter: none;
+}
+
+.room-page--active .ship-shield-ring {
+  inset: -6rpx;
+  border-color: rgba(0, 200, 255, 0.22);
+  border-style: dashed;
+}
+
+.room-page--active .hud-member__ring {
+  width: 56rpx;
+  height: 56rpx;
+  border: 2rpx solid rgba(155, 230, 250, 0.48);
+  background: rgba(0, 9, 15, 0.96);
+  box-shadow: inset 0 0 10rpx rgba(0, 175, 255, 0.16);
+}
+
+.room-page--active .ship-online-dot {
+  right: 4rpx;
+  bottom: 7rpx;
+  width: 8rpx;
+  height: 8rpx;
+}
+
+.room-page--active .hud-member__info {
+  margin-top: 7rpx;
+  gap: 0;
+}
+
+.room-page--active .hud-member__name {
+  max-width: 144rpx;
+  overflow: hidden;
+  color: rgba(218, 240, 248, 0.88) !important;
+  font-size: 18rpx !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-page--active .hud-member__score {
+  margin-top: 1rpx;
+  font-size: 20rpx !important;
+}
+
+.room-page--active .hud-member__score.is-positive {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.28);
+}
+
+.room-page--active .hud-member__score.is-negative {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.26);
+}
+
+/* ===== 驾驶舱视觉重制：远景航船标记 + 一体式弧形舰桥 ===== */
+.room-page--active .hud-member {
+  width: 142rpx;
+}
+
+.room-page--active .ship-marker {
+  position: relative;
+  width: 96rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  transition: transform 160ms ease, filter 160ms ease;
+  filter: drop-shadow(0 7rpx 10rpx rgba(0, 0, 0, 0.38));
+}
+
+.room-page--active .ship-marker.ship-craft--solo {
+  transform: scale(1.16);
+}
+
+.room-page--active .ship-marker.ship-craft--duo {
+  transform: scale(1.08);
+}
+
+.room-page--active .ship-marker.ship-craft--normal {
+  transform: scale(1);
+}
+
+.room-page--active .ship-marker.ship-craft--compact {
+  transform: scale(0.88);
+}
+
+.room-page--active .ship-marker__canopy {
+  position: relative;
+  z-index: 4;
+  width: 62rpx;
+  height: 58rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(24% 0, 76% 0, 100% 24%, 88% 82%, 50% 100%, 12% 82%, 0 24%);
+  background:
+    linear-gradient(135deg, rgba(182, 235, 250, 0.15), transparent 32%),
+    linear-gradient(180deg, rgba(5, 25, 37, 0.96), rgba(0, 8, 14, 0.98));
+  border: 1rpx solid rgba(91, 211, 242, 0.48);
+  box-shadow:
+    inset 0 0 14rpx rgba(0, 175, 255, 0.12),
+    0 0 12rpx rgba(0, 175, 255, 0.12);
+}
+
+.room-page--active .ship-marker__wing {
+  position: absolute;
+  top: 34rpx;
+  z-index: 2;
+  width: 30rpx;
+  height: 14rpx;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.44);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.10);
+  background: linear-gradient(180deg, rgba(0, 175, 255, 0.10), transparent);
+}
+
+.room-page--active .ship-marker__wing--left {
+  left: 1rpx;
+  clip-path: polygon(0 72%, 100% 0, 100% 100%, 18% 88%);
+}
+
+.room-page--active .ship-marker__wing--right {
+  right: 1rpx;
+  transform: scaleX(-1);
+  clip-path: polygon(0 72%, 100% 0, 100% 100%, 18% 88%);
+}
+
+.room-page--active .ship-marker__bracket {
+  position: absolute;
+  top: 21rpx;
+  z-index: 1;
+  width: 12rpx;
+  height: 32rpx;
+  opacity: 0.38;
+}
+
+.room-page--active .ship-marker__bracket--left {
+  left: -2rpx;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.58);
+  border-left: 1rpx solid rgba(0, 200, 255, 0.58);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.58);
+}
+
+.room-page--active .ship-marker__bracket--right {
+  right: -2rpx;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.58);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.58);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.58);
+}
+
+.room-page--active .ship-marker__keel {
+  position: absolute;
+  bottom: 3rpx;
+  left: 50%;
+  z-index: 3;
+  width: 16rpx;
+  height: 17rpx;
+  transform: translateX(-50%);
+  clip-path: polygon(22% 0, 78% 0, 100% 100%, 50% 72%, 0 100%);
+  background: linear-gradient(180deg, rgba(0, 200, 255, 0.44), rgba(0, 175, 255, 0.04));
+}
+
+.room-page--active .ship-marker__trail {
+  position: absolute;
+  bottom: -7rpx;
+  left: 50%;
+  width: 3rpx;
+  height: 17rpx;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(208, 249, 255, 0.92), rgba(0, 200, 255, 0.40) 42%, transparent);
+  box-shadow: 0 0 9rpx rgba(0, 200, 255, 0.52);
+  opacity: 0.64;
+}
+
+.room-page--active .ship-marker--offline {
+  opacity: 0.52;
+  filter: grayscale(0.48) drop-shadow(0 7rpx 10rpx rgba(0, 0, 0, 0.34));
+}
+
+.room-page--active .ship-marker--offline .ship-marker__trail {
+  opacity: 0.12;
+}
+
+.room-page--active .ship-marker .hud-member__ring {
+  width: 48rpx;
+  height: 48rpx;
+  border: 1rpx solid rgba(150, 231, 250, 0.42);
+  border-radius: 50%;
+  clip-path: none;
+  background: rgba(0, 7, 12, 0.98);
+}
+
+.room-page--active .ship-marker .ship-online-dot {
+  right: 7rpx;
+  bottom: 9rpx;
+  width: 6rpx;
+  height: 6rpx;
+  border-width: 1rpx;
+}
+
+.room-page--active .hud-member__info {
+  margin-top: 5rpx;
+  gap: 1rpx;
+}
+
+.room-page--active .hud-member__name {
+  max-width: 126rpx;
+  font-size: 17rpx !important;
+  font-weight: 550 !important;
+  letter-spacing: 1rpx;
+}
+
+.room-page--active .hud-member__score {
+  font-size: 19rpx !important;
+  letter-spacing: 0;
+}
+
+.room-page--active .hud-member--impact .ship-marker {
+  transform: scale(1.10);
+  filter: brightness(1.28) drop-shadow(0 0 14rpx rgba(0, 200, 255, 0.24));
+}
+
+.room-page--active .hud-member--tap .ship-marker {
+  transform: scale(0.94);
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 10rpx;
+  left: 10rpx;
+  height: 184rpx;
+  padding: 26rpx 14rpx 8rpx !important;
+  border-top: 1rpx solid rgba(76, 209, 242, 0.34) !important;
+  border-radius: 50% 50% 0 0 / 44rpx 44rpx 0 0;
+  background:
+    radial-gradient(ellipse 54% 76% at 50% -4%, rgba(0, 175, 255, 0.13), transparent 62%),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.035), transparent 20%, transparent 80%, rgba(48, 209, 88, 0.025)),
+    linear-gradient(180deg, rgba(5, 21, 31, 0.96), rgba(0, 6, 10, 0.99) 74%) !important;
+  box-shadow:
+    0 -14rpx 36rpx rgba(0, 0, 0, 0.66),
+    inset 0 14rpx 30rpx rgba(0, 175, 255, 0.035) !important;
+}
+
+.room-page--active .cockpit-console-v2::before {
+  top: 8rpx;
+  right: 10rpx;
+  left: 10rpx;
+  height: 46rpx;
+  border-top-color: rgba(0, 200, 255, 0.13);
+  border-radius: 50% 50% 0 0 / 34rpx 34rpx 0 0;
+  background: radial-gradient(ellipse at 50% 0, rgba(0, 200, 255, 0.055), transparent 62%);
+}
+
+.room-page--active .ccv2-panel {
+  grid-template-columns: 104rpx minmax(0, 1fr) 104rpx;
+  gap: 4rpx;
+}
+
+.room-page--active .ccv2-btn {
+  width: 104rpx;
+  height: 132rpx !important;
+  padding: 42rpx 3rpx 6rpx;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.room-page--active .ccv2-btn::before {
+  top: 32rpx;
+  width: 82rpx;
+  height: 56rpx;
+  border-right: 0;
+  border-left: 0;
+  border-radius: 50%;
+  opacity: 0.66;
+  box-shadow: none;
+}
+
+.room-page--active .ccv2-btn::after {
+  bottom: 8rpx;
+  width: 54rpx;
+  opacity: 0.42;
+}
+
+.room-page--active .ccv2-btn--beacon {
+  transform: rotate(-3deg) translateY(2rpx);
+}
+
+.room-page--active .ccv2-btn--trace {
+  transform: rotate(3deg) translateY(2rpx);
+  background: transparent !important;
+}
+
+.room-page--active .ccv2-btn__indicator {
+  width: 22rpx !important;
+  height: 2rpx !important;
+  margin-bottom: 7rpx !important;
+}
+
+.room-page--active .ccv2-btn__label {
+  font-size: 23rpx;
+  letter-spacing: 2rpx;
+}
+
+.room-page--active .console-pulse-log {
+  height: 150rpx;
+  padding: 0 7rpx 5rpx;
+  border: 0;
+  background:
+    radial-gradient(ellipse 74% 30% at 50% 10%, rgba(0, 175, 255, 0.07), transparent 74%),
+    linear-gradient(180deg, rgba(1, 12, 18, 0.40), rgba(0, 6, 10, 0.68));
+  box-shadow: inset 0 -1rpx 0 rgba(0, 200, 255, 0.11);
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 57rpx;
+  right: 15%;
+  left: 15%;
+  height: 18rpx;
+  background: linear-gradient(180deg, rgba(0, 8, 13, 0.82), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 12%;
+  bottom: 1rpx;
+  left: 12%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.22), transparent);
+  box-shadow: none;
+}
+
+.room-page--active .console-pulse-readout {
+  top: 2rpx;
+  width: 198rpx;
+  height: 45rpx;
+  clip-path: none;
+  border-top: 0;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.28);
+  background: radial-gradient(ellipse at 50% 72%, rgba(0, 175, 255, 0.11), transparent 70%);
+  box-shadow: none;
+}
+
+.room-page--active .console-pulse-readout::before,
+.room-page--active .console-pulse-readout::after {
+  top: 13rpx;
+  height: 16rpx;
+  opacity: 0.66;
+}
+
+.room-page--active .console-pulse-readout::before {
+  left: 45rpx;
+}
+
+.room-page--active .console-pulse-readout::after {
+  right: 45rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  top: 18rpx;
+  width: 31rpx;
+  height: 7rpx;
+  opacity: 0.48;
+}
+
+.room-page--active .console-pulse-readout__ticks--left {
+  left: 4rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks--right {
+  right: 4rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track text {
+  font-size: 29rpx;
+}
+
+.room-page--active .console-pulse-log__list {
+  inset: 0 8rpx;
+  padding-top: 76rpx;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 22rpx;
+  min-height: 22rpx;
+  padding: 0 3rpx;
+  font-size: 14rpx;
+  opacity: 0.84;
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 82rpx);
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 8rpx;
+  font-size: 15rpx;
+}
+
+.room-page--active .console-pulse-log__item--new::after {
+  top: 5rpx;
+  bottom: 5rpx;
+  width: 1rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  padding-top: 76rpx;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  width: 32%;
+  margin-top: 22rpx;
+}
+
+/* ===== 克制版 HUD：雷达联系人 + 横向遥测带 ===== */
+.room-page--active .hud-member {
+  width: 150rpx;
+}
+
+.room-page--active .contact-marker {
+  position: relative;
+  width: 92rpx;
+  height: 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.room-page--active .contact-marker.ship-craft--solo {
+  transform: scale(1.12);
+}
+
+.room-page--active .contact-marker.ship-craft--duo {
+  transform: scale(1.06);
+}
+
+.room-page--active .contact-marker.ship-craft--normal {
+  transform: scale(1);
+}
+
+.room-page--active .contact-marker.ship-craft--compact {
+  transform: scale(0.90);
+}
+
+.room-page--active .contact-marker__orbit {
+  position: absolute;
+  inset: 5rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.32);
+  border-radius: 50%;
+  box-shadow: 0 0 14rpx rgba(0, 175, 255, 0.08);
+}
+
+.room-page--active .contact-marker__orbit::before,
+.room-page--active .contact-marker__orbit::after {
+  position: absolute;
+  content: '';
+  border-radius: 50%;
+}
+
+.room-page--active .contact-marker__orbit::before {
+  inset: 7rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.12);
+}
+
+.room-page--active .contact-marker__orbit::after {
+  top: -2rpx;
+  left: 50%;
+  width: 4rpx;
+  height: 4rpx;
+  transform: translateX(-50%);
+  background: rgba(0, 200, 255, 0.78);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.52);
+}
+
+.room-page--active .contact-marker__core {
+  position: relative;
+  z-index: 2;
+  width: 64rpx;
+  height: 64rpx;
+  padding: 3rpx;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(154, 229, 247, 0.58);
+  border-radius: 50%;
+  background: rgba(0, 8, 14, 0.96);
+  box-shadow:
+    0 0 0 3rpx rgba(0, 175, 255, 0.055),
+    0 0 16rpx rgba(0, 175, 255, 0.12);
+}
+
+.room-page--active .contact-marker__core .hud-member__avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.room-page--active .contact-marker__tick {
+  position: absolute;
+  top: 50%;
+  width: 18rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.48));
+}
+
+.room-page--active .contact-marker__tick--left {
+  left: -8rpx;
+}
+
+.room-page--active .contact-marker__tick--right {
+  right: -8rpx;
+  transform: scaleX(-1);
+}
+
+.room-page--active .contact-marker__status {
+  position: absolute;
+  right: 10rpx;
+  bottom: 12rpx;
+  z-index: 3;
+  width: 7rpx;
+  height: 7rpx;
+  border: 2rpx solid rgba(0, 8, 14, 0.94);
+  border-radius: 50%;
+  background: rgba(142, 164, 174, 0.46);
+}
+
+.room-page--active .contact-marker__status.is-on {
+  background: #39E6C0;
+  box-shadow: 0 0 8rpx rgba(57, 230, 192, 0.58);
+}
+
+.room-page--active .contact-marker--offline {
+  opacity: 0.48;
+  filter: grayscale(0.42);
+}
+
+.room-page--active .hud-member__info {
+  margin-top: 3rpx;
+}
+
+.room-page--active .hud-member__name {
+  max-width: 138rpx;
+  color: rgba(225, 240, 246, 0.88) !important;
+  font-size: 19rpx !important;
+  font-weight: 600 !important;
+}
+
+.room-page--active .hud-member__score {
+  margin-top: 1rpx;
+  font-size: 20rpx !important;
+}
+
+.room-page--active .hud-member--impact .contact-marker {
+  transform: scale(1.08);
+}
+
+.room-page--active .hud-member--tap .contact-marker {
+  transform: scale(0.94);
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 12rpx;
+  left: 12rpx;
+  height: 158rpx;
+  padding: 24rpx 12rpx 8rpx !important;
+  border-top-color: rgba(0, 200, 255, 0.26) !important;
+  border-radius: 50% 50% 0 0 / 38rpx 38rpx 0 0;
+  background:
+    radial-gradient(ellipse 58% 68% at 50% -8%, rgba(0, 175, 255, 0.10), transparent 66%),
+    linear-gradient(180deg, rgba(4, 18, 27, 0.96), rgba(0, 6, 10, 0.99) 78%) !important;
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 148rpx;
+}
+
+.room-page--active .ccv2-panel {
+  grid-template-columns: 96rpx minmax(0, 1fr) 96rpx;
+  gap: 3rpx;
+}
+
+.room-page--active .ccv2-btn {
+  width: 96rpx;
+  height: 112rpx !important;
+  padding-top: 34rpx;
+}
+
+.room-page--active .ccv2-btn::before {
+  top: 28rpx;
+  width: 72rpx;
+  height: 46rpx;
+}
+
+.room-page--active .ccv2-btn__label {
+  font-size: 22rpx;
+}
+
+.room-page--active .console-pulse-log {
+  height: 112rpx;
+  align-self: end;
+  padding: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(0, 175, 255, 0.025), transparent 28%, transparent 72%, rgba(0, 175, 255, 0.025)),
+    rgba(0, 7, 12, 0.34);
+  box-shadow:
+    inset 0 1rpx 0 rgba(0, 200, 255, 0.08),
+    inset 0 -1rpx 0 rgba(0, 200, 255, 0.08);
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 20rpx;
+  bottom: 20rpx;
+  left: 136rpx;
+  right: auto;
+  width: 1rpx;
+  height: auto;
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.26), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 6rpx;
+  bottom: 8rpx;
+  left: 148rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(0, 200, 255, 0.20), transparent);
+}
+
+.room-page--active .console-pulse-readout {
+  top: 50%;
+  left: 5rpx;
+  width: 126rpx;
+  height: 52rpx;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+}
+
+.room-page--active .console-pulse-readout::before,
+.room-page--active .console-pulse-readout::after {
+  display: none;
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: 122rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track text {
+  font-size: 27rpx;
+  letter-spacing: 0;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 24rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 21rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  display: none;
+}
+
+.room-page--active .console-pulse-readout__dot {
+  bottom: 2rpx;
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 18rpx;
+  right: 4rpx;
+  bottom: 14rpx;
+  left: 148rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 25rpx;
+  min-height: 25rpx;
+  justify-content: flex-start;
+  padding: 0 2rpx;
+  font-size: 14rpx;
+  opacity: 0.82;
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 68rpx);
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 7rpx;
+  font-size: 14rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  top: 18rpx;
+  right: 4rpx;
+  bottom: 14rpx;
+  left: 148rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  width: 48%;
+  margin-top: 38rpx;
+}
+
+/* ===== 中央脉冲仪表与双端成员反馈 ===== */
+.room-page--active .console-pulse-log {
+  height: 126rpx;
+  background:
+    linear-gradient(90deg, rgba(0, 175, 255, 0.025), transparent 22%, transparent 78%, rgba(0, 175, 255, 0.025)),
+    radial-gradient(ellipse 50% 58% at 50% 18%, rgba(0, 175, 255, 0.10), transparent 72%),
+    rgba(0, 7, 12, 0.38);
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 59rpx;
+  right: 18%;
+  bottom: auto;
+  left: 18%;
+  width: auto;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.32), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 9%;
+  bottom: 4rpx;
+  left: 9%;
+}
+
+.room-page--active .console-pulse-readout {
+  top: 3rpx;
+  left: 50%;
+  width: 82%;
+  max-width: 380rpx;
+  height: 56rpx;
+  transform: translateX(-50%);
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 13rpx, calc(100% - 12rpx) 100%, 12rpx 100%, 0 13rpx);
+  border-top: 1rpx solid rgba(0, 200, 255, 0.18);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.34);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.09) 18%, rgba(0, 200, 255, 0.09) 82%, transparent),
+    radial-gradient(ellipse at 50% 48%, rgba(0, 175, 255, 0.20), transparent 74%);
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: calc(100% - 70rpx);
+  height: 42rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track {
+  height: 126rpx;
+  transform: translateY(-42rpx);
+}
+
+.room-page--active .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  height: 42rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+  letter-spacing: 0;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 32rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 28rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  top: 23rpx;
+  display: block;
+  width: 34rpx;
+  opacity: 0.58;
+}
+
+.room-page--active .console-pulse-readout__ticks--left {
+  left: 6rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks--right {
+  right: 6rpx;
+}
+
+.room-page--active .console-pulse-readout.is-rolling .console-pulse-readout__digit-track {
+  animation: none;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll-up 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll-down 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track text {
+  color: #39E6C0 !important;
+  text-shadow: 0 0 9rpx rgba(57, 230, 192, 0.58), 0 0 24rpx rgba(57, 230, 192, 0.20);
+}
+
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track text {
+  color: #FF6473 !important;
+  text-shadow: 0 0 9rpx rgba(255, 100, 115, 0.56), 0 0 24rpx rgba(255, 100, 115, 0.18);
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 66rpx;
+  right: 14rpx;
+  bottom: 5rpx;
+  left: 14rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 18rpx;
+  min-height: 18rpx;
+  justify-content: center;
+  padding: 0 6rpx;
+  font-size: 13rpx;
+  line-height: 18rpx;
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 78rpx);
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 8rpx;
+  font-size: 14rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  top: 66rpx;
+  right: 14rpx;
+  bottom: 5rpx;
+  left: 14rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  width: 38%;
+  margin-top: 27rpx;
+}
+
+.room-page--active .contact-marker__pulse-fx {
+  position: absolute;
+  inset: -3rpx;
+  z-index: 1;
+  pointer-events: none;
+  border: 1rpx solid transparent;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.room-page--active .hud-member--sending .contact-marker__pulse-fx {
+  border-color: rgba(255, 100, 115, 0.88);
+  box-shadow: 0 0 20rpx rgba(255, 100, 115, 0.34), inset 0 0 16rpx rgba(255, 100, 115, 0.20);
+  animation: contact-pulse-output 920ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
+}
+
+.room-page--active .hud-member--receiving .contact-marker__pulse-fx {
+  border-color: rgba(57, 230, 192, 0.88);
+  box-shadow: 0 0 20rpx rgba(57, 230, 192, 0.34), inset 0 0 16rpx rgba(57, 230, 192, 0.20);
+  animation: contact-pulse-input 920ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
+}
+
+.room-page--active .hud-member--sending .contact-marker__orbit {
+  border-color: rgba(255, 100, 115, 0.72);
+  animation: contact-orbit-output 920ms ease-out both;
+}
+
+.room-page--active .hud-member--receiving .contact-marker__orbit {
+  border-color: rgba(57, 230, 192, 0.72);
+  animation: contact-orbit-input 920ms ease-out both;
+}
+
+.room-page--active .hud-member--sending .contact-marker__core {
+  box-shadow: 0 0 0 3rpx rgba(255, 100, 115, 0.08), 0 0 24rpx rgba(255, 100, 115, 0.28);
+}
+
+.room-page--active .hud-member--receiving .contact-marker__core {
+  box-shadow: 0 0 0 3rpx rgba(57, 230, 192, 0.08), 0 0 24rpx rgba(57, 230, 192, 0.28);
+}
+
+@keyframes pulse-readout-roll-up {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.2;
+  }
+  58% {
+    transform: translateY(-84rpx);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-42rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-readout-roll-down {
+  0% {
+    transform: translateY(-84rpx);
+    filter: blur(2rpx);
+    opacity: 0.2;
+  }
+  58% {
+    transform: translateY(0);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-42rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes contact-pulse-output {
+  0% {
+    transform: scale(0.64);
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.96;
+  }
+  100% {
+    transform: scale(1.58);
+    opacity: 0;
+  }
+}
+
+@keyframes contact-pulse-input {
+  0% {
+    transform: scale(1.58);
+    opacity: 0;
+  }
+  42% {
+    opacity: 0.96;
+  }
+  100% {
+    transform: scale(0.64);
+    opacity: 0;
+  }
+}
+
+@keyframes contact-orbit-output {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes contact-orbit-input {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(0.88);
+  }
+  64% {
+    transform: scale(1.08);
+  }
+}
+
+/* ===== 驾驶舱最终尺寸：圆形舱体 + 可读脉冲仪表 ===== */
+.room-page--active .cockpit-frame-left,
+.room-page--active .cockpit-frame-right {
+  width: 44rpx !important;
+  clip-path: none !important;
+  opacity: 0.84;
+}
+
+.room-page--active .cockpit-frame-left {
+  left: -4rpx;
+  border-right: 0;
+  border-radius: 0 88% 88% 0 / 0 50% 50% 0;
+  background:
+    radial-gradient(ellipse 38rpx 56% at 100% 50%, transparent 0, transparent 58%, rgba(0, 175, 255, 0.10) 61%, rgba(5, 17, 25, 0.88) 69%, rgba(0, 0, 0, 0.98) 100%) !important;
+}
+
+.room-page--active .cockpit-frame-right {
+  right: -4rpx;
+  border-left: 0;
+  border-radius: 88% 0 0 88% / 50% 0 0 50%;
+  background:
+    radial-gradient(ellipse 38rpx 56% at 0 50%, transparent 0, transparent 58%, rgba(0, 175, 255, 0.10) 61%, rgba(5, 17, 25, 0.88) 69%, rgba(0, 0, 0, 0.98) 100%) !important;
+}
+
+.room-page--active .cockpit-console-v2 {
+  height: 190rpx;
+  padding: 28rpx 10rpx 8rpx !important;
+  border-radius: 50% 50% 0 0 / 54rpx 54rpx 0 0;
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 180rpx;
+}
+
+.room-page--active .ccv2-panel {
+  grid-template-columns: 100rpx minmax(0, 1fr) 100rpx;
+  gap: 4rpx;
+}
+
+.room-page--active .ccv2-btn {
+  width: 100rpx;
+  height: 138rpx !important;
+  padding-top: 48rpx;
+}
+
+.room-page--active .console-pulse-log {
+  height: 150rpx;
+  border-radius: 34rpx 34rpx 18rpx 18rpx;
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 78rpx;
+  right: 12%;
+  left: 12%;
+}
+
+.room-page--active .console-pulse-readout {
+  top: 4rpx;
+  width: 92%;
+  max-width: 430rpx;
+  height: 72rpx;
+  clip-path: none;
+  border: 1rpx solid rgba(0, 200, 255, 0.24);
+  border-radius: 36rpx;
+  background:
+    linear-gradient(90deg, rgba(0, 200, 255, 0.03), rgba(0, 200, 255, 0.13) 50%, rgba(0, 200, 255, 0.03)),
+    radial-gradient(ellipse at 50% 48%, rgba(0, 175, 255, 0.24), transparent 74%);
+  box-shadow:
+    inset 0 0 20rpx rgba(0, 175, 255, 0.08),
+    0 0 18rpx rgba(0, 175, 255, 0.08);
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: calc(100% - 76rpx);
+  height: 52rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track {
+  height: 156rpx;
+  transform: translateY(-52rpx);
+}
+
+.room-page--active .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  height: 52rpx;
+  font-size: 42rpx;
+  line-height: 52rpx;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 36rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 31rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  top: 31rpx;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track,
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track {
+  animation-duration: 680ms;
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 84rpx;
+  right: 14rpx;
+  bottom: 7rpx;
+  left: 14rpx;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 23rpx;
+  min-height: 23rpx;
+  padding: 0 8rpx;
+  font-size: 15rpx;
+  line-height: 23rpx;
+}
+
+.room-page--active .console-pulse-log__value {
+  font-size: 16rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  top: 84rpx;
+  right: 14rpx;
+  bottom: 7rpx;
+  left: 14rpx;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  margin-top: 26rpx;
+}
+
+@keyframes pulse-readout-roll-up {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-52rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-readout-roll-down {
+  0% {
+    transform: translateY(-104rpx);
+    filter: blur(2rpx);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-52rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}

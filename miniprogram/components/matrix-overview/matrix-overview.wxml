@@ -9,12 +9,6 @@
       <view class="matrix-ar-corner matrix-ar-corner--tr"></view>
       <view class="matrix-ar-corner matrix-ar-corner--bl"></view>
       <view class="matrix-ar-corner matrix-ar-corner--br"></view>
-      <view class="vo-close matrix-ar-close" bindtap="closePanel">
-        <view class="vo-close-ring">
-          <view class="vo-close-icon"></view>
-        </view>
-      </view>
-
       <view wx:if="{{memberGrid.length < 2}}" class="empty-batches">
         <view class="matrix-ar-empty-dot"></view>
       </view>
@@ -54,6 +48,9 @@
           </view>
         </scroll-view>
       </view>
+      <view class="matrix-close-handle" bindtap="closePanel" hover-class="matrix-close-handle--press">
+        <view class="matrix-close-line"></view>
+      </view>
     </view>
   </view>
 
@@ -64,12 +61,6 @@
       <view class="matrix-ar-corner matrix-ar-corner--tr"></view>
       <view class="matrix-ar-corner matrix-ar-corner--bl"></view>
       <view class="matrix-ar-corner matrix-ar-corner--br"></view>
-      <view class="vo-close matrix-ar-close" bindtap="closeMatrixDetail">
-        <view class="vo-close-ring">
-          <view class="vo-close-icon"></view>
-        </view>
-      </view>
-
       <!-- 成员流向通道 -->
       <view class="detail-parties">
         <view class="detail-party">
@@ -112,6 +103,9 @@
           <view class="matrix-ar-empty-dot"></view>
         </view>
       </scroll-view>
+      <view class="matrix-close-handle" bindtap="closeMatrixDetail" hover-class="matrix-close-handle--press">
+        <view class="matrix-close-line"></view>
+      </view>
     </view>
   </view>
 </view>

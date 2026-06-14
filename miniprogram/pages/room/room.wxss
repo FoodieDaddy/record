@@ -7,6 +7,8 @@
 @import "./styles/06-settle-round.wxss";
 @import "./styles/07-cockpit-shell.wxss";
 @import "./styles/08-cockpit-active-v2.wxss";
+@import "./styles/08-cockpit-active-refinements.wxss";
+@import "./styles/09-cockpit-instrument.wxss";
 
 .full-page-loading {
   position: fixed;
@@ -34,4 +36,3 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-

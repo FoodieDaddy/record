@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "航迹回放"
+  "navigationBarTitleText": "航迹回放",
+  "usingComponents": {
+    "pulse-stream": "/components/pulse-stream/pulse-stream"
+  }
 }

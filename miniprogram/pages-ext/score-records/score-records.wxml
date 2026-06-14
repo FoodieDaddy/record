@@ -74,3 +74,17 @@
   </block>
 
 </scroll-view>
+
+<view class="playback-mask" wx:if="{{playbackVisible}}" bindtap="closePlayback">
+  <view class="playback-panel" catchtap="">
+    <pulse-stream
+      records="{{playbackRecords}}"
+      live="{{false}}"
+      loading="{{playbackLoading}}"
+      title="航程 {{playbackRoomNo}} 脉冲回放"
+      max-rows="{{12}}"
+      show-close
+      bind:close="closePlayback"
+    />
+  </view>
+</view>

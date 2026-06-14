@@ -968,22 +968,27 @@ public class ScoreServiceImpl implements ScoreService {
             return getRoomNetworkFromDb(roomId);
         }
 
-        // 构建 nodes
-        List<RoomNetworkResp.Node> nodes = new ArrayList<>();
+        // 构建 nodes，先收集 ID 后批量加载用户资料，避免逐节点查询。
+        Map<Long, Integer> currentScores = new LinkedHashMap<>();
         if (scoreSet != null) {
             for (ZSetOperations.TypedTuple<String> tuple : scoreSet) {
                 String rawUserId = tuple.getValue();
                 if (rawUserId == null || "init".equals(rawUserId)) continue;
                 Long userId = Long.valueOf(rawUserId);
                 Double score = tuple.getScore();
-                User user = userMapper.selectById(userId);
-                nodes.add(RoomNetworkResp.Node.builder()
-                        .userId(userId)
-                        .nickname(user != null ? user.getNickname() : "未知")
-                        .avatarUrl(user != null ? user.getAvatarUrl() : null)
-                        .score(score != null ? score.intValue() : 0)
-                        .build());
+                currentScores.put(userId, score != null ? score.intValue() : 0);
             }
+        }
+        Map<Long, User> userMap = batchLoadUsersByIds(currentScores.keySet(), roomId);
+        List<RoomNetworkResp.Node> nodes = new ArrayList<>();
+        for (Map.Entry<Long, Integer> entry : currentScores.entrySet()) {
+            User user = userMap.get(entry.getKey());
+            nodes.add(RoomNetworkResp.Node.builder()
+                    .userId(entry.getKey())
+                    .nickname(user != null ? user.getNickname() : "未知")
+                    .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                    .score(entry.getValue())
+                    .build());
         }
 
         // 构建 links
@@ -1101,27 +1106,45 @@ public class ScoreServiceImpl implements ScoreService {
         // 从 allRecord 聚合最终得分
         Map<Long, Integer> finalScores = new LinkedHashMap<>();
         Map<Long, String> nicknames = new LinkedHashMap<>();
+        Map<Long, String> avatarUrls = new LinkedHashMap<>();
         for (Map<String, Object> record : room.getAllRecord()) {
             Object scoresObj = record.get("scores");
-            if (!(scoresObj instanceof List)) continue;
-            List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
-            for (Map<String, Object> s : scores) {
-                long uid = ((Number) s.get("userId")).longValue();
-                int score = ((Number) s.get("score")).intValue();
-                finalScores.merge(uid, score, Integer::sum);
-                String name = (String) s.get("name");
-                if (name != null) nicknames.putIfAbsent(uid, name);
+            if (scoresObj instanceof List) {
+                List<Map<String, Object>> scores = (List<Map<String, Object>>) scoresObj;
+                for (Map<String, Object> s : scores) {
+                    long uid = ((Number) s.get("userId")).longValue();
+                    int score = ((Number) s.get("score")).intValue();
+                    finalScores.merge(uid, score, Integer::sum);
+                    String name = (String) s.get("name");
+                    if (name != null) nicknames.putIfAbsent(uid, name);
+                    String avatar = (String) s.get("avatar");
+                    if (avatar != null) avatarUrls.putIfAbsent(uid, avatar);
+                }
+            }
+
+            Object snapshotObj = record.get("membersSnapshot");
+            if (snapshotObj instanceof List) {
+                List<Map<String, Object>> members = (List<Map<String, Object>>) snapshotObj;
+                for (Map<String, Object> member : members) {
+                    long uid = ((Number) member.get("userId")).longValue();
+                    finalScores.putIfAbsent(uid, 0);
+                    String name = (String) member.get("nickname");
+                    if (name != null) nicknames.putIfAbsent(uid, name);
+                    String avatar = (String) member.get("avatarUrl");
+                    if (avatar != null) avatarUrls.putIfAbsent(uid, avatar);
+                }
             }
         }
 
         // 构建 nodes
+        Map<Long, User> userMap = batchLoadUsersByIds(finalScores.keySet(), roomId);
         List<RoomNetworkResp.Node> nodes = new ArrayList<>();
         for (Map.Entry<Long, Integer> e : finalScores.entrySet()) {
-            User user = userMapper.selectById(e.getKey());
+            User user = userMap.get(e.getKey());
             nodes.add(RoomNetworkResp.Node.builder()
                     .userId(e.getKey())
                     .nickname(user != null ? user.getNickname() : nicknames.getOrDefault(e.getKey(), "未知"))
-                    .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                    .avatarUrl(user != null ? user.getAvatarUrl() : avatarUrls.get(e.getKey()))
                     .score(e.getValue()).build());
         }
 

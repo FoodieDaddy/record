@@ -3,7 +3,7 @@ const scoreWS = require('../../utils/score-ws');
 const roomService = require('../../services/room-service');
 const scoreService = require('../../services/score-service');
 const roundService = require('../../services/round-service');
-const { getColor, getFirstChar, getAvatarView, normalizeAvatarUrl } = require('../../utils/avatar');
+const { getColor, getFirstChar, getAvatarView } = require('../../utils/avatar');
 const { resolveAvatarSrcBatch } = require('../../utils/avatar-storage');
 const { speakTransfer } = require('../../utils/voice');
 const { getAudioManager } = require('../../utils/audio-manager');
@@ -17,10 +17,10 @@ const roomWsHandler = require('./room-ws-handler');
 const roomSettleHandler = require('./room-settle-handler');
 const roomTransferHandler = require('./room-transfer-handler');
 const roomRoundHandler = require('./room-round-handler');
+const roomRecordHandler = require('./room-record-handler');
 const {
   FORMATION_SAFE_ZONE,
   SPARKLINE_EMPTY_POINTS,
-  pickLatestTrace,
   buildCockpitView: buildCockpitViewModel,
   deriveFormationShips: deriveFormationShipsModel,
   deriveModeLabel: deriveModeLabelModel,
@@ -45,6 +45,7 @@ Page(Object.assign(
   roomSettleHandler,
   roomTransferHandler,
   roomRoundHandler,
+  roomRecordHandler,
   {
     data: {
       isReady: false,
@@ -113,13 +114,15 @@ Page(Object.assign(
       animAmount: 0,
       // 脉冲记录
       scoreRecords: [],
-      groupedRecords: [],
       filterMine: false,
       showPulseLogPanel: false,
+      pulseRecordsLoading: false,
       pulseReadoutRolling: false,
       pulseReadoutDisplay: '',
-      loadingMore: false,
-      noMore: false,
+      pulseReadoutDirection: '',
+      pulseReadoutColumns: [],
+      contactFxUserId: '',
+      contactFxRole: '',
       // 脉冲总览弹窗
       showMatrixPanel: false,
       relationMap: {},
@@ -144,6 +147,10 @@ Page(Object.assign(
       settleInsight: null,
       settlePersonaSignals: null,
       settleEventMarkers: [],
+      settleActiveCard: 'overview',
+      settleRoomId: '',
+      settleNetworkLoading: false,
+      settleNetworkLoaded: false,
       // 分享面板
       showShareSheet: false,
       qrLoading: false,
@@ -467,6 +474,10 @@ Page(Object.assign(
         clearTimeout(this._pulseReadoutTimer);
         this._pulseReadoutTimer = null;
       }
+      if (this._contactFxTimer) {
+        clearTimeout(this._contactFxTimer);
+        this._contactFxTimer = null;
+      }
       if (this._transferLockTimer) {
         clearTimeout(this._transferLockTimer);
         this._transferLockTimer = null;
@@ -509,7 +520,6 @@ Page(Object.assign(
         joinPanelVisible: false,
         leaveConfirmVisible: false,
         showNameCollisionModal: false,
-        showSettleOverlay: false,
         pageVisible: false,
         wsReconnecting: false,
         toastMsg: '',
@@ -800,6 +810,11 @@ Page(Object.assign(
       const isMine = fromUserId || toUserId
         ? fromUserId === myId || toUserId === myId
         : fromName === '我' || toName === '我';
+      const myRole = fromUserId === myId || fromName === '我'
+        ? 'from'
+        : toUserId === myId || toName === '我'
+          ? 'to'
+          : '';
       traces.push({
         id,
         title: `${fromName} → ${toName}`,
@@ -814,6 +829,7 @@ Page(Object.assign(
         valueClass: amount < 0 ? 'is-negative' : '',
         fromUserId,
         toUserId,
+        myRole,
         isMine,
         isNew: true
       });
@@ -1124,121 +1140,6 @@ Page(Object.assign(
       }
     },
 
-    appendLocalTransferRecord(fromUserId, toUserId, amount, now = Date.now()) {
-      const room = this.data.currentRoom;
-      if (!room || !room.members) return;
-
-      const fromMember = room.members.find(m => String(m.userId) === String(fromUserId));
-      const toMember = room.members.find(m => String(m.userId) === String(toUserId));
-      if (!fromMember || !toMember) return;
-
-      const myId = String(app.globalData.userId || '');
-      const newRecord = {
-        id: now,
-        fromName: fromMember.nickname,
-        fromAvatarUrl: normalizeAvatarUrl(fromMember.avatarUrl),
-        fromColor: fromMember.avatarUrl ? '' : getColor(fromMember.nickname),
-        fromChar: fromMember.avatarUrl ? '' : getFirstChar(fromMember.nickname),
-        toName: toMember.nickname,
-        toAvatarUrl: normalizeAvatarUrl(toMember.avatarUrl),
-        toColor: toMember.avatarUrl ? '' : getColor(toMember.nickname),
-        toChar: toMember.avatarUrl ? '' : getFirstChar(toMember.nickname),
-        amount: amount,
-        createdAt: now,
-        timeFormatted: '刚刚',
-        fromUserId: String(fromUserId),
-        toUserId: String(toUserId),
-        myRole: String(fromUserId) === myId ? 'from' : String(toUserId) === myId ? 'to' : '',
-        isNew: true
-      };
-
-      const exists = (this.data.scoreRecords || []).some(r => {
-        return String(r.fromUserId) === String(fromUserId) &&
-               String(r.toUserId) === String(toUserId) &&
-               Math.abs(r.amount) === Math.abs(amount) &&
-               Math.abs(r.createdAt - now) < 2000;
-      });
-
-      if (exists) return;
-
-      const allRecords = [newRecord, ...(this.data.scoreRecords || [])];
-      if (allRecords.length > 100) {
-        allRecords.length = 100;
-      }
-
-      this.setData({
-        scoreRecords: allRecords,
-        relationMap: this.buildRelationMap(allRecords)
-      });
-      this.rebuildGroupedRecords();
-      this.rebuildPulseStats();
-      this.rebuildRoomInsight();
-      this.updateCanSealRoom();
-      setTimeout(() => {
-        if (this._destroyed) return;
-        const settledRecords = (this.data.scoreRecords || []).map(record => (
-          record.id === newRecord.id ? { ...record, isNew: false } : record
-        ));
-        this.setData({ scoreRecords: settledRecords });
-        this.rebuildPulseStats();
-      }, 2800);
-    },
-
-    rebuildRoomInsight() {
-      const records = this.data.scoreRecords || [];
-      let totalTransfer = 0;
-      let maxSingle = 0;
-      const userCount = {};
-
-      records.forEach(r => {
-        const amount = Math.abs(r.amount);
-        totalTransfer += amount;
-        if (amount > maxSingle) maxSingle = amount;
-        userCount[r.fromUserId] = (userCount[r.fromUserId] || 0) + 1;
-        userCount[r.toUserId] = (userCount[r.toUserId] || 0) + 1;
-      });
-
-      let topUserId = null;
-      let topCount = 0;
-      Object.keys(userCount).forEach(uid => {
-        if (userCount[uid] > topCount) {
-          topCount = userCount[uid];
-          topUserId = uid;
-        }
-      });
-
-      let activeUser = null;
-      if (topUserId) {
-        const member = (this.data.currentRoom?.members || []).find(m => String(m.userId) === String(topUserId));
-        activeUser = {
-          userId: topUserId,
-          nickname: member ? member.nickname : '未知',
-          avatarUrl: member ? member.avatarUrl : null,
-          count: topCount
-        };
-      }
-
-      const memberIds = new Set();
-      records.forEach(r => {
-        memberIds.add(String(r.fromUserId));
-        memberIds.add(String(r.toUserId));
-      });
-      const n = memberIds.size;
-      const eventCount = records.length;
-      const density = (n > 1) ? eventCount / (n * (n - 1)) : 0;
-      const densityLevel = density > 0.3 ? 'HIGH' : density > 0.1 ? 'MEDIUM' : 'LOW';
-
-      this.setData({
-        roomInsight: {
-          totalTransfer,
-          maxSingleTransfer: maxSingle,
-          mostActiveUser: activeUser,
-          transferCount: eventCount,
-          networkDensity: densityLevel
-        }
-      });
-    },
-
     pushWsTransferToQueue(task) {
       if (!this._animationQueue) this._animationQueue = [];
       
@@ -1250,10 +1151,15 @@ Page(Object.assign(
         });
         this._animationQueue = [];
         this._animating = false;
-        
+
+        this.setData({
+          pulseReadoutDisplay: this.formatPulseValue(this.getLocalScore(task.toUserId))
+        });
         this._optimisticScoreUpdateFromWS(task.fromUserId, task.toUserId, task.fromNewScore, task.toNewScore);
         this.appendLocalTransferRecord(task.fromUserId, task.toUserId, task.amount, task.now || Date.now());
         this.buildMemberGrid();
+        this.triggerContactTransferFx(task.fromUserId, 'sending');
+        this.triggerPulseReadoutRoll(this.formatPulseValue(task.toNewScore), 'gain');
         return;
       }
 
@@ -1274,11 +1180,16 @@ Page(Object.assign(
       this._animatingScores[t.fromUserId] = fM ? fM.displayScore : 0;
       this._animatingScores[t.toUserId] = tM ? tM.displayScore : 0;
 
+      this.setData({
+        pulseReadoutDisplay: this.formatPulseValue(tM ? tM.displayScore : this.getLocalScore(t.toUserId))
+      });
       this._optimisticScoreUpdateFromWS(t.fromUserId, t.toUserId, t.fromNewScore, t.toNewScore);
+      this.triggerContactTransferFx(t.fromUserId, 'sending');
 
       this.playTransferAnimation(t.fromUserId, t.toUserId, t.amount, () => {
         this.appendLocalTransferRecord(t.fromUserId, t.toUserId, t.amount, t.now || Date.now());
         this.buildMemberGrid();
+        this.triggerPulseReadoutRoll(this.formatPulseValue(t.toNewScore), 'gain');
         
         setTimeout(() => {
           this._animating = false;
@@ -1386,9 +1297,6 @@ Page(Object.assign(
         console.log('[room] 开始恢复编队数据', { roomId });
         await this.loadRoomData(roomId);
         this.buildMemberGrid();
-        await this.loadScoreRecords(roomId);
-        await this.loadRanking(roomId);
-        await this.loadInsightData(roomId);
         console.log('[room] 编队数据恢复完成');
       } catch (e) {
         if (e && (e.message === '编队不存在' || e.message === '房间已关闭' || e.code === 400)) {
@@ -1520,272 +1428,7 @@ Page(Object.assign(
       this.buildMemberGrid();
     },
 
-    async loadScoreRecords(roomId, reset) {
-      if (!roomId) return;
-      if (reset) {
-        this._transferPage = 1;
-        this._transferNoMore = false;
-        this.setData({ noMore: false });
-      } else if (this._transferNoMore) {
-        return;
-      }
-      const page = this._transferPage || 1;
-      try {
-        const preloads = app.globalData.preloads || {};
-        let resPromise = (reset && page === 1) ? preloads.roomTransfers : null;
-        
-        if (resPromise) {
-          delete preloads.roomTransfers;
-        } else {
-          resPromise = scoreService.getRoomTransfers(roomId, page, 20);
-        }
-
-        const res = await resPromise;
-        if (!res) return;
-
-        const myId = app.globalData.userId;
-        const pageRecords = (res.records || [])
-          .map(t => {
-            const fromAvatarUrl = normalizeAvatarUrl(t.fromUser.avatarUrl);
-            const toAvatarUrl = normalizeAvatarUrl(t.toUser.avatarUrl);
-            return {
-              id: t.id,
-              fromName: t.fromUser.nickname,
-              fromAvatarUrl,
-              fromColor: fromAvatarUrl ? '' : getColor(t.fromUser.nickname),
-              fromChar: fromAvatarUrl ? '' : getFirstChar(t.fromUser.nickname),
-              toName: t.toUser.nickname,
-              toAvatarUrl,
-              toColor: toAvatarUrl ? '' : getColor(t.toUser.nickname),
-              toChar: toAvatarUrl ? '' : getFirstChar(t.toUser.nickname),
-              amount: t.amount,
-              createdAt: t.createdAt,
-              timeFormatted: this.formatTime(t.createdAt),
-              fromUserId: t.fromUser.userId,
-              toUserId: t.toUser.userId,
-              myRole: String(t.fromUser.userId) === String(myId) ? 'from' : String(t.toUser.userId) === String(myId) ? 'to' : ''
-            };
-          });
-
-        const allRecords = reset ? pageRecords : [...this.data.scoreRecords, ...pageRecords];
-        if (pageRecords.length < 20) {
-          this._transferNoMore = true;
-          this.setData({ noMore: true });
-        }
-        this._transferPage = page + 1;
-
-        this.setData({
-          scoreRecords: allRecords,
-          relationMap: this.buildRelationMap(allRecords)
-        });
-        this.rebuildGroupedRecords();
-        this.rebuildPulseStats();
-        this.updateCanSealRoom();
-      } catch (e) {
-        console.error('加载脉冲记录失败', e);
-        if (e && (e.message === '编队不存在' || e.message === '房间已关闭' || e.code === 400)) {
-          this.handleRoomNotFoundError(e);
-          throw e;
-        } else {
-          showError('加载脉冲记录失败');
-        }
-      }
-    },
-
-    buildRelationMap(records = []) {
-      const map = {};
-      records.forEach(record => {
-        const from = String(record.fromUserId || record.fromId || '');
-        const to = String(record.toUserId || record.toId || '');
-        const amount = Number(record.amount || record.score || 0);
-        if (!from || !to || Number.isNaN(amount)) return;
-        const key = `${from}->${to}`;
-        map[key] = (map[key] || 0) + amount;
-      });
-      return map;
-    },
-
     /** 按分钟分组 + 过滤 */
-    rebuildGroupedRecords() {
-      const records = this.data.scoreRecords;
-      const filtered = this.data.filterMine
-        ? records.filter(r => r.myRole === 'from' || r.myRole === 'to')
-        : records;
-
-      const today = this.formatDay(new Date());
-      const groups = filtered.reduce((acc, r) => {
-        const displayRecord = Object.assign({}, r, {
-          amountDisplay: String(Math.abs(Number(r.amount || 0)))
-        });
-        const safeDate = typeof r.createdAt === 'string' ? r.createdAt.replace(/-/g, '/') : r.createdAt;
-        const d = new Date(safeDate);
-        const key = this.formatTime(r.createdAt);
-        const day = this.formatDay(d);
-        const display = day === today
-          ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-          : key;
-        const last = acc[acc.length - 1];
-        if (last && last.timeKey === key) {
-          last.records.push(displayRecord);
-        } else {
-          acc.push({ timeKey: key, timeDisplay: display, records: [displayRecord] });
-        }
-        return acc;
-      }, []);
-
-      this.setData({ groupedRecords: groups });
-    },
-
-    rebuildPulseStats(memberGridOverride) {
-      const patch = this._calcPulseStatsPatch(memberGridOverride);
-      this.scheduleRoomPatch(patch, { immediate: true });
-    },
-
-    _calcPulseStatsPatch(memberGridOverride) {
-      const records = this.data.scoreRecords || [];
-      const members = memberGridOverride || this.data.memberGrid || [];
-      const myId = String(this.data.myUserId || app.globalData.userId || '');
-
-      const traces = records.map(r => {
-        const isMine = String(r.fromUserId) === myId || String(r.toUserId) === myId;
-        return {
-          id: r.id,
-          title: `${this.formatCrewName(r.fromName)} → ${this.formatCrewName(r.toName)}`,
-          desc: r.timeFormatted || '',
-          fromName: this.formatCrewName(r.fromName),
-          fromAvatarUrl: r.fromAvatarUrl || '',
-          toName: this.formatCrewName(r.toName),
-          toAvatarUrl: r.toAvatarUrl || '',
-          createdAt: r.createdAt,
-          timeFormatted: r.timeFormatted || '',
-          valueText: this.formatPulseValue(Math.abs(Number(r.amount || 0))),
-          valueClass: isMine ? 'is-related' : '',
-          isMine,
-          isNew: !!r.isNew
-        };
-      });
-
-      const totalAmount = records.reduce((sum, r) => sum + Math.abs(Number(r.amount || 0)), 0);
-      const maxAmount = records.reduce((max, r) => Math.max(max, Math.abs(Number(r.amount || 0))), 0);
-      const relatedCount = records.filter(r => String(r.fromUserId) === myId || String(r.toUserId) === myId).length;
-      const filteredPulseTraces = this.data.traceFilterMine ? traces.filter(t => t.isMine) : traces;
-
-      const chronological = records.slice().sort((a, b) => {
-        const at = new Date(typeof a.createdAt === 'string' ? a.createdAt.replace(/-/g, '/') : (a.createdAt || 0)).getTime();
-        const bt = new Date(typeof b.createdAt === 'string' ? b.createdAt.replace(/-/g, '/') : (b.createdAt || 0)).getTime();
-        return at - bt;
-      });
-      const activeMembers = members.length ? members : (this.data.currentRoom && this.data.currentRoom.members || []);
-      const memberIds = activeMembers.map(m => String(m.userId));
-      const scoreMap = {};
-      memberIds.forEach(uid => { scoreMap[uid] = 0; });
-
-      const traceChartTimestamps = chronological.length ? ['起点'] : [];
-      const seriesMap = {};
-      activeMembers.forEach(m => {
-        seriesMap[String(m.userId)] = {
-          userId: m.userId,
-          nickname: m.nickname,
-          scores: chronological.length ? [0] : []
-        };
-      });
-
-      chronological.forEach(r => {
-        const fromId = String(r.fromUserId);
-        const toId = String(r.toUserId);
-        if (scoreMap[fromId] === undefined) scoreMap[fromId] = 0;
-        if (scoreMap[toId] === undefined) scoreMap[toId] = 0;
-        if (!seriesMap[fromId]) {
-          seriesMap[fromId] = { userId: r.fromUserId, nickname: r.fromName, scores: traceChartTimestamps.map(() => 0) };
-        }
-        if (!seriesMap[toId]) {
-          seriesMap[toId] = { userId: r.toUserId, nickname: r.toName, scores: traceChartTimestamps.map(() => 0) };
-        }
-
-        scoreMap[fromId] -= Number(r.amount || 0);
-        scoreMap[toId] += Number(r.amount || 0);
-        traceChartTimestamps.push(this.formatTraceTime(r.createdAt));
-        Object.keys(seriesMap).forEach(uid => {
-          seriesMap[uid].scores.push(scoreMap[uid] || 0);
-        });
-      });
-
-      const traceChartSeries = Object.values(seriesMap).filter(s => s.scores.length > 0);
-      const traceChartVisibleUsers = traceChartSeries.map(s => String(s.userId)).slice(0, 8);
-
-      const selfSeries = traceChartSeries.find(s => String(s.userId) === myId) || traceChartSeries[0];
-      let traceChartSparkline = [];
-      if (selfSeries && selfSeries.scores.length > 1) {
-        const raw = selfSeries.scores.slice(-8);
-        const pointCount = Math.min(8, Math.max(5, raw.length));
-        const sampled = Array.from({ length: pointCount }, (_, i) => {
-          const sourceIndex = pointCount > 1
-            ? Math.round((i / (pointCount - 1)) * (raw.length - 1))
-            : 0;
-          return raw[sourceIndex] || 0;
-        });
-        const min = Math.min(...sampled);
-        const max = Math.max(...sampled);
-        const range = max - min || 1;
-        traceChartSparkline = sampled.map((v, i) => ({
-          y: Math.round(((v - min) / range) * 64 + 18),
-          x: pointCount > 1 ? Math.round((i / (pointCount - 1)) * 100) : 50
-        }));
-      }
-
-      const lastTrace = pickLatestTrace(traces);
-      const sparklinePoints = traceChartSparkline.length > 0
-        ? traceChartSparkline.slice(-8)
-        : SPARKLINE_EMPTY_POINTS;
-
-      return {
-        pulseTraces: traces,
-        filteredPulseTraces,
-        pulseStats: {
-          transferCount: records.length,
-          relatedCount,
-          totalAmount: this.formatPulseValue(totalAmount),
-          maxAmount: this.formatPulseValue(maxAmount)
-        },
-        traceChartTimestamps,
-        traceChartSeries,
-        traceChartVisibleUsers,
-        traceChartSparkline,
-        'cockpitView.transferCount': records.length,
-        'cockpitView.totalPulse': this.formatPulseValue(totalAmount),
-        'cockpitView.lastPulseText': lastTrace ? lastTrace.title : '等待更多脉冲写入',
-        'cockpitView.lastPulseAmount': lastTrace ? lastTrace.valueText : '',
-        'cockpitView.sparklinePoints': sparklinePoints,
-        'cockpitView.hasTrajectory': traceChartSparkline.length > 0
-      };
-    },
-
-    setTraceFilter(e) {
-      const filter = e.currentTarget.dataset.filter;
-      this.setData({ traceFilterMine: filter === 'mine' });
-      this.rebuildPulseStats();
-    },
-
-    toggleBlackboxPanel() {
-      const nextOpen = !this.data.blackboxPanelOpen;
-      this.setData({ blackboxPanelOpen: nextOpen });
-      if (nextOpen && this.data.currentRoom) {
-        this.loadTransferAmountSuggestions(this.data.currentRoom.roomId);
-      }
-    },
-
-    togglePulsePanel() {
-      this.setData({ showPulsePanel: !this.data.showPulsePanel });
-    },
-
-    goPulseTrajectory() {
-      vibrateShort('light');
-      if (!this.data.scoreRecords.length) {
-        this.showToast('等待更多脉冲写入');
-        return;
-      }
-      this.openMatrixPanel();
-    },
 
     handleTapShip(e) {
       const userId = String(e.currentTarget.dataset.userId || '');
@@ -1800,71 +1443,9 @@ Page(Object.assign(
       });
     },
 
-    setBlackboxView(e) {
-      const view = e.currentTarget.dataset.view || 'trace';
-      this.setData({ blackboxView: view });
-    },
-
-    toggleFilterMine() {
-      this.setData({ filterMine: !this.data.filterMine }, () => {
-        this.rebuildGroupedRecords();
-        this.syncCockpitView();
-      });
-    },
-
-    onToggleFilter(e) {
-      this.setData({ filterMine: e.detail.filterMine }, () => {
-        this.rebuildGroupedRecords();
-        this.syncCockpitView();
-      });
-    },
-
-    openPulseLogPanel() {
-      this.setData({ filterMine: false }, () => {
-        this.rebuildGroupedRecords();
-        this.syncCockpitView();
-        this.setData({ showPulseLogPanel: true });
-      });
-    },
-
-    closePulseLogPanel() {
-      this.setData({ showPulseLogPanel: false });
-    },
-
-    showAllPulseLogs() {
-      if (!this.data.filterMine) return;
-      this.setData({ filterMine: false }, () => {
-        this.rebuildGroupedRecords();
-        this.syncCockpitView();
-      });
-    },
-
-    showMyPulseLogs() {
-      if (this.data.filterMine) return;
-      this.setData({ filterMine: true }, () => {
-        this.rebuildGroupedRecords();
-        this.syncCockpitView();
-      });
-    },
-
     openFormationManageFromBeacon() {
       this.closeShareSheet();
       setTimeout(() => this.confirmLeaveOrDisband(), 180);
-    },
-
-    onScoreScrollToLower() {
-      if (this.data.loadingMore || this._transferNoMore) return;
-      const roomId = this.data.currentRoom?.roomId;
-      if (!roomId) return;
-      this.setData({ loadingMore: true });
-      this.loadScoreRecords(roomId, false).finally(() => {
-        this.setData({ loadingMore: false });
-      });
-    },
-
-    formatDay(d) {
-      const pad = n => String(n).padStart(2, '0');
-      return `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     },
 
     // ========== 脉冲总览 ==========

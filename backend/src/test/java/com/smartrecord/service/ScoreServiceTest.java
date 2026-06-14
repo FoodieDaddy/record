@@ -1,9 +1,11 @@
 package com.smartrecord.service;
 
 import com.smartrecord.common.BizException;
+import com.smartrecord.dto.score.RoomNetworkResp;
 import com.smartrecord.dto.score.SubmitScoreReq;
 import com.smartrecord.dto.score.TransferScoreReq;
 import com.smartrecord.entity.Room;
+import com.smartrecord.entity.User;
 import com.smartrecord.mapper.*;
 import com.smartrecord.service.impl.ScoreServiceImpl;
 import com.smartrecord.service.impl.ws.ScoreWebSocket;
@@ -22,7 +24,9 @@ import org.springframework.data.redis.core.ZSetOperations;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -200,5 +204,71 @@ class ScoreServiceTest {
         BizException ex = assertThrows(BizException.class,
             () -> scoreService.undoLastScore(1L, 1L));
         assertTrue(ex.getMessage().contains("没有可以撤销"));
+    }
+
+    @Test
+    @DisplayName("关系网络：批量加载实时成员资料")
+    void testGetRoomNetwork_BatchLoadsUsers() {
+        @SuppressWarnings("unchecked")
+        ZSetOperations.TypedTuple<String> first = mock(ZSetOperations.TypedTuple.class);
+        @SuppressWarnings("unchecked")
+        ZSetOperations.TypedTuple<String> second = mock(ZSetOperations.TypedTuple.class);
+        when(first.getValue()).thenReturn("1");
+        when(first.getScore()).thenReturn(30D);
+        when(second.getValue()).thenReturn("2");
+        when(second.getScore()).thenReturn(-30D);
+
+        when(redisTemplate.opsForZSet()).thenReturn(zSetOps);
+        when(zSetOps.range("sr:room:100:events", 0, -1)).thenReturn(Collections.emptySet());
+        when(zSetOps.reverseRangeWithScores("sr:room:100:scores", 0, -1))
+                .thenReturn(new LinkedHashSet<>(List.of(first, second)));
+        when(redisTemplate.opsForHash()).thenReturn(hashOps);
+        when(hashOps.entries("sr:room:100:data")).thenReturn(Collections.emptyMap());
+        when(hashOps.get(anyString(), eq("info"))).thenReturn(null);
+
+        User firstUser = new User();
+        firstUser.setId(1L);
+        firstUser.setNickname("甲");
+        User secondUser = new User();
+        secondUser.setId(2L);
+        secondUser.setNickname("乙");
+        when(userMapper.selectBatchIds(anyCollection())).thenReturn(List.of(firstUser, secondUser));
+
+        RoomNetworkResp result = scoreService.getRoomNetwork(100L);
+
+        assertEquals(2, result.getNodes().size());
+        verify(userMapper, times(1)).selectBatchIds(anyCollection());
+        verify(userMapper, never()).selectById(anyLong());
+    }
+
+    @Test
+    @DisplayName("关系网络：归档成员快照补齐零互动成员")
+    void testGetRoomNetworkFromDb_IncludesSnapshotMembers() {
+        when(redisTemplate.opsForZSet()).thenReturn(zSetOps);
+        when(zSetOps.range("sr:room:200:events", 0, -1)).thenReturn(Collections.emptySet());
+        when(zSetOps.reverseRangeWithScores("sr:room:200:scores", 0, -1)).thenReturn(Collections.emptySet());
+
+        Room room = new Room();
+        room.setId(200L);
+        room.setAllRecord(List.of(
+                Map.of(
+                        "scores", List.of(Map.of("userId", 1L, "score", 20, "name", "甲")),
+                        "membersSnapshot", List.of(
+                                Map.of("userId", 1L, "nickname", "甲", "avatarUrl", ""),
+                                Map.of("userId", 2L, "nickname", "乙", "avatarUrl", "")
+                        )
+                )
+        ));
+        when(roomMapper.selectById(200L)).thenReturn(room);
+        when(redisTemplate.opsForHash()).thenReturn(hashOps);
+        when(hashOps.entries("sr:room:200:data")).thenReturn(Collections.emptyMap());
+        when(hashOps.get(anyString(), eq("info"))).thenReturn(null);
+        when(userMapper.selectBatchIds(anyCollection())).thenReturn(Collections.emptyList());
+
+        RoomNetworkResp result = scoreService.getRoomNetwork(200L);
+
+        assertEquals(2, result.getNodes().size());
+        assertTrue(result.getNodes().stream()
+                .anyMatch(node -> node.getUserId().equals(2L) && node.getScore() == 0));
     }
 }

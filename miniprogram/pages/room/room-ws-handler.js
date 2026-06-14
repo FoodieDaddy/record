@@ -36,20 +36,24 @@ const roomWsHandler = {
 
     // 房间解散通知
     if (data.type === 'ROOM_DISBANDED') {
-      // 成员收到解散通知，清除驾驶舱状态
-      // 为了彻底关闭视图，我们重置整个 room 数据，但保留 showSettleOverlay 的处理
-      const room = this.data.currentRoom;
+      const shouldShowSettle = !this._settling && !this.data.showSettleOverlay;
+      wx.removeStorageSync('currentRoomId');
+      this.suppressWsReconnect();
+      app.disconnectWS();
       this.setData({
         currentRoom: null,
         viewingRoom: false,
+        isOwner: false,
         cockpitState: 'idle',
         memberGrid: [],
         seatList: [],
         ranking: [],
-        scoreRecords: []
+        scoreRecords: [],
+        wsConnected: false,
+        wsReconnecting: false
       });
-      
-      if (!this._settling && !this.data.showSettleOverlay) {
+
+      if (shouldShowSettle) {
         this.fetchAndShowSettle(roomId);
       }
       wx.showToast({ title: '编队已解散', icon: 'none', duration: 3000 });
@@ -58,7 +62,23 @@ const roomWsHandler = {
 
     // 结算通知：房主已在 quitRoom 中处理，其他人拉取结算数据展示弹层
     if (data.type === 'SETTLE') {
-      if (!this._settling && !this.data.showSettleOverlay) {
+      const shouldShowSettle = !this._settling && !this.data.showSettleOverlay;
+      wx.removeStorageSync('currentRoomId');
+      this.suppressWsReconnect();
+      app.disconnectWS();
+      this.setData({
+        currentRoom: null,
+        viewingRoom: false,
+        isOwner: false,
+        cockpitState: 'idle',
+        memberGrid: [],
+        seatList: [],
+        ranking: [],
+        scoreRecords: [],
+        wsConnected: false,
+        wsReconnecting: false
+      });
+      if (shouldShowSettle) {
         this.fetchAndShowSettle(roomId);
       }
       return;
@@ -254,25 +274,43 @@ const roomWsHandler = {
           const toName = audioTo ? audioTo.nickname : '未知';
           speakTransfer(fromName, toName, String(data.amount));
         }
-        if (isReceiver && typeof this.triggerPulseReadoutRoll === 'function') {
-          this.triggerPulseReadoutRoll();
-        }
-
         // 优先用 WS 推送的权威分数更新本地，避免额外 HTTP 请求
         if (data.fromNewScore !== undefined && data.toNewScore !== undefined) {
-          this.pushWsTransferToQueue({
+          const transferTask = {
             fromUserId: data.fromUserId,
             toUserId: data.toUserId,
             amount: data.amount,
             fromNewScore: data.fromNewScore,
             toNewScore: data.toNewScore,
             now: Date.now()
-          });
+          };
+          if (isReceiver) {
+            this.pushWsTransferToQueue(transferTask);
+          } else {
+            // 旁观端只同步权威数据，不播放头像、激光或仪表动画。
+            this._optimisticScoreUpdateFromWS(
+              data.fromUserId,
+              data.toUserId,
+              data.fromNewScore,
+              data.toNewScore
+            );
+            this.appendLocalTransferRecord(data.fromUserId, data.toUserId, data.amount, transferTask.now);
+            this.buildMemberGrid();
+          }
         } else {
           // 兼容：旧版后端未携带分数时，走 updateAllData
-          this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, () => {
+          if (isReceiver) {
+            this.setData({
+              pulseReadoutDisplay: this.formatPulseValue(this.getLocalScore(myId))
+            });
+            this.triggerContactTransferFx(data.fromUserId, 'sending');
+            this.playTransferAnimation(data.fromUserId, data.toUserId, data.amount, async () => {
+              await this.updateAllData(roomId);
+              this.triggerPulseReadoutRoll(undefined, 'gain');
+            });
+          } else {
             this.updateAllData(roomId);
-          });
+          }
         }
       } else {
         this.updateAllData(roomId);
