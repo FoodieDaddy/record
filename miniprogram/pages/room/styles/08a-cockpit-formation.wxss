@@ -1,0 +1,484 @@
+/* ===== 成员观测层 ===== */
+.observation-zone {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 成员识别卡 */
+/* 成员识别卡 - 飞船化重构 */
+.hud-member {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 2;
+  width: 150rpx; /* 增加宽度以容纳机翼 */
+  /* 丝滑过渡：支持位置与缩放的平滑演变 */
+  transition: 
+    left 1s cubic-bezier(0.23, 1, 0.32, 1), 
+    top 1s cubic-bezier(0.23, 1, 0.32, 1), 
+    transform 1s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.6s ease;
+}
+
+/* 飞船主体结构 */
+.ship-craft {
+  position: relative;
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ship-nose {
+  position: absolute;
+  top: -10rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7rpx solid transparent;
+  border-right: 7rpx solid transparent;
+  border-bottom: 12rpx solid rgba(0, 200, 255, 0.7);
+  z-index: 2;
+  filter: drop-shadow(0 0 4rpx rgba(0, 200, 255, 0.4));
+}
+
+.ship-wing {
+  position: absolute;
+  top: 50%;
+  width: 28rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, rgba(0, 200, 255, 0.4), rgba(0, 200, 255, 0.1));
+  border-radius: 2rpx;
+  z-index: 0;
+}
+
+.ship-wing--left {
+  left: -12rpx;
+  transform: translateY(-50%) rotate(-12deg);
+  background: linear-gradient(-90deg, rgba(0, 200, 255, 0.4), rgba(0, 200, 255, 0.1));
+}
+
+.ship-wing--right {
+  right: -12rpx;
+  transform: translateY(-50%) rotate(12deg);
+}
+
+.ship-shield-ring {
+  position: absolute;
+  inset: -4rpx;
+  border: 1.5rpx solid rgba(0, 200, 255, 0.25);
+  border-radius: 50%;
+  box-shadow: 0 0 12rpx rgba(0, 175, 255, 0.15);
+  pointer-events: none;
+}
+
+.hud-member__ring {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.ship-online-dot {
+  position: absolute;
+  bottom: 8rpx;
+  right: 8rpx;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(226, 242, 255, 0.2);
+  border: 2rpx solid rgba(2, 10, 18, 0.9);
+  z-index: 3;
+}
+
+.ship-online-dot.is-on {
+  background: #32D74B;
+  box-shadow: 0 0 8rpx #32D74B;
+}
+
+/* HUD 信息读数 */
+.hud-member__info {
+  margin-top: 14rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+}
+
+.hud-member__name-tag {
+  padding: 2rpx 14rpx;
+  background: rgba(0, 175, 255, 0.1);
+  border: 1rpx solid rgba(0, 200, 255, 0.2);
+  border-radius: 4rpx;
+  /* 八角切角视觉 */
+  clip-path: polygon(6rpx 0, 100% 0, 100% calc(100% - 6rpx), calc(100% - 6rpx) 100%, 0 100%, 0 6rpx);
+}
+
+.hud-member__name {
+  font-size: 20rpx !important;
+  color: rgba(226, 242, 255, 0.95) !important;
+  font-weight: 600 !important;
+  letter-spacing: 1rpx;
+  text-align: center;
+}
+
+.hud-member__pulse-readout {
+  margin-top: 2rpx;
+}
+
+.hud-member__score {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 24rpx !important;
+  font-weight: 700 !important;
+  letter-spacing: 1rpx;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-member__score.is-positive { color: #32D74B; text-shadow: 0 0 10rpx rgba(50, 215, 75, 0.3); }
+.hud-member__score.is-negative { color: #FF9F0A; text-shadow: 0 0 10rpx rgba(255, 159, 10, 0.3); }
+.hud-member__score.is-zero { color: rgba(0, 200, 255, 0.64); }
+
+/* 编队成员动态缩放 */
+.ship-craft--solo { transform: translate(-50%, -50%) scale(1.45); z-index: 20; }
+.ship-craft--duo { transform: translate(-50%, -50%) scale(1.25); z-index: 15; }
+.ship-craft--normal { transform: translate(-50%, -50%) scale(1.0); z-index: 10; }
+.ship-craft--compact { transform: translate(-50%, -50%) scale(0.85); z-index: 5; }
+
+/* 动画与状态反馈 */
+.hud-member--new { animation: memberArrive 0.5s ease-out; }
+@keyframes memberArrive {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  60% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.hud-member--impact .ship-craft {
+  transform: scale(1.15);
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.hud-member--tap .ship-craft {
+  transform: scale(0.92);
+}
+
+.hud-member--dragging {
+  z-index: 100 !important;
+  opacity: 0.9;
+}
+.hud-member--dragging .ship-shield-ring {
+  border-color: #00afff;
+  box-shadow: 0 0 30rpx rgba(0, 175, 255, 0.4);
+}
+
+.observation-zone .ship-craft { display: flex; }
+
+
+/* ===== 空态：远距离信标扫描 ===== */
+.observation-empty {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  pointer-events: none;
+}
+
+/* 扫描脉冲环 */
+.scan-beacon-visual {
+  position: relative;
+  width: 180rpx;
+  height: 180rpx;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-pulse-ring {
+  position: absolute;
+  inset: 0;
+  border: 1rpx solid rgba(0, 200, 255, 0.14);
+  border-radius: 50%;
+  opacity: 0.6;
+}
+
+.scan-pulse-ring--mid {
+  inset: 22rpx;
+  border-color: rgba(0, 200, 255, 0.20);
+  opacity: 0.8;
+}
+
+.scan-pulse-ring--outer {
+  inset: 44rpx;
+  border-color: rgba(0, 200, 255, 0.10);
+  border-style: dashed;
+  opacity: 0.4;
+}
+
+/* 占位航船点 */
+.scan-placeholder-dots {
+  position: absolute;
+  inset: 0;
+}
+
+.scan-placeholder-dot {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(0, 200, 255, 0.28);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.12);
+}
+
+.scan-placeholder-dot--1 { top: 28rpx; left: 50%; transform: translateX(-50%); }
+.scan-placeholder-dot--2 { bottom: 28rpx; left: 26rpx; }
+.scan-placeholder-dot--3 { bottom: 28rpx; right: 26rpx; }
+
+.observation-empty__title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: rgba(226, 242, 255, 0.48);
+  letter-spacing: 4rpx;
+}
+
+.observation-empty__desc {
+  font-size: 19rpx;
+  color: rgba(226, 242, 255, 0.28);
+  letter-spacing: 2rpx;
+}
+
+.observation-empty__hint {
+  font-size: 16rpx;
+  color: rgba(0, 200, 255, 0.24);
+  letter-spacing: 1rpx;
+  margin-top: 4rpx;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* 坐标标记 */
+.observation-grid-marks {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.coord-mark {
+  position: absolute;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 16rpx;
+  color: rgba(0, 200, 255, 0.18);
+  letter-spacing: 2rpx;
+}
+
+.coord-mark--tl { top: 16rpx; left: 24rpx; }
+.coord-mark--tr { top: 16rpx; right: 24rpx; }
+
+/* ===== 本舰脉冲仪表（HUD下半区） ===== */
+.pulse-instrument {
+  position: absolute;
+  left: 50%;
+  bottom: 30rpx;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: 320rpx;
+  height: 136rpx;
+  text-align: center;
+}
+
+.pulse-instrument__arc-outer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10rpx;
+  height: 130rpx;
+  border: 2rpx solid rgba(0, 200, 255, 0.28);
+  border-bottom: none;
+  border-top-left-radius: 320rpx;
+  border-top-right-radius: 320rpx;
+}
+
+/* 能量瞬间填充层（功率仪动效） */
+.pulse-instrument__power-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10rpx;
+  height: 130rpx;
+  border: 6rpx solid rgba(0, 200, 255, 0.9);
+  border-bottom: none;
+  border-top-left-radius: 320rpx;
+  border-top-right-radius: 320rpx;
+  box-shadow: 0 0 24rpx rgba(0, 200, 255, 0.8),
+              inset 0 0 12rpx rgba(0, 200, 255, 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pulse-instrument.is-positive .pulse-instrument__arc-outer {
+  border-color: rgba(48, 209, 88, 0.32);
+}
+.pulse-instrument.is-positive .pulse-instrument__power-track {
+  border-color: rgba(48, 209, 88, 0.95);
+  box-shadow: 0 0 24rpx rgba(48, 209, 88, 0.8), inset 0 0 12rpx rgba(48, 209, 88, 0.6);
+}
+
+.pulse-instrument.is-negative .pulse-instrument__arc-outer {
+  border-color: rgba(255, 159, 10, 0.34);
+}
+.pulse-instrument.is-negative .pulse-instrument__power-track {
+  border-color: rgba(255, 159, 10, 0.95);
+  box-shadow: 0 0 24rpx rgba(255, 159, 10, 0.8), inset 0 0 12rpx rgba(255, 159, 10, 0.6);
+}
+
+/* 激活充能动画 */
+.pulse-instrument.is-powering .pulse-instrument__power-track {
+  animation: powerSurgeWipe 900ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+
+@keyframes powerSurgeWipe {
+  0% { 
+    opacity: 0; 
+    clip-path: inset(0 100% 0 0); 
+  }
+  15% { 
+    opacity: 1; 
+    clip-path: inset(0 0 0 0); 
+  }
+  70% {
+    opacity: 0.8;
+    clip-path: inset(0 0 0 0);
+  }
+  100% { 
+    opacity: 0; 
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.pulse-instrument__arc-inner {
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 12rpx;
+  height: 98rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.12);
+  border-bottom: none;
+  border-top-left-radius: 280rpx;
+  border-top-right-radius: 280rpx;
+}
+
+/* 刻度线 */
+.pulse-instrument__ticks {
+  position: absolute;
+  left: 46rpx;
+  right: 46rpx;
+  bottom: 28rpx;
+  height: 108rpx;
+  pointer-events: none;
+}
+
+.pulse-instrument__tick {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: 2rpx;
+  height: 10rpx;
+  background: rgba(0, 200, 255, 0.22);
+  transform-origin: bottom center;
+}
+
+.pulse-instrument__avatar {
+  position: absolute;
+  left: 50%;
+  top: 50rpx;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+.pulse-instrument__title {
+  position: relative;
+  z-index: 2;
+  display: block;
+  padding-top: 14rpx;
+  font-size: 17rpx;
+  line-height: 20rpx;
+  color: rgba(226, 242, 255, 0.48);
+  letter-spacing: 3rpx;
+}
+
+.pulse-instrument__value {
+  position: relative;
+  z-index: 2;
+  display: block;
+  margin-top: 2rpx;
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 48rpx;
+  line-height: 52rpx;
+  color: rgba(226, 242, 255, 0.96);
+  font-variant-numeric: tabular-nums;
+}
+
+.pulse-instrument.is-positive .pulse-instrument__value {
+  color: rgba(48, 209, 88, 0.92);
+}
+.pulse-instrument.is-negative .pulse-instrument__value {
+  color: rgba(255, 159, 10, 0.92);
+}
+
+.pulse-instrument__status {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  font-size: 15rpx;
+  line-height: 18rpx;
+  color: rgba(226, 242, 255, 0.40);
+}
+
+.pulse-instrument__dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: rgba(48, 209, 88, 0.88);
+  box-shadow: 0 0 6rpx rgba(48, 209, 88, 0.38);
+}
+
+.pulse-instrument__base {
+  position: absolute;
+  left: 50%;
+  bottom: 2rpx;
+  transform: translateX(-50%);
+  width: 100rpx;
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.20), transparent);
+  border-radius: 2rpx;
+}
+
+/* ===== HUD 下沿唇缘 ===== */
+.cockpit-dashboard-lip {
+  position: absolute;
+  z-index: 7;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent 6%, rgba(0, 200, 255, 0.26) 28%, rgba(0, 200, 255, 0.38) 50%, rgba(0, 200, 255, 0.26) 72%, transparent 94%);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.50);
+}

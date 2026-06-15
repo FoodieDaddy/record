@@ -1,0 +1,588 @@
+/* ===== 极致沉浸：全屏 HUD 与 悬浮指令中心 ===== */
+
+.cockpit-active {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #05070A;
+}
+
+.cockpit-active-screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* 移除外层内边距 */
+}
+
+/* HUD 设为绝对定位，撑满全屏 */
+.cockpit-hud-zone {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none !important; /* 解锁高度限制 */
+  border: none;
+  clip-path: none; /* 移除剪裁，实现全屏视野 */
+  background: transparent;
+  z-index: 1;
+}
+
+/* 悬浮触发器样式 */
+.command-trigger {
+  position: absolute;
+  right: 40rpx;
+  bottom: calc(40rpx + env(safe-area-inset-bottom));
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  background: rgba(10, 25, 40, 0.6);
+  border: 1rpx solid rgba(0, 200, 255, 0.3);
+  padding: 20rpx;
+  border-radius: 50%;
+  width: 120rpx;
+  height: 120rpx;
+  box-sizing: border-box;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 30rpx rgba(0, 175, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.command-trigger--active {
+  transform: scale(0.9) rotate(90deg);
+  background: rgba(0, 200, 255, 0.2);
+  border-color: #00afff;
+}
+
+.command-trigger__icon {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.ct-bar {
+  width: 32rpx;
+  height: 3rpx;
+  background: #00afff;
+  border-radius: 2rpx;
+  box-shadow: 0 0 8rpx #00afff;
+}
+
+.command-trigger__label {
+  font-size: 16rpx;
+  color: #00afff;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+/* 指令浮窗容器 */
+.command-center-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  pointer-events: none;
+}
+
+.ccd--show {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.ccd__content {
+  background: linear-gradient(180deg, rgba(8, 20, 32, 0.85), rgba(4, 10, 16, 0.95));
+  backdrop-filter: blur(20px);
+  border-top: 1rpx solid rgba(0, 200, 255, 0.2);
+  padding: 30rpx 0 calc(20rpx + env(safe-area-inset-bottom));
+  border-top-left-radius: 40rpx;
+  border-top-right-radius: 40rpx;
+  box-shadow: 0 -20rpx 60rpx rgba(0, 0, 0, 0.8);
+}
+
+/* 在浮窗中重置终端和控制台样式 */
+.command-center-dock .output-terminal {
+  max-height: 240rpx !important; /* 在浮窗中可以稍微大一点 */
+  margin: 0 40rpx 30rpx !important;
+  background: rgba(0, 0, 0, 0.3);
+  flex: none;
+}
+
+.command-center-dock .cockpit-console-v2 {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 40rpx !important;
+}
+
+/* 调整观测层在全屏下的高度 */
+.observation-zone {
+  height: 100vh !important;
+}
+
+/* 让本舰仪表盘在全屏模式下稍微上移，防止被浮窗完全遮挡 */
+.pulse-instrument {
+  bottom: calc(180rpx + env(safe-area-inset-bottom)) !important;
+  transition: bottom 0.4s ease;
+}
+
+.ccd--show ~ .cockpit-hud-zone .pulse-instrument {
+  bottom: calc(520rpx + env(safe-area-inset-bottom)) !important;
+}
+
+/* ===== 第一人称 HUD 细节增强 ===== */
+
+/* 1. 机舱盖反光与玻璃质感 */
+.hud-canopy-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.05), transparent 60%);
+}
+
+/* 2. 人工水平线（地平线仪） */
+.hud-artificial-horizon {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 50%;
+  height: 2rpx;
+  background: linear-gradient(90deg,
+    rgba(0, 175, 255, 0) 0%,
+    rgba(0, 175, 255, 0.15) 20%,
+    rgba(0, 175, 255, 0.15) 80%,
+    rgba(0, 175, 255, 0) 100%);
+  z-index: 3;
+  pointer-events: none;
+}
+.hud-artificial-horizon::before, .hud-artificial-horizon::after {
+  content: '';
+  position: absolute;
+  width: 40rpx;
+  height: 10rpx;
+  border-left: 2rpx solid rgba(0, 175, 255, 0.3);
+  top: -4rpx;
+}
+.hud-artificial-horizon::before { left: 20%; border-left: none; border-right: 2rpx solid rgba(0, 175, 255, 0.3); }
+.hud-artificial-horizon::after { right: 20%; }
+
+/* 3. 垂直全息扫描仪 */
+.hud-vertical-scanners {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.hud-scanner-left, .hud-scanner-right {
+  position: absolute;
+  top: 20%;
+  bottom: 20%;
+  width: 60rpx;
+  border-left: 1rpx solid rgba(0, 200, 255, 0.08);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.08);
+}
+.hud-scanner-left { left: 5%; background: linear-gradient(90deg, rgba(0, 175, 255, 0.03), transparent); }
+.hud-scanner-right { right: 5%; background: linear-gradient(-90deg, rgba(0, 175, 255, 0.03), transparent); }
+
+/* 4. 中央全息准星 */
+.hud-crosshair-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80rpx;
+  height: 80rpx;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  pointer-events: none;
+}
+.hud-crosshair-center::before, .hud-crosshair-center::after {
+  content: '';
+  position: absolute;
+  background: rgba(0, 175, 255, 0.2);
+}
+.hud-crosshair-center::before { left: 50%; top: 0; bottom: 0; width: 1rpx; height: 20%; top: 40%; }
+.hud-crosshair-center::after { top: 50%; left: 0; right: 0; height: 1rpx; width: 20%; left: 40%; }
+
+/* ===== 成员名称样式微调 (防止截断) ===== */
+.hud-member__name {
+  max-width: 140rpx !important;
+  font-size: 20rpx !important;
+  text-shadow: 0 0 8rpx rgba(0, 0, 0, 0.8) !important;
+}
+
+/* 修正指令中心按钮的可点击性 */
+.command-trigger {
+  pointer-events: auto !important;
+}
+
+/* ===== 极致优化：日志流交互与视觉细节修复 ===== */
+
+/* 1. 解决拖拽方框问题：彻底移除容器背景与边框，禁用高亮 */
+.hud-member {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 2. 纵向扫描线穿透：确保不干扰触摸 */
+.hud-vertical-scanners, .hud-scanner-left, .hud-scanner-right {
+  pointer-events: none !important;
+}
+
+/* 3. 实时日志流：飞船全息 HUD 风格 */
+.hud-log-stream {
+  position: absolute;
+  left: 24rpx;
+  right: 180rpx; /* 为右侧指令中心留白 */
+  bottom: calc(30rpx + env(safe-area-inset-bottom));
+  height: 160rpx;
+  z-index: 80;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column-reverse; /* 底部最新，向上推 */
+  padding: 12rpx 20rpx;
+  box-sizing: border-box;
+  /* 毛玻璃全息背板 */
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.08) 0%, transparent 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-left: 2rpx solid rgba(0, 175, 255, 0.4);
+  mask-image: linear-gradient(to top, black 40%, transparent 100%);
+  border-radius: 4rpx;
+}
+
+.hud-log-item {
+  display: flex;
+  align-items: center;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15rpx !important;
+  height: 28rpx;
+  color: rgba(0, 175, 255, 0.7);
+  letter-spacing: 1rpx;
+  animation: logSlideIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+@keyframes logSlideIn {
+  from { opacity: 0; transform: translateY(10rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hud-log-item__time {
+  font-size: 13rpx;
+  opacity: 0.35;
+  width: 70rpx;
+  flex-shrink: 0;
+}
+
+.hud-log-item__msg {
+  flex: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.hud-log-item__val {
+  font-weight: bold;
+  margin-left: 12rpx;
+  padding: 0 6rpx;
+  border-radius: 2rpx;
+}
+.hud-log-item__val.is-pos { color: #32D74B; background: rgba(50, 215, 75, 0.1); }
+.hud-log-item__val.is-neg { color: #FF453A; background: rgba(255, 69, 58, 0.1); }
+
+/* 4. 调整成员环尺寸（放大头像） */
+.hud-member__ring {
+  width: 80rpx !important;
+  height: 80rpx !important;
+}
+
+.hud-member__name {
+  margin-top: 4rpx;
+  font-size: 18rpx !important;
+}
+
+/* 5. 控制台面板微调：降低层级避免挡住日志 */
+.command-center-dock {
+  z-index: 110; /* 高于日志和触发器 */
+}
+
+/* ===== 深度视觉修复：消除方框与增强沉浸感 ===== */
+
+/* 彻底消除头像周边的方形底色 */
+.hud-member, .hud-member__ring, .hud-member__avatar {
+  background-color: transparent !important;
+  border-radius: 50% !important; /* 强制所有头像容器为圆形 */
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 仅在拖拽时显示圆形高光，绝非方框 */
+.hud-member--dragging .hud-member__ring {
+  background: rgba(0, 175, 255, 0.1) !important;
+  box-shadow: 0 0 40rpx rgba(0, 175, 255, 0.3) !important;
+  transform: scale(1.15) !important;
+}
+
+/* 纵向辅助线完全禁止交互，防止阻挡拖拽 */
+.hud-vertical-scanners, .hud-scanner-left, .hud-scanner-right, .hud-artificial-horizon {
+  pointer-events: none !important;
+}
+
+/* 优化日志流视觉：打字机效果与极窄发光 */
+.hud-log-stream {
+  left: 40rpx;
+  bottom: calc(60rpx + env(safe-area-inset-bottom));
+  right: 180rpx;
+  height: 160rpx;
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%);
+}
+
+.hud-log-item {
+  display: flex;
+  align-items: center;
+  font-size: 18rpx !important;
+  height: 32rpx;
+  color: #00afff;
+  text-shadow: 0 0 10rpx rgba(0, 175, 255, 0.5);
+  animation: logSlideIn 0.4s cubic-bezier(0.165, 0.84, 0.44, 1) both;
+}
+
+@keyframes logSlideIn {
+  from { opacity: 0; transform: translateY(20rpx); filter: blur(10px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.hud-log-item__time {
+  opacity: 0.4;
+  font-size: 14rpx;
+  width: 80rpx;
+}
+
+.hud-log-item__msg {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-log-item__val {
+  font-weight: bold;
+  margin-left: 10rpx;
+}
+
+/* 最终视觉微调：极致消除方框 */
+.hud-member, .hud-member__ring, .hud-member__avatar, .helmet-avatar {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* 再次放大头像尺寸以提升点击率 */
+.hud-member__ring {
+  width: 90rpx !important;
+  height: 90rpx !important;
+}
+
+/* 日志流发光强化 */
+.hud-log-item {
+  color: #00afff !important;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+  filter: drop-shadow(0 0 5rpx rgba(0, 175, 255, 0.4));
+}
+
+/* ===== 编队观测区与脉冲记录舱最终布局 ===== */
+.observation-zone {
+  position: absolute !important;
+  top: 82rpx;
+  right: 20rpx;
+  bottom: calc(340rpx + env(safe-area-inset-bottom));
+  left: 20rpx;
+  width: auto;
+  height: auto !important;
+  overflow: hidden;
+  border-top: 1rpx solid rgba(0, 175, 255, 0.08);
+  border-bottom: 1rpx solid rgba(0, 175, 255, 0.06);
+  box-sizing: border-box;
+}
+
+.coord-mark--center {
+  top: 14rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(0, 175, 255, 0.18);
+  font-size: 14rpx;
+  white-space: nowrap;
+}
+
+.hud-log-stream {
+  position: absolute;
+  left: 28rpx;
+  right: 180rpx;
+  bottom: calc(24rpx + env(safe-area-inset-bottom));
+  z-index: 80;
+  height: 132rpx;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 175, 255, 0.09), rgba(3, 12, 22, 0.82) 44%, rgba(3, 12, 22, 0.60));
+  border: 1rpx solid rgba(0, 175, 255, 0.16);
+  border-left: 3rpx solid rgba(0, 175, 255, 0.62);
+  border-radius: 8rpx;
+  box-sizing: border-box;
+  mask-image: none;
+  -webkit-mask-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 0 20rpx rgba(0, 175, 255, 0.035);
+}
+
+.hud-log-stream__header {
+  height: 34rpx;
+  padding: 0 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1rpx solid rgba(0, 175, 255, 0.10);
+  background: rgba(0, 175, 255, 0.035);
+  box-sizing: border-box;
+}
+
+.hud-log-stream__title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  color: rgba(208, 240, 255, 0.72);
+  font-size: 15rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.hud-log-stream__dot {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  background: #32D74B;
+  box-shadow: 0 0 8rpx rgba(50, 215, 75, 0.70);
+}
+
+.hud-log-stream__status {
+  color: rgba(0, 175, 255, 0.42);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 13rpx;
+  letter-spacing: 1rpx;
+}
+
+.hud-log-stream__body {
+  flex: 1;
+  min-height: 0;
+  padding: 5rpx 10rpx 6rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+  box-sizing: border-box;
+}
+
+.hud-log-item {
+  min-height: 28rpx;
+  height: 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  overflow: hidden;
+  color: rgba(201, 232, 248, 0.64) !important;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15rpx !important;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-shadow: none;
+  filter: none;
+  animation: none;
+}
+
+.hud-log-item--new {
+  color: rgba(226, 246, 255, 0.92) !important;
+}
+
+.hud-log-item__time {
+  width: 54rpx;
+  flex-shrink: 0;
+  color: rgba(0, 175, 255, 0.38);
+  font-size: 13rpx;
+  opacity: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-log-item__route {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5rpx;
+  overflow: hidden;
+}
+
+.hud-log-item__crew {
+  max-width: 92rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-log-item__arrow {
+  flex-shrink: 0;
+  color: rgba(0, 175, 255, 0.72);
+}
+
+.hud-log-item__val {
+  min-width: 58rpx;
+  margin-left: 0;
+  padding: 1rpx 8rpx;
+  flex-shrink: 0;
+  border: 1rpx solid rgba(0, 175, 255, 0.16);
+  border-radius: 999rpx;
+  background: rgba(0, 175, 255, 0.07);
+  color: rgba(0, 200, 255, 0.88);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 14rpx;
+  font-weight: 700;
+  line-height: 20rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.hud-log-item__val.is-positive {
+  color: #32D74B;
+  border-color: rgba(50, 215, 75, 0.24);
+  background: rgba(50, 215, 75, 0.08);
+}
+
+.hud-log-item__val.is-negative {
+  color: #FF9F0A;
+  border-color: rgba(255, 159, 10, 0.24);
+  background: rgba(255, 159, 10, 0.08);
+}
+
+.hud-log-item__val.is-neutral {
+  color: rgba(201, 232, 248, 0.54);
+}
+
+.reduce-motion .hud-log-item {
+  animation: none !important;
+}

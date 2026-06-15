@@ -1,0 +1,462 @@
+/* ===== 驾驶舱信息层级 v3 ===== */
+.room-custom-nav--active {
+  background: transparent;
+  border-bottom: none;
+}
+
+.room-custom-nav--active::after {
+  display: none;
+}
+
+.room-custom-nav--active .room-custom-nav__stars {
+  opacity: 0.15;
+}
+
+.room-custom-nav--active .room-custom-nav__bar {
+  justify-content: flex-start;
+  padding: 0 32rpx;
+}
+
+.cockpit-nav-hud {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+}
+
+.cockpit-nav-hud__link {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+  color: rgba(204, 231, 242, 0.70);
+  font-size: 20rpx;
+  white-space: nowrap;
+}
+
+.cockpit-nav-hud__formation {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-family: Menlo, monospace;
+}
+
+.cockpit-nav-hud__code {
+  overflow: hidden;
+  color: rgba(0, 200, 255, 0.86);
+  font-size: 21rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cockpit-nav-hud__divider {
+  width: 1rpx;
+  height: 20rpx;
+  flex-shrink: 0;
+  background: rgba(0, 175, 255, 0.20);
+}
+
+.cockpit-nav-hud__crew {
+  flex-shrink: 0;
+  color: rgba(0, 200, 255, 0.62);
+  font-size: 19rpx;
+  font-weight: 700;
+}
+
+/* 主视野不再为重复的 SYS/CRW 标签预留顶部空间。 */
+.observation-zone {
+  top: 12rpx !important;
+  right: 26rpx;
+  left: 26rpx;
+  border-top-color: rgba(0, 175, 255, 0.045);
+}
+
+.formation-radar {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  z-index: 0;
+  width: 520rpx;
+  height: 520rpx;
+  opacity: 0.68;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.formation-radar__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1rpx solid rgba(0, 175, 255, 0.10);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.formation-radar__ring--outer {
+  width: 100%;
+  height: 100%;
+  border-color: rgba(0, 175, 255, 0.075);
+}
+
+.formation-radar__ring--middle {
+  width: 68%;
+  height: 68%;
+}
+
+.formation-radar__ring--inner {
+  width: 34%;
+  height: 34%;
+  border-style: dashed;
+  border-color: rgba(0, 175, 255, 0.14);
+}
+
+.formation-radar__axis {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: linear-gradient(90deg, transparent, rgba(0, 175, 255, 0.10), transparent);
+}
+
+.formation-radar__axis--horizontal {
+  width: 100%;
+  height: 1rpx;
+  transform: translate(-50%, -50%);
+}
+
+.formation-radar__axis--vertical {
+  width: 1rpx;
+  height: 100%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, transparent, rgba(0, 175, 255, 0.10), transparent);
+}
+
+.formation-radar__sweep {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48%;
+  height: 48%;
+  transform-origin: left top;
+  background: linear-gradient(25deg, rgba(0, 175, 255, 0.09), transparent 58%);
+  clip-path: polygon(0 0, 100% 0, 100% 18%, 0 0);
+  animation: formationRadarSweep 7s linear infinite;
+}
+
+.formation-radar__origin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7rpx;
+  height: 7rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.30);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.20);
+}
+
+@keyframes formationRadarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.observation-grid-marks {
+  z-index: 4;
+}
+
+.coord-mark--center {
+  color: rgba(82, 190, 226, 0.38);
+  font-size: 16rpx;
+  letter-spacing: 2rpx;
+}
+
+.hud-member {
+  z-index: 5;
+  width: 150rpx;
+}
+
+.hud-member__name {
+  margin-top: 7rpx;
+  max-width: 150rpx !important;
+  color: rgba(230, 245, 251, 0.90);
+  font-size: 21rpx !important;
+  font-weight: 650;
+}
+
+.hud-member__pulse {
+  margin-top: 3rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rpx;
+}
+
+.hud-member__pulse-label {
+  color: rgba(142, 190, 208, 0.44);
+  font-size: 12rpx;
+  letter-spacing: 2rpx;
+}
+
+.hud-member__score {
+  margin-top: 0;
+  font-size: 23rpx;
+  line-height: 26rpx;
+  font-weight: 700;
+}
+
+.observation-zone--solo .hud-member {
+  width: 190rpx;
+}
+
+.observation-zone--solo .hud-member__ring {
+  width: 112rpx !important;
+  height: 112rpx !important;
+  filter: drop-shadow(0 0 16rpx rgba(0, 175, 255, 0.18));
+}
+
+.observation-zone--solo .hud-member__name {
+  margin-top: 10rpx;
+  font-size: 25rpx !important;
+}
+
+.observation-zone--solo .hud-member__pulse-label {
+  font-size: 14rpx;
+}
+
+.observation-zone--solo .hud-member__score {
+  font-size: 28rpx;
+  line-height: 32rpx;
+}
+
+.hud-member--dragging {
+  filter: drop-shadow(0 0 22rpx rgba(0, 175, 255, 0.36));
+}
+
+.hud-member--dragging ~ .observation-grid-marks .coord-mark--center {
+  color: rgba(0, 200, 255, 0.72);
+}
+
+/* 恢复模板兼容：头像内容、在线状态与无头像字标 */
+.hud-member__avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.hud-member__online-dot {
+  position: absolute;
+  right: 2rpx;
+  bottom: 2rpx;
+  z-index: 4;
+  width: 14rpx;
+  height: 14rpx;
+  border: 2rpx solid rgba(2, 10, 18, 0.92);
+  border-radius: 50%;
+  background: rgba(226, 242, 255, 0.24);
+  box-sizing: border-box;
+}
+
+.hud-member--online .hud-member__online-dot {
+  background: #32D74B;
+  box-shadow: 0 0 8rpx rgba(50, 215, 75, 0.72);
+}
+
+.hud-member__avatar--char {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 175, 255, 0.14) !important;
+}
+
+.hud-member__avatar-char-text {
+  color: rgba(210, 242, 255, 0.92);
+  font-size: 30rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pulse-instrument__title {
+  color: rgba(218, 238, 246, 0.62);
+  font-size: 19rpx;
+  font-weight: 600;
+}
+
+.pulse-instrument__value {
+  margin-top: 4rpx;
+  font-size: 54rpx;
+  line-height: 56rpx;
+}
+
+.pulse-instrument__status {
+  margin-top: 2rpx;
+  font-size: 16rpx;
+}
+
+/* 控制台优先保证手机尺寸下的可读性。 */
+.cockpit-mfd .hud-log-stream__title {
+  font-size: 17rpx;
+}
+
+.cockpit-mfd .hud-log-stream__status {
+  font-size: 13rpx;
+}
+
+.cockpit-mfd .hud-log-item {
+  min-height: 36rpx;
+  height: 36rpx;
+  font-size: 16rpx !important;
+  line-height: 36rpx;
+}
+
+.cockpit-mfd .hud-log-item__time {
+  width: 46rpx;
+  font-size: 13rpx;
+}
+
+.cockpit-mfd .hud-log-item__crew {
+  max-width: 72rpx;
+}
+
+.cockpit-mfd .hud-log-item__val {
+  min-width: 48rpx;
+  font-size: 15rpx;
+}
+
+.cockpit-hardkey-bank {
+  height: 126rpx;
+}
+
+.cockpit-hardkey {
+  padding: 50rpx 4rpx 8rpx;
+}
+
+.cockpit-hardkey__icon {
+  position: absolute;
+  top: 18rpx;
+  left: 50%;
+  width: 34rpx;
+  height: 28rpx;
+  transform: translateX(-50%);
+  color: rgba(0, 200, 255, 0.62);
+}
+
+.cockpit-hardkey__icon--beacon {
+  border: 1rpx solid rgba(0, 200, 255, 0.32);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.cockpit-hardkey__icon--beacon::before,
+.cockpit-hardkey__icon--beacon::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  content: '';
+  border: 1rpx solid rgba(0, 200, 255, 0.24);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.cockpit-hardkey__icon--beacon::before {
+  width: 22rpx;
+  height: 18rpx;
+}
+
+.cockpit-hardkey__icon--beacon::after {
+  width: 10rpx;
+  height: 8rpx;
+}
+
+.cockpit-hardkey__beacon-core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4rpx;
+  height: 4rpx;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 220, 255, 0.88);
+  box-shadow: 0 0 7rpx rgba(0, 200, 255, 0.66);
+}
+
+.cockpit-hardkey__icon--trace {
+  border-bottom: 1rpx solid rgba(50, 215, 75, 0.18);
+}
+
+.cockpit-hardkey__icon--trace::before,
+.cockpit-hardkey__icon--trace::after {
+  position: absolute;
+  content: '';
+  height: 1rpx;
+  transform-origin: left center;
+  background: rgba(50, 215, 75, 0.58);
+  box-shadow: 0 0 5rpx rgba(50, 215, 75, 0.30);
+}
+
+.cockpit-hardkey__icon--trace::before {
+  top: 19rpx;
+  left: 5rpx;
+  width: 14rpx;
+  transform: rotate(-30deg);
+}
+
+.cockpit-hardkey__icon--trace::after {
+  top: 12rpx;
+  left: 17rpx;
+  width: 13rpx;
+  transform: rotate(28deg);
+}
+
+.cockpit-hardkey__trace-node {
+  position: absolute;
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: rgba(50, 215, 75, 0.84);
+}
+
+.cockpit-hardkey__trace-node--a {
+  bottom: 5rpx;
+  left: 3rpx;
+}
+
+.cockpit-hardkey__trace-node--b {
+  top: 7rpx;
+  left: 16rpx;
+}
+
+.cockpit-hardkey__trace-node--c {
+  right: 1rpx;
+  bottom: 7rpx;
+}
+
+.cockpit-hardkey__label {
+  font-size: 22rpx;
+}
+
+.cockpit-hardkey__sub {
+  font-size: 12rpx;
+}
+
+.cockpit-console-wing__readout {
+  display: none;
+}
+
+.cockpit-console-wing--left {
+  transform: perspective(700rpx) rotateY(3deg);
+  transform-origin: left bottom;
+}
+
+.cockpit-console-wing--right {
+  transform: perspective(700rpx) rotateY(-3deg);
+  transform-origin: right bottom;
+}
+
+.reduce-motion .formation-radar__sweep {
+  animation: none !important;
+}

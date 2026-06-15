@@ -1,0 +1,755 @@
+/* ===== 弧形投影控制台 ===== */
+.room-page--active .pulse-instrument {
+  display: none !important;
+}
+
+.room-page--active .cockpit-console-v2 {
+  right: 8rpx;
+  left: 8rpx;
+  width: auto;
+  height: 190rpx;
+  padding: 34rpx 18rpx 10rpx !important;
+  overflow: hidden;
+  clip-path: none;
+  border: 0 !important;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.22) !important;
+  border-radius: 50% 50% 0 0 / 54rpx 54rpx 0 0;
+  background:
+    radial-gradient(ellipse 48% 82% at 50% 0, rgba(0, 175, 255, 0.11), transparent 72%),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.04), transparent 18%, transparent 82%, rgba(0, 200, 255, 0.04)),
+    linear-gradient(180deg, rgba(9, 26, 37, 0.94), rgba(1, 7, 11, 0.99) 72%) !important;
+  box-shadow:
+    0 -16rpx 42rpx rgba(0, 0, 0, 0.70),
+    inset 0 18rpx 34rpx rgba(0, 175, 255, 0.025) !important;
+}
+
+.room-page--active .cockpit-console-v2::before {
+  position: absolute;
+  top: 10rpx;
+  right: 12rpx;
+  left: 12rpx;
+  display: block;
+  height: 58rpx;
+  content: '';
+  pointer-events: none;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.17);
+  border-radius: 50% 50% 0 0 / 42rpx 42rpx 0 0;
+  background: radial-gradient(ellipse at 50% 0, rgba(0, 200, 255, 0.055), transparent 68%);
+}
+
+.room-page--active .cockpit-console-v2::after {
+  position: absolute;
+  right: 18%;
+  bottom: 7rpx;
+  left: 18%;
+  height: 1rpx;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.18), transparent);
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 176rpx;
+}
+
+.room-page--active .ccv2-rail {
+  display: none;
+}
+
+.room-page--active .ccv2-panel {
+  position: relative;
+  z-index: 2;
+  grid-template-columns: 110rpx minmax(0, 1fr) 110rpx;
+  align-items: stretch;
+  gap: 8rpx;
+}
+
+.room-page--active .ccv2-btn {
+  position: relative;
+  width: 110rpx;
+  height: 126rpx !important;
+  align-self: end;
+  padding: 20rpx 4rpx 8rpx;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 50% !important;
+  clip-path: none;
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(0, 175, 255, 0.09), transparent 62%) !important;
+  box-shadow: none !important;
+}
+
+.room-page--active .ccv2-btn::before {
+  position: absolute;
+  top: 20rpx;
+  left: 50%;
+  width: 90rpx;
+  height: 66rpx;
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.46);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.15);
+  border-left: 1rpx solid rgba(0, 200, 255, 0.15);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 10rpx 22rpx rgba(0, 175, 255, 0.04),
+    0 -4rpx 14rpx rgba(0, 175, 255, 0.07);
+}
+
+.room-page--active .ccv2-btn::after {
+  position: absolute;
+  bottom: 16rpx;
+  left: 50%;
+  width: 64rpx;
+  height: 1rpx;
+  content: '';
+  transform: translateX(-50%);
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.50), transparent);
+}
+
+.room-page--active .ccv2-btn--beacon {
+  transform: rotate(-4deg) translateY(5rpx);
+}
+
+.room-page--active .ccv2-btn--trace {
+  transform: rotate(4deg) translateY(5rpx);
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(48, 209, 88, 0.075), transparent 62%) !important;
+}
+
+.room-page--active .ccv2-btn--trace::before {
+  border-top-color: rgba(48, 209, 88, 0.42);
+  border-right-color: rgba(48, 209, 88, 0.13);
+  border-left-color: rgba(48, 209, 88, 0.13);
+  box-shadow:
+    inset 0 10rpx 22rpx rgba(48, 209, 88, 0.035),
+    0 -4rpx 14rpx rgba(48, 209, 88, 0.055);
+}
+
+.room-page--active .ccv2-btn--trace::after {
+  background: linear-gradient(90deg, transparent, rgba(48, 209, 88, 0.48), transparent);
+}
+
+.room-page--active .ccv2-btn__body {
+  gap: 7rpx;
+  text-shadow: 0 0 12rpx rgba(0, 175, 255, 0.20);
+}
+
+.room-page--active .ccv2-btn__glow {
+  display: none;
+}
+
+.room-page--active .ccv2-btn__indicator {
+  width: 28rpx !important;
+  height: 3rpx !important;
+  margin-bottom: 8rpx !important;
+  opacity: 0.92;
+}
+
+.room-page--active .ccv2-btn__label {
+  color: rgba(210, 241, 252, 0.88);
+  font-size: 26rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+}
+
+.room-page--active .ccv2-btn--press,
+.room-page--active .ccv2-btn--beacon.ccv2-btn--press,
+.room-page--active .ccv2-btn--trace.ccv2-btn--press {
+  transform: scale(0.94) translateY(5rpx) !important;
+  filter: brightness(1.35);
+}
+
+.console-pulse-log {
+  height: 142rpx;
+  align-self: end;
+  padding: 8rpx 10rpx 7rpx;
+  overflow: hidden;
+  border: 0;
+  clip-path: none;
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.012) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.01) 1rpx, transparent 1rpx),
+    radial-gradient(ellipse at 50% 12%, rgba(0, 175, 255, 0.065), transparent 68%);
+  background-size: 20rpx 20rpx, 20rpx 20rpx, auto;
+  box-shadow: none;
+}
+
+.console-pulse-log::before {
+  position: absolute;
+  top: 38rpx;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 14rpx;
+  content: '';
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(2, 12, 18, 0.92), transparent);
+}
+
+.console-pulse-readout {
+  position: absolute;
+  top: -2rpx;
+  left: 50%;
+  z-index: 4;
+  width: 220rpx;
+  height: 46rpx;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.20);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.07) 18%, rgba(0, 200, 255, 0.07) 82%, transparent),
+    radial-gradient(ellipse at 50% 58%, rgba(0, 175, 255, 0.12), transparent 68%);
+  pointer-events: none;
+}
+
+.console-pulse-readout::before,
+.console-pulse-readout::after {
+  position: absolute;
+  top: 9rpx;
+  width: 1rpx;
+  height: 24rpx;
+  content: '';
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.48), transparent);
+}
+
+.console-pulse-readout::before {
+  left: 42rpx;
+}
+
+.console-pulse-readout::after {
+  right: 42rpx;
+}
+
+.console-pulse-readout__digits {
+  width: 152rpx;
+  height: 38rpx;
+  overflow: hidden;
+}
+
+.console-pulse-readout__digit-track {
+  height: 114rpx;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(-38rpx);
+}
+
+.console-pulse-readout__digit-track text {
+  flex-shrink: 0;
+  height: 38rpx;
+  color: rgba(226, 244, 252, 0.96);
+  font-family: Menlo, monospace;
+  font-size: 31rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+  text-align: center;
+  letter-spacing: 1rpx;
+  text-shadow:
+    0 0 6rpx rgba(0, 200, 255, 0.34),
+    0 0 18rpx rgba(0, 175, 255, 0.13);
+}
+
+.console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 27rpx;
+  letter-spacing: 0;
+}
+
+.console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 23rpx;
+  letter-spacing: -1rpx;
+}
+
+.console-pulse-readout.is-rolling .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.console-pulse-readout.is-positive .console-pulse-readout__digit-track text {
+  color: #32D74B;
+}
+
+.console-pulse-readout.is-negative .console-pulse-readout__digit-track text {
+  color: #FF9F0A;
+}
+
+.console-pulse-readout__ticks {
+  position: absolute;
+  top: 18rpx;
+  width: 34rpx;
+  height: 8rpx;
+  opacity: 0.62;
+  background: repeating-linear-gradient(90deg, rgba(0, 200, 255, 0.58) 0 2rpx, transparent 2rpx 7rpx);
+}
+
+.console-pulse-readout__ticks--left {
+  left: 2rpx;
+}
+
+.console-pulse-readout__ticks--right {
+  right: 2rpx;
+  transform: scaleX(-1);
+}
+
+.console-pulse-readout__dot {
+  position: absolute;
+  bottom: 1rpx;
+  left: 50%;
+  width: 5rpx;
+  height: 5rpx;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #32D74B;
+  box-shadow: 0 0 8rpx rgba(50, 215, 75, 0.68);
+}
+
+.console-pulse-log__list {
+  position: absolute;
+  inset: 0 10rpx;
+  padding-top: 40rpx;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.console-pulse-log__item {
+  position: relative;
+  height: 26rpx;
+  min-height: 26rpx;
+  padding-right: 5rpx;
+  padding-left: 5rpx;
+  color: rgba(167, 211, 226, 0.38);
+  background: transparent;
+  transform-origin: left center;
+}
+
+.console-pulse-log__item--new {
+  color: rgba(207, 239, 249, 0.80);
+  animation: pulse-stream-write 760ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(1) {
+  animation: pulse-stream-rise-old 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(2) {
+  animation: pulse-stream-rise-mid 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item:nth-child(3) {
+  animation: pulse-stream-rise-new 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.console-pulse-log__item--new:nth-child(1),
+.console-pulse-log__item--new:nth-child(2),
+.console-pulse-log__item--new:nth-child(3) {
+  animation: pulse-stream-write 760ms cubic-bezier(0.2, 0.75, 0.2, 1) both;
+}
+
+.console-pulse-log__item--new::after {
+  position: absolute;
+  top: 3rpx;
+  bottom: 3rpx;
+  left: 0;
+  width: 2rpx;
+  content: '';
+  background: #00C8FF;
+  box-shadow: 0 0 12rpx rgba(0, 200, 255, 0.78);
+}
+
+.console-pulse-log__empty {
+  position: absolute;
+  inset: 0 10rpx;
+  padding-top: 40rpx;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 30%, rgba(0, 175, 255, 0.025), transparent 72%);
+}
+
+.console-pulse-log__idle-line {
+  width: 42%;
+  height: 1rpx;
+  margin: 28rpx auto 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.22), transparent);
+  animation: pulse-idle-scan 2.4s ease-in-out infinite;
+}
+
+@keyframes pulse-readout-roll {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.28;
+  }
+  56% {
+    transform: translateY(-76rpx);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-38rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-stream-rise-old {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.28;
+  }
+}
+
+@keyframes pulse-stream-rise-mid {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0.16;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.62;
+  }
+}
+
+@keyframes pulse-stream-rise-new {
+  from {
+    transform: translateY(25rpx);
+    opacity: 0.34;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 0.94;
+  }
+}
+
+@keyframes pulse-stream-write {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    transform: translateY(25rpx);
+    opacity: 0;
+  }
+  38% {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+    opacity: 0.92;
+  }
+}
+
+@keyframes pulse-idle-scan {
+  0%,
+  100% {
+    transform: scaleX(0.45);
+    opacity: 0.28;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 0.75;
+  }
+}
+
+/* 脉冲记录：收发方向配色，底部短线关闭 */
+
+
+/* 控制台：主读数舱与遥测流分层 */
+.room-page--active .console-pulse-log {
+  height: 150rpx;
+  padding: 8rpx 8rpx 6rpx;
+  background:
+    linear-gradient(rgba(0, 200, 255, 0.022) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.018) 1rpx, transparent 1rpx),
+    radial-gradient(ellipse 72% 54% at 50% 0, rgba(0, 175, 255, 0.12), transparent 72%),
+    linear-gradient(180deg, rgba(2, 16, 24, 0.90), rgba(0, 6, 10, 0.96));
+  background-size: 18rpx 18rpx, 18rpx 18rpx, auto, auto;
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 49rpx;
+  height: 15rpx;
+  background: linear-gradient(180deg, rgba(1, 12, 18, 0.96), rgba(1, 12, 18, 0.44), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 9%;
+  bottom: 2rpx;
+  left: 9%;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.18) 20%, rgba(0, 200, 255, 0.52) 50%, rgba(0, 200, 255, 0.18) 80%, transparent);
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.12);
+}
+
+.room-page--active .console-pulse-readout {
+  top: 0;
+  width: 228rpx;
+  height: 46rpx;
+  border-top: 1rpx solid rgba(0, 200, 255, 0.16);
+  border-bottom-color: rgba(0, 200, 255, 0.32);
+  clip-path: polygon(18rpx 0, calc(100% - 18rpx) 0, 100% 12rpx, calc(100% - 12rpx) 100%, 12rpx 100%, 0 12rpx);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.09) 22%, rgba(0, 200, 255, 0.09) 78%, transparent),
+    radial-gradient(ellipse at 50% 45%, rgba(0, 175, 255, 0.18), transparent 72%);
+  box-shadow:
+    inset 0 -8rpx 18rpx rgba(0, 175, 255, 0.035),
+    0 8rpx 20rpx rgba(0, 0, 0, 0.26);
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  width: 40rpx;
+  opacity: 0.72;
+  background: repeating-linear-gradient(90deg, rgba(0, 214, 255, 0.70) 0 2rpx, transparent 2rpx 7rpx);
+}
+
+.room-page--active .console-pulse-readout__ticks--left {
+  left: 8rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks--right {
+  right: 8rpx;
+}
+
+.room-page--active .console-pulse-readout__dot {
+  bottom: 0;
+  width: 4rpx;
+  height: 4rpx;
+  background: #39E6C0;
+  box-shadow: 0 0 10rpx rgba(57, 230, 192, 0.72);
+}
+
+.room-page--active .console-pulse-readout.is-positive .console-pulse-readout__digit-track text {
+  color: #39E6C0;
+  text-shadow: 0 0 8rpx rgba(57, 230, 192, 0.36), 0 0 22rpx rgba(57, 230, 192, 0.14);
+}
+
+.room-page--active .console-pulse-readout.is-negative .console-pulse-readout__digit-track text {
+  color: #FF6473;
+  text-shadow: 0 0 8rpx rgba(255, 100, 115, 0.34), 0 0 22rpx rgba(255, 100, 115, 0.12);
+}
+
+.room-page--active .console-pulse-log__list {
+  inset: 0 8rpx;
+  padding-top: 58rpx;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 25rpx;
+  min-height: 25rpx;
+  justify-content: center;
+  font-size: 15rpx;
+  color: rgba(133, 157, 168, 0.40);
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 88rpx);
+  color: inherit;
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 10rpx;
+  color: inherit;
+  font-size: 16rpx;
+  text-shadow: none;
+}
+
+.room-page--active .console-pulse-log__item--gain {
+  color: rgba(57, 230, 192, 0.92);
+}
+
+.room-page--active .console-pulse-log__item--gain .console-pulse-log__value {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.28);
+}
+
+.room-page--active .console-pulse-log__item--loss {
+  color: rgba(255, 126, 138, 0.88);
+}
+
+.room-page--active .console-pulse-log__item--loss .console-pulse-log__value {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.26);
+}
+
+.room-page--active .console-pulse-log__item--other {
+  color: rgba(139, 164, 176, 0.38);
+}
+
+.room-page--active .console-pulse-log__item--gain::after {
+  background: #39E6C0;
+  box-shadow: 0 0 12rpx rgba(57, 230, 192, 0.62);
+}
+
+.room-page--active .console-pulse-log__item--loss::after {
+  background: #FF6473;
+  box-shadow: 0 0 12rpx rgba(255, 100, 115, 0.58);
+}
+
+.room-page--active .console-pulse-log__empty {
+  padding-top: 58rpx;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  margin-top: 25rpx;
+}
+
+/* 脉冲记录：本人得分冷青绿，转出警戒红，其他成员蓝灰 */
+
+
+/* 成员航船：头像作为驾驶舱舷窗，外层构成微型舰体 */
+.room-page--active .hud-member {
+  width: 164rpx;
+}
+
+.room-page--active .ship-craft {
+  width: 104rpx;
+  height: 86rpx;
+  transform-origin: center center;
+  filter: drop-shadow(0 8rpx 12rpx rgba(0, 0, 0, 0.42));
+}
+
+.room-page--active .ship-craft.ship-craft--solo {
+  transform: scale(1.20);
+}
+
+.room-page--active .ship-craft.ship-craft--duo {
+  transform: scale(1.10);
+}
+
+.room-page--active .ship-craft.ship-craft--normal {
+  transform: scale(1);
+}
+
+.room-page--active .ship-craft.ship-craft--compact {
+  transform: scale(0.88);
+}
+
+.room-page--active .ship-hull {
+  position: relative;
+  z-index: 3;
+  width: 72rpx;
+  height: 70rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(0, 200, 255, 0.38);
+  border-radius: 46% 46% 40% 40%;
+  background:
+    linear-gradient(135deg, rgba(197, 239, 252, 0.12), transparent 32%),
+    radial-gradient(circle at 50% 44%, rgba(0, 175, 255, 0.18), rgba(1, 10, 17, 0.96) 72%);
+  box-shadow:
+    inset 0 0 16rpx rgba(0, 175, 255, 0.12),
+    0 0 16rpx rgba(0, 175, 255, 0.10);
+}
+
+.room-page--active .ship-nose {
+  top: -2rpx;
+  z-index: 4;
+  border-right-width: 9rpx;
+  border-bottom: 16rpx solid rgba(131, 224, 249, 0.82);
+  border-left-width: 9rpx;
+  filter: drop-shadow(0 0 6rpx rgba(0, 200, 255, 0.42));
+}
+
+.room-page--active .ship-wing {
+  top: 48%;
+  z-index: 1;
+  width: 34rpx;
+  height: 26rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.28);
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(7, 32, 46, 0.92), rgba(0, 175, 255, 0.08));
+  clip-path: polygon(0 62%, 100% 0, 100% 100%, 18% 88%);
+}
+
+.room-page--active .ship-wing--left {
+  left: -1rpx;
+  transform: translateY(-50%) rotate(-8deg);
+}
+
+.room-page--active .ship-wing--right {
+  right: -1rpx;
+  transform: translateY(-50%) rotate(8deg) scaleX(-1);
+}
+
+.room-page--active .ship-thruster {
+  position: absolute;
+  bottom: -5rpx;
+  left: 50%;
+  z-index: 0;
+  width: 26rpx;
+  height: 28rpx;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg, rgba(0, 200, 255, 0.66), rgba(0, 175, 255, 0.10) 52%, transparent);
+  clip-path: polygon(28% 0, 72% 0, 100% 100%, 50% 70%, 0 100%);
+  opacity: 0.72;
+  filter: drop-shadow(0 8rpx 8rpx rgba(0, 175, 255, 0.30));
+}
+
+.room-page--active .ship-thruster__core {
+  width: 4rpx;
+  height: 20rpx;
+  margin: 2rpx auto 0;
+  background: linear-gradient(180deg, #D8FAFF, #00C8FF 42%, transparent);
+  box-shadow: 0 0 10rpx rgba(0, 200, 255, 0.72);
+}
+
+.room-page--active .ship-craft--offline .ship-thruster {
+  opacity: 0.16;
+  filter: none;
+}
+
+.room-page--active .ship-shield-ring {
+  inset: -6rpx;
+  border-color: rgba(0, 200, 255, 0.22);
+  border-style: dashed;
+}
+
+.room-page--active .hud-member__ring {
+  width: 56rpx;
+  height: 56rpx;
+  border: 2rpx solid rgba(155, 230, 250, 0.48);
+  background: rgba(0, 9, 15, 0.96);
+  box-shadow: inset 0 0 10rpx rgba(0, 175, 255, 0.16);
+}
+
+.room-page--active .ship-online-dot {
+  right: 4rpx;
+  bottom: 7rpx;
+  width: 8rpx;
+  height: 8rpx;
+}
+
+.room-page--active .hud-member__info {
+  margin-top: 7rpx;
+  gap: 0;
+}
+
+.room-page--active .hud-member__name {
+  max-width: 144rpx;
+  overflow: hidden;
+  color: rgba(218, 240, 248, 0.88) !important;
+  font-size: 18rpx !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-page--active .hud-member__score {
+  margin-top: 1rpx;
+  font-size: 20rpx !important;
+}
+
+.room-page--active .hud-member__score.is-positive {
+  color: #39E6C0;
+  text-shadow: 0 0 10rpx rgba(57, 230, 192, 0.28);
+}
+
+.room-page--active .hud-member__score.is-negative {
+  color: #FF6473;
+  text-shadow: 0 0 10rpx rgba(255, 100, 115, 0.26);
+}

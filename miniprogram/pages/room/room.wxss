@@ -7,7 +7,17 @@
 @import "./styles/06-settle-round.wxss";
 @import "./styles/07-cockpit-shell.wxss";
 @import "./styles/08-cockpit-active-v2.wxss";
+@import "./styles/08a-cockpit-formation.wxss";
+@import "./styles/08b-cockpit-console.wxss";
+@import "./styles/08c-cockpit-overlays.wxss";
+@import "./styles/08d-cockpit-immersive.wxss";
+@import "./styles/08e-cockpit-first-person.wxss";
+@import "./styles/08f-cockpit-console-v2.wxss";
+@import "./styles/08g-cockpit-hierarchy.wxss";
 @import "./styles/08-cockpit-active-refinements.wxss";
+@import "./styles/08h-cockpit-bridge.wxss";
+@import "./styles/08i-cockpit-visual.wxss";
+@import "./styles/08j-cockpit-feedback.wxss";
 @import "./styles/09-cockpit-instrument.wxss";
 
 .full-page-loading {

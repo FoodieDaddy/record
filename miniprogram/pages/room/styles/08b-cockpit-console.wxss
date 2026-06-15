@@ -1,0 +1,387 @@
+/* ===== 座舱包围：左右边框 ===== */
+.cockpit-frame-left,
+.cockpit-frame-right {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36rpx;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.cockpit-frame-left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(2, 8, 16, 0.78), transparent);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.08);
+}
+
+.cockpit-frame-right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(2, 8, 16, 0.78), transparent);
+  border-left: 1rpx solid rgba(0, 200, 255, 0.08);
+}
+
+/* 座舱包围：顶部弧形玻璃边缘 */
+.cockpit-canopy-arc {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: -2rpx;
+  height: 32rpx;
+  z-index: 8;
+  pointer-events: none;
+  border-top: 2rpx solid rgba(0, 200, 255, 0.14);
+  border-left: 1rpx solid rgba(0, 200, 255, 0.08);
+  border-right: 1rpx solid rgba(0, 200, 255, 0.08);
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, rgba(2, 8, 16, 0.54), transparent);
+}
+
+/* ===== 飞船控制台 V2（与 HUD 融合） ===== */
+.cockpit-console-v2 {
+  flex-shrink: 0;
+  position: relative;
+  width: 100%;
+  padding: 12rpx 24rpx 10rpx;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #0A1622 0%, #050A10 100%);
+  border-top: 2rpx solid rgba(0, 200, 255, 0.2);
+  box-shadow: inset 0 2rpx 12rpx rgba(0, 0, 0, 0.8);
+}
+
+/* 左右装饰舂线 */
+.ccv2-rail {
+  position: absolute;
+  top: 8rpx;
+  bottom: 8rpx;
+  width: 3rpx;
+  pointer-events: none;
+}
+
+.ccv2-rail--left {
+  left: 10rpx;
+  background: linear-gradient(180deg, rgba(0, 200, 255, 0.28), rgba(0, 200, 255, 0.06));
+}
+
+.ccv2-rail--right {
+  right: 10rpx;
+  background: linear-gradient(180deg, rgba(0, 200, 255, 0.28), rgba(0, 200, 255, 0.06));
+}
+
+/* 主按键面板 */
+.ccv2-panel {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* 中央分隔竖线 */
+.ccv2-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.15), transparent);
+}
+
+/* 主功能按钮 */
+.ccv2-btn {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 0;
+  height: 96rpx;
+  background: rgba(18, 32, 48, 0.4);
+  border: 1rpx solid rgba(0, 200, 255, 0.15);
+  border-radius: 8rpx;
+  box-shadow:
+    0 4rpx 0 0 rgba(0, 0, 0, 0.5),
+    inset 0 1rpx 0 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.1s ease;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.ccv2-btn__glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2rpx;
+  background: rgba(0, 200, 255, 0.08);
+  pointer-events: none;
+}
+
+.ccv2-btn__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rpx;
+  position: relative;
+  z-index: 1;
+}
+
+/* 指示灯 */
+.ccv2-btn__indicator {
+  width: 6rpx;
+  height: 6rpx;
+  border-radius: 50%;
+  margin-bottom: 2rpx;
+}
+.ccv2-btn__indicator--cyan {
+  background: rgba(0, 200, 255, 0.7);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.5);
+}
+.ccv2-btn__indicator--green {
+  background: rgba(48, 209, 88, 0.7);
+  box-shadow: 0 0 8rpx rgba(48, 209, 88, 0.5);
+}
+.ccv2-btn__indicator--red {
+  background: rgba(255, 69, 58, 0.7);
+  box-shadow: 0 0 8rpx rgba(255, 69, 58, 0.5);
+}
+
+.ccv2-btn__label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: rgba(226, 242, 255, 0.92);
+  letter-spacing: 4rpx;
+  line-height: 1.2;
+}
+
+.ccv2-btn__sub {
+  font-size: 14rpx;
+  font-family: 'Courier New', Courier, monospace;
+  color: rgba(0, 200, 255, 0.28);
+  letter-spacing: 3rpx;
+  line-height: 1;
+}
+
+/* 按下反馈 */
+.ccv2-btn--press {
+  background: rgba(0, 200, 255, 0.06);
+}
+.ccv2-btn--press .ccv2-btn__glow {
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.6), transparent);
+}
+.ccv2-btn--press .ccv2-btn__label {
+  color: rgba(0, 200, 255, 0.96);
+}
+.ccv2-btn--press .ccv2-btn__indicator--cyan {
+  background: rgba(0, 200, 255, 1);
+  box-shadow: 0 0 14rpx rgba(0, 200, 255, 0.8);
+}
+.ccv2-btn--press .ccv2-btn__indicator--green {
+  background: rgba(48, 209, 88, 1);
+  box-shadow: 0 0 14rpx rgba(48, 209, 88, 0.8);
+}
+
+/* 危险按钮按下 */
+.ccv2-btn--danger.ccv2-btn--press {
+  background: rgba(255, 69, 58, 0.08);
+}
+.ccv2-btn--danger.ccv2-btn--press .ccv2-btn__glow {
+  height: 3rpx;
+  background: linear-gradient(90deg, transparent, rgba(255, 69, 58, 0.5), transparent);
+}
+.ccv2-btn--danger.ccv2-btn--press .ccv2-btn__label {
+  color: rgba(255, 126, 118, 0.96);
+}
+.ccv2-btn--danger.ccv2-btn--press .ccv2-btn__indicator--red {
+  background: rgba(255, 69, 58, 1);
+  box-shadow: 0 0 14rpx rgba(255, 69, 58, 0.8);
+}
+
+.reduce-motion .ccv2-btn--press {
+  transition: none !important;
+}
+
+/* ===== 输出脉冲终端 ===== */
+.output-terminal {
+  flex: 1 0 160rpx;
+  min-height: 100rpx;
+  max-height: 160rpx;
+  position: relative;
+  margin: 4rpx 12rpx 0;
+  padding: 10rpx 16rpx 6rpx;
+  background: rgba(2, 8, 16, 0.52);
+  border: 1rpx solid rgba(0, 200, 255, 0.10);
+  clip-path: polygon(10rpx 0, calc(100% - 10rpx) 0, 100% 6rpx, 100% calc(100% - 6rpx), calc(100% - 10rpx) 100%, 10rpx 100%, 0 calc(100% - 6rpx), 0 6rpx);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-scanline {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 4rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.08), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 10rpx;
+  flex-shrink: 0;
+}
+
+.terminal-header__title {
+  font-size: 17rpx;
+  font-weight: 600;
+  color: rgba(0, 200, 255, 0.54);
+  letter-spacing: 2rpx;
+}
+
+.terminal-entries {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3rpx;
+}
+
+.terminal-entry {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 17rpx;
+}
+
+.terminal-entry--new {
+  color: rgba(0, 200, 255, 0.72);
+}
+
+.terminal-entry__time {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14rpx;
+  color: rgba(226, 242, 255, 0.24);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.terminal-entry__text {
+  font-size: 17rpx;
+  color: rgba(226, 242, 255, 0.48);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.terminal-entry__value {
+  font-family: 'DIN Alternate', Menlo, monospace;
+  font-size: 16rpx;
+  color: rgba(0, 200, 255, 0.56);
+  flex-shrink: 0;
+}
+
+.terminal-entry__value.is-positive {
+  color: rgba(48, 209, 88, 0.86);
+}
+
+.terminal-entry__value.is-negative {
+  color: rgba(255, 159, 10, 0.90);
+}
+
+.terminal-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16rpx;
+  color: rgba(226, 242, 255, 0.24);
+}
+
+/* ===== 旧样式兼容 ===== */
+.cockpit-control-panel { display: none; }
+.cockpit-trace-strip { display: none; }
+.ar-action-row { display: none; }
+.ar-action-pad { display: none; }
+.ar-action-pad__icon { display: none; }
+.ar-action-pad__body { display: none; }
+.ar-action-pad__energy { display: none; }
+.ar-action-pad__status { display: none; }
+
+.trace-strip-title,
+.trace-strip-kicker,
+.trace-strip-line,
+.beacon-mini-btn,
+.beacon-danger-zone,
+.beacon-danger-btn,
+.beacon-actions,
+.share-action-btn,
+.share-action-text,
+.share-action-svg,
+.icon-image,
+.icon-chat {
+  /* 保留规则防报错，旧信标面板已废弃 */
+}
+
+/* ===== 旧控制台兼容 ===== */
+.console-shell,
+.console-neck,
+.console-top-rail,
+.console-readout-row,
+.readout-chip,
+.readout-label,
+.readout-value,
+.cockpit-switch,
+.switch-led,
+.switch-led--dim,
+.switch-led--red,
+.switch-face,
+.switch-title,
+.switch-sub,
+.cockpit-button-row,
+.console-bottom-shadow,
+.flight-key,
+.flight-key-slot,
+.flight-key-body,
+.flight-key-side,
+.flight-key-led,
+.flight-key-led--dim,
+.flight-key-title,
+.flight-key-sub,
+.beacon-key-row,
+.pulse-key-row,
+.console-group,
+.group-label,
+.group-line,
+.console-danger-strip,
+.seal-lock-dot,
+.seal-copy,
+.seal-title,
+.seal-sub,
+.seal-arm,
+.console-bridge,
+.console-panel,
+.console-panel-head,
+.console-panel-status,
+.console-panel-dot,
+.console-panel-label,
+.console-panel-readout,
+.console-panel-stage,
+.console-danger-corner,
+.danger-mini-btn,
+.trace-strip-left,
+.trace-strip-content,
+.danger-corner-btn {
+  /* 保留规则防 WXML 类名报错 */
+}
+
+/* ===== 旧驾驶舱容器兼容 ===== */
+.cockpit-main { margin: 0; }
+.cockpit-starry-shell { display: none; }
+.flight-console { display: none; }
+.cockpit-header { display: none; }
+.bay-status-tab { display: none; }

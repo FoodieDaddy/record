@@ -1,0 +1,433 @@
+/* ===== 中央脉冲仪表与双端成员反馈 ===== */
+.room-page--active .console-pulse-log {
+  height: 126rpx;
+  background:
+    linear-gradient(90deg, rgba(0, 175, 255, 0.025), transparent 22%, transparent 78%, rgba(0, 175, 255, 0.025)),
+    radial-gradient(ellipse 50% 58% at 50% 18%, rgba(0, 175, 255, 0.10), transparent 72%),
+    rgba(0, 7, 12, 0.38);
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 59rpx;
+  right: 18%;
+  bottom: auto;
+  left: 18%;
+  width: auto;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.32), transparent);
+}
+
+.room-page--active .console-pulse-log::after {
+  right: 9%;
+  bottom: 4rpx;
+  left: 9%;
+}
+
+.room-page--active .console-pulse-readout {
+  top: 3rpx;
+  left: 50%;
+  width: 82%;
+  max-width: 380rpx;
+  height: 56rpx;
+  transform: translateX(-50%);
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 13rpx, calc(100% - 12rpx) 100%, 12rpx 100%, 0 13rpx);
+  border-top: 1rpx solid rgba(0, 200, 255, 0.18);
+  border-bottom: 1rpx solid rgba(0, 200, 255, 0.34);
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.09) 18%, rgba(0, 200, 255, 0.09) 82%, transparent),
+    radial-gradient(ellipse at 50% 48%, rgba(0, 175, 255, 0.20), transparent 74%);
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: calc(100% - 70rpx);
+  height: 42rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track {
+  height: 126rpx;
+  transform: translateY(-42rpx);
+}
+
+.room-page--active .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  height: 42rpx;
+  font-size: 36rpx;
+  font-weight: 800;
+  line-height: 42rpx;
+  letter-spacing: 0;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 32rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 28rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  top: 23rpx;
+  display: block;
+  width: 34rpx;
+  opacity: 0.58;
+}
+
+.room-page--active .console-pulse-readout__ticks--left {
+  left: 6rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks--right {
+  right: 6rpx;
+}
+
+.room-page--active .console-pulse-readout.is-rolling .console-pulse-readout__digit-track {
+  animation: none;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll-up 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track {
+  animation: pulse-readout-roll-down 900ms cubic-bezier(0.18, 0.82, 0.24, 1) both;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track text {
+  color: #39E6C0 !important;
+  text-shadow: 0 0 9rpx rgba(57, 230, 192, 0.58), 0 0 24rpx rgba(57, 230, 192, 0.20);
+}
+
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track text {
+  color: #FF6473 !important;
+  text-shadow: 0 0 9rpx rgba(255, 100, 115, 0.56), 0 0 24rpx rgba(255, 100, 115, 0.18);
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 66rpx;
+  right: 14rpx;
+  bottom: 5rpx;
+  left: 14rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 18rpx;
+  min-height: 18rpx;
+  justify-content: center;
+  padding: 0 6rpx;
+  font-size: 13rpx;
+  line-height: 18rpx;
+}
+
+.room-page--active .console-pulse-log__route {
+  max-width: calc(100% - 78rpx);
+}
+
+.room-page--active .console-pulse-log__value {
+  margin-left: 8rpx;
+  font-size: 14rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  top: 66rpx;
+  right: 14rpx;
+  bottom: 5rpx;
+  left: 14rpx;
+  padding: 0;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  width: 38%;
+  margin-top: 27rpx;
+}
+
+.room-page--active .contact-marker__pulse-fx {
+  position: absolute;
+  inset: -3rpx;
+  z-index: 1;
+  pointer-events: none;
+  border: 1rpx solid transparent;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.room-page--active .hud-member--sending .contact-marker__pulse-fx {
+  border-color: rgba(255, 100, 115, 0.88);
+  box-shadow: 0 0 20rpx rgba(255, 100, 115, 0.34), inset 0 0 16rpx rgba(255, 100, 115, 0.20);
+  animation: contact-pulse-output 920ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
+}
+
+.room-page--active .hud-member--receiving .contact-marker__pulse-fx {
+  border-color: rgba(57, 230, 192, 0.88);
+  box-shadow: 0 0 20rpx rgba(57, 230, 192, 0.34), inset 0 0 16rpx rgba(57, 230, 192, 0.20);
+  animation: contact-pulse-input 920ms cubic-bezier(0.16, 0.72, 0.24, 1) both;
+}
+
+.room-page--active .hud-member--sending .contact-marker__orbit {
+  border-color: rgba(255, 100, 115, 0.72);
+  animation: contact-orbit-output 920ms ease-out both;
+}
+
+.room-page--active .hud-member--receiving .contact-marker__orbit {
+  border-color: rgba(57, 230, 192, 0.72);
+  animation: contact-orbit-input 920ms ease-out both;
+}
+
+.room-page--active .hud-member--sending .contact-marker__core {
+  box-shadow: 0 0 0 3rpx rgba(255, 100, 115, 0.08), 0 0 24rpx rgba(255, 100, 115, 0.28);
+}
+
+.room-page--active .hud-member--receiving .contact-marker__core {
+  box-shadow: 0 0 0 3rpx rgba(57, 230, 192, 0.08), 0 0 24rpx rgba(57, 230, 192, 0.28);
+}
+
+@keyframes pulse-readout-roll-up {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.2;
+  }
+  58% {
+    transform: translateY(-84rpx);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-42rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-readout-roll-down {
+  0% {
+    transform: translateY(-84rpx);
+    filter: blur(2rpx);
+    opacity: 0.2;
+  }
+  58% {
+    transform: translateY(0);
+    filter: blur(1rpx);
+    opacity: 0.76;
+  }
+  100% {
+    transform: translateY(-42rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes contact-pulse-output {
+  0% {
+    transform: scale(0.64);
+    opacity: 0;
+  }
+  24% {
+    opacity: 0.96;
+  }
+  100% {
+    transform: scale(1.58);
+    opacity: 0;
+  }
+}
+
+@keyframes contact-pulse-input {
+  0% {
+    transform: scale(1.58);
+    opacity: 0;
+  }
+  42% {
+    opacity: 0.96;
+  }
+  100% {
+    transform: scale(0.64);
+    opacity: 0;
+  }
+}
+
+@keyframes contact-orbit-output {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes contact-orbit-input {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(0.88);
+  }
+  64% {
+    transform: scale(1.08);
+  }
+}
+
+/* ===== 驾驶舱最终尺寸：圆形舱体 + 可读脉冲仪表 ===== */
+.room-page--active .cockpit-frame-left,
+.room-page--active .cockpit-frame-right {
+  width: 44rpx !important;
+  clip-path: none !important;
+  opacity: 0.84;
+}
+
+.room-page--active .cockpit-frame-left {
+  left: -4rpx;
+  border-right: 0;
+  border-radius: 0 88% 88% 0 / 0 50% 50% 0;
+  background:
+    radial-gradient(ellipse 38rpx 56% at 100% 50%, transparent 0, transparent 58%, rgba(0, 175, 255, 0.10) 61%, rgba(5, 17, 25, 0.88) 69%, rgba(0, 0, 0, 0.98) 100%) !important;
+}
+
+.room-page--active .cockpit-frame-right {
+  right: -4rpx;
+  border-left: 0;
+  border-radius: 88% 0 0 88% / 50% 0 0 50%;
+  background:
+    radial-gradient(ellipse 38rpx 56% at 0 50%, transparent 0, transparent 58%, rgba(0, 175, 255, 0.10) 61%, rgba(5, 17, 25, 0.88) 69%, rgba(0, 0, 0, 0.98) 100%) !important;
+}
+
+.room-page--active .cockpit-console-v2 {
+  height: 190rpx;
+  padding: 28rpx 10rpx 8rpx !important;
+  border-radius: 50% 50% 0 0 / 54rpx 54rpx 0 0;
+}
+
+.room-page--active .cockpit-hud-zone {
+  bottom: 180rpx;
+}
+
+.room-page--active .ccv2-panel {
+  grid-template-columns: 100rpx minmax(0, 1fr) 100rpx;
+  gap: 4rpx;
+}
+
+.room-page--active .ccv2-btn {
+  width: 100rpx;
+  height: 138rpx !important;
+  padding-top: 48rpx;
+}
+
+.room-page--active .console-pulse-log {
+  height: 150rpx;
+  border-radius: 34rpx 34rpx 18rpx 18rpx;
+}
+
+.room-page--active .console-pulse-log::before {
+  top: 78rpx;
+  right: 12%;
+  left: 12%;
+}
+
+.room-page--active .console-pulse-readout {
+  top: 4rpx;
+  width: 92%;
+  max-width: 430rpx;
+  height: 72rpx;
+  clip-path: none;
+  border: 1rpx solid rgba(0, 200, 255, 0.24);
+  border-radius: 36rpx;
+  background:
+    linear-gradient(90deg, rgba(0, 200, 255, 0.03), rgba(0, 200, 255, 0.13) 50%, rgba(0, 200, 255, 0.03)),
+    radial-gradient(ellipse at 50% 48%, rgba(0, 175, 255, 0.24), transparent 74%);
+  box-shadow:
+    inset 0 0 20rpx rgba(0, 175, 255, 0.08),
+    0 0 18rpx rgba(0, 175, 255, 0.08);
+}
+
+.room-page--active .console-pulse-readout__digits {
+  width: calc(100% - 76rpx);
+  height: 52rpx;
+}
+
+.room-page--active .console-pulse-readout__digit-track {
+  height: 156rpx;
+  transform: translateY(-52rpx);
+}
+
+.room-page--active .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text,
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  height: 52rpx;
+  font-size: 42rpx;
+  line-height: 52rpx;
+}
+
+.room-page--active .console-pulse-readout.is-condensed .console-pulse-readout__digit-track text {
+  font-size: 36rpx;
+}
+
+.room-page--active .console-pulse-readout.is-compact .console-pulse-readout__digit-track text {
+  font-size: 31rpx;
+}
+
+.room-page--active .console-pulse-readout__ticks {
+  top: 31rpx;
+}
+
+.room-page--active .console-pulse-readout.is-roll-up .console-pulse-readout__digit-track,
+.room-page--active .console-pulse-readout.is-roll-down .console-pulse-readout__digit-track {
+  animation-duration: 680ms;
+}
+
+.room-page--active .console-pulse-log__list {
+  top: 84rpx;
+  right: 14rpx;
+  bottom: 7rpx;
+  left: 14rpx;
+}
+
+.room-page--active .console-pulse-log__item {
+  height: 23rpx;
+  min-height: 23rpx;
+  padding: 0 8rpx;
+  font-size: 15rpx;
+  line-height: 23rpx;
+}
+
+.room-page--active .console-pulse-log__value {
+  font-size: 16rpx;
+}
+
+.room-page--active .console-pulse-log__empty {
+  top: 84rpx;
+  right: 14rpx;
+  bottom: 7rpx;
+  left: 14rpx;
+}
+
+.room-page--active .console-pulse-log__idle-line {
+  margin-top: 26rpx;
+}
+
+@keyframes pulse-readout-roll-up {
+  0% {
+    transform: translateY(0);
+    filter: blur(2rpx);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-52rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-readout-roll-down {
+  0% {
+    transform: translateY(-104rpx);
+    filter: blur(2rpx);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-52rpx);
+    filter: blur(0);
+    opacity: 1;
+  }
+}
