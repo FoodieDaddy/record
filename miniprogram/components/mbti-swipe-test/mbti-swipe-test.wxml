@@ -28,11 +28,6 @@
       <view class="hw-btn-icon-arrow-left"></view>
     </view>
     
-    <!-- 跳过：小灰色扁平按键，仅有精密圆点 -->
-    <view class="action-btn-hardware hw-btn-skip" bindtap="onNotSure" title="跳过">
-      <view class="hw-btn-icon-dot"></view>
-    </view>
-    
     <!-- 符合（右极偏振）：右切角水晶按键，仅有指向右的刻度箭头 -->
     <view class="action-btn-hardware hw-btn-adjust hw-btn-right" bindtap="onSwipeRight" title="符合">
       <view class="crystal-decor crystal-decor-l"></view>
