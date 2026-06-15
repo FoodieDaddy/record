@@ -375,10 +375,6 @@
   <!-- ==================== CALIBRATION 视图 ==================== -->
   <block wx:if="{{calibrationVisible}}">
     <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
-      <view class="cal-close-btn" bindtap="closeMbtiTest">
-        <view class="cal-close-icon"></view>
-        <text class="cal-close-text">退出校准</text>
-      </view>
 
       <!-- 顶部 -->
       <view class="cal-header">

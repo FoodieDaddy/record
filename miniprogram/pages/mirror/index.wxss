@@ -1180,59 +1180,7 @@
   pointer-events: auto;
 }
 
-.cal-close-btn {
-  position: absolute;
-  top: calc(36rpx + env(safe-area-inset-top));
-  right: 28rpx;
-  z-index: 3012;
-  display: inline-flex;
-  align-items: center;
-  gap: 10rpx;
-  height: 48rpx;
-  padding: 0 16rpx 0 14rpx;
-  box-sizing: border-box;
-  border: 1rpx solid rgba(126, 156, 180, 0.20);
-  background: rgba(5, 12, 20, 0.72);
-  color: rgba(176, 208, 235, 0.62);
-  clip-path: polygon(10rpx 0, 100% 0, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 0 100%, 0 10rpx);
-}
 
-.cal-close-btn:active {
-  border-color: rgba(0, 200, 255, 0.34);
-  background: rgba(0, 200, 255, 0.08);
-}
-
-.cal-close-icon {
-  position: relative;
-  width: 18rpx;
-  height: 18rpx;
-  flex-shrink: 0;
-}
-
-.cal-close-icon::before,
-.cal-close-icon::after {
-  content: '';
-  position: absolute;
-  top: 8rpx;
-  left: 0;
-  width: 18rpx;
-  height: 2rpx;
-  background: currentColor;
-}
-
-.cal-close-icon::before {
-  transform: rotate(45deg);
-}
-
-.cal-close-icon::after {
-  transform: rotate(-45deg);
-}
-
-.cal-close-text {
-  font-size: 20rpx;
-  line-height: 1;
-  letter-spacing: 2rpx;
-}
 
 .cal-header {
   text-align: center;

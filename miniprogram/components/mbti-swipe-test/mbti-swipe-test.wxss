@@ -182,88 +182,157 @@
   bottom: calc(32rpx + env(safe-area-inset-bottom));
   z-index: 3010;
   display: flex;
-  gap: 16rpx;
+  justify-content: center;
+  align-items: center;
+  gap: 32rpx;
   padding: 0;
 }
 
-.action-btn {
-  flex: 1;
-  text-align: center;
-  padding: 28rpx 0 24rpx;
-  min-height: 88rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid var(--glass-border-light);
-  background: var(--bg-card);
-  transition: background 0.15s ease;
+.action-btn-hardware {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
+  position: relative;
   box-sizing: border-box;
 }
 
-.action-btn:active {
-  background: var(--glass-bg);
+/* 不符合：极简无字小红色圆形按钮，仅有叉号 */
+.hw-btn-reject {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(255, 69, 58, 0.35);
+  background: rgba(255, 69, 58, 0.05);
+  box-shadow: 0 0 12rpx rgba(255, 69, 58, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.action-kicker {
-  font-size: 16rpx;
-  letter-spacing: 3rpx;
-  font-weight: 600;
+.hw-btn-reject:active {
+  transform: scale(0.92);
+  background: rgba(255, 69, 58, 0.18);
+  border-color: rgba(255, 69, 58, 0.6);
+  box-shadow: 0 0 20rpx rgba(255, 69, 58, 0.3);
 }
 
-.action-text {
-  font-size: 26rpx;
-  letter-spacing: 2rpx;
+.hw-btn-icon-close {
+  width: 20rpx;
+  height: 20rpx;
+  position: relative;
 }
 
-/* 不符合：弱灰橙，不用强红 */
-.action-reject {
-  border-color: rgba(180, 150, 120, 0.18);
+.hw-btn-icon-close::before,
+.hw-btn-icon-close::after {
+  content: '';
+  position: absolute;
+  top: 9rpx;
+  left: 0;
+  width: 20rpx;
+  height: 2rpx;
+  background: rgba(255, 69, 58, 0.75);
+  transition: background 0.2s;
 }
 
-.action-reject .action-kicker {
-  color: rgba(180, 150, 120, 0.45);
+.hw-btn-icon-close::before {
+  transform: rotate(45deg);
 }
 
-.action-reject .action-text {
-  color: rgba(180, 150, 120, 0.70);
+.hw-btn-icon-close::after {
+  transform: rotate(-45deg);
 }
 
-.action-reject:active {
-  background: rgba(180, 150, 120, 0.06);
+.hw-btn-reject:active .hw-btn-icon-close::before,
+.hw-btn-reject:active .hw-btn-icon-close::after {
+  background: rgba(255, 69, 58, 1);
 }
 
-.action-skip {
-  border-color: rgba(126, 156, 180, 0.10);
+/* 跳过：小灰色扁平按钮，仅有横杠 */
+.hw-btn-skip {
+  width: 120rpx;
+  height: 80rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid rgba(140, 176, 205, 0.25);
+  background: rgba(140, 176, 205, 0.05);
+  box-shadow: 0 0 12rpx rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.action-skip .action-kicker {
-  color: rgba(126, 156, 180, 0.30);
+.hw-btn-skip:active {
+  transform: scale(0.93);
+  background: rgba(140, 176, 205, 0.14);
+  border-color: rgba(140, 176, 205, 0.45);
 }
 
-.action-skip .action-text {
-  color: rgba(140, 176, 205, 0.45);
+.hw-btn-icon-skip {
+  width: 16rpx;
+  height: 4rpx;
+  background: rgba(140, 176, 205, 0.6);
+  border-radius: 1rpx;
+  transition: background 0.2s;
 }
 
-.action-confirm {
-  border-color: rgba(0, 175, 255, 0.35);
-  background: rgba(0, 175, 255, 0.06);
-  box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.10);
+.hw-btn-skip:active .hw-btn-icon-skip {
+  background: rgba(140, 176, 205, 0.95);
 }
 
-.action-confirm .action-kicker {
-  color: rgba(0, 175, 255, 0.60);
+/* 符合：六角切角水晶按键，仅有精密勾号 */
+.hw-btn-confirm {
+  width: 220rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, rgba(0, 175, 255, 0.08) 0%, rgba(0, 80, 155, 0.24) 100%);
+  border: 1rpx solid rgba(0, 175, 255, 0.35);
+  border-radius: 8rpx;
+  /* 倒角切边科技感 */
+  clip-path: polygon(15rpx 0%, calc(100% - 15rpx) 0%, 100% 50%, calc(100% - 15rpx) 100%, 15rpx 100%, 0% 50%);
+  box-shadow: inset 0 0 16rpx rgba(0, 175, 255, 0.15), 0 4rpx 16rpx rgba(0, 0, 0, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.action-confirm .action-text {
-  color: var(--color-cyan);
+.hw-btn-confirm:active {
+  transform: scale(0.94);
+  background: linear-gradient(135deg, rgba(0, 175, 255, 0.20) 0%, rgba(0, 100, 200, 0.40) 100%);
+  border-color: rgba(0, 175, 255, 0.75);
+  box-shadow: inset 0 0 24rpx rgba(0, 175, 255, 0.35), 0 0 24rpx rgba(0, 175, 255, 0.25);
 }
 
-.action-confirm:active {
-  background: rgba(0, 175, 255, 0.14);
-  box-shadow: 0 0 24rpx rgba(0, 175, 255, 0.20);
+.hw-btn-icon-check {
+  width: 22rpx;
+  height: 12rpx;
+  border-left: 2rpx solid rgba(0, 175, 255, 0.8);
+  border-bottom: 2rpx solid rgba(0, 175, 255, 0.8);
+  transform: rotate(-45deg);
+  margin-top: -4rpx;
+  z-index: 2;
+}
+
+.hw-btn-confirm:active .hw-btn-icon-check {
+  border-color: rgba(0, 175, 255, 1);
+}
+
+/* 装饰性极细刻度角线 */
+.crystal-decor {
+  position: absolute;
+  top: 18rpx;
+  width: 3rpx;
+  height: 44rpx;
+  background: rgba(0, 175, 255, 0.45);
+  transition: all 0.2s;
+  z-index: 1;
+}
+
+.crystal-decor-l {
+  left: 18rpx;
+  box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.5);
+}
+
+.crystal-decor-r {
+  right: 18rpx;
+  box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.5);
+}
+
+.hw-btn-confirm:active .crystal-decor {
+  background: rgba(0, 175, 255, 0.85);
+  height: 48rpx;
+  top: 16rpx;
 }
 
 /* 数据加载提示 */
@@ -295,4 +364,9 @@
 
 .reduce-motion .seg {
   transition: none;
+}
+
+.reduce-motion .action-btn-hardware {
+  transition: none !important;
+  transform: none !important;
 }

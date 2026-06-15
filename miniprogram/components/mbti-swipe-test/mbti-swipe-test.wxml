@@ -33,16 +33,23 @@
     <text class="loading-text">数据加载中…</text>
   </view>
 
-  <!-- 底部操作 -->
+  <!-- 底部操作：飞船操控台物理按键排，无字纯符号 -->
   <view class="swipe-actions">
-    <view class="action-btn action-reject" bindtap="onSwipeLeft">
-      <text class="action-text">不符合</text>
+    <!-- 不符合：红色切角圆形按键，仅有叉号 -->
+    <view class="action-btn-hardware hw-btn-reject" bindtap="onSwipeLeft" title="不符合">
+      <view class="hw-btn-icon-close"></view>
     </view>
-    <view class="action-btn action-skip" bindtap="onNotSure">
-      <text class="action-text">跳过</text>
+    
+    <!-- 跳过：小灰色扁平按键，仅有精密横杠 -->
+    <view class="action-btn-hardware hw-btn-skip" bindtap="onNotSure" title="跳过">
+      <view class="hw-btn-icon-skip"></view>
     </view>
-    <view class="action-btn action-confirm" bindtap="onSwipeRight">
-      <text class="action-text">符合</text>
+    
+    <!-- 符合：青蓝色六角切角水晶按键，仅有精密勾号 -->
+    <view class="action-btn-hardware hw-btn-confirm" bindtap="onSwipeRight" title="符合">
+      <view class="crystal-decor crystal-decor-l"></view>
+      <view class="crystal-decor crystal-decor-r"></view>
+      <view class="hw-btn-icon-check"></view>
     </view>
   </view>
 
