@@ -83,17 +83,8 @@
         bindtap="onDimToggle"
         data-dimindex="{{dimIdx}}"
       >
-        <view class="btn-card-header">
-          <text class="btn-card-kicker">校准维度 0{{dimIdx + 1}}</text>
-          <text class="btn-card-label">{{item.dimLabel}}</text>
-        </view>
-        
         <view class="dim-toggle-btn">
-          <view class="toggle-btn-content">
-            <text class="toggle-letter">{{item.selected}}</text>
-            <text class="toggle-label">{{item.selected === item.options[0].code ? item.options[0].label : item.options[1].label}}</text>
-          </view>
-          
+          <text class="toggle-letter">{{item.selected}}</text>
           <view class="toggle-btn-status">
             <view class="toggle-dot"></view>
           </view>
