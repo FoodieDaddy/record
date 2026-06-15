@@ -1145,17 +1145,152 @@
   z-index: 3000;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
   box-sizing: border-box;
-  padding: calc(120rpx + env(safe-area-inset-top)) 32rpx calc(40rpx + env(safe-area-inset-bottom));
-  background:
-    radial-gradient(circle at 50% 24%, rgba(0,200,255,0.09), transparent 30%),
-    radial-gradient(circle at 18% 0%, rgba(10,132,255,0.10), transparent 34%),
-    linear-gradient(180deg, rgba(5, 12, 20, 0.98), rgba(3, 7, 12, 0.98)),
-    #05070A;
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   opacity: 0;
   transform: scale(0.96);
   pointer-events: none;
+}
+
+/* ---- 驾驶舱全息总控容器 (无背景大框，让内部独立悬浮) ---- */
+.ar-cockpit-console {
+  width: 690rpx;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  position: relative;
+  transform: scale(0.92) translateY(80rpx);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
+}
+
+.calibration-shell--active .ar-cockpit-console {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* ---- Part 1: 悬空全息屏幕 (The Floating Screen) ---- */
+.ar-floating-screen {
+  width: 100%;
+  border: 1rpx solid rgba(0, 175, 255, 0.22);
+  border-radius: 20rpx;
+  padding: 0 0 36rpx 0;
+  box-sizing: border-box;
+  position: relative;
+  overflow: visible; /* 允许底部的答题物理按键漏出 */
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.5);
+}
+
+.ar-screen-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10, 16, 28, 0.72);
+  border-radius: 20rpx;
+  overflow: hidden; /* 裁剪内部的扫描线 */
+  z-index: 1;
+}
+
+/* ---- AR HUD 定位角 ---- */
+.ar-hud-angle {
+  position: absolute;
+  width: 24rpx;
+  height: 24rpx;
+  border-color: rgba(0, 175, 255, 0.45);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ar-hud-tl { top: 12rpx; left: 12rpx; border-width: 3rpx 0 0 3rpx; }
+.ar-hud-tr { top: 12rpx; right: 12rpx; border-width: 3rpx 3rpx 0 0; }
+.ar-hud-bl { bottom: 12rpx; left: 12rpx; border-width: 0 0 3rpx 3rpx; }
+.ar-hud-br { bottom: 12rpx; right: 12rpx; border-width: 0 3rpx 3rpx 0; }
+
+/* ---- AR 屏幕背景特效 ---- */
+.ar-screen-grid {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(rgba(0, 175, 255, 0.04) 1px, transparent 1px);
+  background-size: 16rpx 16rpx;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ar-screen-scanlines {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 175, 255, 0.03) 50%
+  );
+  background-size: 100% 4rpx;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ar-screen-scanlines::after {
+  content: '';
+  position: absolute;
+  top: -100rpx; left: 0; right: 0; height: 100rpx;
+  background: linear-gradient(to bottom, transparent, rgba(0, 175, 255, 0.06), transparent);
+  animation: arScan 4.5s linear infinite;
+}
+
+@keyframes arScan {
+  0% { top: -100rpx; }
+  100% { top: 100%; }
+}
+
+/* ---- AR 顶部状态栏 ---- */
+.ar-top-bar {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 36rpx 12rpx;
+  position: relative;
+  z-index: 4;
+}
+
+.ar-system-dot {
+  width: 10rpx;
+  height: 10rpx;
+  background: #00afff;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.8);
+  animation: arBlink 1.5s infinite;
+}
+
+.ar-system-title {
+  font-size: 16rpx;
+  font-weight: 700;
+  color: rgba(0, 175, 255, 0.65);
+  letter-spacing: 4rpx;
+  font-family: 'SF Mono', monospace;
+  flex: 1;
+}
+
+.ar-close-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes arBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.ar-content-split {
+  padding: 0 36rpx;
+  position: relative;
+  z-index: 4;
+  margin-top: 10rpx;
 }
 
 .calibration-shell--entering {
@@ -1239,13 +1374,10 @@
 }
 
 .cal-test-wrap {
-  flex: 1;
   width: 100%;
-  min-height: 0;
-  overflow: hidden;
   display: flex;
-  padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  overflow: visible; /* 允许底部的答题物理按键漏出 */
 }
 
 /* ---- 校准提交面板 ---- */

@@ -375,36 +375,57 @@
   <!-- ==================== CALIBRATION 视图 ==================== -->
   <block wx:if="{{calibrationVisible}}">
     <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
-
-      <!-- 顶部 -->
-      <view class="cal-header">
-        <text class="cal-title">协议校准</text>
-      </view>
-
-      <!-- 扫描环 -->
-      <view class="cal-ring-wrap">
-        <view class="cal-ring {{reduceMotion ? '' : 'cal-ring-spin'}}"></view>
-        <view class="cal-ring-inner"></view>
-      </view>
-
-      <!-- 提交完成面板 -->
-      <view class="cal-submit-panel" wx:if="{{calibrationSubmitting}}">
-        <view class="cal-submit-ring {{reduceMotion ? '' : 'cal-ring-spin'}}"></view>
-        <view class="cal-submit-terminal">
-          <view class="cal-submit-line cal-submit-line--{{item.status}}" wx:for="{{calibrationSubmitStepViews}}" wx:key="text">
-            <text class="cal-status-dot"></text>
-            <text class="cal-line-text">{{item.text}}</text>
+      <view class="ar-cockpit-console console-show">
+        
+        <!-- Part 1: 悬空屏幕 (Floating HUD Screen) -->
+        <view class="ar-floating-screen">
+          <!-- 背景层，独立负责裁剪扫描线与网格 -->
+          <view class="ar-screen-bg">
+            <view class="ar-screen-grid"></view>
+            <view class="ar-screen-scanlines"></view>
           </view>
-        </view>
-        <text class="cal-submit-error" wx:if="{{calibrationError}}">{{calibrationError}}</text>
-      </view>
+          
+          <!-- AR 定位角 -->
+          <view class="ar-hud-angle ar-hud-tl"></view>
+          <view class="ar-hud-angle ar-hud-tr"></view>
+          <view class="ar-hud-angle ar-hud-bl"></view>
+          <view class="ar-hud-angle ar-hud-br"></view>
+          
+          <!-- AR 顶部系统状态栏 -->
+          <view class="ar-top-bar">
+            <view class="ar-system-dot"></view>
+            <text class="ar-system-title">协议评测终端</text>
+            <view class="ar-close-btn" bindtap="closeMbtiTest">
+              <sr-hatch-close bind:close="closeMbtiTest" reduceMotion="{{reduceMotion}}" />
+            </view>
+          </view>
+          
+          <!-- 重新校准内容区 -->
+          <view class="ar-content-split">
+            <!-- 提交完成面板 -->
+            <view class="cal-submit-panel" wx:if="{{calibrationSubmitting}}">
+              <view class="cal-submit-ring {{reduceMotion ? '' : 'cal-ring-spin'}}"></view>
+              <view class="cal-submit-terminal">
+                <view class="cal-submit-line cal-submit-line--{{item.status}}" wx:for="{{calibrationSubmitStepViews}}" wx:key="text">
+                  <text class="cal-status-dot"></text>
+                  <text class="cal-line-text">{{item.text}}</text>
+                </view>
+              </view>
+              <text class="cal-submit-error" wx:if="{{calibrationError}}">{{calibrationError}}</text>
+            </view>
 
-      <!-- 内嵌 mbti-swipe-test -->
-      <view class="cal-test-wrap" wx:if="{{!calibrationSubmitting}}">
-        <mbti-swipe-test
-          reduceMotion="{{reduceMotion}}"
-          bind:complete="handleMbtiComplete"
-        />
+            <!-- 内嵌 mbti-swipe-test -->
+            <view class="cal-test-wrap" wx:if="{{!calibrationSubmitting}}">
+              <mbti-swipe-test
+                id="mbtiSwipeTest"
+                reduceMotion="{{reduceMotion}}"
+                bind:complete="handleMbtiComplete"
+              />
+            </view>
+          </view>
+          
+        </view> <!-- End of Floating Screen -->
+        
       </view>
     </view>
   </block>
