@@ -707,6 +707,7 @@ cockpitView: {
   },
 
   handleCalibrationLeft() {
+    vibrateShort('medium');
     const swipeTest = this.selectComponent('#mbtiSwipeTest');
     if (swipeTest) {
       swipeTest.onSwipeLeft();
@@ -714,6 +715,7 @@ cockpitView: {
   },
 
   handleCalibrationRight() {
+    vibrateShort('medium');
     const swipeTest = this.selectComponent('#mbtiSwipeTest');
     if (swipeTest) {
       swipeTest.onSwipeRight();
