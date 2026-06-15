@@ -37,6 +37,7 @@
 - 分享、保存、发送给朋友使用蓝色/青色，不使用红色。
 - Tab 页面内容区必须考虑自定义 tabbar 与 `env(safe-area-inset-bottom)`。
 - 底部抽屉、确认弹窗、选择器必须支持 reduce-motion 的静默展开。
+- 在自定义沉浸式导航栏（"navigationStyle": "custom"）页面中，弹窗/浮层的内容顶部千万不能高过/盖过系统的原有标题栏与胶囊按钮。必须利用 JS 动态算得并绑定 `customNavHeight` 传给组件，以此来动态控制弹窗的最外层容器的 `padding-top: {{customNavHeight + 16}}px;`，绝不直接使用 `env(safe-area-inset-top)` 作为唯一计算变量（防止在部分客户端或老版本基础库失效归零，导致侵染重叠状态栏和胶囊按钮）。
 
 ## 性能与工具封装
 

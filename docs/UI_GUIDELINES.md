@@ -311,6 +311,7 @@ Active 态星空规范要点：
 - 弹窗：`wx:if` 懒渲染；底部抽屉/确认弹窗/选择器须支持 reduce-motion 静默展开
 - 底部安全区：Tab 页内容区预留 180rpx-240rpx（含自定义 tabbar + safe-area）
 - 海报预览：独立排版保证核心信息可读，不做页面截图缩略图
+- 顶部安全区与胶囊避让：在自定义沉浸式导航栏（"navigationStyle": "custom"）页面中，弹窗与浮层的内容顶部绝不能侵染或盖过系统的原有标题栏与胶囊按钮。必须使用从 JS 动态、100% 精确取得的标题栏高度 `customNavHeight`，绑定至弹层组件的内联样式上 `style="padding-top: {{customNavHeight + 16}}px;"` 进行动态避让。严禁在 WXSS 中仅使用 `calc(xxx + env(safe-area-inset-top))` 进行顶部避让，以规避因基础库或系统环境异常导致 env() 计算失效归零，造成弹窗头部与胶囊按钮重叠遮挡。
 
 ### AR 悬浮操作面板（ar-action-pad）
 
