@@ -145,3 +145,8 @@
   transition: none !important;
   transform: none !important;
 }
+
+.terminal-spacer {
+  width: 100%;
+  height: 220rpx; /* 撑开底部高度，使得当前题在滚动置底时能精确维持在卡片垂直正中心 */
+}

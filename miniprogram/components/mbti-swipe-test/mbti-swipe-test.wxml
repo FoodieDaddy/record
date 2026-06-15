@@ -19,6 +19,9 @@
         <text class="term-line-content">{{activeLineText}}</text>
         <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}"></view>
       </view>
+      
+      <!-- 底部垫高，使用户做题时当前题能够动态并精准保持在屏幕中轴线位置 -->
+      <view class="terminal-spacer"></view>
     </view>
   </scroll-view>
 
