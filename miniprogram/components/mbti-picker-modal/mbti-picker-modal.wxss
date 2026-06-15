@@ -333,6 +333,13 @@
   padding-top: 10rpx;
 }
 
+.ar-hud-original-status {
+  color: #ff9500;
+  text-shadow: 0 0 8rpx rgba(255, 149, 0, 0.45);
+  margin: 0 4rpx;
+  font-weight: bold;
+}
+
 /* ---- Part 2: 独立悬浮的全息校准轨道面板 (Floating Calibration Controllers) ---- */
 .ar-floating-controllers {
   display: flex;
