@@ -1,4 +1,20 @@
-<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}} {{voiceSheetVisible || nicknameDrawerVisible ? 'terminal-page--overlay-open' : ''}}">
+<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}} {{voiceSheetVisible || nicknameDrawerVisible ? 'terminal-page--overlay-open' : ''}}" style="padding-top: {{customNavHeight}}px;">
+  <!-- 统一沉浸式导航条 -->
+  <view
+    class="sr-custom-nav"
+    style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;"
+  >
+    <view class="sr-custom-nav__stars"></view>
+    <view class="sr-custom-nav__bar" style="height: {{customNavBarHeight}}px;">
+      <view class="cockpit-nav-hud">
+        <view class="cockpit-nav-hud__link">
+          <view class="css-status-dot css-status-dot--{{identityBayState === 'online' ? 'online' : identityBayState === 'starting' ? 'warning' : 'idle'}}"></view>
+          <text>{{identityBayLabel}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 未登录 -->
   <view wx:if="{{!isLoggedIn}}" class="empty-state">
     <view class="empty-state__icon">
@@ -19,12 +35,6 @@
     <view class="sync-hud {{hudVisible ? 'sync-hud--show' : ''}} {{hudType === 'error' ? 'sync-hud--error' : hudType === 'warning' ? 'sync-hud--warning' : ''}}" bindtap="onHudTap">
       <view class="sync-hud__dot"></view>
       <text class="sync-hud__text">{{hudText}}</text>
-    </view>
-
-    <!-- 左上角舱位状态 Tab -->
-    <view class="bay-status-tab bay-status-tab--{{identityBayState}}">
-      <view class="bay-status-tab__dot"></view>
-      <text class="bay-status-tab__label">{{identityBayLabel}}</text>
     </view>
 
     <!-- 1. 本舰档案 -->

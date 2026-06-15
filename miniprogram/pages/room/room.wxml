@@ -32,12 +32,6 @@
     </view>
   </view>
 
-  <!-- 驾驶舱状态条（极简） -->
-  <view wx:if="{{isLoggedIn && cockpitState !== 'active'}}" class="cockpit-status-strip">
-    <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
-    <text class="css-status-label">{{cockpitView.statusLabel}}</text>
-  </view>
-
   <!-- idle 状态：驾驶舱舷窗待机 -->
   <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle sr-hud-panel">
     <view class="starfield"></view>
