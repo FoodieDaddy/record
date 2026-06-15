@@ -4,26 +4,12 @@
     <view class="progress-bar" style="width: {{progressPercent}}%;"></view>
   </view>
 
-  <!-- 双卡栈 -->
+  <!-- 双卡栈：纯净题目显示区 -->
   <view class="swipe-card-area">
-    <view class="card-stack {{promotingNext ? 'card-stack--promote' : ''}}">
-      <!-- 下一题预览（在后方） -->
-      <view wx:if="{{nextQuestion && !reduceMotion}}" class="signal-card signal-card--next" aria-hidden="true">
-        <view class="card-scan-line"></view>
-      </view>
-
-      <!-- 当前题 -->
+    <view class="card-stack">
+      <!-- 当前题：直接渲染在屏幕内，没有二次卡片框包裹，确保背景透明 -->
       <view wx:if="{{currentQuestion}}" wx:key="{{currentQuestion.id}}" class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
-        <view class="card-scan-line"></view>
-        <text class="signal-header">信号 {{signalIndex}}</text>
-        <text class="signal-label">行为判断</text>
-        <view class="question-divider-top"></view>
         <text class="question-text">{{currentQuestion.text}}</text>
-        <view class="question-divider-bottom"></view>
-        <view class="dim-detect">
-          <text class="dim-detect-label">检测维度</text>
-          <text class="dim-detect-value">{{dimensionLabel}}</text>
-        </view>
       </view>
     </view>
   </view>
@@ -33,23 +19,25 @@
     <text class="loading-text">数据加载中…</text>
   </view>
 
-  <!-- 底部操作：飞船操控台物理按键排，无字纯符号 -->
+  <!-- 底部操作：飞船操控台物理按键排，无字纯符号，左向与右向微调水晶键 -->
   <view class="swipe-actions">
-    <!-- 不符合：红色切角圆形按键，仅有叉号 -->
-    <view class="action-btn-hardware hw-btn-reject" bindtap="onSwipeLeft" title="不符合">
-      <view class="hw-btn-icon-close"></view>
-    </view>
-    
-    <!-- 跳过：小灰色扁平按键，仅有精密横杠 -->
-    <view class="action-btn-hardware hw-btn-skip" bindtap="onNotSure" title="跳过">
-      <view class="hw-btn-icon-skip"></view>
-    </view>
-    
-    <!-- 符合：青蓝色六角切角水晶按键，仅有精密勾号 -->
-    <view class="action-btn-hardware hw-btn-confirm" bindtap="onSwipeRight" title="符合">
+    <!-- 不符合（左极偏振）：左切角水晶按键，仅有指向左的刻度箭头 -->
+    <view class="action-btn-hardware hw-btn-adjust hw-btn-left" bindtap="onSwipeLeft" title="不符合">
       <view class="crystal-decor crystal-decor-l"></view>
       <view class="crystal-decor crystal-decor-r"></view>
-      <view class="hw-btn-icon-check"></view>
+      <view class="hw-btn-icon-arrow-left"></view>
+    </view>
+    
+    <!-- 跳过：小灰色扁平按键，仅有精密圆点 -->
+    <view class="action-btn-hardware hw-btn-skip" bindtap="onNotSure" title="跳过">
+      <view class="hw-btn-icon-dot"></view>
+    </view>
+    
+    <!-- 符合（右极偏振）：右切角水晶按键，仅有指向右的刻度箭头 -->
+    <view class="action-btn-hardware hw-btn-adjust hw-btn-right" bindtap="onSwipeRight" title="符合">
+      <view class="crystal-decor crystal-decor-l"></view>
+      <view class="crystal-decor crystal-decor-r"></view>
+      <view class="hw-btn-icon-arrow-right"></view>
     </view>
   </view>
 
