@@ -4,11 +4,21 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: #05070A;
+  background: rgba(4, 8, 16, 0);
   z-index: 1000;
   display: flex;
   flex-direction: column;
-  padding: 0 48rpx;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.3s ease;
+  pointer-events: none;
+}
+
+.picker-overlay.overlay-show {
+  background: rgba(4, 8, 16, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  pointer-events: auto;
 }
 
 /* ---- 退出确认遮罩 ---- */
@@ -18,7 +28,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(5, 7, 10, 0.92);
+  background: rgba(4, 8, 16, 0.94);
   z-index: 1500;
   display: flex;
   align-items: center;
@@ -27,6 +37,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s;
+  border-radius: 20rpx;
 }
 
 .exit-overlay.exit-active {
@@ -41,20 +52,16 @@
   gap: 20rpx;
   padding: 48rpx 40rpx;
   border-radius: 16rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.15);
-  background: rgba(10, 15, 24, 0.95);
-}
-
-.exit-kicker {
-  font-size: 18rpx;
-  letter-spacing: 4rpx;
-  color: rgba(0, 175, 255, 0.50);
+  border: 1rpx solid rgba(0, 175, 255, 0.24);
+  background: rgba(10, 16, 28, 0.95);
+  box-shadow: 0 0 30rpx rgba(0, 175, 255, 0.15);
 }
 
 .exit-title {
   font-size: 28rpx;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 2rpx;
 }
 
 .exit-msg {
@@ -94,34 +101,116 @@
   color: rgba(255, 69, 58, 0.80);
 }
 
-/* ---- 头部 ---- */
-.picker-header {
-  padding: 80rpx 0 16rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.picker-header-left {
+/* ---- 驾驶舱全息总控容器 (无背景大框，让内部独立悬浮) ---- */
+.ar-cockpit-console {
+  width: 690rpx;
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
+  box-sizing: border-box;
+  position: relative;
+  transform: scale(0.92) translateY(80rpx);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s;
 }
 
-.picker-kicker {
-  font-size: 18rpx;
-  letter-spacing: 4rpx;
-  color: rgba(10, 132, 255, 0.60);
-  text-transform: uppercase;
+.picker-overlay.overlay-show .ar-cockpit-console {
+  transform: scale(1) translateY(0);
+  opacity: 1;
 }
 
-.picker-title {
-  font-size: 36rpx;
+/* ---- Part 1: 悬空全息屏幕 (The Floating Screen) ---- */
+.ar-floating-screen {
+  width: 100%;
+  background: rgba(10, 16, 28, 0.72);
+  border: 1rpx solid rgba(0, 175, 255, 0.22);
+  border-radius: 20rpx;
+  padding: 0 0 32rpx 0;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.5), inset 0 0 24rpx rgba(0, 175, 255, 0.06);
+}
+
+/* ---- AR HUD 定位角 ---- */
+.ar-hud-angle {
+  position: absolute;
+  width: 24rpx;
+  height: 24rpx;
+  border-color: rgba(0, 175, 255, 0.45);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ar-hud-tl { top: 12rpx; left: 12rpx; border-width: 3rpx 0 0 3rpx; }
+.ar-hud-tr { top: 12rpx; right: 12rpx; border-width: 3rpx 3rpx 0 0; }
+.ar-hud-bl { bottom: 12rpx; left: 12rpx; border-width: 0 0 3rpx 3rpx; }
+.ar-hud-br { bottom: 12rpx; right: 12rpx; border-width: 0 3rpx 3rpx 0; }
+
+/* ---- AR 屏幕背景特效 ---- */
+.ar-screen-grid {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(rgba(0, 175, 255, 0.04) 1px, transparent 1px);
+  background-size: 16rpx 16rpx;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ar-screen-scanlines {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 175, 255, 0.03) 50%
+  );
+  background-size: 100% 4rpx;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ar-screen-scanlines::after {
+  content: '';
+  position: absolute;
+  top: -100rpx; left: 0; right: 0; height: 100rpx;
+  background: linear-gradient(to bottom, transparent, rgba(0, 175, 255, 0.06), transparent);
+  animation: arScan 4.5s linear infinite;
+}
+
+@keyframes arScan {
+  0% { top: -100rpx; }
+  100% { top: 100%; }
+}
+
+/* ---- AR 顶部状态栏 ---- */
+.ar-top-bar {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 36rpx 12rpx;
+  position: relative;
+  z-index: 4;
+}
+
+.ar-system-dot {
+  width: 10rpx;
+  height: 10rpx;
+  background: #00afff;
+  border-radius: 50%;
+  margin-right: 12rpx;
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.8);
+  animation: arBlink 1.5s infinite;
+}
+
+.ar-system-title {
+  font-size: 16rpx;
   font-weight: 700;
-  color: var(--text-primary);
+  color: rgba(0, 175, 255, 0.65);
+  letter-spacing: 4rpx;
+  font-family: 'SF Mono', monospace;
+  flex: 1;
 }
 
-.picker-close {
+.ar-close-btn {
   width: 64rpx;
   height: 64rpx;
   display: flex;
@@ -129,266 +218,404 @@
   justify-content: center;
 }
 
-.picker-hint {
-  font-size: 22rpx;
-  color: var(--text-tertiary);
-  padding-bottom: 20rpx;
+@keyframes arBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
-.picker-divider {
+/* ---- 核心分割布局 ---- */
+.ar-content-split {
+  display: flex;
+  flex-direction: column;
+  padding: 0 36rpx;
+  position: relative;
+  z-index: 4;
+}
+
+/* ---- 上半区：AR 全息说明 HUD ---- */
+.ar-hud-panel {
+  background: rgba(0, 175, 255, 0.02);
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  border-radius: 8rpx;
+  padding: 24rpx;
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: column;
+  box-shadow: inset 0 0 20rpx rgba(0, 175, 255, 0.04);
+}
+
+.ar-hud-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  margin-bottom: 16rpx;
+}
+
+.ar-hud-label {
+  font-size: 16rpx;
+  color: rgba(0, 175, 255, 0.45);
+  letter-spacing: 2rpx;
+  font-family: monospace;
+}
+
+.ar-glow-line {
   height: 1rpx;
-  background: linear-gradient(90deg, rgba(0, 175, 255, 0.15), rgba(255, 255, 255, 0.06), transparent);
+  background: linear-gradient(90deg, rgba(0, 175, 255, 0.3), transparent);
 }
 
-/* ---- 滚动区 ---- */
-.picker-scroll {
-  flex: 1;
-  overflow: hidden;
-}
-
-.picker-body {
+.ar-profile-header {
   display: flex;
-  flex-direction: column;
-  gap: 28rpx;
-  padding: 28rpx 0 32rpx;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
 }
 
-/* ---- 协议维度 ---- */
-.matrix-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
-}
-
-.matrix-kicker {
-  font-size: 18rpx;
+.ar-profile-code {
+  font-size: 56rpx;
+  font-weight: 800;
+  font-family: 'SF Mono', monospace;
   letter-spacing: 4rpx;
-  color: rgba(0, 175, 255, 0.50);
-}
-
-.matrix-title {
-  font-size: 26rpx;
-  font-weight: 700;
   color: var(--text-primary);
+  text-shadow: 0 0 10rpx rgba(255, 255, 255, 0.15);
+  transition: color 0.25s, text-shadow 0.25s;
 }
 
-.dim-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20rpx;
+.ar-profile-code.ar-code-changed {
+  color: #00afff;
+  text-shadow: 0 0 16rpx rgba(0, 175, 255, 0.6);
 }
 
-.dim-row {
-  display: flex;
-  flex-direction: column;
-  gap: 12rpx;
-}
-
-.dim-row-label {
-  font-size: 22rpx;
-  color: rgba(140, 176, 205, 0.38);
+.ar-profile-title {
+  font-size: 26rpx;
+  color: rgba(0, 175, 255, 0.9);
+  font-weight: 600;
   letter-spacing: 2rpx;
 }
 
-.dim-btns {
+.ar-profile-tags {
   display: flex;
-  gap: 20rpx;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 18rpx;
 }
 
-.dim-btn {
-  flex: 1;
-  height: 96rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  border-radius: 12rpx;
-  border: 1rpx solid rgba(126, 156, 180, 0.10);
-  background: var(--bg-card);
-  transition: border-color 0.2s, background 0.2s;
-}
-
-.dim-btn-active {
-  border-color: rgba(0, 175, 255, 0.45);
-  background: rgba(0, 175, 255, 0.08);
-}
-
-.dim-btn-letter {
-  font-size: 32rpx;
-  font-weight: 800;
-  font-family: 'SF Mono', 'Courier New', monospace;
-  color: var(--text-disabled);
-  transition: color 0.2s;
-}
-
-.dim-btn-active .dim-btn-letter {
-  color: var(--color-cyan);
-}
-
-.dim-btn-label {
-  font-size: 24rpx;
-  color: rgba(140, 176, 205, 0.38);
-  transition: color 0.2s;
-}
-
-.dim-btn-active .dim-btn-label {
-  color: rgba(0, 175, 255, 0.80);
-}
-
-/* ---- 当前选择 ---- */
-.selection-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12rpx;
-  padding: 8rpx 0;
-}
-
-.selection-kicker {
+.ar-tag {
   font-size: 18rpx;
-  letter-spacing: 4rpx;
-  color: rgba(0, 175, 255, 0.50);
+  padding: 4rpx 12rpx;
+  border-radius: 4rpx;
+  background: rgba(0, 175, 255, 0.06);
+  border: 1rpx solid rgba(0, 175, 255, 0.18);
+  color: rgba(0, 175, 255, 0.85);
+  letter-spacing: 1rpx;
 }
 
-.selection-title {
-  font-size: 22rpx;
-  color: var(--text-tertiary);
+.ar-profile-desc {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: rgba(140, 176, 205, 0.8);
+  min-height: 110rpx;
+  margin-bottom: 12rpx;
 }
 
-.selection-main {
+.ar-hud-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 16rpx;
+  color: rgba(0, 175, 255, 0.3);
+  font-family: monospace;
+  border-top: 1rpx dashed rgba(0, 175, 255, 0.08);
+  padding-top: 10rpx;
+}
+
+/* ---- Part 2: 独立悬浮的全息校准轨道面板 (Floating Calibration Controllers) ---- */
+.ar-floating-controllers {
   display: flex;
   flex-direction: column;
+  gap: 16rpx;
+  width: 100%;
+  margin-top: 24rpx;
+  position: relative;
+  z-index: 4;
+}
+
+.floating-btn-card {
+  background: rgba(10, 16, 28, 0.6);
+  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  border-radius: 12rpx;
+  padding: 0 32rpx;
+  height: 108rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.25), inset 0 0 16rpx rgba(0, 175, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-btn-card:active {
+  transform: scale(0.97);
+  border-color: rgba(0, 175, 255, 0.35);
+  box-shadow: 0 8rpx 28rpx rgba(0, 175, 255, 0.08), inset 0 0 20rpx rgba(0, 175, 255, 0.08);
+}
+
+.btn-card-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.btn-card-kicker {
+  font-size: 16rpx;
+  color: rgba(0, 175, 255, 0.35);
+  font-family: 'SF Mono', monospace;
+  letter-spacing: 1rpx;
+}
+
+.btn-card-label {
+  font-size: 18rpx;
+  color: rgba(140, 176, 205, 0.35);
+  letter-spacing: 1rpx;
+}
+
+.dim-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.toggle-btn-content {
+  display: flex;
+  align-items: baseline;
   gap: 8rpx;
 }
 
-.selection-type {
-  font-size: 48rpx;
+.toggle-letter {
+  font-size: 36rpx;
   font-weight: 800;
-  font-family: 'SF Mono', 'Courier New', monospace;
-  letter-spacing: 8rpx;
-  color: var(--text-primary);
-  transition: color 0.25s;
-  white-space: nowrap;
-  word-break: keep-all;
+  font-family: 'SF Mono', monospace;
+  color: #ffffff;
+  text-shadow: 0 0 12rpx rgba(0, 175, 255, 0.6), 0 0 2rpx rgba(0, 175, 255, 0.85);
+  transition: text-shadow 0.25s ease;
 }
 
-.selection-type.selection-changed {
-  color: var(--color-cyan);
-  text-shadow: 0 0 16rpx rgba(0, 175, 255, 0.30);
-}
-
-.selection-persona {
-  font-size: 26rpx;
-  color: var(--text-secondary);
-  letter-spacing: 2rpx;
-  white-space: nowrap;
-  word-break: keep-all;
-}
-
-.selection-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12rpx;
-  margin-top: 4rpx;
-}
-
-.selection-tag {
+.toggle-label {
   font-size: 20rpx;
-  padding: 6rpx 16rpx;
-  border-radius: 6rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.15);
-  background: rgba(0, 175, 255, 0.04);
-  color: rgba(0, 175, 255, 0.72);
-  letter-spacing: 1rpx;
-  white-space: nowrap;
+  color: rgba(0, 175, 255, 0.9);
+  transition: color 0.25s ease;
 }
 
-/* ---- 底部确认栏 ---- */
-.apply-dock {
-  padding: 16rpx 0 calc(24rpx + env(safe-area-inset-bottom));
-}
-
-/* ---- APPLY 按钮 ---- */
-.apply-btn {
-  margin-top: 8rpx;
-  width: 100%;
-  height: 88rpx;
+.toggle-btn-status {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2rpx;
-  border-radius: 8rpx;
-  border: 1rpx solid rgba(10, 132, 255, 0.35);
-  background: rgba(10, 132, 255, 0.08);
-  transition: background 0.15s;
+  width: 20rpx;
+  height: 20rpx;
+}
+
+.toggle-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: #00afff;
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.8), 0 0 2rpx rgba(0, 175, 255, 0.9);
+  animation: toggleDotPulse 2s infinite;
+}
+
+@keyframes toggleDotPulse {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.5);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 14rpx rgba(0, 175, 255, 0.9), 0 0 4rpx rgba(0, 175, 255, 1);
+  }
+}
+
+/* ---- Part 2: 屏幕下方的独立悬浮物理按键 (Cockpit Control Crystals) ---- */
+.ar-console-bottom-hardware {
+  margin-top: 36rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 56rpx;
+  width: 100%;
+}
+
+.hardware-btn {
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  overflow: hidden;
+  box-sizing: border-box;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.apply-btn:active {
-  background: rgba(10, 132, 255, 0.18);
+.hardware-btn:active {
+  transform: scale(0.9);
 }
 
-.apply-btn.apply-syncing {
-  border-color: rgba(0, 175, 255, 0.50);
-  background: rgba(0, 175, 255, 0.06);
+/* 放弃按键：极简无字小红色切角圆钮 */
+.hw-btn-cancel {
+  width: 80rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(255, 69, 58, 0.35);
+  background: rgba(255, 69, 58, 0.05);
+  box-shadow: 0 0 12rpx rgba(255, 69, 58, 0.04);
 }
 
-.apply-btn.apply-syncing::before {
+.hw-btn-cancel:active {
+  background: rgba(255, 69, 58, 0.18);
+  border-color: rgba(255, 69, 58, 0.6);
+  box-shadow: 0 0 20rpx rgba(255, 69, 58, 0.3);
+}
+
+/* 纯 CSS 绘制的细线取消叉号 icon */
+.hw-btn-icon-close {
+  width: 20rpx;
+  height: 20rpx;
+  position: relative;
+}
+
+.hw-btn-icon-close::before,
+.hw-btn-icon-close::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
+  top: 9rpx;
+  left: 0;
+  width: 20rpx;
   height: 2rpx;
-  background: linear-gradient(90deg, transparent, rgba(0, 175, 255, 0.60), transparent);
-  animation: applyScan 1.5s linear infinite;
+  background: rgba(255, 69, 58, 0.75);
+  transition: background 0.2s;
 }
 
-.apply-btn.apply-success {
-  border-color: rgba(48, 209, 88, 0.30);
-  background: rgba(48, 209, 88, 0.05);
+.hw-btn-icon-close::before {
+  transform: rotate(45deg);
 }
 
-.apply-btn.apply-success .apply-text {
-  color: rgba(48, 209, 88, 0.85);
+.hw-btn-icon-close::after {
+  transform: rotate(-45deg);
 }
 
-.apply-btn.apply-error {
-  border-color: rgba(255, 69, 58, 0.40);
-  background: rgba(255, 69, 58, 0.06);
+.hw-btn-cancel:active .hw-btn-icon-close::before,
+.hw-btn-cancel:active .hw-btn-icon-close::after {
+  background: rgba(255, 69, 58, 1);
 }
 
-.apply-error-text {
-  color: rgba(255, 69, 58, 0.85) !important;
-  font-size: 22rpx;
+/* 确认按键：极简无字青蓝色切角方块 */
+.hw-btn-confirm {
+  width: 140rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid rgba(0, 175, 255, 0.45);
+  background: rgba(0, 175, 255, 0.08);
+  box-shadow: 0 0 16rpx rgba(0, 175, 255, 0.05);
 }
 
-@keyframes applyScan {
-  0% { left: -100%; }
-  100% { left: 100%; }
+.hw-btn-confirm:active {
+  background: rgba(0, 175, 255, 0.18);
+  border-color: rgba(0, 175, 255, 0.8);
+  box-shadow: 0 0 24rpx rgba(0, 175, 255, 0.25);
 }
 
-.apply-kicker {
-  font-size: 16rpx;
-  letter-spacing: 4rpx;
-  color: rgba(10, 132, 255, 0.55);
+/* 确认按键：系统写入中 (syncing) */
+.hw-btn-confirm.hw-syncing {
+  border-color: rgba(0, 175, 255, 0.65);
+  background: rgba(0, 175, 255, 0.05);
+  animation: hwConfirmPulse 1.5s infinite alternate;
 }
 
-.apply-text {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: rgba(10, 132, 255, 0.90);
-  letter-spacing: 2rpx;
-  white-space: nowrap;
+/* 确认按键：写入成功 (success) */
+.hw-btn-confirm.hw-success {
+  border-color: rgba(48, 209, 88, 0.55);
+  background: rgba(48, 209, 88, 0.08);
+  box-shadow: 0 0 20rpx rgba(48, 209, 88, 0.18);
+}
+
+/* 确认按键：写入失败 (error) */
+.hw-btn-confirm.hw-error {
+  border-color: rgba(255, 69, 58, 0.55);
+  background: rgba(255, 69, 58, 0.08);
+  box-shadow: 0 0 20rpx rgba(255, 69, 58, 0.18);
+}
+
+/* 纯 CSS 绘制的细线勾号 icon */
+.hw-btn-icon-check {
+  width: 22rpx;
+  height: 12rpx;
+  border-left: 2rpx solid rgba(0, 175, 255, 0.8);
+  border-bottom: 2rpx solid rgba(0, 175, 255, 0.8);
+  transform: rotate(-45deg);
+  margin-top: -4rpx;
+}
+
+.hw-btn-confirm:active .hw-btn-icon-check {
+  border-color: rgba(0, 175, 255, 1);
+}
+
+/* 纯 CSS 写入中 Loading 效果 */
+.hw-loading-spinner {
+  width: 24rpx;
+  height: 24rpx;
+  border: 2rpx solid rgba(0, 175, 255, 0.25);
+  border-top-color: rgba(0, 175, 255, 0.85);
+  border-radius: 50%;
+  animation: hwSpinner 0.8s linear infinite;
+}
+
+/* 纯 CSS 写入成功绿色勾号 */
+.hw-success-check {
+  width: 22rpx;
+  height: 12rpx;
+  border-left: 2rpx solid rgba(48, 209, 88, 0.85);
+  border-bottom: 2rpx solid rgba(48, 209, 88, 0.85);
+  transform: rotate(-45deg);
+  margin-top: -4rpx;
+}
+
+/* 纯 CSS 写入失败红色惊叹号 */
+.hw-error-excl {
+  width: 2rpx;
+  height: 16rpx;
+  background: rgba(255, 69, 58, 0.85);
+  position: relative;
+}
+
+.hw-error-excl::after {
+  content: '';
+  position: absolute;
+  bottom: -6rpx;
+  left: -1rpx;
+  width: 3rpx;
+  height: 3rpx;
+  border-radius: 50%;
+  background: rgba(255, 69, 58, 0.85);
+}
+
+@keyframes hwSpinner {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes hwConfirmPulse {
+  0% { box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.1); }
+  100% { box-shadow: 0 0 24rpx rgba(0, 175, 255, 0.25); }
 }
 
 /* ---- Reduce Motion ---- */
-.reduce-motion .apply-btn.apply-syncing::before {
-  animation: none;
+.reduce-motion {
+  transition: none !important;
+}
+
+.reduce-motion .picker-overlay,
+.reduce-motion .ar-cockpit-console {
+  transition: none !important;
+  transform: none !important;
 }
 
 .reduce-motion .dim-btn {
@@ -401,4 +628,13 @@
 
 .reduce-motion .exit-overlay {
   transition: none;
+}
+
+.reduce-motion .hardware-btn {
+  transition: none !important;
+  transform: none !important;
+}
+
+.reduce-motion .hw-loading-spinner {
+  animation: none;
 }

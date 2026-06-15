@@ -1,95 +1,122 @@
-<view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
+<view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}} {{showAnimation ? 'overlay-show' : ''}}" bindtap="onOverlayTap">
 
-  <!-- 退出确认遮罩 -->
-  <view class="exit-overlay {{showExitConfirm ? 'exit-active' : ''}}" wx:if="{{showExitConfirm}}">
-    <view class="exit-dialog">
-      <text class="exit-title">退出修改</text>
-      <text class="exit-msg">当前协议修改尚未写入，退出后不会保存。</text>
-      <view class="exit-actions">
-        <view class="exit-btn exit-btn-cancel" bindtap="cancelExit">
-          <text>继续编辑</text>
-        </view>
-        <view class="exit-btn exit-btn-confirm" bindtap="confirmExit">
-          <text>放弃修改</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 头部 -->
-  <view class="picker-header">
-    <view class="picker-header-left">
-      <text class="picker-title">修改协议</text>
-    </view>
-    <view class="picker-close">
-      <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
-    </view>
-  </view>
-
-  <view class="picker-hint">选择你的协议类型。</view>
-
-  <view class="picker-divider"></view>
-
-  <scroll-view scroll-y class="picker-scroll">
-    <view class="picker-body">
-
-      <!-- 协议维度 -->
-      <view class="matrix-section">
-        <text class="matrix-title">协议维度</text>
-
-        <view class="dim-list">
-          <view class="dim-row" wx:for="{{dims}}" wx:key="key" wx:for-index="dimIdx">
-            <text class="dim-row-label">{{item.dimLabel}}</text>
-            <view class="dim-btns">
-              <view
-                class="dim-btn {{item.selected === item.options[0].code ? 'dim-btn-active' : ''}}"
-                bindtap="onDimSelect"
-                data-dimindex="{{dimIdx}}"
-                data-value="{{item.options[0].code}}"
-              >
-                <text class="dim-btn-letter">{{item.options[0].code}}</text>
-                <text class="dim-btn-label">{{item.options[0].label}}</text>
-              </view>
-              <view
-                class="dim-btn {{item.selected === item.options[1].code ? 'dim-btn-active' : ''}}"
-                bindtap="onDimSelect"
-                data-dimindex="{{dimIdx}}"
-                data-value="{{item.options[1].code}}"
-              >
-                <text class="dim-btn-letter">{{item.options[1].code}}</text>
-                <text class="dim-btn-label">{{item.options[1].label}}</text>
-              </view>
-            </view>
+  <view class="ar-cockpit-console {{showAnimation ? 'console-show' : ''}}" catchtap="noop">
+    <!-- 退出确认遮罩 -->
+    <view class="exit-overlay {{showExitConfirm ? 'exit-active' : ''}}" wx:if="{{showExitConfirm}}">
+      <view class="exit-dialog">
+        <text class="exit-title">退出修改</text>
+        <text class="exit-msg">当前协议修改尚未写入，退出后不会保存。</text>
+        <view class="exit-actions">
+          <view class="exit-btn exit-btn-cancel" bindtap="cancelExit">
+            <text>继续编辑</text>
+          </view>
+          <view class="exit-btn exit-btn-confirm" bindtap="confirmExit">
+            <text>放弃修改</text>
           </view>
         </view>
       </view>
+    </view>
 
-      <view class="picker-divider"></view>
+    <!-- Part 1: 悬空屏幕 (Floating HUD Screen) -->
+    <view class="ar-floating-screen">
+      <!-- AR 屏幕扫描线及四角定位框 -->
+      <view class="ar-screen-grid"></view>
+      <view class="ar-screen-scanlines"></view>
+      <view class="ar-hud-angle ar-hud-tl"></view>
+      <view class="ar-hud-angle ar-hud-tr"></view>
+      <view class="ar-hud-angle ar-hud-bl"></view>
+      <view class="ar-hud-angle ar-hud-br"></view>
 
-      <!-- 当前选择 -->
-      <view class="selection-section">
-        <text class="selection-title">当前选择</text>
-
-        <view class="selection-main">
-          <text class="selection-type {{mbtiType !== originalType ? 'selection-changed' : ''}}">{{mbtiType}}</text>
-          <text class="selection-persona">{{mbtiTitle}}</text>
-        </view>
-
-        <view class="selection-tags">
-          <text class="selection-tag" wx:for="{{mbtiTraits}}" wx:key="*this">{{item}}</text>
+      <!-- AR 顶部系统状态栏 -->
+      <view class="ar-top-bar">
+        <view class="ar-system-dot"></view>
+        <text class="ar-system-title">协议校准终端</text>
+        <view class="ar-close-btn" bindtap="onClose">
+          <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
         </view>
       </view>
 
-    </view>
-  </scroll-view>
+      <!-- 核心两区分割布局 -->
+      <view class="ar-content-split">
+        
+        <!-- 上半区：AR 全息说明面板 (HUD Display) -->
+        <view class="ar-hud-panel">
+          <view class="ar-hud-header">
+            <text class="ar-hud-label">目标特征全息解算</text>
+            <view class="ar-glow-line"></view>
+          </view>
+          
+          <view class="ar-hud-body">
+            <view class="ar-profile-header">
+              <text class="ar-profile-code {{mbtiType !== originalType ? 'ar-code-changed' : ''}}">{{mbtiType}}</text>
+              <text class="ar-profile-title">{{mbtiTitle}}</text>
+            </view>
+            
+            <!-- 人格特质标签 -->
+            <view class="ar-profile-tags">
+              <text class="ar-tag" wx:for="{{mbtiTraits}}" wx:key="*this">{{item}}</text>
+            </view>
+            
+            <!-- 高级 AR 飞船适性说明 -->
+            <view class="ar-profile-desc">
+              <text>{{mbtiDesc}}</text>
+            </view>
+          </view>
 
-  <!-- 确认接入（固定底部） -->
-  <view class="apply-dock">
-    <view class="apply-btn {{syncState === 'syncing' ? 'apply-syncing' : ''}} {{syncState === 'success' ? 'apply-success' : ''}} {{syncState === 'error' ? 'apply-error' : ''}}" bindtap="onConfirm">
-      <text class="apply-text" wx:if="{{syncState === 'syncing'}}">协议写入中…</text>
-      <text class="apply-text" wx:elif="{{syncState === 'success'}}">协议已同步</text>
-      <text class="apply-text apply-error-text" wx:elif="{{syncState === 'error'}}">{{errorText || '同步失败'}}</text>
-      <text class="apply-text" wx:else>确认接入</text>
+          <!-- 虚设的实时数字流动与装饰，提供科技氛围 -->
+          <view class="ar-hud-footer">
+            <text class="ar-hud-system-status">系统定位: {{mbtiType}} // 协议载入成功</text>
+            <text class="ar-hud-decor-nums">频率 0.428 // 协议 NC-991</text>
+          </view>
+        </view>
+
+      </view>
+    </view> <!-- End of Floating Screen -->
+
+    <!-- Part 2: 独立悬浮的单按钮切换控制板 (Floating Toggle Controllers) -->
+    <view class="ar-floating-controllers">
+      <view
+        class="floating-btn-card"
+        wx:for="{{dims}}"
+        wx:key="key"
+        wx:for-index="dimIdx"
+        bindtap="onDimToggle"
+        data-dimindex="{{dimIdx}}"
+      >
+        <view class="btn-card-header">
+          <text class="btn-card-kicker">校准维度 0{{dimIdx + 1}}</text>
+          <text class="btn-card-label">{{item.dimLabel}}</text>
+        </view>
+        
+        <view class="dim-toggle-btn">
+          <view class="toggle-btn-content">
+            <text class="toggle-letter">{{item.selected}}</text>
+            <text class="toggle-label">{{item.selected === item.options[0].code ? item.options[0].label : item.options[1].label}}</text>
+          </view>
+          
+          <view class="toggle-btn-status">
+            <view class="toggle-dot"></view>
+          </view>
+        </view>
+      </view>
     </view>
+
+    <!-- Part 2: 屏幕下方的极简无字发光物理按键 (Cockpit Control Crystals) -->
+    <view class="ar-console-bottom-hardware">
+      <!-- 放弃按键：小小的红色切角硬件键，仅有叉号 -->
+      <view class="hardware-btn hw-btn-cancel" bindtap="onClose" title="放弃修改">
+        <view class="hw-btn-icon-close"></view>
+      </view>
+      
+      <!-- 确认写入键：小小的青蓝色长方按键，仅有勾号及状态指示 -->
+      <view class="hardware-btn hw-btn-confirm {{syncState === 'syncing' ? 'hw-syncing' : ''}} {{syncState === 'success' ? 'hw-success' : ''}} {{syncState === 'error' ? 'hw-error' : ''}}" bindtap="onConfirm" title="写入协议">
+        <view class="hw-btn-icon-check" wx:if="{{syncState !== 'syncing' && syncState !== 'success' && syncState !== 'error'}}"></view>
+        <view class="hw-loading-spinner" wx:if="{{syncState === 'syncing'}}"></view>
+        <view class="hw-success-check" wx:if="{{syncState === 'success'}}"></view>
+        <view class="hw-error-excl" wx:if="{{syncState === 'error'}}"></view>
+      </view>
+    </view>
+
   </view>
+
 </view>

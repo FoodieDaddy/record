@@ -48,7 +48,7 @@
 
       <view class="mirror-hero" style="opacity: {{heroOpacity}};">
         <!-- 全息扫描图 -->
-        <view class="hero-radar-wrap">
+        <view class="hero-radar-wrap" wx:if="{{!showMbtiPicker}}">
           <radar-chart
             id="radarChart"
             dimensions="{{radarDimensions}}"
