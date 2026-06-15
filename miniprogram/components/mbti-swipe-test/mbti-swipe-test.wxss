@@ -100,7 +100,7 @@
   position: fixed;
   left: 32rpx;
   right: 32rpx;
-  bottom: calc(56rpx + env(safe-area-inset-bottom));
+  bottom: calc(188rpx + env(safe-area-inset-bottom));
   z-index: 3010;
   display: flex;
   justify-content: center;

@@ -11,7 +11,7 @@
   justify-content: flex-start;
   align-items: center;
   box-sizing: border-box;
-  padding: calc(90rpx + env(safe-area-inset-top)) 0 calc(64rpx + env(safe-area-inset-bottom));
+  padding: calc(90rpx + env(safe-area-inset-top)) 0 calc(188rpx + env(safe-area-inset-bottom));
   transition: background 0.3s ease;
   pointer-events: none;
 }
