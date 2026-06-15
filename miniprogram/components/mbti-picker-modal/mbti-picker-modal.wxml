@@ -1,4 +1,4 @@
-<view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}} {{showAnimation ? 'overlay-show' : ''}}" bindtap="onOverlayTap" style="padding-top: {{customNavHeight + 16}}px;">
+<view class="picker-overlay {{reduceMotion ? 'reduce-motion' : ''}} {{showAnimation ? 'overlay-show' : ''}}" bindtap="onOverlayTap">
 
   <view class="ar-cockpit-console {{showAnimation ? 'console-show' : ''}}" catchtap="noop">
     <!-- 退出确认遮罩 -->
@@ -57,6 +57,7 @@
             <!-- 高级 AR 飞船适性说明 -->
             <view class="ar-profile-desc">
               <text>{{mbtiDesc}}</text>
+              <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}" wx:if="{{isPrinting}}"></view>
             </view>
           </view>
 
@@ -70,6 +71,10 @@
       </view>
     </view> <!-- End of Floating Screen -->
 
+  </view>
+
+  <!-- Part 2 & Part 3: Flat bottom container for actions -->
+  <view class="picker-bottom-actions {{showAnimation ? 'actions-show' : ''}}" catchtap="noop">
     <!-- Part 2: 独立悬浮的单按钮切换控制板 (Floating Toggle Controllers) -->
     <view class="ar-floating-controllers">
       <view
@@ -106,7 +111,6 @@
         </view>
       </view>
     </view>
-
   </view>
 
 </view>

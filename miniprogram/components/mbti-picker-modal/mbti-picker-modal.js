@@ -71,7 +71,8 @@ Component({
     originalType: '',
     dirty: false,
     showExitConfirm: false,
-    showAnimation: false
+    showAnimation: false,
+    isPrinting: false
   },
 
   lifetimes: {
@@ -90,9 +91,11 @@ Component({
         mbtiType: mbtiType,
         mbtiTitle: resolveTitle(mbtiType),
         mbtiTraits: traits,
-        mbtiDesc: mbtiDesc,
+        mbtiDesc: '',
         originalType: originalType
       });
+
+      this.typewrite(mbtiDesc);
 
       var self = this;
       if (this.properties.reduceMotion) {
@@ -105,11 +108,43 @@ Component({
       }
     },
     detached: function () {
-      // 组件销毁时无需清理内部定时器
+      if (this._typewriterTimer) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
     }
   },
 
   methods: {
+    typewrite: function (text) {
+      if (this._typewriterTimer) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
+
+      if (this.properties.reduceMotion) {
+        this.setData({ mbtiDesc: text, isPrinting: false });
+        return;
+      }
+
+      var self = this;
+      var currentLen = 0;
+      this.setData({ mbtiDesc: '', isPrinting: true });
+
+      this._typewriterTimer = setInterval(function () {
+        currentLen++;
+        var partial = text.slice(0, currentLen);
+        self.setData({
+          mbtiDesc: partial
+        });
+        if (currentLen >= text.length) {
+          clearInterval(self._typewriterTimer);
+          self._typewriterTimer = null;
+          self.setData({ isPrinting: false });
+        }
+      }, 25);
+    },
+
     onDimToggle: function (e) {
       var dimindex = e.currentTarget.dataset.dimindex;
       var dims = this.data.dims;
@@ -129,9 +164,10 @@ Component({
         mbtiType: mbtiType,
         mbtiTitle: resolveTitle(mbtiType),
         mbtiTraits: traits,
-        mbtiDesc: mbtiDesc,
         dirty: dirty
       });
+
+      this.typewrite(mbtiDesc);
 
       vibrateShort('medium');
     },
