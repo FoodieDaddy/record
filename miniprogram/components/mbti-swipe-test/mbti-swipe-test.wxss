@@ -16,23 +16,46 @@
   overflow: hidden;
 }
 
-/* 进度光线 */
-.progress-track {
-  position: absolute;
-  top: -2rpx;
-  left: 0;
-  right: 0;
-  height: 4rpx;
-  background: rgba(0, 200, 255, 0.08);
-  z-index: 3;
+/* 分段式精密发光能量块进度条 */
+.segmented-progress {
+  width: 100%;
+  height: 12rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6rpx;
+  z-index: 5;
+  margin-bottom: 16rpx;
 }
 
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-cyan), var(--color-cyan));
-  border-radius: 0 2rpx 2rpx 0;
-  transition: width 0.35s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.40);
+.progress-segment {
+  flex: 1;
+  height: 6rpx;
+  background: rgba(0, 175, 255, 0.12);
+  border-radius: 2rpx;
+  transform: skewX(-20deg);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.progress-segment--active {
+  background: var(--color-cyan, #00afff);
+  box-shadow: 0 0 10rpx rgba(0, 175, 255, 0.70);
+}
+
+.progress-segment--current {
+  background: rgba(0, 175, 255, 0.70);
+  box-shadow: 0 0 12rpx rgba(0, 175, 255, 0.50);
+  animation: segmentPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes segmentPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.reduce-motion .progress-segment--current {
+  animation: none;
+  opacity: 0.8;
 }
 
 .terminal-scroll {
@@ -40,7 +63,14 @@
   width: 100%;
   height: 100%;
   min-height: 0;
-  margin-top: 10rpx;
+}
+
+/* 隐藏右侧滚动条 */
+.terminal-scroll ::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  color: transparent !important;
 }
 
 .terminal-body {
@@ -57,36 +87,23 @@
   letter-spacing: 1rpx;
 }
 
-.term-row--system {
-  color: rgba(0, 175, 255, 0.55);
-}
-
+/* 历史题目渐淡为背景，不带前缀与后缀 */
 .term-row--question {
-  color: var(--text-secondary, rgba(255, 255, 255, 0.68));
+  color: rgba(255, 255, 255, 0.28);
+  text-shadow: none;
+  transition: color 0.5s ease;
 }
 
+/* 当前活动题 */
 .term-row--active {
   color: var(--text-primary, #ffffff);
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.term-line-prefix {
-  color: rgba(0, 175, 255, 0.85);
-  font-weight: 700;
-  margin-right: 8rpx;
-}
-
 .term-line-content {
   text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.1);
-}
-
-.term-line-answer {
-  color: #00ff66;
-  font-weight: 700;
-  margin-left: 12rpx;
-  text-shadow: 0 0 10rpx rgba(0, 255, 102, 0.35);
 }
 
 /* 终端闪烁光标 */

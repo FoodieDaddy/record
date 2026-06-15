@@ -98,24 +98,14 @@ Component({
         scrollTop: 0
       });
       
-      var self = this;
-      this.typewrite('系统 > ', '协议初始化成功。准备接入评测信号量...', function() {
-        var lines = self.data.printedLines.concat([{
-          text: '系统 > 协议初始化成功。准备接入评测信号量...',
-          type: 'system'
-        }]);
-        self.setData({ printedLines: lines, scrollTop: 99999 });
-        
-        self.printQuestion(0);
-      });
+      this.printQuestion(0);
     },
 
     printQuestion(index) {
       if (index >= QUESTIONS.length) return;
       var q = QUESTIONS[index];
-      var prefix = '[' + String(index + 1).padStart(2, '0') + '/20] ';
       var self = this;
-      this.typewrite(prefix, q.text, function() {
+      this.typewrite('', q.text, function() {
         self.setData({
           cardAnimating: false
         });
@@ -179,12 +169,9 @@ Component({
       var nextIndex = this.data.currentIndex + 1;
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
       
-      var userChoiceText = score === 1 ? '是' : '否';
-      var currentLineFull = this.data.activeLinePrefix + this.data.activeLineText;
       var lines = this.data.printedLines.concat([{
-        text: currentLineFull,
-        type: 'question',
-        answerText: userChoiceText
+        text: this.data.activeLineText,
+        type: 'question'
       }]);
 
       this.setData({
@@ -199,9 +186,7 @@ Component({
       var self = this;
       if (nextIndex >= QUESTIONS.length) {
         this.setData({ cardAnimating: true });
-        this.typewrite('系统 > ', '20组信号获取完成，正在封装镜像投影档案...', function() {
-          self.complete(answers);
-        });
+        this.complete(answers);
       } else {
         this.setData({
           currentIndex: nextIndex,
