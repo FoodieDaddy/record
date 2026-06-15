@@ -210,13 +210,7 @@
   flex: 1;
 }
 
-.ar-close-btn {
-  width: 64rpx;
-  height: 64rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+
 
 @keyframes arBlink {
   0%, 100% { opacity: 0.35; }

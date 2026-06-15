@@ -31,9 +31,6 @@
       <view class="ar-top-bar">
         <view class="ar-system-dot"></view>
         <text class="ar-system-title">协议校准终端</text>
-        <view class="ar-close-btn" bindtap="onClose">
-          <sr-hatch-close bind:close="onClose" reduceMotion="{{reduceMotion}}" />
-        </view>
       </view>
 
       <!-- 核心两区分割布局 -->
