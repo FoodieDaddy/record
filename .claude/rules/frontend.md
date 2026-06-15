@@ -39,7 +39,7 @@
 - 底部抽屉、确认弹窗、选择器必须支持 reduce-motion 的静默展开。
 - 在自定义沉浸式导航栏（"navigationStyle": "custom"）页面中，弹窗/浮层的内容顶部千万不能高过/盖过系统的原有标题栏与胶囊按钮。必须利用 JS 动态算得并绑定 `customNavHeight` 传给组件，以此来动态控制弹窗的最外层容器的 `padding-top: {{customNavHeight + 16}}px;`，绝不直接使用 `env(safe-area-inset-top)` 作为唯一计算变量，以防其失效归零。
 - 对于重新校准测验终端，显示题目的屏幕卡片在页面垂直方向上必须居中对齐（使用 `justify-content: center` 且不使用内联 `padding-top` 避让）。底部的倾向水晶按键必须明确显示中文字样：“是”和“否”。题目生成时，屏幕中只展示当前一题，切换题目时必须清屏，使每一题文字始终从第一行第一个字符起流式打字输出，禁止文字发生“向上滚动”或向上抖动跳跃。题目内容只包含题目文本，不允许出现题号前缀（如 `[01/20]`）、系统日志字样 and 选择答案尾缀。顶部进度条使用 20 段精密倾斜切角的能量格子式进度条进行步进呈现。
-- 对于协议修改校准终端（mbti-picker-modal），其整体布局要求与重新校准终端类似：显示分析结果的屏幕卡片（.ar-floating-screen）在页面垂直方向上必须完美居中对齐，内部不能存在多余的嵌套小卡片（即去除 .ar-hud-panel 边框、背景及盒子阴影）；四个倾向维度切换按钮（.ar-floating-controllers）与底部确认写入水晶按键（.ar-console-bottom-hardware）必须平级移出主屏幕 console，统一使用绝对定位组合推向页面最底部以防劫持与拥挤。当初始化或用户频繁切换选项时，中间大段飞船适性说明文字（.ar-profile-desc）必须执行清空并开始一字一字流式打字输出，并伴随闪烁光标（.term-cursor），并在 reduceMotion 为 true 时瞬间渲染且光标不闪烁。此外，主卡片底端系统定位文本后必须固定显示原协议字样，且分隔斜杠外置，仅对文本部分进行琥珀色高亮对比显示：` // <text class="ar-hud-original-status">原协议: {{originalType}}</text>`。
+- 对于协议修改校准终端（mbti-picker-modal），其整体布局要求与重新校准终端类似：显示分析结果的屏幕卡片（.ar-floating-screen）在页面垂直方向上必须完美居中对齐，内部不能存在多余的嵌套小卡片（即去除 .ar-hud-panel 边框、背景及盒子阴影）；四个倾向维度切换按钮（.ar-floating-controllers）与底部确认写入水晶按键（.ar-console-bottom-hardware）必须平级移出主屏幕 console，统一使用绝对定位组合推向页面最底部以防劫持与拥挤。当初始化或用户频繁切换选项时，中间大段飞船适性说明文字（.ar-profile-desc）必须执行清空并开始一字一字流式打字输出，并伴随闪烁光标（.term-cursor），并在 reduceMotion 为 true 时瞬间渲染且光标不闪烁。此外，主卡片底端左侧文本必须固定精简显示为原有协议值，且以琥珀色高亮对比显示：`<text class="ar-hud-original-status">原协议: {{originalType}}</text>`。
 
 ## 性能与工具封装
 

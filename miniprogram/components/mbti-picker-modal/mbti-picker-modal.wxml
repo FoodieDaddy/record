@@ -63,7 +63,7 @@
 
           <!-- 虚设的实时数字流动与装饰，提供科技氛围 -->
           <view class="ar-hud-footer">
-            <text class="ar-hud-system-status">系统定位: {{mbtiType}} // <text class="ar-hud-original-status">原协议: {{originalType}}</text> // 协议载入成功</text>
+            <text class="ar-hud-system-status"><text class="ar-hud-original-status">原协议: {{originalType}}</text></text>
             <text class="ar-hud-decor-nums">频率 0.428 // 协议 NC-991</text>
           </view>
         </view>
