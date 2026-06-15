@@ -8,24 +8,13 @@
     ></view>
   </view>
 
-  <!-- 终端流式日志输出区域 (隐藏右侧滚动条) -->
-  <scroll-view class="terminal-scroll" scroll-y="{{true}}" scroll-top="{{scrollTop}}" scroll-with-animation="{{!reduceMotion}}" enhanced="{{true}}" show-scrollbar="{{false}}">
-    <view class="terminal-body">
-      <!-- 历史输出行：中间只显示题目本身，且历史题渐淡为背景 -->
-      <view class="terminal-row term-row--question" wx:for="{{printedLines}}" wx:key="index">
-        <text class="term-line-content">{{line.text}}</text>
-      </view>
-      
-      <!-- 当前活动行：正在一个字一个字流式生成的题目 -->
-      <view class="terminal-row term-row--active" wx:if="{{activeLineText}}">
-        <text class="term-line-content">{{activeLineText}}</text>
-        <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}"></view>
-      </view>
-      
-      <!-- 底部垫高，使用户做题时当前题能够动态并精准保持在屏幕中轴线位置 -->
-      <view class="terminal-spacer"></view>
+  <!-- 题目显示区：始终在第一行开始输出，无滚动条及跳动 -->
+  <view class="terminal-body">
+    <view class="terminal-row term-row--active" wx:if="{{activeLineText}}">
+      <text class="term-line-content">{{activeLineText}}</text>
+      <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}"></view>
     </view>
-  </scroll-view>
+  </view>
 
   <!-- 数据加载提示 -->
   <view class="data-loading-hint" wx:if="{{dataLoading && !activeLineText && printedLines.length === 0}}">

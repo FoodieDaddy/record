@@ -169,18 +169,11 @@ Component({
       var nextIndex = this.data.currentIndex + 1;
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
       
-      var lines = this.data.printedLines.concat([{
-        text: this.data.activeLineText,
-        type: 'question'
-      }]);
-
       this.setData({
-        printedLines: lines,
         activeLinePrefix: '',
         activeLineText: '',
         answers: answers,
-        progressPercent: percent,
-        scrollTop: 99999
+        progressPercent: percent
       });
 
       var self = this;
