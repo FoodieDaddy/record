@@ -434,7 +434,6 @@
         <view class="action-btn-hardware hw-btn-adjust hw-btn-left" bindtap="handleCalibrationLeft" title="不符合">
           <view class="crystal-decor crystal-decor-l"></view>
           <view class="crystal-decor crystal-decor-r"></view>
-          <view class="hw-btn-icon-arrow-left"></view>
           <text class="hw-btn-text">否</text>
         </view>
         
@@ -443,7 +442,6 @@
           <view class="crystal-decor crystal-decor-l"></view>
           <view class="crystal-decor crystal-decor-r"></view>
           <text class="hw-btn-text">是</text>
-          <view class="hw-btn-icon-arrow-right"></view>
         </view>
       </view>
     </view>
