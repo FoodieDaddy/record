@@ -1832,34 +1832,34 @@
 }
 
 .calibration-shell .hw-btn-adjust {
-  width: 220rpx;
-  height: 80rpx;
+  width: 240rpx;
+  height: 84rpx;
   position: relative;
-  background: linear-gradient(135deg, rgba(0, 175, 255, 0.08) 0%, rgba(0, 80, 155, 0.24) 100%);
-  border: 1rpx solid rgba(0, 175, 255, 0.35);
+  background: linear-gradient(135deg, rgba(0, 175, 255, 0.12) 0%, rgba(0, 100, 245, 0.20) 100%);
+  border: 1rpx solid rgba(0, 175, 255, 0.45);
   border-radius: 8rpx;
-  box-shadow: inset 0 0 16rpx rgba(0, 175, 255, 0.15), 0 4rpx 16rpx rgba(0, 0, 0, 0.35);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 0 20rpx rgba(0, 175, 255, 0.22), 0 4rpx 16rpx rgba(0, 0, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  gap: 16rpx;
 }
 
 /* 物理按钮内嵌发光字 */
 .calibration-shell .hw-btn-text {
-  font-size: 26rpx;
-  color: rgba(0, 175, 255, 0.85);
+  font-size: 28rpx;
+  color: #00afff;
   font-weight: 700;
-  letter-spacing: 2rpx;
+  letter-spacing: 4rpx;
   z-index: 2;
-  text-shadow: 0 0 8rpx rgba(0, 175, 255, 0.3);
-  transition: color 0.2s, text-shadow 0.2s;
+  text-shadow: 0 0 12rpx rgba(0, 175, 255, 0.6);
+  transition: all 0.2s;
 }
 
 .calibration-shell .hw-btn-adjust:active .hw-btn-text {
-  color: rgba(0, 175, 255, 1);
-  text-shadow: 0 0 12rpx rgba(0, 175, 255, 0.5);
+  color: #ffffff;
+  text-shadow: 0 0 16rpx rgba(0, 220, 255, 0.8), 0 0 4rpx rgba(0, 220, 255, 1);
 }
 
 /* 左切角与右切角形状 */
@@ -1872,10 +1872,10 @@
 }
 
 .calibration-shell .hw-btn-adjust:active {
-  transform: scale(0.94);
-  background: linear-gradient(135deg, rgba(0, 175, 255, 0.20) 0%, rgba(0, 100, 200, 0.40) 100%);
-  border-color: rgba(0, 175, 255, 0.75);
-  box-shadow: inset 0 0 24rpx rgba(0, 175, 255, 0.35), 0 0 24rpx rgba(0, 175, 255, 0.25);
+  transform: scale(0.95);
+  background: linear-gradient(135deg, rgba(0, 220, 255, 0.22) 0%, rgba(0, 140, 255, 0.40) 100%);
+  border-color: rgba(0, 220, 255, 0.85);
+  box-shadow: inset 0 0 28rpx rgba(0, 220, 255, 0.45), 0 0 24rpx rgba(0, 175, 255, 0.3);
 }
 
 /* 精密向左和向右的 CSS 纯细线三角箭头图标 */
@@ -1887,11 +1887,12 @@
   border-right: 14rpx solid rgba(0, 175, 255, 0.85);
   margin-right: 4rpx;
   z-index: 2;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .calibration-shell .hw-btn-left:active .hw-btn-icon-arrow-left {
-  border-right-color: rgba(0, 175, 255, 1);
+  border-right-color: #ffffff;
+  filter: drop-shadow(0 0 6rpx rgba(0, 220, 255, 0.8));
 }
 
 .calibration-shell .hw-btn-icon-arrow-right {
@@ -1902,38 +1903,40 @@
   border-left: 14rpx solid rgba(0, 175, 255, 0.85);
   margin-left: 4rpx;
   z-index: 2;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
 }
 
 .calibration-shell .hw-btn-right:active .hw-btn-icon-arrow-right {
-  border-left-color: rgba(0, 175, 255, 1);
+  border-left-color: #ffffff;
+  filter: drop-shadow(0 0 6rpx rgba(0, 220, 255, 0.8));
 }
 
 /* 装饰性极细刻度角线 */
 .calibration-shell .crystal-decor {
   position: absolute;
   top: 18rpx;
-  width: 3rpx;
-  height: 44rpx;
-  background: rgba(0, 175, 255, 0.45);
-  transition: all 0.2s;
+  width: 4rpx;
+  height: 48rpx;
+  background: rgba(0, 220, 255, 0.55);
+  transition: all 0.25s;
   z-index: 1;
 }
 
 .calibration-shell .crystal-decor-l {
   left: 18rpx;
-  box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.5);
+  box-shadow: 0 0 8rpx rgba(0, 220, 255, 0.6);
 }
 
 .calibration-shell .crystal-decor-r {
   right: 18rpx;
-  box-shadow: 0 0 6rpx rgba(0, 175, 255, 0.5);
+  box-shadow: 0 0 8rpx rgba(0, 220, 255, 0.6);
 }
 
 .calibration-shell .hw-btn-adjust:active .crystal-decor {
-  background: rgba(0, 175, 255, 0.85);
-  height: 48rpx;
+  background: rgba(0, 220, 255, 0.95);
+  height: 52rpx;
   top: 16rpx;
+  box-shadow: 0 0 12rpx rgba(0, 220, 255, 0.8);
 }
 
 /* 减弱动效兜底 */
