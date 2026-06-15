@@ -97,10 +97,10 @@
 
 /* 底部操作 */
 .swipe-actions {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -118rpx;
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(56rpx + env(safe-area-inset-bottom));
   z-index: 3010;
   display: flex;
   justify-content: center;
