@@ -14,7 +14,7 @@ var ZERO_DIMS = [
   { key: 'dominance', label: '场域控制', value: 0, desc: '' }
 ];
 
-// 人格标签 → 信号关键词
+// 协议标签 -> 信号关键词
 var PERSONA_SIGNAL_MAP = {
   STABLE_CONTROL: ['节奏控制', '低失误', '稳健决策', '长期主义'],
   AGGRESSIVE_PUSH: ['主动推进', '窗口捕捉', '高频决策', '数值聚焦'],
@@ -77,7 +77,7 @@ Page({
     bayStatusState: 'starting',
     bayStatusText: '全息舱启动中',
 
-    // 人格协议
+    // 协议校准
     mbti: {
       calibrated: false,
       mbtiType: '',
@@ -182,7 +182,7 @@ cockpitView: {
     cardTempPath: '',
     cardScanStep: 0,
     cardScanStepViews: [
-      { text: '读取人格协议', status: 'pending' },
+      { text: '读取协议参数', status: 'pending' },
       { text: '接入识别徽标', status: 'pending' },
       { text: '封装镜像档案', status: 'pending' }
     ],
@@ -649,7 +649,7 @@ cockpitView: {
     }
   },
 
-  // ==================== 同步人格 ====================
+  // ==================== 同步镜像 ====================
 
   async refreshProfile() {
     vibrateShort('light');
@@ -660,9 +660,13 @@ cockpitView: {
       var res = await api.refreshMirrorProfile();
       if (runId !== this._profileRunId || this._unloaded) return;
 
+      var statsResult = await Promise.resolve(api.getMirrorStats())
+        .then(function (stats) { return { status: 'fulfilled', value: stats }; })
+        .catch(function (err) { return { status: 'rejected', reason: err }; });
+
       var viewState = this._buildMirrorViewState(
         { status: 'fulfilled', value: res },
-        { status: 'rejected', reason: null }
+        statsResult
       );
       this.setData({ ...viewState, isSilentSyncing: false });
       this._showToast('协议参数已写入镜像', 'dot-sync');
@@ -881,7 +885,7 @@ cockpitView: {
 
   _buildScanStepViews(step) {
     var steps = [
-      { text: '读取人格协议', key: 'protocol' },
+      { text: '读取协议参数', key: 'protocol' },
       { text: '接入识别徽标', key: 'helmet' },
       { text: '封装镜像档案', key: 'package' }
     ];

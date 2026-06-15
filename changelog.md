@@ -4,6 +4,9 @@
 
 ### 修复
 
+- 全息舱恢复「协议行动」功能层：重新展示协议状态卡，接回「同步镜像」入口并调用 `/mirror/profile/refresh` 后同步刷新全息扫描数据；相关文案收敛为全局全息舱术语。
+- 收敛全息舱与识别舱的底部重复占位，移除未校准镜像页强制第二屏空距，减少页面可拖出的空白区域。
+
 - 后端集成测试与鉴权状态码一致性修复：
   - 修复 `IntegrationSmokeTest` 中未登录请求（`/user/info`）和 Swagger UI 入口（`/swagger-ui.html`）的断言失败。
   - 将 `GlobalExceptionHandler` 的异常响应调整为使用 `ResponseEntity` 承载，以返回符合 API 标准的 HTTP 状态码（如 401 Unauthorized, 403 Forbidden, 400 Bad Request 等），使得管理端后台 Axios 拦截器能正常处理 Token 过期与重定向。

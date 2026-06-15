@@ -6,7 +6,7 @@
   box-sizing: border-box;
   /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
   padding: 16rpx 28rpx;
-  padding-bottom: var(--sr-page-bottom-safe-xl, calc(420rpx + env(safe-area-inset-bottom)));
+  padding-bottom: var(--sr-page-bottom-safe-large, calc(360rpx + env(safe-area-inset-bottom)));
   background:
     radial-gradient(circle at 50% 18%, rgba(0,200,255,0.08), transparent 28%),
     radial-gradient(circle at 18% 0%, rgba(10,132,255,0.10), transparent 34%),
@@ -431,7 +431,35 @@
   justify-content: flex-end;
 }
 
+.protocol-actions--split {
+  justify-content: flex-start;
+}
+
+.term-btn-sm.is-disabled {
+  opacity: 0.46;
+  pointer-events: none;
+}
+
 /* ---- 协议状态卡 ---- */
+.protocol-card {
+  border-color: rgba(0, 200, 255, 0.18);
+  background:
+    linear-gradient(135deg, rgba(0, 200, 255, 0.045), transparent 42%),
+    rgba(255,255,255,0.032);
+}
+
+.protocol-state {
+  margin-left: auto;
+  color: rgba(126, 156, 180, 0.54);
+  font-size: 18rpx;
+  font-family: Menlo, monospace;
+  letter-spacing: 2rpx;
+}
+
+.protocol-state--online {
+  color: rgba(48, 209, 88, 0.78);
+}
+
 .protocol-grid {
   display: flex;
   flex-direction: column;
@@ -491,6 +519,29 @@
 
 .protocol-value.status-active {
   color: var(--color-green, #30D158);
+}
+
+.protocol-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.10);
+  border-radius: 14rpx;
+  background: rgba(0, 175, 255, 0.035);
+}
+
+.protocol-empty__title {
+  color: rgba(226, 242, 255, 0.88);
+  font-size: 24rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.protocol-empty__desc {
+  color: rgba(151, 184, 198, 0.68);
+  font-size: 21rpx;
+  line-height: 1.6;
 }
 
 /* ===== 协议分析卡片 ===== */
@@ -943,7 +994,7 @@
 }
 
 .mirror-track--second-screen {
-  margin-top: 180rpx;
+  margin-top: 16rpx;
 }
 
 .track-archive-card:active {
@@ -1084,7 +1135,7 @@
 
 /* ===== 底部占位 ===== */
 .mirror-bottom-spacer {
-  height: calc(420rpx + env(safe-area-inset-bottom));
+  height: 24rpx;
 }
 
 /* ===== Calibration Shell ===== */

@@ -104,6 +104,67 @@
         </view>
       </view>
 
+      <!-- ===== 二级：协议行动 ===== -->
+      <view class="mirror-protocol" style="opacity: {{sectionsOpacity}};">
+        <view class="sr-card protocol-card">
+          <view class="card-header">
+            <view class="card-title-row">
+              <text class="card-title">协议行动</text>
+              <text class="protocol-state {{mbti.calibrated ? 'protocol-state--online' : ''}}">{{mbti.calibrated ? '已接入' : '待接入'}}</text>
+            </view>
+            <view class="sr-card-line card-line"></view>
+          </view>
+
+          <block wx:if="{{mbti.calibrated}}">
+            <view class="protocol-grid">
+              <view class="protocol-row">
+                <text class="protocol-label">协议编号</text>
+                <view class="protocol-value protocol-code">
+                  <text class="pc-prefix">SR</text>
+                  <text class="pc-sep">-</text>
+                  <text class="pc-core">{{mbti.mbtiCode || '--'}}</text>
+                  <text class="pc-sep">/</text>
+                  <text class="pc-type">{{mbti.mbtiType || '--'}}</text>
+                </view>
+              </view>
+              <view class="protocol-row">
+                <text class="protocol-label">接入方式</text>
+                <text class="protocol-value">{{mbti.mbtiSource === 'test' ? '完整校准' : mbti.mbtiSource === 'direct' ? '快速接入' : '未知'}}</text>
+              </view>
+              <view class="protocol-row">
+                <text class="protocol-label">置信读数</text>
+                <text class="protocol-value status-active">{{mbti.confidence || personaConfidence || 0}}%</text>
+              </view>
+              <view class="protocol-row">
+                <text class="protocol-label">同步状态</text>
+                <text class="protocol-value">{{isSilentSyncing ? '同步中' : '已稳定'}}</text>
+              </view>
+            </view>
+
+            <view class="protocol-actions">
+              <view class="term-btn-sm {{isSilentSyncing ? 'is-disabled' : ''}}" bindtap="refreshProfile">
+                <text>{{isSilentSyncing ? '同步中' : '同步镜像'}}</text>
+              </view>
+            </view>
+          </block>
+
+          <block wx:else>
+            <view class="protocol-empty">
+              <text class="protocol-empty__title">协议尚未接入</text>
+              <text class="protocol-empty__desc">完成校准后，全息扫描、协议分析和镜像图片会自动解锁。</text>
+            </view>
+            <view class="protocol-actions protocol-actions--split">
+              <view class="term-btn-sm" bindtap="startFullCalibration">
+                <text>完整校准</text>
+              </view>
+              <view class="term-btn-sm ghost" bindtap="openMbtiPicker">
+                <text>快速接入</text>
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+
       <!-- ===== 二级：航迹档案 ===== -->
       <view class="mirror-track {{!mbti.calibrated ? 'mirror-track--second-screen' : ''}}" style="opacity: {{sectionsOpacity}};">
         <view class="sr-card track-archive-card" bindtap="goScoreRecords">
@@ -136,12 +197,12 @@
         </view>
       </view>
 
-      <!-- ===== 三级：人物行为画像 ===== -->
+      <!-- ===== 三级：镜像投影 ===== -->
       <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
         <view class="sr-card behavior-profile-card">
           <view class="card-header">
             <view class="card-title-row">
-              <text class="card-title">人物行为画像</text>
+              <text class="card-title">镜像投影</text>
               <text class="behavior-profile__sample">{{battlePersona.sampleSize}} 个样本</text>
             </view>
             <view class="sr-card-line card-line"></view>
@@ -229,7 +290,7 @@
               <block wx:if="{{personaMatch.available}}">
                 <view class="dev-grid">
                   <view class="dev-col">
-                    <text class="dev-label">校准人格</text>
+                    <text class="dev-label">校准协议</text>
                     <text class="dev-type dev-type-blue">{{mbti.mbtiType}}</text>
                   </view>
                   <view class="dev-connector">
@@ -237,7 +298,7 @@
                     <text class="dev-percent">{{personaMatch.deviationPercent}}%</text>
                   </view>
                   <view class="dev-col">
-                    <text class="dev-label">行为人格</text>
+                    <text class="dev-label">航迹协议</text>
                     <text class="dev-type dev-type-orange">{{personaMatch.inferredMbtiType}}</text>
                   </view>
                 </view>
@@ -251,7 +312,7 @@
                 <view class="dev-empty">
                   <view class="dev-empty-grid">
                     <view class="dev-col">
-                      <text class="dev-label">校准人格</text>
+                      <text class="dev-label">校准协议</text>
                       <text class="dev-type dev-type-blue">{{mbti.mbtiType || '---'}}</text>
                     </view>
                     <view class="dev-connector">
@@ -259,7 +320,7 @@
                       <text class="dev-percent dim">--</text>
                     </view>
                     <view class="dev-col">
-                      <text class="dev-label">行为人格</text>
+                      <text class="dev-label">航迹协议</text>
                       <text class="dev-type dev-type-dim">采集中</text>
                     </view>
                   </view>

@@ -48,7 +48,7 @@
   position: relative;
   padding: 24rpx;
   /* 自定义 tabbar 140rpx + Home Indicator + 终端控制按钮滚动余量 */
-  padding-bottom: var(--sr-page-bottom-safe-large, calc(360rpx + env(safe-area-inset-bottom)));
+  padding-bottom: var(--sr-page-bottom-safe, calc(240rpx + env(safe-area-inset-bottom)));
   background: var(--bg);
 }
 
@@ -735,7 +735,7 @@
 }
 
 .terminal-bottom-spacer {
-  height: calc(120rpx + env(safe-area-inset-bottom));
+  height: 24rpx;
 }
 
 .terminate-btn {
