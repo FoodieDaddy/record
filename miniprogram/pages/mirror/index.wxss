@@ -1148,7 +1148,9 @@
   justify-content: flex-start;
   align-items: center;
   box-sizing: border-box;
-  padding: calc(90rpx + env(safe-area-inset-top)) 0 calc(340rpx + env(safe-area-inset-bottom));
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: calc(340rpx + env(safe-area-inset-bottom));
   background: rgba(4, 8, 16, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

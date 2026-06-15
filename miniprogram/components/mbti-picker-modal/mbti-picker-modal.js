@@ -58,7 +58,8 @@ Component({
     reduceMotion: { type: Boolean, value: false },
     // 由父页面驱动：'idle' | 'syncing' | 'success' | 'error'
     syncState: { type: String, value: 'idle' },
-    errorText: { type: String, value: '' }
+    errorText: { type: String, value: '' },
+    customNavHeight: { type: Number, value: 88 }
   },
 
   data: {
