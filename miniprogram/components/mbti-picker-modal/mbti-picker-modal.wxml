@@ -89,19 +89,21 @@
       </view>
     </view>
 
-    <!-- Part 2: 屏幕下方的极简无字发光物理按键 (Cockpit Control Crystals) -->
+    <!-- Part 3: 屏幕下方的科幻级飞船物理确认按键 (Cockpit Ignition Crystal) -->
     <view class="ar-console-bottom-hardware">
-      <!-- 放弃按键：小小的红色切角硬件键，仅有叉号 -->
-      <view class="hardware-btn hw-btn-cancel" bindtap="onClose" title="放弃修改">
-        <view class="hw-btn-icon-close"></view>
-      </view>
-      
-      <!-- 确认写入键：小小的青蓝色长方按键，仅有勾号及状态指示 -->
-      <view class="hardware-btn hw-btn-confirm {{syncState === 'syncing' ? 'hw-syncing' : ''}} {{syncState === 'success' ? 'hw-success' : ''}} {{syncState === 'error' ? 'hw-error' : ''}}" bindtap="onConfirm" title="写入协议">
-        <view class="hw-btn-icon-check" wx:if="{{syncState !== 'syncing' && syncState !== 'success' && syncState !== 'error'}}"></view>
-        <view class="hw-loading-spinner" wx:if="{{syncState === 'syncing'}}"></view>
-        <view class="hw-success-check" wx:if="{{syncState === 'success'}}"></view>
-        <view class="hw-error-excl" wx:if="{{syncState === 'error'}}"></view>
+      <!-- 确认写入键：六角梯形切角的水晶按键，仅有精密刻度及状态指示，无字 -->
+      <view class="hardware-crystal-btn {{syncState === 'syncing' ? 'hw-syncing' : ''}} {{syncState === 'success' ? 'hw-success' : ''}} {{syncState === 'error' ? 'hw-error' : ''}}" bindtap="onConfirm" title="写入协议">
+        <!-- 装饰性偏振刻度角线 -->
+        <view class="crystal-decor crystal-decor-l"></view>
+        <view class="crystal-decor crystal-decor-r"></view>
+        
+        <!-- 按钮核心状态区 -->
+        <view class="crystal-trigger-area">
+          <view class="hw-btn-icon-check" wx:if="{{syncState !== 'syncing' && syncState !== 'success' && syncState !== 'error'}}"></view>
+          <view class="hw-loading-spinner" wx:if="{{syncState === 'syncing'}}"></view>
+          <view class="hw-success-check" wx:if="{{syncState === 'success'}}"></view>
+          <view class="hw-error-excl" wx:if="{{syncState === 'error'}}"></view>
+        </view>
       </view>
     </view>
 
