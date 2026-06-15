@@ -4,18 +4,26 @@
     <view class="progress-bar" style="width: {{progressPercent}}%;"></view>
   </view>
 
-  <!-- 双卡栈：纯净题目显示区 -->
-  <view class="swipe-card-area">
-    <view class="card-stack">
-      <!-- 当前题：直接渲染在屏幕内，没有二次卡片框包裹，确保背景透明 -->
-      <view wx:if="{{currentQuestion}}" wx:key="{{currentQuestion.id}}" class="signal-card signal-card--current {{answerMotion ? 'signal-card--motion-' + answerMotion : ''}}">
-        <text class="question-text">{{currentQuestion.text}}</text>
+  <!-- 终端流式日志输出区域 -->
+  <scroll-view class="terminal-scroll" scroll-y="{{true}}" scroll-top="{{scrollTop}}" scroll-with-animation="{{!reduceMotion}}">
+    <view class="terminal-body">
+      <!-- 历史输出行 -->
+      <view class="terminal-row {{line.type === 'system' ? 'term-row--system' : 'term-row--question'}}" wx:for="{{printedLines}}" wx:key="index">
+        <text class="term-line-content">{{line.text}}</text>
+        <text class="term-line-answer" wx:if="{{line.answerText}}"> [{{line.answerText}}]</text>
+      </view>
+      
+      <!-- 当前活动行 -->
+      <view class="terminal-row term-row--active" wx:if="{{activeLineText}}">
+        <text class="term-line-prefix">{{activeLinePrefix}}</text>
+        <text class="term-line-content">{{activeLineText}}</text>
+        <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}"></view>
       </view>
     </view>
-  </view>
+  </scroll-view>
 
   <!-- 数据加载提示 -->
-  <view class="data-loading-hint" wx:if="{{dataLoading && !currentQuestion}}">
+  <view class="data-loading-hint" wx:if="{{dataLoading && !activeLineText && printedLines.length === 0}}">
     <text class="loading-text">数据加载中…</text>
   </view>
 

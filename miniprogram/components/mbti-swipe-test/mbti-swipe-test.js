@@ -39,35 +39,20 @@ Component({
 
   data: {
     currentIndex: 0,
-    progress: '01 / 20',
     progressPercent: 5,
-    currentQuestion: null,
-    nextQuestion: null,
     totalQuestions: 20,
     answers: [],
-    cardAnimating: false,
-    answerMotion: '',
-    promotingNext: false,
-    signalIndex: '01',
-    dimensionLabel: '',
-    dataLoading: false
+    cardAnimating: true, // 初始打字机播放时禁止点击
+    dataLoading: false,
+    printedLines: [],
+    activeLinePrefix: '',
+    activeLineText: '',
+    scrollTop: 0
   },
 
   lifetimes: {
     attached() {
-      this.setData({
-        currentQuestion: QUESTIONS[0],
-        nextQuestion: QUESTIONS.length > 1 ? QUESTIONS[1] : null,
-        dimensionLabel: DIM_LABELS[QUESTIONS[0].dimension] || ''
-      });
-      this._animTimer = null;
-      // 5s 加载提示兜底
-      var self = this;
-      this._loadingTimer = setTimeout(function () {
-        if (!self.data.currentQuestion) {
-          self.setData({ dataLoading: true });
-        }
-      }, 5000);
+      this.initCalibrationFlow();
     },
     detached() {
       this.clearLocalTimers();
@@ -82,6 +67,7 @@ Component({
 
   methods: {
     clearLocalTimers() {
+      this.clearTypewriter();
       if (this._loadingTimer) {
         clearTimeout(this._loadingTimer);
         this._loadingTimer = null;
@@ -92,16 +78,91 @@ Component({
       }
     },
 
+    clearTypewriter() {
+      if (this._typewriterTimer) {
+        clearInterval(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
+    },
+
+    initCalibrationFlow() {
+      this.clearLocalTimers();
+      this.setData({
+        currentIndex: 0,
+        progressPercent: 5,
+        printedLines: [],
+        activeLinePrefix: '',
+        activeLineText: '',
+        answers: [],
+        cardAnimating: true,
+        scrollTop: 0
+      });
+      
+      var self = this;
+      this.typewrite('系统 > ', '协议初始化成功。准备接入评测信号量...', function() {
+        var lines = self.data.printedLines.concat([{
+          text: '系统 > 协议初始化成功。准备接入评测信号量...',
+          type: 'system'
+        }]);
+        self.setData({ printedLines: lines, scrollTop: 99999 });
+        
+        self.printQuestion(0);
+      });
+    },
+
+    printQuestion(index) {
+      if (index >= QUESTIONS.length) return;
+      var q = QUESTIONS[index];
+      var prefix = '[' + String(index + 1).padStart(2, '0') + '/20] ';
+      var self = this;
+      this.typewrite(prefix, q.text, function() {
+        self.setData({
+          cardAnimating: false
+        });
+      });
+    },
+
+    typewrite(prefix, fullText, callback) {
+      this.clearTypewriter();
+      
+      if (this.data.reduceMotion) {
+        this.setData({
+          activeLinePrefix: prefix,
+          activeLineText: fullText,
+          scrollTop: 99999
+        });
+        if (callback) callback();
+        return;
+      }
+
+      var self = this;
+      var currentLen = 0;
+      this.setData({
+        activeLinePrefix: prefix,
+        activeLineText: ''
+      });
+      
+      this._typewriterTimer = setInterval(function() {
+        currentLen++;
+        var partial = fullText.slice(0, currentLen);
+        self.setData({
+          activeLineText: partial,
+          scrollTop: 99999
+        });
+        if (currentLen >= fullText.length) {
+          clearInterval(self._typewriterTimer);
+          self._typewriterTimer = null;
+          if (callback) callback();
+        }
+      }, 30);
+    },
+
     onSwipeRight() {
       this.submitAnswer(1, 'right');
     },
 
     onSwipeLeft() {
       this.submitAnswer(-1, 'left');
-    },
-
-    onNotSure() {
-      this.submitAnswer(0, 'skip');
     },
 
     submitAnswer(score, direction) {
@@ -117,63 +178,37 @@ Component({
       var answers = this.data.answers.concat([answer]);
       var nextIndex = this.data.currentIndex + 1;
       var percent = Math.round((nextIndex / QUESTIONS.length) * 100);
+      
+      var userChoiceText = score === 1 ? '是' : '否';
+      var currentLineFull = this.data.activeLinePrefix + this.data.activeLineText;
+      var lines = this.data.printedLines.concat([{
+        text: currentLineFull,
+        type: 'question',
+        answerText: userChoiceText
+      }]);
 
-      if (this.data.reduceMotion) {
-        // reduce-motion：直接切换，无动画
-        if (nextIndex >= QUESTIONS.length) {
-          this.complete(answers);
-        } else {
-          var nextNext = nextIndex + 1 < QUESTIONS.length ? QUESTIONS[nextIndex + 1] : null;
-          this.setData({
-            currentIndex: nextIndex,
-            progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
-            progressPercent: percent,
-            currentQuestion: QUESTIONS[nextIndex],
-            nextQuestion: nextNext,
-            answers: answers,
-            signalIndex: String(nextIndex + 1).padStart(2, '0'),
-            dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || '',
-            answerMotion: '',
-            promotingNext: false
-          });
-        }
-        return;
-      }
+      this.setData({
+        printedLines: lines,
+        activeLinePrefix: '',
+        activeLineText: '',
+        answers: answers,
+        progressPercent: percent,
+        scrollTop: 99999
+      });
 
-      // 动画模式：当前卡滑出 → 下一卡提升
       var self = this;
-      this.setData({ cardAnimating: true, answerMotion: direction });
-
-      // 260ms 后当前卡滑出完成，提升下一卡
-      this._animTimer = setTimeout(function () {
-        if (nextIndex >= QUESTIONS.length) {
-          self.setData({ cardAnimating: false, answerMotion: '' });
+      if (nextIndex >= QUESTIONS.length) {
+        this.setData({ cardAnimating: true });
+        this.typewrite('系统 > ', '20组信号获取完成，正在封装镜像投影档案...', function() {
           self.complete(answers);
-          return;
-        }
-
-        var nextNext = nextIndex + 1 < QUESTIONS.length ? QUESTIONS[nextIndex + 1] : null;
-        self.setData({
-          promotingNext: true,
-          currentIndex: nextIndex,
-          progress: String(nextIndex + 1).padStart(2, '0') + ' / 20',
-          progressPercent: percent,
-          answers: answers,
-          signalIndex: String(nextIndex + 1).padStart(2, '0'),
-          dimensionLabel: DIM_LABELS[QUESTIONS[nextIndex].dimension] || ''
         });
-
-        // 160ms 后提升动画完成，重置状态，加载新 next
-        self._animTimer = setTimeout(function () {
-          self.setData({
-            currentQuestion: QUESTIONS[nextIndex],
-            nextQuestion: nextNext,
-            answerMotion: '',
-            promotingNext: false,
-            cardAnimating: false
-          });
-        }, 160);
-      }, 260);
+      } else {
+        this.setData({
+          currentIndex: nextIndex,
+          cardAnimating: true
+        });
+        this.printQuestion(nextIndex);
+      }
     },
 
     complete(answers) {

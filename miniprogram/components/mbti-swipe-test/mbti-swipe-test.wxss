@@ -1,24 +1,25 @@
 :host {
   width: 100%;
+  height: 100%;
   display: block;
   overflow: visible !important;
 }
 
 .swipe-overlay {
-  position: relative;
+  height: 100%;
   width: 100%;
   background: transparent;
   display: flex;
   flex-direction: column;
-  padding: 24rpx 0 0 0;
   box-sizing: border-box;
-  overflow: visible;
+  padding: 30rpx 36rpx;
+  overflow: hidden;
 }
 
 /* 进度光线 */
 .progress-track {
   position: absolute;
-  top: -8rpx;
+  top: -2rpx;
   left: 0;
   right: 0;
   height: 4rpx;
@@ -34,65 +35,79 @@
   box-shadow: 0 0 8rpx rgba(0, 175, 255, 0.40);
 }
 
-.swipe-card-area {
+.terminal-scroll {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  width: 100%;
+  height: 100%;
   min-height: 0;
+  margin-top: 10rpx;
 }
 
-/* ---- 双卡栈 ---- */
-.card-stack {
-  position: relative;
-  width: 85%;
-  min-height: 340rpx;
-}
-
-.signal-card {
-  width: 100%;
-  background: transparent;
-  border: none;
-  padding: 40rpx 24rpx;
-  box-sizing: border-box;
+.terminal-body {
+  padding: 12rpx 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  min-height: 280rpx;
+  flex-direction: column;
+  gap: 28rpx;
 }
 
-/* 当前题：在前方 */
-.signal-card--current {
-  position: relative;
-  z-index: 2;
-  transition: transform 0.26s ease, opacity 0.26s ease;
+.terminal-row {
+  font-size: 26rpx;
+  line-height: 1.7;
+  word-break: break-all;
+  letter-spacing: 1rpx;
 }
 
-/* 当前卡滑出动画 */
-.signal-card--current.signal-card--motion-right {
-  opacity: 0;
-  transform: translateX(120rpx) rotate(2deg) scale(0.98);
+.term-row--system {
+  color: rgba(0, 175, 255, 0.55);
 }
 
-.signal-card--current.signal-card--motion-left {
-  opacity: 0;
-  transform: translateX(-120rpx) rotate(-2deg) scale(0.98);
+.term-row--question {
+  color: var(--text-secondary, rgba(255, 255, 255, 0.68));
 }
 
-.signal-card--current.signal-card--motion-skip {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-.question-text {
-  font-size: 34rpx;
+.term-row--active {
   color: var(--text-primary, #ffffff);
-  line-height: 1.8;
-  text-align: center;
-  text-shadow: 0 0 12rpx rgba(255, 255, 255, 0.15);
-  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.term-line-prefix {
+  color: rgba(0, 175, 255, 0.85);
+  font-weight: 700;
+  margin-right: 8rpx;
+}
+
+.term-line-content {
+  text-shadow: 0 0 8rpx rgba(255, 255, 255, 0.1);
+}
+
+.term-line-answer {
+  color: #00ff66;
+  font-weight: 700;
+  margin-left: 12rpx;
+  text-shadow: 0 0 10rpx rgba(0, 255, 102, 0.35);
+}
+
+/* 终端闪烁光标 */
+.term-cursor {
+  display: inline-block;
+  width: 12rpx;
+  height: 24rpx;
+  background: rgba(0, 175, 255, 0.85);
+  margin-left: 8rpx;
+  animation: cursorBlink 1s infinite steps(2);
+  vertical-align: middle;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.reduce-motion .term-cursor {
+  animation: none;
+  opacity: 0.8;
 }
 
 /* 数据加载提示 */

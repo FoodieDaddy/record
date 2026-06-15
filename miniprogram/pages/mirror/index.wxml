@@ -374,7 +374,7 @@
 
   <!-- ==================== CALIBRATION 视图 ==================== -->
   <block wx:if="{{calibrationVisible}}">
-    <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}" style="padding-top: {{customNavHeight + 16}}px;">
+    <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
       <view class="ar-cockpit-console console-show">
         
         <!-- Part 1: 悬空屏幕 (Floating HUD Screen) -->
