@@ -37,7 +37,8 @@
 - 分享、保存、发送给朋友使用蓝色/青色，不使用红色。
 - Tab 页面内容区必须考虑自定义 tabbar 与 `env(safe-area-inset-bottom)`。
 - 底部抽屉、确认弹窗、选择器必须支持 reduce-motion 的静默展开。
-- 在自定义沉浸式导航栏（"navigationStyle": "custom"）页面中，弹窗/浮层的内容顶部千万不能高过/盖过系统的原有标题栏与胶囊按钮。必须利用 JS 动态算得并绑定 `customNavHeight` 传给组件，以此来动态控制弹窗的最外层容器的 `padding-top: {{customNavHeight + 16}}px;`，绝不直接使用 `env(safe-area-inset-top)` 作为唯一计算变量（防止在部分客户端或老版本基础库失效归零，导致侵染重叠状态栏和胶囊按钮）。
+- 在自定义沉浸式导航栏（"navigationStyle": "custom"）页面中，弹窗/浮层的内容顶部千万不能高过/盖过系统的原有标题栏与胶囊按钮。必须利用 JS 动态算得并绑定 `customNavHeight` 传给组件，以此来动态控制弹窗的最外层容器的 `padding-top: {{customNavHeight + 16}}px;`，绝不直接使用 `env(safe-area-inset-top)` 作为唯一计算变量，以防其失效归零。
+- 对于重新校准测验终端，显示题目的屏幕卡片在页面垂直方向上必须居中对齐（使用 `justify-content: center` 且不使用内联 `padding-top` 避让）。底部的倾向水晶按键必须明确显示中文字样：“是”和“否”。题目生成摒弃以前的卡片分页形式，必须重构为终端控制台打字机流式日志输出模式（换行一个字一个字生成），并使用 `scroll-view` 自动滚动置底，渲染出历史做题的命令行日志。
 
 ## 性能与工具封装
 
