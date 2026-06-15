@@ -706,6 +706,20 @@ cockpitView: {
     }
   },
 
+  handleCalibrationLeft() {
+    const swipeTest = this.selectComponent('#mbtiSwipeTest');
+    if (swipeTest) {
+      swipeTest.onSwipeLeft();
+    }
+  },
+
+  handleCalibrationRight() {
+    const swipeTest = this.selectComponent('#mbtiSwipeTest');
+    if (swipeTest) {
+      swipeTest.onSwipeRight();
+    }
+  },
+
   closeMbtiTest() {
     this.setData({ showExitConfirm: true });
   },

@@ -427,6 +427,23 @@
         </view> <!-- End of Floating Screen -->
         
       </view>
+
+      <!-- 答题按钮，平级放在 calibration-shell 下，完美避免 transform 包含块劫持 -->
+      <view class="swipe-actions" wx:if="{{!calibrationSubmitting}}">
+        <!-- 不符合 -->
+        <view class="action-btn-hardware hw-btn-adjust hw-btn-left" bindtap="handleCalibrationLeft" title="不符合">
+          <view class="crystal-decor crystal-decor-l"></view>
+          <view class="crystal-decor crystal-decor-r"></view>
+          <view class="hw-btn-icon-arrow-left"></view>
+        </view>
+        
+        <!-- 符合 -->
+        <view class="action-btn-hardware hw-btn-adjust hw-btn-right" bindtap="handleCalibrationRight" title="符合">
+          <view class="crystal-decor crystal-decor-l"></view>
+          <view class="crystal-decor crystal-decor-r"></view>
+          <view class="hw-btn-icon-arrow-right"></view>
+        </view>
+      </view>
     </view>
   </block>
 

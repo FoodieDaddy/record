@@ -19,21 +19,4 @@
     <text class="loading-text">数据加载中…</text>
   </view>
 
-  <!-- 底部操作：飞船操控台物理按键排，无字纯符号，左向与右向微调水晶键 -->
-  <view class="swipe-actions">
-    <!-- 不符合（左极偏振）：左切角水晶按键，仅有指向左的刻度箭头 -->
-    <view class="action-btn-hardware hw-btn-adjust hw-btn-left" bindtap="onSwipeLeft" title="不符合">
-      <view class="crystal-decor crystal-decor-l"></view>
-      <view class="crystal-decor crystal-decor-r"></view>
-      <view class="hw-btn-icon-arrow-left"></view>
-    </view>
-    
-    <!-- 符合（右极偏振）：右切角水晶按键，仅有指向右的刻度箭头 -->
-    <view class="action-btn-hardware hw-btn-adjust hw-btn-right" bindtap="onSwipeRight" title="符合">
-      <view class="crystal-decor crystal-decor-l"></view>
-      <view class="crystal-decor crystal-decor-r"></view>
-      <view class="hw-btn-icon-arrow-right"></view>
-    </view>
-  </view>
-
 </view>
