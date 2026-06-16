@@ -269,6 +269,10 @@ Page({
   /* ==================== 生命周期 ==================== */
 
   onLoad() {
+    this._flightTimers = []
+    this._calcTimers = []
+    this._projectionTimers = []
+    this._longWaitTimers = []
     this.initCustomNav()
     this._hideSystemLoadingSafe()
     const now = new Date()
@@ -854,19 +858,25 @@ Page({
   },
 
   _clearFlightTimers() {
-    this._flightTimers.forEach(t => clearTimeout(t))
+    if (this._flightTimers && this._flightTimers.forEach) {
+      this._flightTimers.forEach(t => clearTimeout(t))
+    }
     this._flightTimers = []
   },
 
   _clearCalcTimers() {
-    this._calcTimers.forEach(t => clearTimeout(t))
+    if (this._calcTimers && this._calcTimers.forEach) {
+      this._calcTimers.forEach(t => clearTimeout(t))
+    }
     this._calcTimers = []
     if (this._apiTimeoutTimer) { clearTimeout(this._apiTimeoutTimer); this._apiTimeoutTimer = null }
     this._clearLongWaitTimers()
   },
 
   _clearProjectionTimers() {
-    this._projectionTimers.forEach(t => clearTimeout(t))
+    if (this._projectionTimers && this._projectionTimers.forEach) {
+      this._projectionTimers.forEach(t => clearTimeout(t))
+    }
     this._projectionTimers = []
   },
 
@@ -972,7 +982,9 @@ Page({
   },
 
   _clearLongWaitTimers() {
-    this._longWaitTimers.forEach(t => clearTimeout(t))
+    if (this._longWaitTimers && this._longWaitTimers.forEach) {
+      this._longWaitTimers.forEach(t => clearTimeout(t))
+    }
     this._longWaitTimers = []
   },
 
