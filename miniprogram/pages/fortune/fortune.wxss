@@ -632,11 +632,10 @@
   z-index: 2;
   opacity: 0;
   animation: fadeIn 0.6s ease 0.5s forwards;
-  will-change: transform, opacity, filter;
+  will-change: opacity, transform;
   transition:
-    opacity 420ms ease,
-    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 420ms ease;
+    opacity 240ms ease,
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* 首次入场完成后：移除动画，保持可见 */
@@ -694,20 +693,10 @@
 }
 
 /* 淡出态：进一步降低透明度，缩小 */
-.ignition-console--fading {
-  opacity: 0;
-  transform: translateY(28rpx) scale(0.94);
-  filter: blur(8rpx);
-  pointer-events: none;
-  position: absolute;
-}
-
-/* 隐藏态：强制取消入场动画，完全隐藏 */
+.ignition-console--fading,
 .ignition-console--hidden {
-  animation: none !important;
-  opacity: 0 !important;
-  transform: translateY(28rpx) scale(0.94) !important;
-  filter: blur(8rpx) !important;
+  opacity: 0;
+  transform: translateY(16rpx) scale(0.985);
   pointer-events: none;
   position: absolute;
 }
@@ -1275,25 +1264,33 @@
   }
 }
 
+/* loading: 核心在计算中保持清晰 */
+.strategy-page--loading .nav-core-stage {
+  opacity: 0.9;
+  transform: translateY(-12rpx) scale(0.96);
+}
+
 /* projecting: 核心轻微缩小变暗（限制幅度） */
 .flight-deck--projecting .nav-core-stage {
   opacity: 0.35;
   transform: translateY(-52rpx) scale(0.82);
 }
 
-/* done: 核心淡出退到背景，保留最小占位 */
+/* done / result: 核心淡出退到背景，缩窄高度以防遮挡标题 */
+.strategy-page--result .nav-core-stage,
 .flight-deck--done .nav-core-stage {
-  opacity: 0.16 !important;
+  opacity: 0.04 !important;
   animation: none !important;
-  transform: translateY(-28rpx) scale(0.58) !important;
+  transform: translateY(-72rpx) scale(0.56) !important;
   pointer-events: none;
-  min-height: 72rpx;
-  max-height: 72rpx;
-  margin-bottom: 4rpx;
+  min-height: 0 !important;
+  max-height: 40rpx !important;
+  margin-bottom: -20rpx !important;
   transition:
     opacity 720ms ease,
     transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
     margin-bottom 720ms ease;
+  z-index: 0;
 }
 
 /* entered 态：跳过入场动画，立即可见（重新点火用） */
@@ -1305,13 +1302,13 @@
 
 /* compact 态：done 阶段核心进一步收缩（优先级高于 entered） */
 .nav-core-stage--compact {
-  opacity: 0.12 !important;
+  opacity: 0.04 !important;
   animation: none !important;
-  transform: translateY(-28rpx) scale(0.58) !important;
+  transform: translateY(-72rpx) scale(0.56) !important;
   pointer-events: none;
-  min-height: 72rpx;
-  max-height: 72rpx;
-  margin-bottom: 4rpx;
+  min-height: 0 !important;
+  max-height: 40rpx !important;
+  margin-bottom: -20rpx !important;
   transition:
     opacity 720ms ease,
     transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -1335,15 +1332,14 @@
 /* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
 .sync-bar {
   position: absolute;
-  top: calc(50% + 118rpx);
+  top: calc(50% + 64rpx);
   left: 50%;
-  width: 400rpx;
-  margin-top: -4rpx;
+  width: 430rpx;
   opacity: 0;
-  transform: translate(-50%, -8rpx);
+  transform: translate(-50%, 6rpx) scale(0.98);
   transition:
-    opacity 0.4s ease,
-    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -1353,35 +1349,16 @@
 
 .sync-bar--visible {
   opacity: 1;
-  transform: translate(-50%, 0);
-  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
 }
 
-.strategy-page--phase-bridge .sync-bar,
-.strategy-page--phase-reveal .sync-bar {
-  opacity: 0.28;
-  transform: translate(-50%, -10rpx) scale(0.82);
-  transition:
-    opacity 420ms ease,
-    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.strategy-page--phase-stable .sync-bar {
-  opacity: 0;
-  transform: translate(-50%, -18rpx) scale(0.72);
-  pointer-events: none;
-  transition:
-    opacity 420ms ease,
-    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* compact 态：日志收缩为小型完成点 */
 .sync-bar--compact {
+  opacity: 0.28;
+  transform: translate(-50%, -4rpx) scale(0.94);
   width: 160rpx;
   padding: 8rpx 12rpx;
   justify-content: center;
   gap: 12rpx;
-  opacity: 0.52;
   background: transparent;
   border-color: transparent;
 }
@@ -1453,6 +1430,33 @@
   50% {
     opacity: 0.9;
   }
+}
+
+.generation-status {
+  position: absolute;
+  top: calc(50% + 250rpx);
+  left: 50%;
+  transform: translate(-50%, 8rpx);
+  opacity: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 10rpx;
+  background: rgba(4, 18, 30, 0.86);
+  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  color: rgba(210, 238, 255, 0.82);
+  font-size: 22rpx;
+  letter-spacing: 1rpx;
+  transition:
+    opacity 180ms ease,
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.generation-status--visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .sync-chip-text {
@@ -1530,12 +1534,10 @@
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   opacity: 0;
-  transform: translateY(12rpx) scale(0.985);
-  filter: blur(10rpx);
+  transform: translateY(8rpx);
   transition:
-    opacity 620ms ease,
-    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
-    filter 620ms ease;
+    opacity 300ms ease,
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
   flex-shrink: 0;
   position: relative;
@@ -1553,41 +1555,41 @@
     60rpx 60rpx,
     60rpx 60rpx;
   animation: bgDataStream 40s linear infinite;
+  z-index: 5;
+}
+
+.strategy-page--result .directive-projection {
+  margin-top: -40rpx;
 }
 
 .dp-visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
+  transform: translateY(0);
   pointer-events: auto;
 }
 
 .projection-card {
   opacity: 0;
-  transform: translateY(8rpx);
+  transform: translateY(6rpx);
 }
 
 .dp-visible .projection-card {
-  animation: projectionCardIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: projectionCardIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.dp-visible .projection-card:nth-child(1) { animation-delay: 80ms; }
-.dp-visible .projection-card:nth-child(2) { animation-delay: 120ms; }
-.dp-visible .projection-card:nth-child(3) { animation-delay: 160ms; }
-.dp-visible .projection-card:nth-child(4) { animation-delay: 200ms; }
-.dp-visible .projection-card:nth-child(5) { animation-delay: 240ms; }
-.dp-visible .projection-card:nth-child(n+6) { animation-delay: 280ms; }
+.dp-visible .projection-card:nth-child(1) { animation-delay: 20ms; }
+.dp-visible .projection-card:nth-child(2) { animation-delay: 45ms; }
+.dp-visible .projection-card:nth-child(3) { animation-delay: 70ms; }
+.dp-visible .projection-card:nth-child(n+4) { animation-delay: 90ms; }
 
 @keyframes projectionCardIn {
   from {
     opacity: 0;
-    transform: translateY(8rpx);
-    filter: blur(6rpx);
+    transform: translateY(6rpx);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
@@ -1656,28 +1658,6 @@
 .tele-point.p4 {
   bottom: 180rpx;
   right: 20rpx;
-}
-
-@keyframes navElementIn {
-  0% {
-    opacity: 0;
-    transform: scaleY(0.1) translateY(80rpx);
-    filter: brightness(4) blur(12px);
-  }
-  70% {
-    opacity: 0.9;
-    transform: scaleY(1.05) translateY(-5rpx);
-    filter: brightness(1.8);
-  }
-  100% {
-    opacity: 1;
-    transform: scaleY(1) translateY(0);
-    filter: brightness(1) blur(0);
-  }
-}
-
-.dp-visible .projection-card {
-  animation: navElementIn 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
 }
 
 .nav-hud-deco {
