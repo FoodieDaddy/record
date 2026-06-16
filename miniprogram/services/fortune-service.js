@@ -28,7 +28,7 @@ function _shouldUseCloudProxy() {
 
 /** 后端路径：Spring Boot */
 function _getFortuneViaBackend(params) {
-  return get('/fortune/today', params, { timeout: 30000 });
+  return get('/fortune/today', params, { timeout: 30000, silent: true });
 }
 
 /**

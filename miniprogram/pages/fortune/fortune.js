@@ -270,6 +270,7 @@ Page({
 
   onLoad() {
     this.initCustomNav()
+    this._hideSystemLoadingSafe()
     const now = new Date()
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
@@ -283,10 +284,12 @@ Page({
     this._calcPageHeight()
     this._initShareCapability()
     this._checkCache()
+    this._updateCockpitStatusByPhase()
     this._setupEntranceAnimation()
   },
 
   onShow() {
+    this._hideSystemLoadingSafe()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
@@ -309,6 +312,7 @@ Page({
     }
     // 每次展示重新计算高度，防止横竖屏切换等场景
     this._calcPageHeight()
+    this._updateCockpitStatusByPhase()
   },
 
   initCustomNav() {
@@ -333,30 +337,14 @@ Page({
     const roomId = wx.getStorageSync('currentRoomId');
     if (!roomId) {
       this.setData({
-        cockpitState: 'idle',
-        cockpitView: {
-          statusDot: 'idle',
-          statusLabel: '导航舱待机中',
-          roomNo: '--',
-          memberCountText: '0/16'
-        }
+        cockpitState: 'idle'
       });
-      return;
+    } else {
+      this.setData({
+        cockpitState: 'active'
+      });
     }
-
-    // 从本地获取编队基本信息，如果没有则降级
-    const currentRoomNo = wx.getStorageSync('currentRoomNo') || '--';
-    const memberCount = wx.getStorageSync('currentMemberCount') || 0;
-    
-    this.setData({
-      cockpitState: 'active',
-      cockpitView: {
-        statusDot: 'online',
-        statusLabel: '导航舱已接入',
-        roomNo: currentRoomNo,
-        memberCountText: `${memberCount}/16`
-      }
-    });
+    this._updateCockpitStatusByPhase();
   },
 
   _calcPageHeight() {
@@ -376,6 +364,7 @@ Page({
   },
 
   onHide() {
+    this._hideSystemLoadingSafe()
     this.setData({ routeAnimating: 'prepare' });
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
@@ -387,15 +376,18 @@ Page({
         this.getTabBar().setData({ hidden: false, selected: 1 });
       }
     }
+    this._updateCockpitStatusByPhase()
   },
 
   onUnload() {
+    this._hideSystemLoadingSafe()
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }
+    this._updateCockpitStatusByPhase()
   },
 
   /* ==================== 分享能力检测 ==================== */
@@ -447,6 +439,48 @@ Page({
     this.setData({ pageMode: 'launch', flightStage: 'idle' })
   },
 
+  _hideSystemLoadingSafe() {
+    try {
+      wx.hideLoading()
+    } catch (e) {}
+  },
+
+  _updateCockpitStatusByPhase() {
+    const { pageMode, uiPhase, flightStage } = this.data
+    const roomNo = wx.getStorageSync('currentRoomNo') || '--'
+    const memberCount = wx.getStorageSync('currentMemberCount') || 0
+    const memberCountText = `${memberCount}/16`
+
+    let statusDot = 'idle'
+    let statusLabel = '导航舱待机中'
+
+    if (pageMode === 'generating' || uiPhase === 'loading' || flightStage === 'syncing') {
+      statusDot = 'starting'
+      statusLabel = '导航计算中'
+    } else if (pageMode === 'result' || uiPhase === 'result' || flightStage === 'done') {
+      statusDot = 'online'
+      statusLabel = '指令已生成'
+    } else {
+      const roomId = wx.getStorageSync('currentRoomId')
+      if (roomId) {
+        statusDot = 'online'
+        statusLabel = '导航舱已接入'
+      } else {
+        statusDot = 'idle'
+        statusLabel = '导航舱待机中'
+      }
+    }
+
+    this.setData({
+      cockpitView: {
+        statusDot,
+        statusLabel,
+        roomNo,
+        memberCountText
+      }
+    })
+  },
+
   /* ==================== 点火航行核心 ==================== */
 
   onTapLaunchCore() {
@@ -462,6 +496,7 @@ Page({
         pageMode: 'generating',
         uiPhase: 'loading'
       })
+      this._updateCockpitStatusByPhase()
       this._fireApiRequest()
       this._runLogAnimation()
       return
@@ -487,6 +522,7 @@ Page({
       generationStatusLevel: 'normal',
       waitStep: 1
     })
+    this._updateCockpitStatusByPhase()
 
     const t1 = setTimeout(() => {
       if (runId !== this._runId) return
@@ -497,6 +533,7 @@ Page({
         showSyncLogs: true,
         logs: [{ text: '航迹协议已同步', visible: true, typing: false }]
       })
+      this._updateCockpitStatusByPhase()
       this._runLogAnimation({ skipFirst: true })
     }, 360)
 
@@ -550,6 +587,8 @@ Page({
       this._calcApiDone = true
       this._calcResult = { error: err.message || '导航链路中断，请重试' }
       this._tryFinishCalc(runId)
+    }).finally(() => {
+      this._hideSystemLoadingSafe()
     })
   },
 
@@ -692,6 +731,7 @@ Page({
 
   /** 错误态回退：回到完整待机态 */
   _failCalc(message) {
+    this._hideSystemLoadingSafe()
     this._requesting = false
     this._calcSettled = true
     this._clearCalcTimers()
@@ -710,12 +750,14 @@ Page({
       firstEnter: false,
       _ignitionEntered: true,
     })
+    this._updateCockpitStatusByPhase()
     wx.showToast({ title: sanitizeStrategyText(message) || '导航计算响应超时，请稍后再试', icon: 'none' })
   },
 
   _enterResultReveal(runId, viewState) {
     if (runId !== this._runId) return
 
+    this._hideSystemLoadingSafe()
     this._requesting = false
     this._clearCalcTimers()
     this._clearLongWaitTimers()
@@ -732,9 +774,13 @@ Page({
         compactSyncLogs: false,
         logs: [],
         generationStatusText: '',
+        generationStatusLevel: 'normal',
         waitStep: 0,
+        requesting: false,
+        loading: false,
         ...viewState
       })
+      this._updateCockpitStatusByPhase()
       return
     }
 
@@ -746,9 +792,13 @@ Page({
       coreCompact: true,
       compactSyncLogs: true,
       generationStatusText: '',
+      generationStatusLevel: 'normal',
       waitStep: 0,
+      requesting: false,
+      loading: false,
       ...viewState
     })
+    this._updateCockpitStatusByPhase()
 
     const showTimer = setTimeout(() => {
       if (runId !== this._runId) return
@@ -765,8 +815,12 @@ Page({
         projectingResult: false,
         showSyncLogs: false,
         compactSyncLogs: false,
-        logs: []
+        logs: [],
+        requesting: false,
+        loading: false,
+        generationStatusLevel: 'normal',
       })
+      this._updateCockpitStatusByPhase()
     }, 420)
 
     this._projectionTimers.push(showTimer, doneTimer)
@@ -776,6 +830,7 @@ Page({
 
   /** 中断当前点火流程 */
   _abortCurrentFlight(options = {}) {
+    this._hideSystemLoadingSafe()
     this._clearFlightTimers()
     this._clearCalcTimers()
     this._clearProjectionTimers()
@@ -801,6 +856,7 @@ Page({
         posterPath: '',
         posterError: '',
       })
+      this._updateCockpitStatusByPhase()
       // 只使用自定义 tabbar 的方法
       if (typeof this.getTabBar === 'function' && this.getTabBar()) {
         this.getTabBar().setData({ hidden: false, selected: 1 });
@@ -939,15 +995,24 @@ Page({
 
   onTapRegenerate() {
     vibrateShort('light')
+    this._hideSystemLoadingSafe()
     this.setData({ showRegenerateModal: true })
   },
 
   onCancelRegenerate() {
+    this._hideSystemLoadingSafe()
     this.setData({ showRegenerateModal: false })
   },
 
   onConfirmRegenerate() {
     vibrateShort('light')
+    this._hideSystemLoadingSafe()
+    this._clearFlightTimers()
+    this._clearCalcTimers()
+    this._clearProjectionTimers()
+    this._clearLongWaitTimers()
+    this._stopHeartbeat()
+
     try { wx.removeStorageSync('strategy_result') } catch (e) {}
     this._abortCurrentFlight({ resetToLaunch: false })
 
@@ -994,7 +1059,9 @@ Page({
       error: null,
       forcePending: true,
       requesting: false,
+      loading: false,
     })
+    this._updateCockpitStatusByPhase()
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });

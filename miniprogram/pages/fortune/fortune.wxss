@@ -639,9 +639,9 @@
 }
 
 /* 首次入场完成后：移除动画，保持可见 */
-.ignition-console--entered {
+.ignition-console--entered:not(.ignition-console--hidden) {
   animation: none !important;
-  opacity: 1 !important;
+  opacity: 1;
 }
 
 .ignition-console::before {
@@ -699,6 +699,12 @@
   transform: translateY(16rpx) scale(0.985);
   pointer-events: none;
   position: absolute;
+}
+
+.ignition-console.ignition-console--hidden {
+  opacity: 0 !important;
+  transform: translateY(16rpx) scale(0.985) !important;
+  pointer-events: none !important;
 }
 
 /* 保险状态头 */
@@ -1282,7 +1288,7 @@
   opacity: 0.04 !important;
   animation: none !important;
   transform: translateY(-72rpx) scale(0.56) !important;
-  pointer-events: none;
+  pointer-events: none !important;
   min-height: 0 !important;
   max-height: 40rpx !important;
   margin-bottom: -20rpx !important;
@@ -1290,7 +1296,14 @@
     opacity 720ms ease,
     transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
     margin-bottom 720ms ease;
-  z-index: 0;
+  z-index: 0 !important;
+}
+
+.strategy-page--result .sync-bar,
+.strategy-page--result .generation-status,
+.strategy-page--result .wait-steps {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* entered 态：跳过入场动画，立即可见（重新点火用） */
@@ -1332,7 +1345,7 @@
 /* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
 .sync-bar {
   position: absolute;
-  top: calc(50% + 64rpx);
+  top: calc(50% + 72rpx);
   left: 50%;
   width: 430rpx;
   opacity: 0;
@@ -1344,7 +1357,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 4;
+  z-index: 5;
 }
 
 .sync-bar--visible {
@@ -1434,7 +1447,7 @@
 
 .generation-status {
   position: absolute;
-  top: calc(50% + 250rpx);
+  top: calc(50% + 230rpx);
   left: 50%;
   transform: translate(-50%, 8rpx);
   opacity: 0;
@@ -1555,7 +1568,7 @@
     60rpx 60rpx,
     60rpx 60rpx;
   animation: bgDataStream 40s linear infinite;
-  z-index: 5;
+  z-index: 10;
 }
 
 .strategy-page--result .directive-projection {
@@ -1762,6 +1775,8 @@
   gap: 32rpx;
   width: 100%;
   margin-top: 80rpx;
+  position: relative;
+  z-index: 20;
 }
 
 .nav-btn {

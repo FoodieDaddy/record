@@ -104,7 +104,11 @@
     </view>
 
     <!-- idle 态：点火控制器 -->
-    <view class="ignition-console {{flightStage === 'idle' ? '' : flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--hidden' : 'ignition-console--fading'}} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{uiPhase !== 'result'}}">
+    <view class="ignition-console {{
+      pageMode === 'launch' && uiPhase !== 'loading' && uiPhase !== 'revealing' && uiPhase !== 'result'
+        ? ''
+        : 'ignition-console--hidden'
+    }} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{uiPhase !== 'result'}}">
       <!-- 四角铆点 -->
       <view class="ignition-bolt ignition-bolt--tl"></view>
       <view class="ignition-bolt ignition-bolt--tr"></view>
