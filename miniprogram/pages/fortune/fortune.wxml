@@ -160,90 +160,53 @@
       </view>
     </view>
 
-    <!-- done 态：结果投影内容 -->
+    <!-- done 态：结果投影内容 (极简飞船导航重构) -->
     <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{pageMode === 'result'}}">
 
-      <!-- 状态胶囊 & HUD 芯片 组合 -->
-      <view class="strategy-header-group projection-card">
-        <view class="strategy-tag-pill" style="color: {{themeColor}}; border-color: {{themeColor + '40'}}; background: {{themeColor + '10'}}; box-shadow: 0 4rpx 16rpx {{themeColor + '15'}};">
-          <text>{{strategy.tag || '节奏校准'}}</text>
+      <!-- 核心判决区 (简约主视觉) -->
+      <view class="nav-main-verdict projection-card">
+        <view class="nav-tag-minimal">{{strategy.tag || '状态同步'}}</view>
+        <text class="nav-verdict-text">{{strategy.verdict}}</text>
+        <view class="nav-reading-tags" wx:if="{{strategy.tags && strategy.tags.length > 0}}">
+          <view class="nav-mini-tag" wx:for="{{strategy.tags}}" wx:key="*this"># {{item}}</view>
         </view>
-        
-        <view class="strategy-hud-chips">
-          <view class="strategy-hud-chip">
-            <text class="strategy-hud-chip-label">指令源</text>
-            <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
+      </view>
+
+      <!-- 执行指令模块 (简约列表) -->
+      <view class="nav-execution-params projection-card">
+
+        <!-- 推进参数 -->
+        <view class="nav-param-group" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
+          <view class="nav-group-title">推进参数</view>
+          <view class="nav-param-list">
+            <view class="nav-param-item" wx:for="{{strategy.buffs}}" wx:key="*this">
+              <text class="nav-param-text">{{item}}</text>
+            </view>
           </view>
-          <view class="strategy-hud-chip-divider"></view>
-          <view class="strategy-hud-chip">
-            <text class="strategy-hud-chip-label">观测窗</text>
-            <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
-          </view>
-          <view class="strategy-hud-chip-divider"></view>
-          <view class="strategy-hud-chip">
-            <text class="strategy-hud-chip-label">状态噪声</text>
-            <text class="strategy-hud-chip-value" style="color: {{userTagColor}}">{{userTagLabel}}</text>
+        </view>
+
+        <!-- 警戒边界 -->
+        <view class="nav-param-group" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
+          <view class="nav-group-title">警戒边界</view>
+          <view class="nav-param-list">
+            <view class="nav-param-item" wx:for="{{strategy.debuffs}}" wx:key="*this">
+              <text class="nav-param-text">{{item}}</text>
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 核心判决区 (取代原有的 directive 和 insight) -->
-      <view class="strategy-core-verdict projection-card">
-        <text class="strategy-verdict-text">{{strategy.verdict}}</text>
-        <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length > 0}}">
-          <view class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
-        </view>
-      </view>
-
-      <!-- 推进节奏 (Buffs) -->
-      <view class="strategy-section projection-card" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
-        <view class="strategy-section-head">
-          <view class="flex-row gap-xs">
-            <view class="strategy-section-icon strategy-section-icon--pos">+</view>
-            <text class="strategy-section-title strategy-section-title--pos">推进节奏</text>
-          </view>
-        </view>
-        <view class="strategy-list-card">
-          <view class="strategy-list-item" wx:for="{{strategy.buffs}}" wx:key="*this">
-            <view class="strategy-list-index strategy-list-index--pos">{{index + 1}}</view>
-            <text class="strategy-list-text">{{item}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 安全边界 (Debuffs) -->
-      <view class="strategy-section projection-card" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
-        <view class="strategy-section-head">
-          <view class="flex-row gap-xs">
-            <view class="strategy-section-icon strategy-section-icon--neg">!</view>
-            <text class="strategy-section-title strategy-section-title--neg">安全边界</text>
-          </view>
-        </view>
-        <view class="strategy-list-card strategy-list-card--risk">
-          <view class="strategy-list-item" wx:for="{{strategy.debuffs}}" wx:key="*this">
-            <view class="strategy-list-index strategy-list-index--neg">{{index + 1}}</view>
-            <text class="strategy-list-text">{{item}}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 底部占位 -->
+      <!-- 底部安全间距 -->
       <view class="strategy-result-spacer"></view>
 
-      <!-- 底部操作区 -->
-      <view class="strategy-actions projection-card">
-        <view class="strategy-action-btn strategy-action-btn--secondary" bindtap="onTapRegenerate">
-          <text class="strategy-action-text">重新点火</text>
+      <!-- 导航终端指令 -->
+      <view class="nav-terminal-actions projection-card">
+        <view class="nav-btn nav-btn--secondary" bindtap="onTapRegenerate">
+          <text class="nav-btn-text">重新点火</text>
         </view>
-        <view class="strategy-action-btn strategy-action-btn--primary" bindtap="onTapGeneratePoster">
-          <text class="strategy-action-text">投影档案卡</text>
+        <view class="nav-btn nav-btn--primary" bindtap="onTapGeneratePoster">
+          <text class="nav-btn-text">投影档案</text>
         </view>
-      </view>
-
-      <!-- 次要操作 -->
-      <view class="countdown-bar projection-card" wx:if="{{countdownText}}">
-        <text class="countdown-label">下一次校准</text>
-        <text class="countdown-value">{{countdownText}}</text>
       </view>
 
     </view>
