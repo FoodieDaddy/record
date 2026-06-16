@@ -170,6 +170,7 @@ Page({
     pageMode: 'launch',     // launch | generating | result | relaunchReady
     flightStage: 'idle',    // idle | arming | pressed | plasma | lifting | syncing | projecting | done
     uiPhase: 'idle',
+    dashboardValue: 'READY',
     animationEnabled: true,
     reduceMotion: false,
     showRegenerateModal: false,
@@ -203,6 +204,7 @@ Page({
     strategySummary: '',
     directiveText: '',
     themeColor: '#0A84FF',
+    targetDistance: '2.4',
     projectingResult: false,
 
     // HUD 芯片
@@ -229,6 +231,12 @@ Page({
     // projection visibility
     projectionVisible: false,
     coreCompact: false,
+
+    // 仪表盘中文标签标记
+    dashboardValueIsZh: false,
+
+    // 仪表盘同步步骤（1=LINK 2=TRACE 3=CORE）
+    syncStep: 0,
 
     // Page layout
     pageHeight: 0,
@@ -369,6 +377,7 @@ Page({
 
   onHide() {
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this.setData({ routeAnimating: 'prepare' });
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
@@ -385,6 +394,7 @@ Page({
 
   onUnload() {
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
     // 只使用自定义 tabbar 的方法
@@ -431,16 +441,18 @@ Page({
           pageMode: 'result',
           flightStage: 'done',
           uiPhase: 'result',
+          dashboardValue: strategy.tag || 'DONE',
           projectionVisible: true,
           coreCompact: true,
           firstEnter: false,
           _ignitionEntered: true,
           ...viewState,
         })
+        this._updateCockpitStatusByPhase()
         return
       }
     } catch (e) {}
-    this.setData({ pageMode: 'launch', flightStage: 'idle' })
+    this.setData({ pageMode: 'launch', flightStage: 'idle', dashboardValue: 'READY' })
   },
 
   _hideSystemLoadingSafe() {
@@ -499,7 +511,8 @@ Page({
         statusLabel,
         roomNo,
         memberCountText
-      }
+      },
+      dashboardValueIsZh: pageMode === 'result' && this.data.strategy && this.data.strategy.tag && /[\u4e00-\u9fff]/.test(this.data.strategy.tag)
     })
   },
 
@@ -513,14 +526,21 @@ Page({
       this._runId++
       this._calcSettled = false
       this._calcFinishing = false
+      this._hideSystemLoadingSafe()
       this.setData({
         flightStage: 'syncing',
         pageMode: 'generating',
-        uiPhase: 'loading'
+        uiPhase: 'sync',
+        dashboardValue: 'SYNC',
+        syncStep: 3,
+        showSyncLogs: true,
+        compactSyncLogs: true,
+        logs: CALC_LOG_LINES.map(item => ({ text: item.text, visible: true, typing: false })),
       })
       this._updateCockpitStatusByPhase()
       this._fireApiRequest()
-      this._runLogAnimation()
+      this._calcAnimDone = true
+      this._tryFinishCalc(this._runId)
       return
     }
 
@@ -529,37 +549,53 @@ Page({
 
   _runIgnitionSequence() {
     this._abortCurrentFlight({ resetToLaunch: false })
+    this._hideSystemLoadingSafe()
     this._runId++
     this._calcSettled = false
     this._calcFinishing = false
 
     const runId = this._runId
 
-    this._fireApiRequest()
-
     this.setData({
-      uiPhase: 'launching',
+      uiPhase: 'boot',
+      dashboardValue: 'BOOT',
       flightStage: 'pressed',
-      generationStatusText: '导航核心校准中',
-      generationStatusLevel: 'normal',
-      waitStep: 1
+      syncStep: 0,
     })
     this._updateCockpitStatusByPhase()
 
+    this._fireApiRequest()
+
+    // 220ms: BOOT → SYNC, step 1
     const t1 = setTimeout(() => {
       if (runId !== this._runId) return
       this.setData({
         pageMode: 'generating',
-        uiPhase: 'loading',
+        uiPhase: 'sync',
+        dashboardValue: 'SYNC',
         flightStage: 'syncing',
-        showSyncLogs: true,
-        logs: [{ text: '航迹协议已同步', visible: true, typing: false }]
+        syncStep: 1,
       })
       this._updateCockpitStatusByPhase()
-      this._runLogAnimation({ skipFirst: true })
-    }, 360)
+    }, 220)
 
-    this._flightTimers.push(t1)
+    // 520ms: SYNC step 2
+    const t2 = setTimeout(() => {
+      if (runId !== this._runId) return
+      if (this.data.pageMode !== 'generating') return
+      this.setData({ syncStep: 2 })
+    }, 520)
+
+    // 860ms: SYNC step 3
+    const t3 = setTimeout(() => {
+      if (runId !== this._runId) return
+      if (this.data.pageMode !== 'generating') return
+      this.setData({ syncStep: 3 })
+      // SYNC 动画序列完成，解锁 _tryFinishCalc 的 animReady 门控
+      this._calcAnimDone = true
+    }, 860)
+
+    this._flightTimers.push(t1, t2, t3)
   },
 
   /** 提前发送 API 请求，不等 UI */
@@ -694,7 +730,13 @@ Page({
       return
     }
 
-    if (!animReady) return
+    if (!animReady) {
+      const retryTimer = setTimeout(() => {
+        this._tryFinishCalc(runId)
+      }, Math.max(0, 2400 - elapsed))
+      this._calcTimers.push(retryTimer)
+      return
+    }
     this._calcFinishing = true
 
     // 进入投影前只清理等待文案
@@ -748,23 +790,32 @@ Page({
       solarTermLabel: mapSolarTermToLabel(strategy.solarTerm),
       userTagLabel: mapUserTagToLabel(strategy.userTag),
       userTagColor: normalizeUserTagColor(strategy.userTag),
+      dashboardValueIsZh: strategy.tag && /[\u4e00-\u9fff]/.test(strategy.tag),
     }
   },
 
   /** 错误态回退：回到完整待机态 */
   _failCalc(message) {
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this._calcSettled = true
     this._clearCalcTimers()
     this.setData({
       pageMode: 'launch',
       flightStage: 'idle',
       uiPhase: 'idle',
+      dashboardValue: 'READY',
       error: null,
       projectionVisible: false,
       coreCompact: false,
       firstEnter: false,
       _ignitionEntered: true,
+      syncStep: 0,
+      showSyncLogs: false,
+      compactSyncLogs: false,
+      logs: [],
+      generationStatusText: '',
+      waitStep: 0,
     })
     this._updateCockpitStatusByPhase()
     wx.showToast({ title: sanitizeStrategyText(message) || '导航计算响应超时，请稍后再试', icon: 'none' })
@@ -774,6 +825,7 @@ Page({
     if (runId !== this._runId) return
 
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this._clearCalcTimers()
     this._clearLongWaitTimers()
     this._stopHeartbeat()
@@ -783,8 +835,15 @@ Page({
         pageMode: 'result',
         flightStage: 'done',
         uiPhase: 'result',
+        dashboardValue: viewState.strategy?.tag || viewState.strategyTheme || 'DONE',
         projectionVisible: true,
         coreCompact: true,
+        syncStep: 0,
+        showSyncLogs: false,
+        compactSyncLogs: false,
+        logs: [],
+        generationStatusText: '',
+        waitStep: 0,
         ...viewState
       })
       this._updateCockpitStatusByPhase()
@@ -794,13 +853,19 @@ Page({
     this.setData({
       pageMode: 'result',
       flightStage: 'projecting',
-      uiPhase: 'revealing',
+      uiPhase: 'project',
+      dashboardValue: viewState.strategy?.tag || viewState.strategyTheme || 'DONE',
       projectionVisible: false,
-      coreCompact: true,
       compactSyncLogs: true,
+      syncStep: 0,
+      showSyncLogs: false,
+      logs: [],
+      generationStatusText: '',
+      waitStep: 0,
       ...viewState
     })
     this._updateCockpitStatusByPhase()
+    this._hideSystemLoadingSafe()
 
     const showTimer = setTimeout(() => {
       if (runId !== this._runId) return
@@ -812,10 +877,12 @@ Page({
     const doneTimer = setTimeout(() => {
       if (runId !== this._runId) return
       this._resetLoadingState()
+      this._hideSystemLoadingSafe()
       this.setData({
         pageMode: 'result',
         flightStage: 'done',
         uiPhase: 'result',
+        coreCompact: true,
         projectingResult: false
       })
       this._updateCockpitStatusByPhase()
@@ -829,6 +896,7 @@ Page({
   /** 中断当前点火流程 */
   _abortCurrentFlight(options = {}) {
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this._clearFlightTimers()
     this._clearCalcTimers()
     this._clearProjectionTimers()
@@ -839,6 +907,7 @@ Page({
         pageMode: 'launch',
         flightStage: 'idle',
         uiPhase: 'idle',
+        dashboardValue: 'READY',
         projectingResult: false,
         projectionVisible: false,
         coreCompact: false,
@@ -848,6 +917,12 @@ Page({
         phase: '',
         posterPath: '',
         posterError: '',
+        syncStep: 0,
+        showSyncLogs: false,
+        compactSyncLogs: false,
+        logs: [],
+        generationStatusText: '',
+        waitStep: 0,
       })
       this._updateCockpitStatusByPhase()
       // 只使用自定义 tabbar 的方法
@@ -992,34 +1067,18 @@ Page({
     return runId === this._runId && this.data.pageMode === 'generating'
   },
 
-  onTapBeacon() {
-    vibrateShort('light')
-    wx.showToast({
-      title: '信标模块已就绪',
-      icon: 'none',
-      duration: 1500
-    })
-  },
-
-  onTapTrack() {
-    vibrateShort('light')
-    wx.showToast({
-      title: '航迹系统已接入',
-      icon: 'none',
-      duration: 1500
-    })
-  },
-
   /* ==================== result → 重新点火弹窗 ==================== */
 
   onTapRegenerate() {
     vibrateShort('light')
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this.setData({ showRegenerateModal: true })
   },
 
   onCancelRegenerate() {
     this._resetLoadingState()
+    this._hideSystemLoadingSafe()
     this.setData({ showRegenerateModal: false })
   },
 
@@ -1031,6 +1090,7 @@ Page({
     this._clearProjectionTimers()
     this._clearLongWaitTimers()
     this._stopHeartbeat()
+    this._hideSystemLoadingSafe()
 
     try { wx.removeStorageSync('strategy_result') } catch (e) {}
     this._abortCurrentFlight({ resetToLaunch: false })
@@ -1041,6 +1101,7 @@ Page({
       pageMode: 'launch',
       flightStage: 'idle',
       uiPhase: 'idle',
+      dashboardValue: 'READY',
       showRegenerateModal: false,
       firstEnter: false,
       _ignitionEntered: true,
@@ -1054,11 +1115,19 @@ Page({
       userTagLabel: '待同步',
       userTagColor: '#0A84FF',
       themeColor: '#0A84FF',
+      targetDistance: '2.4',
       nextRefreshAtEpochMs: 0,
 
       projectionVisible: false,
       coreCompact: false,
       projectingResult: false,
+      dashboardValueIsZh: false,
+      syncStep: 0,
+      showSyncLogs: false,
+      compactSyncLogs: false,
+      logs: [],
+      generationStatusText: '',
+      waitStep: 0,
 
       posterPath: '',
       posterError: '',

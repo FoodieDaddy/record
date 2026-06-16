@@ -31,7 +31,56 @@
       <text class="bay-status-tab__label">{{pageMode === 'generating' ? '导航舱启动中' : pageMode === 'result' || pageMode === 'relaunchReady' ? '导航舱已接入' : '导航舱待机中'}}</text>
     </view>
 
-    <!-- 甲板透视线（永远存在） -->
+    <!-- 星图舷窗（页面主视觉） -->
+    <view class="nav-map-window nav-map-window--{{uiPhase}}">
+      <view class="nav-map-grid"></view>
+
+      <!-- 轨道弧线 -->
+      <view class="nav-map-orbit nav-map-orbit--1"></view>
+      <view class="nav-map-orbit nav-map-orbit--2"></view>
+
+      <!-- 航线 -->
+      <view class="nav-map-route"></view>
+
+      <!-- 当前坐标 ORIGIN -->
+      <view class="nav-planet nav-planet--origin">
+        <view class="nav-planet-core"></view>
+      </view>
+
+      <!-- 目标星体 TARGET -->
+      <view class="nav-planet nav-planet--target"
+            style="--target-color: {{themeColor || '#32D74B'}}">
+        <view class="nav-planet-lock"></view>
+        <view class="nav-planet-core"></view>
+      </view>
+
+      <!-- 信标状态灯 -->
+      <view class="nav-map-status nav-map-status--beacon">
+        <view class="nav-map-status-dot"></view>
+        <text>信标</text>
+      </view>
+
+      <!-- 航迹状态灯 -->
+      <view class="nav-map-status nav-map-status--trace">
+        <view class="nav-map-status-dot nav-map-status-dot--green"></view>
+        <text>航迹</text>
+      </view>
+
+      <!-- 中央读数 -->
+      <view class="nav-center-readout">
+        <view class="nav-center-dot"></view>
+        <text class="nav-center-value {{dashboardValueIsZh ? 'nav-center-value--zh' : ''}}">{{dashboardValue}}</text>
+      </view>
+
+      <!-- SYNC 状态条 -->
+      <view class="nav-sync-strip" wx:if="{{pageMode === 'generating'}}">
+        <text class="{{syncStep >= 1 ? 'on' : ''}}">LINK</text>
+        <text class="{{syncStep >= 2 ? 'on' : ''}}">TRACE</text>
+        <text class="{{syncStep >= 3 ? 'on' : ''}}">LOCK</text>
+      </view>
+    </view>
+
+    <!-- 甲板透视线 -->
     <view class="deck-perspective">
       <view class="deck-line deck-line--1"></view>
       <view class="deck-line deck-line--2"></view>
@@ -40,88 +89,14 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
-    <!-- 顶部标题（沉浸式方案中完全移除） -->
-    <view class="flight-deck-header hide-page-title" style="display: none;">
-      <text class="flight-deck-title">导航舱</text>
-      <text class="flight-deck-date">{{currentDate}}</text>
-    </view>
-
-    <!-- 共享导航核心（唯一 DOM，贯穿 idle -> done） -->
-    <!-- 舰桥中控仪表盘 -->
-    <view class="nav-dashboard {{firstEnter === false ? 'nav-dashboard--entered' : ''}} {{coreCompact ? 'nav-dashboard--compact' : ''}}">
-      <!-- 左右实体按钮，在 done (coreCompact) 时通过 wx:if 隐藏 -->
-      <view wx:if="{{!coreCompact}}" class="nav-dashboard-side-button nav-dashboard-side-button--left" bindtap="onTapBeacon">
-        <text>信标</text>
-      </view>
-      
-      <!-- 中间胶囊显示屏 -->
-      <view class="nav-dashboard-screen">
-        <view class="nav-dashboard-dot {{pageMode === 'generating' ? 'nav-dashboard-dot--syncing' : ''}}"></view>
-        <view class="nav-dashboard-value">
-          <block wx:if="{{pageMode === 'launch'}}">READY</block>
-          <block wx:elif="{{pageMode === 'generating' || flightStage === 'syncing'}}">SYNC</block>
-          <block wx:elif="{{pageMode === 'result'}}">{{strategy.tag || 'DONE'}}</block>
-          <block wx:else>READY</block>
-        </view>
-      </view>
-
-      <view wx:if="{{!coreCompact}}" class="nav-dashboard-side-button nav-dashboard-side-button--right" bindtap="onTapTrack">
-        <text>航迹</text>
-      </view>
-    </view>
-
-    <!-- 投影线（projecting/done 态出现） -->
-    <view class="projection-line"></view>
-
-    <!-- 日志接入条（syncing/projecting 态，紧贴核心下方） -->
-    <view class="sync-bar {{showSyncLogs && (pageMode === 'generating' || uiPhase === 'revealing') ? 'sync-bar--visible' : ''}} {{compactSyncLogs ? 'sync-bar--compact' : ''}}">
-      <view class="sync-bar-line" wx:if="{{!compactSyncLogs}}"></view>
-      <view class="sync-bar-chips">
-        <view class="sync-chip {{item.visible ? 'sync-chip--on' : ''}}" wx:for="{{logs}}" wx:key="index">
-          <view class="sync-chip-dot"></view>
-          <text class="sync-chip-text {{item.typing ? 'sync-chip-typing' : ''}}" wx:if="{{!compactSyncLogs}}">{{item.text}}</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 统一等待主文案（唯一用户可见等待出口，替换 heartbeat + engineWaitText） -->
-    <view class="generation-status generation-status--{{generationStatusLevel}} {{generationStatusText && (pageMode === 'generating' || uiPhase === 'launching' || uiPhase === 'loading') ? 'generation-status--visible' : ''}}">
-      <view class="generation-status-dot"></view>
-      <text>{{generationStatusText}}</text>
-    </view>
-
-    <!-- 四段式进度条（仅 generating 态显示） -->
-    <view class="wait-steps wait-steps--{{waitStep}} {{pageMode === 'generating' && waitStep > 0 ? 'wait-steps--visible' : ''}}">
-      <view class="wait-step {{waitStep >= 1 ? 'wait-step--active' : ''}}"></view>
-      <view class="wait-step {{waitStep >= 2 ? 'wait-step--active' : ''}}"></view>
-      <view class="wait-step {{waitStep >= 3 ? 'wait-step--active' : ''}}"></view>
-      <view class="wait-step {{waitStep >= 3 ? 'wait-step--active' : ''}}"></view>
-    </view>
-
-    <!-- HUD 刻度线 -->
-    <view class="hud-marks hud-marks--left">
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-    </view>
-    <view class="hud-marks hud-marks--right">
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-      <view class="hud-mark"></view>
-    </view>
-
-    <!-- idle 态：点火控制器 -->
-    <!-- 仪表台下方主操作按键区 -->
-    <view class="nav-dashboard-actions" wx:if="{{pageMode !== 'result'}}">
-      <button 
-        class="nav-dashboard-main-btn {{pageMode === 'generating' ? 'nav-dashboard-main-btn--loading' : ''}}" 
+    <!-- 主操作按钮 -->
+    <view class="nav-launch-btn-area" wx:if="{{pageMode !== 'result'}}">
+      <view
+        class="nav-launch-btn {{pageMode === 'generating' ? 'nav-launch-btn--loading' : ''}}"
         bindtap="onTapLaunchCore"
-        disabled="{{pageMode === 'generating'}}"
       >
-        <text class="nav-dashboard-main-btn-text">{{pageMode === 'generating' ? '校准中' : '开始校准'}}</text>
-      </button>
+        <text>{{pageMode === 'generating' ? '校准中' : '开始校准'}}</text>
+      </view>
     </view>
 
     <!-- done 态：结果投影内容 (极简飞船导航重构) -->
@@ -165,12 +140,8 @@
 
       <!-- 导航终端指令 -->
       <view class="nav-terminal-actions projection-card">
-        <view class="nav-btn nav-btn--secondary" bindtap="onTapRegenerate">
-          <text class="nav-btn-text">重新点火</text>
-        </view>
-        <view class="nav-btn nav-btn--primary" bindtap="onTapGeneratePoster">
-          <text class="nav-btn-text">投影档案</text>
-        </view>
+        <view class="result-secondary-link" bindtap="onTapRegenerate">重新点火</view>
+        <view class="result-primary-btn" bindtap="onTapGeneratePoster">投影档案</view>
       </view>
 
     </view>

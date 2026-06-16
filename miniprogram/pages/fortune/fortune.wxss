@@ -17,6 +17,336 @@
   overflow: hidden;
 }
 
+.strategy-page--result .directive-projection {
+  position: relative;
+  z-index: 3;
+}
+.strategy-page--result .directive-projection::before {
+  content: '';
+  position: absolute;
+  inset: -20rpx -12rpx;
+  border-radius: 24rpx;
+  background: linear-gradient(180deg, rgba(2, 8, 14, 0.42), rgba(2, 8, 14, 0.68));
+  z-index: -1;
+}
+
+/* ===== 星图舷窗 ===== */
+.nav-map-window {
+  position: relative;
+  width: 640rpx;
+  height: 420rpx;
+  margin: 180rpx auto 44rpx;
+  border-radius: 44rpx;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 72% 28%, rgba(85, 255, 170, 0.10), transparent 20%),
+    radial-gradient(circle at 28% 68%, rgba(0, 180, 255, 0.10), transparent 24%),
+    linear-gradient(180deg, rgba(4, 18, 30, 0.72), rgba(2, 8, 14, 0.86));
+  border: 1rpx solid rgba(0, 190, 255, 0.16);
+  box-shadow:
+    inset 0 0 60rpx rgba(0, 180, 255, 0.06),
+    0 0 42rpx rgba(0, 140, 220, 0.08);
+}
+
+.nav-map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 200, 255, 0.055) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.055) 1rpx, transparent 1rpx);
+  background-size: 72rpx 72rpx;
+  opacity: 0.8;
+  mask-image: radial-gradient(circle at 50% 50%, black 0%, black 62%, transparent 92%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, black 0%, black 62%, transparent 92%);
+}
+
+.nav-map-orbit {
+  position: absolute;
+  border: 1rpx solid rgba(0, 190, 255, 0.11);
+  border-radius: 50%;
+}
+.nav-map-orbit--1 {
+  width: 480rpx;
+  height: 200rpx;
+  right: 20rpx;
+  top: 60rpx;
+  transform: rotate(-14deg);
+}
+.nav-map-orbit--2 {
+  width: 380rpx;
+  height: 160rpx;
+  left: 60rpx;
+  top: 200rpx;
+  transform: rotate(18deg);
+  opacity: 0.6;
+}
+
+.nav-map-route {
+  position: absolute;
+  left: 150rpx;
+  bottom: 118rpx;
+  width: 390rpx;
+  height: 2rpx;
+  transform: rotate(-32deg);
+  transform-origin: left center;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 210, 255, 0.16),
+    rgba(0, 210, 255, 0.42),
+    rgba(88, 255, 160, 0.58)
+  );
+  opacity: 0.28;
+}
+
+.nav-planet {
+  position: absolute;
+  width: 38rpx;
+  height: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-planet-core {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(0, 210, 255, 0.9);
+  box-shadow:
+    0 0 16rpx rgba(0, 210, 255, 0.55),
+    0 0 34rpx rgba(0, 150, 255, 0.22);
+}
+
+.nav-planet--origin {
+  left: 128rpx;
+  bottom: 96rpx;
+}
+
+.nav-planet--target {
+  right: 128rpx;
+  top: 96rpx;
+}
+
+.nav-planet--target .nav-planet-core {
+  width: 16rpx;
+  height: 16rpx;
+  background: var(--target-color, rgba(88, 255, 160, 0.96));
+  box-shadow:
+    0 0 20rpx var(--target-color, rgba(88, 255, 160, 0.70)),
+    0 0 46rpx rgba(88, 255, 160, 0.24);
+}
+
+.nav-planet-lock {
+  position: absolute;
+  width: 78rpx;
+  height: 78rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(88, 255, 160, 0.30);
+  box-shadow:
+    inset 0 0 20rpx rgba(88, 255, 160, 0.08),
+    0 0 24rpx rgba(88, 255, 160, 0.14);
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+
+/* 信标/航迹状态灯 */
+.nav-map-status {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(0, 18, 30, 0.52);
+  border: 1rpx solid rgba(0, 190, 255, 0.10);
+  color: rgba(180, 225, 245, 0.62);
+  font-size: 20rpx;
+  font-weight: 600;
+}
+
+.nav-map-status--beacon {
+  left: 32rpx;
+  top: 32rpx;
+}
+
+.nav-map-status--trace {
+  right: 32rpx;
+  bottom: 32rpx;
+}
+
+.nav-map-status-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(0, 200, 255, 0.85);
+  box-shadow: 0 0 12rpx rgba(0, 200, 255, 0.48);
+}
+
+.nav-map-status-dot--green {
+  background: rgba(80, 255, 150, 0.9);
+  box-shadow: 0 0 12rpx rgba(80, 255, 150, 0.52);
+}
+
+/* 中央读数 */
+.nav-center-readout {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 260rpx;
+  height: 86rpx;
+  padding: 0 44rpx;
+  border-radius: 999rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 220, 255, 0.14), transparent 58%),
+    linear-gradient(180deg, rgba(4, 28, 42, 0.92), rgba(2, 12, 22, 0.96));
+  border: 1rpx solid rgba(0, 200, 255, 0.22);
+  box-shadow:
+    inset 0 0 26rpx rgba(0, 200, 255, 0.10),
+    0 0 28rpx rgba(0, 170, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+}
+
+.nav-center-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(70, 255, 145, 0.9);
+  box-shadow: 0 0 14rpx rgba(70, 255, 145, 0.65);
+}
+
+.nav-center-value {
+  font-family: 'Courier New', monospace;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: rgba(230, 246, 255, 0.94);
+  letter-spacing: 4rpx;
+  text-shadow: 0 0 14rpx rgba(0, 200, 255, 0.28);
+}
+
+.nav-center-value--zh {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  font-size: 34rpx;
+  letter-spacing: 2rpx;
+}
+
+/* SYNC 状态条 */
+.nav-sync-strip {
+  position: absolute;
+  bottom: 24rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 28rpx;
+}
+
+.nav-sync-strip text {
+  font-family: 'Courier New', monospace;
+  font-size: 18rpx;
+  letter-spacing: 2rpx;
+  color: rgba(120, 170, 200, 0.28);
+  transition: color 300ms ease;
+}
+
+.nav-sync-strip text.on {
+  color: rgba(80, 255, 170, 0.82);
+  text-shadow: 0 0 10rpx rgba(80, 255, 170, 0.35);
+}
+
+/* 主操作按钮 */
+.nav-launch-btn-area {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 36rpx;
+}
+
+.nav-launch-btn {
+  width: 440rpx;
+  height: 96rpx;
+  border-radius: 999rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(4, 22, 34, 0.94), rgba(2, 10, 18, 0.98));
+  border: 1rpx solid rgba(0, 190, 255, 0.26);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.05),
+    inset 0 -14rpx 26rpx rgba(0,0,0,0.32),
+    0 0 28rpx rgba(0, 170, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(230, 246, 255, 0.92);
+  font-size: 34rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  transition: transform 180ms ease;
+}
+
+.nav-launch-btn:active {
+  transform: translateY(2rpx) scale(0.99);
+}
+
+.nav-launch-btn--loading {
+  border-color: rgba(88, 255, 160, 0.22);
+  opacity: 0.72;
+}
+
+/* ===== 舷窗状态驱动 ===== */
+.nav-map-window--idle .nav-map-route {
+  opacity: 0.18;
+}
+
+.nav-map-window--sync .nav-map-route {
+  opacity: 0.66;
+  animation: routeEnergy 1200ms ease-in-out infinite;
+}
+
+.nav-map-window--sync .nav-planet-lock {
+  opacity: 1;
+  animation: targetLockPulse 1500ms ease-in-out infinite;
+}
+
+.nav-map-window--project .nav-map-route,
+.nav-map-window--result .nav-map-route {
+  opacity: 0.78;
+}
+
+.nav-map-window--project .nav-planet-lock,
+.nav-map-window--result .nav-planet-lock {
+  opacity: 0.86;
+}
+
+/* 舷窗动画 */
+@keyframes targetLockPulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes routeEnergy {
+  0%, 100% { opacity: 0.50; }
+  50%       { opacity: 0.78; }
+}
+
+/* reduce-motion: 舷窗静态化 */
+.reduce-motion .nav-planet-lock {
+  animation: none !important;
+}
+.reduce-motion .nav-map-route {
+  animation: none !important;
+  transition: none !important;
+}
+
+
 /* ===== 0. 跨 Tab 骨架屏 ===== */
 .page-skeleton {
   position: fixed;
@@ -44,28 +374,16 @@
 }
 
 /* ===== 2. reduce-motion 静默模式 ===== */
-.reduce-motion .nav-dashboard-dot,
-.reduce-motion .nav-dashboard-main-btn,
-.reduce-motion .nav-dashboard-side-button,
 .reduce-motion .deck-line,
-.reduce-motion .hud-mark,
 .reduce-motion .flight-heartbeat-dot,
 .reduce-motion .flight-log-line,
 .reduce-motion .flight-log-typing,
 .reduce-motion .flight-log-dot,
-.reduce-motion .strategy-tag-pill,
 .reduce-motion .strategy-insight,
 .reduce-motion .strategy-section,
 .reduce-motion .strategy-actions,
 .reduce-motion .poster-gen-dot,
-.reduce-motion .poster-gen-text,
-.reduce-motion .projection-line,
-.reduce-motion .sync-chip,
-.reduce-motion .sync-chip-dot,
-.reduce-motion .sync-bar-line,
-.reduce-motion .projection-card,
-.reduce-motion .generation-status-dot,
-.reduce-motion .wait-step {
+.reduce-motion .projection-card {
   animation: none !important;
   transition-duration: 0ms !important;
   opacity: 1 !important;
@@ -73,13 +391,6 @@
 
 .reduce-motion .flight-heartbeat-dot {
   opacity: 0.6;
-}
-
-.reduce-motion .projection-line {
-  display: none !important;
-}
-.reduce-motion .sync-bar-line {
-  display: none !important;
 }
 
 .reduce-motion .flight-deck--syncing {
@@ -325,66 +636,6 @@
   transform: perspective(300rpx) rotateX(50deg) rotate(16deg);
 }
 
-/* ===== 7. HUD 刻度线 ===== */
-.hud-marks {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  z-index: 3;
-}
-
-.hud-marks--left {
-  left: 48rpx;
-}
-.hud-marks--right {
-  right: 48rpx;
-}
-
-.hud-mark {
-  width: 12rpx;
-  height: 2rpx;
-  background: rgba(10, 132, 255, 0.2);
-  animation: hudMarkPulse 3s ease-in-out infinite;
-}
-
-.hud-marks--left .hud-mark:nth-child(2) {
-  width: 8rpx;
-  animation-delay: 0.3s;
-}
-.hud-marks--left .hud-mark:nth-child(3) {
-  width: 16rpx;
-  animation-delay: 0.6s;
-}
-.hud-marks--left .hud-mark:nth-child(4) {
-  width: 6rpx;
-  animation-delay: 0.9s;
-}
-
-.hud-marks--right .hud-mark:nth-child(2) {
-  width: 8rpx;
-  animation-delay: 0.3s;
-}
-.hud-marks--right .hud-mark:nth-child(3) {
-  width: 16rpx;
-  animation-delay: 0.6s;
-}
-.hud-marks--right .hud-mark:nth-child(4) {
-  width: 6rpx;
-  animation-delay: 0.9s;
-}
-
-@keyframes hudMarkPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
-}
 
 /* ===== 8. 飞行甲板统一舞台 ===== */
 .flight-deck {
@@ -406,19 +657,19 @@
 .flight-deck--pressed,
 .flight-deck--plasma,
 .flight-deck--lifting {
-  padding-top: 210rpx;
+  padding-top: 80rpx;
 }
 
 .flight-deck--syncing {
-  padding-top: 170rpx;
+  padding-top: 60rpx;
 }
 
 .flight-deck--projecting {
-  padding-top: 110rpx;
+  padding-top: 40rpx;
 }
 
 .flight-deck--done {
-  padding-top: 48rpx;
+  padding-top: 24rpx;
 }
 
 .flight-deck > .bay-status-tab {
@@ -459,230 +710,7 @@
   margin-top: 4rpx;
 }
 
-/* --- 舰桥中控仪表盘 --- */
-.nav-dashboard {
-  width: 640rpx;
-  min-height: 220rpx;
-  position: relative;
-  margin: 20rpx auto 32rpx;
-  border-radius: 72rpx 72rpx 28rpx 28rpx;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.12), transparent 56%),
-    linear-gradient(180deg, rgba(4, 20, 32, 0.94), rgba(2, 8, 14, 0.98));
-  border: 1rpx solid rgba(0, 180, 255, 0.16);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255,255,255,0.05),
-    inset 0 -20rpx 48rpx rgba(0,0,0,0.42),
-    0 0 38rpx rgba(0, 170, 255, 0.08);
-  overflow: hidden;
-  box-sizing: border-box;
-  opacity: 0;
-  animation: dashboardEntrance 0.7s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-  transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: 5;
-}
 
-.nav-dashboard.nav-dashboard--entered {
-  animation: none !important;
-  opacity: 1;
-}
-
-@keyframes dashboardEntrance {
-  from {
-    opacity: 0;
-    transform: translateY(40rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.nav-dashboard::before {
-  content: '';
-  position: absolute;
-  left: 36rpx;
-  right: 36rpx;
-  top: 0;
-  height: 1rpx;
-  background: linear-gradient(90deg, transparent, rgba(0,200,255,.48), transparent);
-  opacity: .7;
-}
-
-/* 中间胶囊显示屏 */
-.nav-dashboard-screen {
-  width: 420rpx;
-  height: 92rpx;
-  margin: 38rpx auto 0;
-  border-radius: 999rpx;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(0, 220, 255, 0.16), transparent 56%),
-    linear-gradient(180deg, rgba(4, 32, 46, 0.96), rgba(2, 14, 24, 0.98));
-  border: 1rpx solid rgba(0, 200, 255, 0.22);
-  box-shadow:
-    inset 0 0 24rpx rgba(0, 200, 255, 0.12),
-    0 0 26rpx rgba(0, 170, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  transition: all 180ms ease;
-}
-
-.nav-dashboard-value {
-  font-family: 'Courier New', monospace;
-  font-size: 42rpx;
-  font-weight: 700;
-  color: rgba(230, 246, 255, 0.92);
-  text-shadow: 0 0 16rpx rgba(0, 200, 255, 0.36);
-  letter-spacing: 4rpx;
-  transition: all 180ms ease;
-}
-
-/* 状态小光点 */
-.nav-dashboard-dot {
-  width: 10rpx;
-  height: 10rpx;
-  border-radius: 50%;
-  background: rgba(55, 220, 110, 0.75);
-  box-shadow: 0 0 10rpx rgba(55, 220, 110, 0.6);
-  margin-right: 14rpx;
-  transition: all 0.3s ease;
-}
-
-.nav-dashboard-dot--syncing {
-  background: rgba(0, 200, 255, 0.8);
-  box-shadow: 0 0 12rpx rgba(0, 200, 255, 0.8);
-  animation: navDotBreathe 1s infinite alternate;
-}
-
-@keyframes navDotBreathe {
-  0% { opacity: 0.4; }
-  100% { opacity: 1; }
-}
-
-/* 左右实体按钮 */
-.nav-dashboard-side-button {
-  position: absolute;
-  top: 52rpx;
-  width: 116rpx;
-  height: 116rpx;
-  border-radius: 36rpx;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.12), transparent 55%),
-    linear-gradient(180deg, rgba(4, 18, 28, 0.96), rgba(2, 8, 14, 0.98));
-  border: 1rpx solid rgba(0, 200, 255, 0.12);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255,255,255,0.04),
-    inset 0 -16rpx 28rpx rgba(0,0,0,0.42),
-    0 0 18rpx rgba(0, 170, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(210, 238, 255, 0.78);
-  font-size: 26rpx;
-  font-weight: 700;
-  letter-spacing: 2rpx;
-  transition: all 150ms ease;
-  z-index: 10;
-}
-
-.nav-dashboard-side-button:active {
-  transform: translateY(2rpx) scale(0.96);
-  background:
-    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.16), transparent 55%),
-    linear-gradient(180deg, rgba(2, 12, 20, 0.98), rgba(1, 4, 8, 0.99));
-  box-shadow:
-    inset 0 4rpx 10rpx rgba(0,0,0,0.6),
-    0 0 10rpx rgba(0, 170, 255, 0.04);
-}
-
-.nav-dashboard-side-button--left {
-  left: 28rpx;
-}
-
-.nav-dashboard-side-button--right {
-  right: 28rpx;
-  border-color: rgba(55, 220, 110, 0.14);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255,255,255,0.04),
-    inset 0 -16rpx 28rpx rgba(0,0,0,0.42),
-    0 0 18rpx rgba(55, 220, 110, 0.08);
-}
-
-.nav-dashboard-side-button--right:active {
-  box-shadow:
-    inset 0 4rpx 10rpx rgba(0,0,0,0.6),
-    0 0 10rpx rgba(55, 220, 110, 0.04);
-}
-
-/* 压缩版仪表盘（结果态） */
-.nav-dashboard.nav-dashboard--compact {
-  width: 640rpx;
-  min-height: 120rpx;
-  border-radius: 28rpx;
-  margin: 10rpx auto 20rpx;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.08), transparent 50%),
-    linear-gradient(180deg, rgba(4, 18, 28, 0.96), rgba(2, 8, 14, 0.98));
-  box-shadow:
-    inset 0 1rpx 0 rgba(255,255,255,0.03),
-    inset 0 -10rpx 24rpx rgba(0,0,0,0.42),
-    0 0 20rpx rgba(0, 170, 255, 0.04);
-}
-
-.nav-dashboard.nav-dashboard--compact .nav-dashboard-screen {
-  width: 380rpx;
-  height: 72rpx;
-  margin: 24rpx auto;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(0, 220, 255, 0.08), transparent 56%),
-    linear-gradient(180deg, rgba(4, 24, 36, 0.96), rgba(2, 10, 18, 0.98));
-  border-color: rgba(0, 200, 255, 0.16);
-}
-
-.nav-dashboard.nav-dashboard--compact .nav-dashboard-value {
-  font-size: 32rpx;
-}
-
-/* ===== 9. 投影线（核心与内容之间的连接线） ===== */
-/* 使用 scaleX 替代 width 动画，避免重排 */
-.projection-line {
-  width: 560rpx;
-  height: 2rpx;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 200, 255, 0.4),
-    transparent
-  );
-  margin-bottom: 24rpx;
-  opacity: 0;
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: none;
-}
-
-.flight-deck--projecting .projection-line {
-  animation: projectionLineIn 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-}
-
-.flight-deck--done .projection-line {
-  opacity: 0;
-  height: 0;
-  margin: 0;
-}
-
-@keyframes projectionLineIn {
-  from {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  to {
-    opacity: 0.55;
-    transform: scaleX(1);
-  }
-}
 
 /* ===== 10. 底部说明 ===== */
 .flight-deck-info {
@@ -713,68 +741,32 @@
   line-height: 1.8;
 }
 
-/* --- 仪表台下方主操作按键区 --- */
-.nav-dashboard-actions {
-  width: 640rpx;
-  margin: 32rpx auto;
+/* ===== 待机页下方舱体刻度（pseudo 增强） ===== */
+.flight-deck-info::after {
+  content: '';
   display: flex;
+  gap: 6rpx;
+  margin-top: 28rpx;
   justify-content: center;
-  z-index: 10;
+  height: 2rpx;
+  width: 280rpx;
+  margin-left: auto;
+  margin-right: auto;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 180, 255, 0.14) 0,
+      rgba(0, 180, 255, 0.14) 8rpx,
+      transparent 8rpx,
+      transparent 20rpx
+    );
+  opacity: 0.65;
 }
 
-.nav-dashboard-main-btn {
-  width: 100%;
-  height: 100rpx;
-  border-radius: 50rpx;
-  background: linear-gradient(180deg, rgba(4, 28, 44, 0.9), rgba(2, 12, 22, 0.95));
-  border: 1rpx solid rgba(0, 200, 255, 0.22);
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.05),
-    inset 0 -8rpx 16rpx rgba(0, 0, 0, 0.4),
-    0 0 24rpx rgba(0, 170, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 180ms ease;
-  padding: 0;
-  margin: 0;
+.fdi-hidden::after {
+  display: none;
 }
 
-.nav-dashboard-main-btn::after {
-  border: none;
-}
-
-.nav-dashboard-main-btn-text {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: rgba(230, 246, 255, 0.92);
-  text-shadow: 0 0 12rpx rgba(0, 200, 255, 0.35);
-  letter-spacing: 4rpx;
-}
-
-/* 按下效果 */
-.nav-dashboard-main-btn:active {
-  transform: translateY(2rpx) scale(0.99);
-  box-shadow:
-    inset 0 4rpx 8rpx rgba(0, 0, 0, 0.6),
-    0 0 12rpx rgba(0, 170, 255, 0.06);
-}
-
-/* 正在计算/校准中状态 */
-.nav-dashboard-main-btn--loading {
-  border-color: rgba(55, 220, 110, 0.22);
-  background: linear-gradient(180deg, rgba(4, 26, 18, 0.9), rgba(2, 10, 8, 0.95));
-  box-shadow:
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.03),
-    inset 0 -8rpx 16rpx rgba(0, 0, 0, 0.4),
-    0 0 20rpx rgba(55, 220, 110, 0.15);
-  opacity: 0.85;
-}
-
-.nav-dashboard-main-btn--loading .nav-dashboard-main-btn-text {
-  color: rgba(170, 245, 190, 0.8);
-  text-shadow: 0 0 10rpx rgba(55, 220, 110, 0.25);
-}
 
 /* ===== 12. 飞行阶段联动动画 ===== */
 
@@ -949,13 +941,6 @@
   z-index: 0 !important;
 }
 
-.strategy-page--result .sync-bar,
-.strategy-page--result .generation-status,
-.strategy-page--result .wait-steps {
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
 
 /* entered 态：跳过入场动画，立即可见（重新点火用） */
 .nav-core-stage--entered {
@@ -987,163 +972,7 @@
   opacity: 0;
   transition: opacity 0.4s ease;
 }
-.flight-deck--done .hud-marks {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
 
-/* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
-.sync-bar {
-  position: absolute;
-  top: calc(50% + 72rpx);
-  left: 50%;
-  width: 430rpx;
-  opacity: 0;
-  transform: translate(-50%, 6rpx) scale(0.98);
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 5;
-}
-
-.sync-bar--visible {
-  opacity: 1;
-  transform: translate(-50%, 0) scale(1);
-}
-
-.sync-bar--compact {
-  opacity: 0.28;
-  transform: translate(-50%, -4rpx) scale(0.94);
-  width: 160rpx;
-  padding: 8rpx 12rpx;
-  justify-content: center;
-  gap: 12rpx;
-  background: transparent;
-  border-color: transparent;
-}
-
-.sync-bar--compact .sync-chip {
-  min-height: 14rpx;
-  padding: 4rpx 6rpx;
-  background: transparent;
-  border-color: transparent;
-}
-
-.sync-bar--compact .sync-chip-dot {
-  width: 8rpx;
-  height: 8rpx;
-}
-
-.sync-bar--compact .sync-chip-text {
-  display: none;
-}
-
-.sync-bar-line {
-  width: 2rpx;
-  height: 24rpx;
-  background: linear-gradient(to bottom, rgba(0, 200, 255, 0.3), transparent);
-  margin-bottom: 10rpx;
-}
-
-.sync-bar-chips {
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-  width: 100%;
-}
-
-.sync-chip {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 8rpx 16rpx;
-  background: rgba(0, 175, 255, 0.03);
-  border: 1rpx solid rgba(0, 175, 255, 0.06);
-  border-radius: 6rpx;
-  opacity: 0;
-  transform: translateX(-8rpx);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-}
-
-.sync-chip--on {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.sync-chip-dot {
-  width: 6rpx;
-  height: 6rpx;
-  border-radius: 50%;
-  background: rgba(0, 175, 255, 0.5);
-  flex-shrink: 0;
-  animation: chipDotPulse 1.5s ease-in-out infinite;
-}
-
-@keyframes chipDotPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.9;
-  }
-}
-
-.generation-status {
-  position: absolute;
-  top: calc(50% + 230rpx);
-  left: 50%;
-  transform: translate(-50%, 8rpx);
-  opacity: 0;
-  z-index: 6;
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 12rpx 20rpx;
-  border-radius: 10rpx;
-  background: rgba(4, 18, 30, 0.86);
-  border: 1rpx solid rgba(0, 200, 255, 0.18);
-  color: rgba(210, 238, 255, 0.82);
-  font-size: 22rpx;
-  letter-spacing: 1rpx;
-  transition:
-    opacity 180ms ease,
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.generation-status--visible {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-
-.sync-chip-text {
-  font-family: "Courier New", Courier, monospace;
-  font-size: 20rpx;
-  color: rgba(140, 176, 205, 0.55);
-  letter-spacing: 1rpx;
-}
-
-.sync-chip-typing {
-  border-right: 2rpx solid rgba(10, 132, 255, 0.6);
-  animation: blink 0.6s step-end infinite;
-}
-
-@keyframes blink {
-  0%,
-  100% {
-    border-color: rgba(10, 132, 255, 0.6);
-  }
-  50% {
-    border-color: transparent;
-  }
-}
 
 /* ===== 14. heartbeat ===== */
 .flight-heartbeat {
@@ -1223,7 +1052,7 @@
 }
 
 .strategy-page--result .directive-projection {
-  margin-top: -40rpx;
+  margin-top: -28rpx;
 }
 
 .dp-visible {
@@ -1368,9 +1197,11 @@
   font-size: 40rpx;
   font-weight: 700;
   color: #fff;
-  line-height: 1.5;
-  letter-spacing: 2rpx;
+  line-height: 1.48;
+  letter-spacing: 1rpx;
   text-align: center;
+  max-width: 560rpx;
+  margin: 0 auto;
 }
 
 .nav-reading-tags {
@@ -1423,53 +1254,50 @@
 /* 终端按钮 */
 .nav-terminal-actions {
   display: flex;
-  gap: 32rpx;
+  flex-direction: column;
+  gap: 28rpx;
+  align-items: center;
   width: 100%;
-  margin-top: 80rpx;
+  margin-top: 60rpx;
   position: relative;
   z-index: 20;
 }
 
-.nav-btn {
-  flex: 1;
+.result-primary-btn {
+  width: 440rpx;
   height: 96rpx;
-  border-radius: 48rpx;
+  border-radius: 999rpx;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(0, 200, 255, 0.12), transparent 62%),
+    linear-gradient(180deg, rgba(4, 22, 34, 0.94), rgba(2, 10, 18, 0.98));
+  border: 1rpx solid rgba(0, 190, 255, 0.26);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,0.05),
+    inset 0 -14rpx 26rpx rgba(0,0,0,0.32),
+    0 0 28rpx rgba(0, 170, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
+  color: rgba(230, 246, 255, 0.92);
+  font-size: 34rpx;
   font-weight: 700;
-  letter-spacing: 2rpx;
-  position: relative;
-  transition: all 180ms ease;
-  box-sizing: border-box;
-  
-  /* 深色内凹背景 */
-  background: linear-gradient(180deg, rgba(2, 10, 18, 0.95), rgba(4, 16, 26, 0.92));
-  border: 1rpx solid rgba(0, 200, 255, 0.12);
-  color: rgba(170, 210, 230, 0.75);
-  box-shadow:
-    inset 0 4rpx 10rpx rgba(0, 0, 0, 0.6),
-    0 0 12rpx rgba(0, 170, 255, 0.04);
+  letter-spacing: 3rpx;
+  transition: transform 180ms ease;
 }
 
-.nav-btn:active {
+.result-primary-btn:active {
   transform: translateY(2rpx) scale(0.99);
 }
 
-/* primary 按钮比 secondary 亮一点 */
-.nav-btn--primary {
-  border-color: rgba(0, 200, 255, 0.3);
-  color: rgba(230, 246, 255, 0.95);
-  box-shadow:
-    inset 0 2rpx 8rpx rgba(0, 0, 0, 0.4),
-    0 0 20rpx rgba(0, 200, 255, 0.15);
-  background: linear-gradient(180deg, rgba(3, 16, 30, 0.95), rgba(6, 28, 48, 0.92));
+.result-secondary-link {
+  font-size: 26rpx;
+  color: rgba(160, 210, 235, 0.52);
+  letter-spacing: 2rpx;
+  padding: 12rpx 24rpx;
 }
 
-.nav-btn--secondary {
-  border-color: rgba(0, 200, 255, 0.15);
-  color: rgba(170, 210, 230, 0.62);
+.result-secondary-link:active {
+  color: rgba(160, 210, 235, 0.78);
 }
 
 .strategy-result-spacer {
@@ -1477,14 +1305,16 @@
   min-height: 40rpx;
 }
 
+/* ===== 全局禁止圆形 spinner ===== */
+.strategy-page .loading-spinner,
+.strategy-page .spinner,
+.strategy-page .circle-loading {
+  display: none !important;
+}
+
 /* ===== 15. reduce-motion 强制兜底 ===== */
 .reduce-motion .directive-projection,
-.reduce-motion .projection-card,
-.reduce-motion .sync-bar,
-.reduce-motion .generation-status,
-.reduce-motion .wait-steps,
-.reduce-motion .nav-dashboard,
-.reduce-motion .nav-dashboard-actions {
+.reduce-motion .projection-card {
   animation: none !important;
   transition: none !important;
   filter: none !important;
@@ -1492,8 +1322,7 @@
 
 .reduce-motion .directive-projection,
 .reduce-motion .directive-projection.dp-visible,
-.reduce-motion .projection-card,
-.reduce-motion .nav-dashboard {
+.reduce-motion .projection-card {
   opacity: 1 !important;
   transform: none !important;
 }
