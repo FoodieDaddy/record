@@ -555,7 +555,6 @@ Page({
 
   /* ==================== generating 状态 ==================== */
 
-   */
   _runLogAnimation(options = {}) {
     const runId = this._runId
     const skipFirst = options.skipFirst === true
