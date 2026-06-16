@@ -26,7 +26,7 @@ let _loadingCount = 0;
 let _loadingTimer = null;
 
 function showGlobalLoading(options) {
-  if (options.silent) return;
+  if (options.silent || options.showLoading === false) return;
   if (_loadingCount === 0) {
     wx.showNavigationBarLoading();
     _loadingTimer = setTimeout(() => {
@@ -37,7 +37,7 @@ function showGlobalLoading(options) {
 }
 
 function hideGlobalLoading(options) {
-  if (options.silent) return;
+  if (options.silent || options.showLoading === false) return;
   _loadingCount--;
   if (_loadingCount <= 0) {
     _loadingCount = 0;

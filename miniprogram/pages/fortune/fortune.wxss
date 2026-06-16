@@ -1285,7 +1285,7 @@
 /* done / result: 核心淡出退到背景，缩窄高度以防遮挡标题 */
 .strategy-page--result .nav-core-stage,
 .flight-deck--done .nav-core-stage {
-  opacity: 0.04 !important;
+  opacity: 0.02 !important;
   animation: none !important;
   transform: translateY(-72rpx) scale(0.56) !important;
   pointer-events: none !important;
@@ -1302,6 +1302,7 @@
 .strategy-page--result .sync-bar,
 .strategy-page--result .generation-status,
 .strategy-page--result .wait-steps {
+  display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -1315,10 +1316,10 @@
 
 /* compact 态：done 阶段核心进一步收缩（优先级高于 entered） */
 .nav-core-stage--compact {
-  opacity: 0.04 !important;
+  opacity: 0.02 !important;
   animation: none !important;
   transform: translateY(-72rpx) scale(0.56) !important;
-  pointer-events: none;
+  pointer-events: none !important;
   min-height: 0 !important;
   max-height: 40rpx !important;
   margin-bottom: -20rpx !important;

@@ -364,7 +364,7 @@ Page({
   },
 
   onHide() {
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this.setData({ routeAnimating: 'prepare' });
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
@@ -380,7 +380,7 @@ Page({
   },
 
   onUnload() {
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
     // 只使用自定义 tabbar 的方法
@@ -443,6 +443,24 @@ Page({
     try {
       wx.hideLoading()
     } catch (e) {}
+  },
+
+  _resetLoadingState() {
+    this._hideSystemLoadingSafe()
+    this._requesting = false
+    this.setData({
+      requesting: false,
+      loading: false,
+      generationStatusText: '',
+      generationStatusLevel: 'normal',
+      waitStep: 0,
+      showSyncLogs: false,
+      compactSyncLogs: false,
+      logs: [],
+      heartbeatText: '',
+      engineWaitText: '',
+      waitLevel: 'normal'
+    })
   },
 
   _updateCockpitStatusByPhase() {
@@ -731,20 +749,14 @@ Page({
 
   /** 错误态回退：回到完整待机态 */
   _failCalc(message) {
-    this._hideSystemLoadingSafe()
-    this._requesting = false
+    this._resetLoadingState()
     this._calcSettled = true
     this._clearCalcTimers()
-    this._clearGeneratingVisualState()
     this.setData({
       pageMode: 'launch',
       flightStage: 'idle',
       uiPhase: 'idle',
       error: null,
-      logs: [],
-      heartbeatText: '',
-      engineWaitText: '',
-      waitLevel: 'normal',
       projectionVisible: false,
       coreCompact: false,
       firstEnter: false,
@@ -757,8 +769,7 @@ Page({
   _enterResultReveal(runId, viewState) {
     if (runId !== this._runId) return
 
-    this._hideSystemLoadingSafe()
-    this._requesting = false
+    this._resetLoadingState()
     this._clearCalcTimers()
     this._clearLongWaitTimers()
     this._stopHeartbeat()
@@ -770,14 +781,6 @@ Page({
         uiPhase: 'result',
         projectionVisible: true,
         coreCompact: true,
-        showSyncLogs: false,
-        compactSyncLogs: false,
-        logs: [],
-        generationStatusText: '',
-        generationStatusLevel: 'normal',
-        waitStep: 0,
-        requesting: false,
-        loading: false,
         ...viewState
       })
       this._updateCockpitStatusByPhase()
@@ -791,11 +794,6 @@ Page({
       projectionVisible: false,
       coreCompact: true,
       compactSyncLogs: true,
-      generationStatusText: '',
-      generationStatusLevel: 'normal',
-      waitStep: 0,
-      requesting: false,
-      loading: false,
       ...viewState
     })
     this._updateCockpitStatusByPhase()
@@ -809,16 +807,12 @@ Page({
 
     const doneTimer = setTimeout(() => {
       if (runId !== this._runId) return
+      this._resetLoadingState()
       this.setData({
+        pageMode: 'result',
         flightStage: 'done',
         uiPhase: 'result',
-        projectingResult: false,
-        showSyncLogs: false,
-        compactSyncLogs: false,
-        logs: [],
-        requesting: false,
-        loading: false,
-        generationStatusLevel: 'normal',
+        projectingResult: false
       })
       this._updateCockpitStatusByPhase()
     }, 420)
@@ -830,22 +824,17 @@ Page({
 
   /** 中断当前点火流程 */
   _abortCurrentFlight(options = {}) {
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this._clearFlightTimers()
     this._clearCalcTimers()
     this._clearProjectionTimers()
-    this._clearGeneratingVisualState()
     this._resetCalcFlags()
-    this._requesting = false
 
     if (options.resetToLaunch) {
       this.setData({
         pageMode: 'launch',
         flightStage: 'idle',
         uiPhase: 'idle',
-        logs: [],
-        heartbeatText: '',
-        engineWaitText: '',
         projectingResult: false,
         projectionVisible: false,
         coreCompact: false,
@@ -995,18 +984,18 @@ Page({
 
   onTapRegenerate() {
     vibrateShort('light')
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this.setData({ showRegenerateModal: true })
   },
 
   onCancelRegenerate() {
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this.setData({ showRegenerateModal: false })
   },
 
   onConfirmRegenerate() {
     vibrateShort('light')
-    this._hideSystemLoadingSafe()
+    this._resetLoadingState()
     this._clearFlightTimers()
     this._clearCalcTimers()
     this._clearProjectionTimers()
@@ -1037,16 +1026,6 @@ Page({
       themeColor: '#0A84FF',
       nextRefreshAtEpochMs: 0,
 
-      logs: [],
-      heartbeatText: '',
-      engineWaitText: '',
-      waitLevel: 'normal',
-      generationStatusText: '',
-      generationStatusLevel: 'normal',
-      waitStep: 0,
-      showSyncLogs: false,
-      compactSyncLogs: false,
-
       projectionVisible: false,
       coreCompact: false,
       projectingResult: false,
@@ -1058,9 +1037,8 @@ Page({
 
       error: null,
       forcePending: true,
-      requesting: false,
-      loading: false,
     })
+    this._resetLoadingState()
     this._updateCockpitStatusByPhase()
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -1072,6 +1050,7 @@ Page({
 
   onTapGeneratePoster() {
     vibrateShort('light')
+    this._hideSystemLoadingSafe()
     this.setData({ phase: 'poster_generating', posterError: '', posterModalVisible: true })
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
