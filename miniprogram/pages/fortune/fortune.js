@@ -980,6 +980,24 @@ Page({
     return runId === this._runId && this.data.pageMode === 'generating'
   },
 
+  onTapBeacon() {
+    vibrateShort('light')
+    wx.showToast({
+      title: '信标模块已就绪',
+      icon: 'none',
+      duration: 1500
+    })
+  },
+
+  onTapTrack() {
+    vibrateShort('light')
+    wx.showToast({
+      title: '航迹系统已接入',
+      icon: 'none',
+      duration: 1500
+    })
+  },
+
   /* ==================== result → 重新点火弹窗 ==================== */
 
   onTapRegenerate() {

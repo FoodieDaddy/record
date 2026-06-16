@@ -47,18 +47,27 @@
     </view>
 
     <!-- 共享导航核心（唯一 DOM，贯穿 idle -> done） -->
-    <view class="nav-core-stage {{firstEnter === false ? 'nav-core-stage--entered' : ''}} {{coreCompact ? 'nav-core-stage--compact' : ''}}">
-      <view class="scan-ring scan-ring--{{flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'gen' : 'idle'}}"></view>
-      <view class="nav-core-rings">
-        <view class="core-inner">
-          <view class="core-ring core-ring--1"></view>
-          <view class="core-ring core-ring--2"></view>
-          <view class="core-ring core-ring--3"></view>
-          <view class="core-glow"></view>
-          <view class="core-dot"></view>
+    <!-- 舰桥中控仪表盘 -->
+    <view class="nav-dashboard {{firstEnter === false ? 'nav-dashboard--entered' : ''}} {{coreCompact ? 'nav-dashboard--compact' : ''}}">
+      <!-- 左右实体按钮，在 done (coreCompact) 时通过 wx:if 隐藏 -->
+      <view wx:if="{{!coreCompact}}" class="nav-dashboard-side-button nav-dashboard-side-button--left" bindtap="onTapBeacon">
+        <text>信标</text>
+      </view>
+      
+      <!-- 中间胶囊显示屏 -->
+      <view class="nav-dashboard-screen">
+        <view class="nav-dashboard-dot {{pageMode === 'generating' ? 'nav-dashboard-dot--syncing' : ''}}"></view>
+        <view class="nav-dashboard-value">
+          <block wx:if="{{pageMode === 'launch'}}">READY</block>
+          <block wx:elif="{{pageMode === 'generating' || flightStage === 'syncing'}}">SYNC</block>
+          <block wx:elif="{{pageMode === 'result'}}">{{strategy.tag || 'DONE'}}</block>
+          <block wx:else>READY</block>
         </view>
       </view>
-      <view class="nav-core-beam"></view>
+
+      <view wx:if="{{!coreCompact}}" class="nav-dashboard-side-button nav-dashboard-side-button--right" bindtap="onTapTrack">
+        <text>航迹</text>
+      </view>
     </view>
 
     <!-- 投影线（projecting/done 态出现） -->
@@ -104,64 +113,15 @@
     </view>
 
     <!-- idle 态：点火控制器 -->
-    <view class="ignition-console {{
-      pageMode === 'launch' && uiPhase !== 'loading' && uiPhase !== 'revealing' && uiPhase !== 'result'
-        ? ''
-        : 'ignition-console--hidden'
-    }} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{uiPhase !== 'result'}}">
-      <!-- 四角铆点 -->
-      <view class="ignition-bolt ignition-bolt--tl"></view>
-      <view class="ignition-bolt ignition-bolt--tr"></view>
-      <view class="ignition-bolt ignition-bolt--bl"></view>
-      <view class="ignition-bolt ignition-bolt--br"></view>
-
-      <!-- 状态灯 -->
-      <view class="ignition-led ignition-led--left">
-        <view class="ignition-led-dot"></view>
-        <view class="ignition-led-dot"></view>
-      </view>
-      <view class="ignition-led ignition-led--right">
-        <view class="ignition-led-dot"></view>
-        <view class="ignition-led-dot"></view>
-      </view>
-
-      <view class="ignition-arm-header">
-        <text class="ignition-arm-label">ARMING</text>
-        <view class="ignition-arm-dots">
-          <view class="ignition-arm-dot"></view>
-          <view class="ignition-arm-dot"></view>
-        </view>
-      </view>
-
-      <view class="ignition-safety-rail {{flightStage !== 'idle' ? 'rail-open' : ''}}">
-        <view class="rail-half rail-half--left"></view>
-        <view class="rail-gap"></view>
-        <view class="rail-half rail-half--right"></view>
-      </view>
-
-      <view class="ignition-guard">
-        <view class="ignition-button" bindtap="onTapLaunchCore">
-          <view class="plasma-flame {{flightStage === 'pressed' || flightStage === 'plasma' ? 'plasma-flame--active' : ''}}">
-            <view class="plasma-flame-core"></view>
-          </view>
-          <text class="ignition-button-text">IGNITE</text>
-        </view>
-      </view>
-
-      <view class="ignition-energy-slot">
-        <view class="ignition-energy-fill {{flightStage !== 'idle' ? 'ignition-energy-fill--active' : ''}}"></view>
-      </view>
-
-      <view class="ignition-status">
-        <view class="ignition-status-item">
-          <view class="ignition-status-dot"></view>
-          <text class="ignition-status-text">PWR_ON</text>
-        </view>
-        <view class="ignition-status-item">
-          <view class="ignition-status-dot"></view>
-          <text class="ignition-status-text">SYS_OK</text>
-        </view>
-      </view>
+    <!-- 仪表台下方主操作按键区 -->
+    <view class="nav-dashboard-actions" wx:if="{{pageMode !== 'result'}}">
+      <button 
+        class="nav-dashboard-main-btn {{pageMode === 'generating' ? 'nav-dashboard-main-btn--loading' : ''}}" 
+        bindtap="onTapLaunchCore"
+        disabled="{{pageMode === 'generating'}}"
+      >
+        <text class="nav-dashboard-main-btn-text">{{pageMode === 'generating' ? '校准中' : '开始校准'}}</text>
+      </button>
     </view>
 
     <!-- done 态：结果投影内容 (极简飞船导航重构) -->
