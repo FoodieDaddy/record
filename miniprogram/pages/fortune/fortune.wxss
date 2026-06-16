@@ -419,11 +419,32 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 80rpx 40rpx;
+  justify-content: flex-start;
+  padding: 120rpx 40rpx 80rpx;
   box-sizing: border-box;
   position: relative;
   flex-shrink: 0;
+  transition: padding-top 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.flight-deck--idle,
+.flight-deck--arming,
+.flight-deck--pressed,
+.flight-deck--plasma,
+.flight-deck--lifting {
+  padding-top: 210rpx;
+}
+
+.flight-deck--syncing {
+  padding-top: 170rpx;
+}
+
+.flight-deck--projecting {
+  padding-top: 110rpx;
+}
+
+.flight-deck--done {
+  padding-top: 48rpx;
 }
 
 .flight-deck > .bay-status-tab {
@@ -431,12 +452,6 @@
   top: 24rpx;
   left: 28rpx;
   margin-bottom: 0;
-}
-
-/* result 态：从顶部开始，减少顶部留白 */
-.flight-deck--done {
-  justify-content: flex-start;
-  padding-top: 40rpx;
 }
 
 /* --- 顶部标题 --- */
@@ -617,12 +632,11 @@
   z-index: 2;
   opacity: 0;
   animation: fadeIn 0.6s ease 0.5s forwards;
+  will-change: transform, opacity, filter;
   transition:
-    opacity 0.35s ease,
-    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
-    max-height 0.35s ease,
-    margin 0.35s ease,
-    padding 0.35s ease;
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 420ms ease;
 }
 
 /* 首次入场完成后：移除动画，保持可见 */
@@ -681,27 +695,19 @@
 
 /* 淡出态：进一步降低透明度，缩小 */
 .ignition-console--fading {
-  opacity: 0.38;
-  transform: translateY(12rpx) scale(0.97);
+  opacity: 0;
+  transform: translateY(28rpx) scale(0.94);
+  filter: blur(8rpx);
   pointer-events: none;
-  max-height: 0;
-  overflow: hidden;
-  margin-top: 0;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 /* 隐藏态：强制取消入场动画，完全隐藏 */
 .ignition-console--hidden {
   animation: none !important;
   opacity: 0 !important;
-  transform: translateY(24rpx) scale(0.96);
+  transform: translateY(28rpx) scale(0.94) !important;
+  filter: blur(8rpx) !important;
   pointer-events: none;
-  max-height: 0;
-  overflow: hidden;
-  margin-top: 0;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 /* 保险状态头 */
@@ -1275,14 +1281,17 @@
 
 /* done: 核心淡出退到背景，保留最小占位 */
 .flight-deck--done .nav-core-stage {
-  opacity: 0 !important;
+  opacity: 0.16 !important;
   animation: none !important;
-  transform: translateY(-64rpx) scale(0.68);
+  transform: translateY(-28rpx) scale(0.58) !important;
   pointer-events: none;
-  min-height: 80rpx;
-  max-height: 80rpx;
-  margin-bottom: 0;
-  overflow: hidden;
+  min-height: 72rpx;
+  max-height: 72rpx;
+  margin-bottom: 4rpx;
+  transition:
+    opacity 720ms ease,
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-bottom 720ms ease;
 }
 
 /* entered 态：跳过入场动画，立即可见（重新点火用） */
@@ -1294,11 +1303,17 @@
 
 /* compact 态：done 阶段核心进一步收缩（优先级高于 entered） */
 .nav-core-stage--compact {
-  opacity: 0 !important;
+  opacity: 0.12 !important;
   animation: none !important;
-  transform: translateY(-64rpx) scale(0.72) !important;
+  transform: translateY(-28rpx) scale(0.58) !important;
   pointer-events: none;
-  min-height: 80rpx;
+  min-height: 72rpx;
+  max-height: 72rpx;
+  margin-bottom: 4rpx;
+  transition:
+    opacity 720ms ease,
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    margin-bottom 720ms ease;
 }
 
 .flight-deck--done .nav-core-rings {
@@ -1338,6 +1353,24 @@
   opacity: 1;
   transform: translate(-50%, 0);
   pointer-events: auto;
+}
+
+.strategy-page--phase-bridge .sync-bar,
+.strategy-page--phase-reveal .sync-bar {
+  opacity: 0.28;
+  transform: translate(-50%, -10rpx) scale(0.82);
+  transition:
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.strategy-page--phase-stable .sync-bar {
+  opacity: 0;
+  transform: translate(-50%, -18rpx) scale(0.72);
+  pointer-events: none;
+  transition:
+    opacity 420ms ease,
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* compact 态：日志收缩为小型完成点 */
@@ -1491,14 +1524,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40rpx 20rpx;
+  padding: 40rpx 40rpx;
   padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   opacity: 0;
-  transform: translateY(20rpx);
+  transform: translateY(12rpx) scale(0.985);
+  filter: blur(10rpx);
   transition:
-    opacity 0.5s ease,
-    transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    opacity 620ms ease,
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 620ms ease;
   pointer-events: none;
   flex-shrink: 0;
   position: relative;
@@ -1520,8 +1555,38 @@
 
 .dp-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
   pointer-events: auto;
+}
+
+.projection-card {
+  opacity: 0;
+  transform: translateY(8rpx);
+}
+
+.dp-visible .projection-card {
+  animation: projectionCardIn 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dp-visible .projection-card:nth-child(1) { animation-delay: 80ms; }
+.dp-visible .projection-card:nth-child(2) { animation-delay: 120ms; }
+.dp-visible .projection-card:nth-child(3) { animation-delay: 160ms; }
+.dp-visible .projection-card:nth-child(4) { animation-delay: 200ms; }
+.dp-visible .projection-card:nth-child(5) { animation-delay: 240ms; }
+.dp-visible .projection-card:nth-child(n+6) { animation-delay: 280ms; }
+
+@keyframes projectionCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8rpx);
+    filter: blur(6rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
 }
 
 @keyframes bgDataStream {
@@ -1635,47 +1700,6 @@
 
 /* ##### 极简飞船导航 HUD (重构版) ##### */
 
-.directive-projection {
-  width: 100%;
-  max-width: 680rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 40rpx 40rpx;
-  padding-bottom: calc(160rpx + env(safe-area-inset-bottom));
-  box-sizing: border-box;
-  opacity: 0;
-  transform: translateY(20rpx);
-  transition:
-    opacity 0.5s ease,
-    transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  pointer-events: none;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.dp-visible {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-
-/* 进场动画 */
-@keyframes navElementIn {
-  from {
-    opacity: 0;
-    transform: translateY(20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dp-visible .projection-card {
-  animation: navElementIn 0.6s ease-out both;
-}
-
 /* 核心判决 */
 .nav-main-verdict {
   width: 100%;
@@ -1781,4 +1805,24 @@
 .strategy-result-spacer {
   flex: 1;
   min-height: 40rpx;
+}
+
+/* ===== 15. reduce-motion 强制兜底 ===== */
+.reduce-motion .directive-projection,
+.reduce-motion .projection-card,
+.reduce-motion .sync-bar,
+.reduce-motion .generation-status,
+.reduce-motion .wait-steps,
+.reduce-motion .nav-core-stage,
+.reduce-motion .ignition-console {
+  animation: none !important;
+  transition: none !important;
+  filter: none !important;
+}
+
+.reduce-motion .directive-projection,
+.reduce-motion .directive-projection.dp-visible,
+.reduce-motion .projection-card {
+  opacity: 1 !important;
+  transform: none !important;
 }

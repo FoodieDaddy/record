@@ -1,4 +1,4 @@
-<scroll-view class="strategy-page {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px; padding-top: {{customNavHeight}}px;">
+<scroll-view class="strategy-page strategy-page--phase-{{visualPhase}} {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px; padding-top: {{customNavHeight}}px;">
 
   <!-- 统一沉浸式导航条 -->
   <view
@@ -65,24 +65,24 @@
     <view class="projection-line"></view>
 
     <!-- 日志接入条（syncing/projecting 态，紧贴核心下方） -->
-    <view class="sync-bar {{showSyncLogs && (flightStage === 'syncing' || flightStage === 'projecting') ? 'sync-bar--visible' : ''}} {{compactSyncLogs ? 'sync-bar--compact' : ''}}" wx:if="{{showSyncLogs && (flightStage === 'syncing' || flightStage === 'projecting')}}">
-      <view class="sync-bar-line" wx:if="{{!compactSyncLogs}}"></view>
+    <view class="sync-bar {{showSyncLogs && (flightStage === 'syncing' || flightStage === 'projecting') ? 'sync-bar--visible' : ''}} {{compactSyncLogs ? 'sync-bar--compact' : ''}}">
+      <view class="sync-bar-line"></view>
       <view class="sync-bar-chips">
         <view class="sync-chip {{item.visible ? 'sync-chip--on' : ''}}" wx:for="{{logs}}" wx:key="index">
           <view class="sync-chip-dot"></view>
-          <text class="sync-chip-text {{item.typing ? 'sync-chip-typing' : ''}}" wx:if="{{!compactSyncLogs}}">{{item.text}}</text>
+          <text class="sync-chip-text {{item.typing ? 'sync-chip-typing' : ''}}">{{item.text}}</text>
         </view>
       </view>
     </view>
 
     <!-- 统一等待主文案（唯一用户可见等待出口，替换 heartbeat + engineWaitText） -->
-    <view class="generation-status generation-status--{{generationStatusLevel}}" wx:if="{{generationStatusText && flightStage === 'syncing'}}">
+    <view class="generation-status generation-status--{{generationStatusLevel}} {{generationStatusText && flightStage === 'syncing' ? 'generation-status--visible' : ''}}">
       <view class="generation-status-dot"></view>
       <text>{{generationStatusText}}</text>
     </view>
 
     <!-- 四段式进度条（仅 generating 态显示） -->
-    <view class="wait-steps wait-steps--{{waitStep}}" wx:if="{{pageMode === 'generating' && waitStep > 0}}">
+    <view class="wait-steps wait-steps--{{waitStep}} {{pageMode === 'generating' && waitStep > 0 ? 'wait-steps--visible' : ''}}">
       <view class="wait-step {{waitStep >= 1 ? 'wait-step--active' : ''}}"></view>
       <view class="wait-step {{waitStep >= 2 ? 'wait-step--active' : ''}}"></view>
       <view class="wait-step {{waitStep >= 3 ? 'wait-step--active' : ''}}"></view>
@@ -104,7 +104,7 @@
     </view>
 
     <!-- idle 态：点火控制器 -->
-    <view class="ignition-console {{flightStage === 'idle' ? '' : flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--hidden' : 'ignition-console--fading'}} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{pageMode === 'launch' || pageMode === 'generating'}}">
+    <view class="ignition-console {{flightStage === 'idle' ? '' : flightStage === 'syncing' || flightStage === 'projecting' || flightStage === 'done' ? 'ignition-console--hidden' : 'ignition-console--fading'}} {{firstEnter === false ? 'ignition-console--entered' : ''}} {{flightStage === 'arming' || flightStage === 'pressed' || flightStage === 'plasma' || flightStage === 'lifting' ? 'ignition-console--active' : ''}}" wx:if="{{pageMode === 'launch' || pageMode === 'generating' || visualPhase === 'bridge' || visualPhase === 'reveal'}}">
       <!-- 四角铆点 -->
       <view class="ignition-bolt ignition-bolt--tl"></view>
       <view class="ignition-bolt ignition-bolt--tr"></view>
@@ -224,7 +224,6 @@
 
   <!-- 重新点火弹窗 -->
   <terminal-popup
-    wx:if="{{showRegenerateModal}}"
     visible="{{showRegenerateModal}}"
     title="确认重新点火？"
     content="每日指令校准仅限一次，强制重新点火可能导致导航轨迹偏移。确认执行？"

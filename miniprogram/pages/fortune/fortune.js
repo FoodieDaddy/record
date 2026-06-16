@@ -169,6 +169,8 @@ Page({
   data: {
     pageMode: 'launch',     // launch | generating | result | relaunchReady
     flightStage: 'idle',    // idle | arming | pressed | plasma | lifting | syncing | projecting | done
+    visualPhase: 'idle',
+    stageTransitioning: false,
     animationEnabled: true,
     reduceMotion: false,
     showRegenerateModal: false,
@@ -433,6 +435,7 @@ Page({
         this.setData({
           pageMode: 'result',
           flightStage: 'done',
+          visualPhase: 'stable',
           projectionVisible: true,
           coreCompact: true,
           firstEnter: false,
@@ -455,10 +458,13 @@ Page({
       this._runId++
       this._calcSettled = false
       this._calcFinishing = false
-      this.setData({ flightStage: 'syncing', pageMode: 'generating' })
+      this.setData({
+        flightStage: 'syncing',
+        pageMode: 'generating',
+        visualPhase: 'sync'
+      })
       this._fireApiRequest()
       this._runLogAnimation()
-      this._startHeartbeat()
       return
     }
 
@@ -478,33 +484,40 @@ Page({
     // 发送 API 请求（UI 不等）
     this._fireApiRequest()
 
-    // 0ms: arming
-    this.setData({ flightStage: 'arming' })
+    // 采用统一时间轴
+    this.setData({
+      flightStage: 'arming',
+      visualPhase: 'ignite',
+      stageTransitioning: true
+    })
 
-    // 120ms: pressed
     const t1 = setTimeout(() => {
+      if (this._runId !== this._runId) return
       this.setData({ flightStage: 'pressed' })
-    }, 120)
+    }, 140)
     this._flightTimers.push(t1)
 
-    // 360ms: plasma
     const t2 = setTimeout(() => {
+      if (this._runId !== this._runId) return
       this.setData({ flightStage: 'plasma' })
-    }, 360)
+    }, 420)
     this._flightTimers.push(t2)
 
-    // 600ms: lifting
     const t3 = setTimeout(() => {
+      if (this._runId !== this._runId) return
       this.setData({ flightStage: 'lifting' })
-    }, 600)
+    }, 760)
     this._flightTimers.push(t3)
 
-    // 980ms: syncing
     const t4 = setTimeout(() => {
-      this.setData({ flightStage: 'syncing', pageMode: 'generating' })
+      if (this._runId !== this._runId) return
+      this.setData({
+        flightStage: 'syncing',
+        pageMode: 'generating',
+        visualPhase: 'sync'
+      })
       this._runLogAnimation()
-      this._startHeartbeat()
-    }, 980)
+    }, 1180)
     this._flightTimers.push(t4)
   },
 
@@ -636,8 +649,8 @@ Page({
     if (!animReady) return
     this._calcFinishing = true
 
-    // 进入投影前统一清理等待态
-    this._clearGeneratingVisualState()
+    // 进入投影前只清理等待文案
+    this._clearGeneratingTextState()
 
     const result = this._calcResult
 
@@ -666,7 +679,7 @@ Page({
     } catch (e) {}
 
     this._calcSettled = true
-    this._enterProjection(runId, viewState)
+    this._enterProjectionBridge(runId, viewState)
   },
 
   /** 构建完整结果 viewState */
@@ -712,40 +725,73 @@ Page({
     wx.showToast({ title: sanitizeStrategyText(message) || '导航计算响应超时，请稍后再试', icon: 'none' })
   },
 
-  /** 进入投影阶段：数据已就绪，先写入再展开 */
   _enterProjection(runId, viewState) {
-    this._requesting = false
-    this._clearCalcTimers()
-    this._clearGeneratingVisualState()
+    this._enterProjectionBridge(runId, viewState)
+  },
 
+  _enterProjectionBridge(runId, viewState) {
     if (runId !== this._runId) return
 
-    // 一次写入所有结果数据 + 进入 projecting
+    this._requesting = false
+    this._clearCalcTimers()
+    this._clearLongWaitTimers()
+    this._stopHeartbeat()
+
+    // 如果 reduceMotion 开启，则不执行任何动画，直接稳定显示
+    if (!this._isMotionEnabled()) {
+      this.setData({
+        pageMode: 'result',
+        flightStage: 'done',
+        visualPhase: 'stable',
+        projectionVisible: true,
+        coreCompact: true,
+        projectingResult: false,
+        logs: [],
+        showSyncLogs: false,
+        compactSyncLogs: false,
+        stageTransitioning: false,
+        ...viewState
+      })
+      return
+    }
+
+    // 1. 进入 bridge 阶段
     this.setData({
       pageMode: 'result',
       flightStage: 'projecting',
+      visualPhase: 'bridge',
       projectingResult: true,
       projectionVisible: false,
       coreCompact: false,
-      logs: [],
-      engineWaitText: '',
-      waitLevel: 'normal',
+      compactSyncLogs: true,
       ...viewState,
     })
 
-    // 80ms 后展开结果卡片
-    const visTimer = setTimeout(() => {
+    // 2. 220ms 后 reveal 阶段
+    const revealTimer = setTimeout(() => {
       if (runId !== this._runId) return
-      this.setData({ projectionVisible: true })
-    }, 80)
-    this._projectionTimers.push(visTimer)
+      this.setData({
+        visualPhase: 'reveal',
+        projectionVisible: true,
+      })
+    }, 220)
 
-    // 480~560ms 后进入 done
-    const doneTimer = setTimeout(() => {
+    // 3. 980ms 后 stable 阶段
+    const stableTimer = setTimeout(() => {
       if (runId !== this._runId) return
-      this.setData({ flightStage: 'done', projectingResult: false, coreCompact: true })
-    }, 520)
-    this._projectionTimers.push(doneTimer)
+      this.setData({
+        flightStage: 'done',
+        visualPhase: 'stable',
+        projectingResult: false,
+        coreCompact: true,
+        logs: [],
+        showSyncLogs: false,
+        compactSyncLogs: false,
+        stageTransitioning: false,
+      })
+    }, 980)
+
+    this._projectionTimers.push(revealTimer, stableTimer)
   },
 
   /* ==================== 统一清理 ==================== */
@@ -875,6 +921,17 @@ Page({
     })
   },
 
+  _clearGeneratingTextState() {
+    this._stopHeartbeat()
+    this.setData({
+      generationStatusText: '',
+      generationStatusLevel: 'normal',
+      heartbeatText: '',
+      engineWaitText: '',
+      waitStep: 0
+    })
+  },
+
   /** 清理所有生成中视觉状态 */
   _clearGeneratingVisualState() {
     this._stopHeartbeat()
@@ -920,6 +977,8 @@ Page({
     this.setData({
       pageMode: 'launch',
       flightStage: 'idle',
+      visualPhase: 'idle',
+      stageTransitioning: false,
       showRegenerateModal: false,
       firstEnter: false,
       _ignitionEntered: true,
