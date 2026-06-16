@@ -63,3 +63,19 @@ entities.json
 .ui-review/
 docs/superpowers/
 *.zip
+
+# AI Assistants
+.codebuddy/
+.gemini/
+
+# Patch and Diff files
+*.patch
+*.diff
+
+# Node dependencies and builds
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
