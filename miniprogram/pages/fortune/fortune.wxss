@@ -699,6 +699,7 @@
   transform: translateY(28rpx) scale(0.94);
   filter: blur(8rpx);
   pointer-events: none;
+  position: absolute;
 }
 
 /* 隐藏态：强制取消入场动画，完全隐藏 */
@@ -708,6 +709,7 @@
   transform: translateY(28rpx) scale(0.94) !important;
   filter: blur(8rpx) !important;
   pointer-events: none;
+  position: absolute;
 }
 
 /* 保险状态头 */

@@ -1,4 +1,4 @@
-<view class="tp-mask {{visible ? 'tp-show' : ''}} {{reduceMotion ? 'reduce-motion' : ''}}" catchtap="noop">
+<view class="tp-mask {{showAnimation ? 'tp-show' : ''}}" catchtap="noop" wx:if="{{mounted}}">
   <view class="tp-container {{reduceMotion ? 'reduce-motion' : ''}}" catchtap="noop">
     <view class="tp-body">
       <view class="tp-signal">

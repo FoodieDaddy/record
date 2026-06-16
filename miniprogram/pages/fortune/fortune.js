@@ -471,13 +471,10 @@ Page({
     this._runIgnitionSequence()
   },
 
-  /**
-   * 点火序列：统一镜头，不切换 pageMode
-   * 时间线压缩到 ~1120ms 完成主点火
-   */
   _runIgnitionSequence() {
     this._abortCurrentFlight({ resetToLaunch: false })
     this._runId++
+    const runId = this._runId
     this._calcSettled = false
     this._calcFinishing = false
 
@@ -492,25 +489,25 @@ Page({
     })
 
     const t1 = setTimeout(() => {
-      if (this._runId !== this._runId) return
+      if (runId !== this._runId) return
       this.setData({ flightStage: 'pressed' })
     }, 140)
     this._flightTimers.push(t1)
 
     const t2 = setTimeout(() => {
-      if (this._runId !== this._runId) return
+      if (runId !== this._runId) return
       this.setData({ flightStage: 'plasma' })
     }, 420)
     this._flightTimers.push(t2)
 
     const t3 = setTimeout(() => {
-      if (this._runId !== this._runId) return
+      if (runId !== this._runId) return
       this.setData({ flightStage: 'lifting' })
     }, 760)
     this._flightTimers.push(t3)
 
     const t4 = setTimeout(() => {
-      if (this._runId !== this._runId) return
+      if (runId !== this._runId) return
       this.setData({
         flightStage: 'syncing',
         pageMode: 'generating',
