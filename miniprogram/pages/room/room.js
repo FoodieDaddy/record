@@ -306,6 +306,10 @@ Page(Object.assign(
       if (typeof this.getTabBar === 'function' && this.getTabBar()) {
         this.getTabBar().setData({ selected: 0 })
       }
+      this.setData({ routeAnimating: true });
+      setTimeout(() => {
+        this.setData({ routeAnimating: false });
+      }, 450);
       app.globalData.activeTabKey = 'cockpit'
       const audioEnabled = wx.getStorageSync('audioEnabled') !== false;
       app.globalData.audioEnabled = audioEnabled;
@@ -507,6 +511,7 @@ Page(Object.assign(
     onHide() {
       wx.hideLoading();
       wx.hideToast();
+      this.setData({ routeAnimating: 'prepare' });
       if (this._autoJoinTimer) {
         clearTimeout(this._autoJoinTimer);
         this._autoJoinTimer = null;

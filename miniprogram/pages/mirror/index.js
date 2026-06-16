@@ -223,6 +223,7 @@ cockpitView: {
   },
 
   onHide() {
+    this.setData({ routeAnimating: 'prepare' });
     this._clearAllTimers();
     this._showCustomTabBar();
     wx.hideLoading();
@@ -236,6 +237,10 @@ cockpitView: {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 2 })
     }
+    this.setData({ routeAnimating: true });
+    setTimeout(() => {
+      this.setData({ routeAnimating: false });
+    }, 450);
     getApp().globalData.activeTabKey = 'holo'
     this.syncRoomStatus()
     if (!this.data.loadedOnce) return;
@@ -842,10 +847,12 @@ cockpitView: {
   // ==================== 快速接入 ====================
 
   openMbtiPicker() {
+    vibrateShort('light');
     this.setData({ showMbtiPicker: true, pickerSyncState: 'idle', pickerError: '' });
   },
 
   closeMbtiPicker() {
+    vibrateShort('light');
     this.setData({ showMbtiPicker: false, pickerSyncState: 'idle', pickerError: '' });
   },
 

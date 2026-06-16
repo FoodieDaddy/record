@@ -16,8 +16,8 @@ const ENV = {
   mode: 'local',
 
   local: {
-    apiBaseUrl: 'http://127.0.0.1:18080',
-    wsUrl: 'ws://127.0.0.1:18080'
+    apiBaseUrl: 'http://192.168.31.167:18080',
+    wsUrl: 'ws://192.168.31.167:18080'
   },
 
   anyservice: {

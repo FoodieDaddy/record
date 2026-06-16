@@ -1162,3 +1162,76 @@ page {
   line-height: 80rpx;
   font-size: 26rpx;
 }
+
+/* ===== 全局太空科幻切角按钮 (Global Sci-Fi Buttons) ===== */
+.sr-btn {
+  position: relative;
+  height: 82rpx;
+  border-radius: 0;
+  margin: 0;
+  padding: 0 28rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--text-primary);
+  border: 1rpx solid rgba(10, 132, 255, 0.26);
+  clip-path: polygon(
+    18rpx 0,
+    100% 0,
+    100% calc(100% - 18rpx),
+    calc(100% - 18rpx) 100%,
+    0 100%,
+    0 18rpx
+  );
+  transition: opacity 0.18s, transform 0.18s, border-color 0.18s, background-color 0.18s;
+  pointer-events: auto; /* 保证可点击 */
+}
+
+.sr-btn::after {
+  display: none;
+}
+
+.sr-btn-primary {
+  border-color: rgba(0, 200, 255, 0.48);
+  background: linear-gradient(90deg, rgba(10, 132, 255, 0.20), rgba(0, 200, 255, 0.10));
+  color: rgba(226, 242, 255, 0.96);
+}
+
+.sr-btn-secondary {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-primary);
+}
+
+.sr-btn-danger-outline {
+  border-color: rgba(255, 69, 58, 0.38);
+  color: rgba(255, 126, 118, 0.96);
+  background: transparent;
+}
+
+.sr-btn--disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.sr-btn--loading {
+  opacity: 0.64;
+}
+
+/* 按钮按压态触感反馈 */
+.sr-btn:active {
+  transform: scale(0.97);
+  border-color: rgba(0, 200, 255, 0.52);
+}
+
+.reduce-motion .sr-btn {
+  transition: none !important;
+  transform: none !important;
+}
+

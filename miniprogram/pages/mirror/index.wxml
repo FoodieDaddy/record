@@ -1,4 +1,7 @@
-<view class="mirror-bay {{reduceMotion ? 'reduce-motion' : ''}}" style="padding-top: {{customNavHeight}}px;">
+<!-- 全局切页扫描遮罩 -->
+<view class="route-transition-mask {{routeAnimating ? 'is-animating' : ''}}"></view>
+
+<view class="mirror-bay {{reduceMotion ? 'reduce-motion' : ''}} route-transition-enter {{routeAnimating ? 'is-animating' : ''}}" style="padding-top: {{customNavHeight}}px;">
 
   <!-- 统一沉浸式导航条 -->
   <view
@@ -448,15 +451,18 @@
   </block>
 
   <!-- 固定操作栏：三按钮（tabbar 上方） -->
-  <view class="mirror-action-dock {{reduceMotion ? '' : 'dock-glow'}}" wx:if="{{mainVisible && !calibrationVisible && mbti.calibrated}}">
-    <view class="dock-btn dock-btn-primary" bindtap="generateDossier">
-      <text class="dock-btn-text">生成镜像图片</text>
+  <view class="mirror-action-dock" wx:if="{{mainVisible && !calibrationVisible && mbti.calibrated}}">
+    <view class="cyber-btn cyber-btn--primary" bindtap="generateDossier">
+      <view class="cyber-btn-scan"></view>
+      <text class="cyber-btn-text">生成镜像</text>
     </view>
-    <view class="dock-btn" bindtap="startFullCalibration">
-      <text class="dock-btn-text">重新校准</text>
+    <view class="cyber-btn cyber-btn--secondary" bindtap="startFullCalibration">
+      <view class="cyber-btn-glitch"></view>
+      <text class="cyber-btn-text">重新校准</text>
     </view>
-    <view class="dock-btn dock-btn-ghost" bindtap="openMbtiPicker">
-      <text class="dock-btn-text">修改协议</text>
+    <view class="cyber-btn cyber-btn--secondary" bindtap="openMbtiPicker">
+      <view class="cyber-btn-glitch"></view>
+      <text class="cyber-btn-text">修改协议</text>
     </view>
   </view>
 
@@ -489,24 +495,43 @@
   <!-- 隐藏 Canvas -->
   <canvas type="2d" id="personaCardCanvas" class="persona-card-canvas"></canvas>
 
-  <!-- 预览弹窗 -->
-  <view wx:if="{{isCardPreview}}" class="card-preview-mask" catchtouchmove="noop">
-    <view class="card-preview-panel">
-      <view class="preview-head">
-        <text class="preview-title">镜像档案卡</text>
-        <sr-hatch-close bind:close="closeCardPreview" reduceMotion="{{reduceMotion}}" />
+  <!-- 预览弹窗 (高级科幻全息版) -->
+  <view wx:if="{{isCardPreview}}" class="cyber-preview-mask" catchtouchmove="noop">
+    <view class="cyber-preview-panel">
+      <!-- 边角装饰 -->
+      <view class="cyber-corner-deco cyber-corner-tl"></view>
+      <view class="cyber-corner-deco cyber-corner-tr"></view>
+      <view class="cyber-corner-deco cyber-corner-bl"></view>
+      <view class="cyber-corner-deco cyber-corner-br"></view>
+
+      <view class="cyber-preview-head">
+        <view class="cyber-preview-title-box">
+          <view class="cyber-preview-dot"></view>
+          <text class="cyber-preview-title">DATA_PROJECTION / 镜像档案卡</text>
+        </view>
+        <view class="cyber-preview-close" bindtap="closeCardPreview">
+          <sr-hatch-close bind:close="closeCardPreview" reduceMotion="{{reduceMotion}}" />
+        </view>
       </view>
-      <image class="preview-img" src="{{cardTempPath}}" mode="widthFix" />
-      <view class="preview-actions">
-        <view class="preview-btn preview-btn-primary" bindtap="saveCard">
-          <text class="preview-btn-text">保存镜像卡</text>
+
+      <view class="cyber-preview-img-wrap">
+        <view class="cyber-scan-overlay"></view>
+        <image class="cyber-preview-img" src="{{cardTempPath}}" mode="widthFix" />
+      </view>
+
+      <view class="cyber-preview-actions">
+        <view class="cyber-btn cyber-btn--secondary" bindtap="closeCardPreview">
+          <view class="cyber-btn-glitch"></view>
+          <text class="cyber-btn-text">关闭</text>
         </view>
-        <button class="preview-btn preview-btn-share" open-type="share">
-          <text class="preview-btn-text">发送给朋友</text>
+        <view class="cyber-btn cyber-btn--primary" bindtap="saveCard">
+          <view class="cyber-btn-scan"></view>
+          <text class="cyber-btn-text">保存</text>
+        </view>
+        <button class="cyber-btn cyber-btn--primary" open-type="share">
+          <view class="cyber-btn-scan"></view>
+          <text class="cyber-btn-text">分享</text>
         </button>
-        <view class="preview-btn" bindtap="closeCardPreview">
-          <text class="preview-btn-text">关闭预览</text>
-        </view>
       </view>
     </view>
   </view>

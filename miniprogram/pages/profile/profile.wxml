@@ -1,4 +1,7 @@
-<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}} {{voiceSheetVisible || nicknameDrawerVisible ? 'terminal-page--overlay-open' : ''}}" style="padding-top: {{customNavHeight}}px;">
+<!-- 全局切页扫描遮罩 -->
+<view class="route-transition-mask {{routeAnimating ? 'is-animating' : ''}}"></view>
+
+<view class="terminal-page {{!animationEnabled ? 'reduce-motion' : ''}} {{voiceSheetVisible || nicknameDrawerVisible ? 'terminal-page--overlay-open' : ''}} route-transition-enter {{routeAnimating ? 'is-animating' : ''}}" style="padding-top: {{customNavHeight}}px;">
   <!-- 统一沉浸式导航条 -->
   <view
     class="sr-custom-nav"

@@ -1,6 +1,9 @@
 <wxs src="./room.wxs" module="fmt" />
 <wxs src="../../utils/truncate.wxs" module="t" />
-<view class="room-page cockpit-page {{!animationEnabled ? 'reduce-motion' : ''}} {{cockpitState === 'active' ? 'room-page--active' : ''}} {{isInputOpen ? 'room-page--input-open' : ''}}">
+<!-- 全局切页扫描遮罩 -->
+<view class="route-transition-mask {{routeAnimating ? 'is-animating' : ''}}"></view>
+
+<view class="room-page cockpit-page {{!animationEnabled ? 'reduce-motion' : ''}} {{cockpitState === 'active' ? 'room-page--active' : ''}} {{isInputOpen ? 'room-page--input-open' : ''}} route-transition-enter {{routeAnimating ? 'is-animating' : ''}}">
   <view
     class="room-custom-nav {{cockpitState === 'active' ? 'room-custom-nav--active' : ''}}"
     style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;"

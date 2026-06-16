@@ -21,6 +21,35 @@ const _bizToastTimes = new Map();
 /** 401 登出防抖 */
 let _loggingOut = false;
 
+/** 全局 Loading 状态管理 */
+let _loadingCount = 0;
+let _loadingTimer = null;
+
+function showGlobalLoading(options) {
+  if (options.silent) return;
+  if (_loadingCount === 0) {
+    wx.showNavigationBarLoading();
+    _loadingTimer = setTimeout(() => {
+      wx.showLoading({ title: '信号传输中', mask: true });
+    }, 500);
+  }
+  _loadingCount++;
+}
+
+function hideGlobalLoading(options) {
+  if (options.silent) return;
+  _loadingCount--;
+  if (_loadingCount <= 0) {
+    _loadingCount = 0;
+    wx.hideNavigationBarLoading();
+    if (_loadingTimer) {
+      clearTimeout(_loadingTimer);
+      _loadingTimer = null;
+    }
+    wx.hideLoading();
+  }
+}
+
 function createRequestId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
@@ -47,6 +76,8 @@ function request(options) {
       return inflight.get(key).promise;
     }
   }
+
+  showGlobalLoading(options);
 
   const requestId = createRequestId();
   const start = Date.now();
@@ -154,6 +185,7 @@ function request(options) {
 
     const onComplete = () => {
       inflight.delete(key);
+      hideGlobalLoading(options);
       const duration = Date.now() - start;
       if (duration > 3000) {
         console.warn(`[request] ${method} ${options.url} ${duration}ms`);

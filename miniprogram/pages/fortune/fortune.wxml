@@ -163,49 +163,36 @@
     <!-- done 态：结果投影内容 -->
     <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{pageMode === 'result'}}">
 
-      <view class="dp-header projection-card hide-page-title" style="display: none;">
-        <text class="dp-title">今日指令投影</text>
-        <text class="dp-date">{{currentDate}}</text>
-      </view>
-
-      <!-- 状态胶囊 -->
-      <view class="strategy-tag-pill projection-card" style="color: {{themeColor}}; border-color: {{themeColor + '40'}}; background: {{themeColor + '10'}};">
-        <text>{{strategy.tag || '节奏校准'}}</text>
-      </view>
-
-      <!-- HUD 芯片 -->
-      <view class="strategy-hud-chips projection-card">
-        <view class="strategy-hud-chip">
-          <text class="strategy-hud-chip-label">指令源</text>
-          <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
+      <!-- 状态胶囊 & HUD 芯片 组合 -->
+      <view class="strategy-header-group projection-card">
+        <view class="strategy-tag-pill" style="color: {{themeColor}}; border-color: {{themeColor + '40'}}; background: {{themeColor + '10'}}; box-shadow: 0 4rpx 16rpx {{themeColor + '15'}};">
+          <text>{{strategy.tag || '节奏校准'}}</text>
         </view>
-        <view class="strategy-hud-chip-divider"></view>
-        <view class="strategy-hud-chip">
-          <text class="strategy-hud-chip-label">观测窗</text>
-          <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
-        </view>
-        <view class="strategy-hud-chip-divider"></view>
-        <view class="strategy-hud-chip">
-          <text class="strategy-hud-chip-label">状态噪声</text>
-          <text class="strategy-hud-chip-value" style="color: {{userTagColor}}">{{userTagLabel}}</text>
-        </view>
-      </view>
-
-      <!-- 舰载指令（主视觉） -->
-      <view class="strategy-section--directive projection-card">
-        <view class="strategy-reading">
-          <view class="strategy-reading-head">
-            <text class="strategy-reading-name">{{directiveText}}</text>
+        
+        <view class="strategy-hud-chips">
+          <view class="strategy-hud-chip">
+            <text class="strategy-hud-chip-label">指令源</text>
+            <text class="strategy-hud-chip-value">{{sourceLabel}}</text>
           </view>
-          <view class="strategy-reading-tags">
-            <view class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
+          <view class="strategy-hud-chip-divider"></view>
+          <view class="strategy-hud-chip">
+            <text class="strategy-hud-chip-label">观测窗</text>
+            <text class="strategy-hud-chip-value">{{solarTermLabel}}</text>
+          </view>
+          <view class="strategy-hud-chip-divider"></view>
+          <view class="strategy-hud-chip">
+            <text class="strategy-hud-chip-label">状态噪声</text>
+            <text class="strategy-hud-chip-value" style="color: {{userTagColor}}">{{userTagLabel}}</text>
           </view>
         </view>
       </view>
 
-      <!-- 状态读数 -->
-      <view class="strategy-insight projection-card">
-        <text class="strategy-insight-text">{{strategy.verdict}}</text>
+      <!-- 核心判决区 (取代原有的 directive 和 insight) -->
+      <view class="strategy-core-verdict projection-card">
+        <text class="strategy-verdict-text">{{strategy.verdict}}</text>
+        <view class="strategy-reading-tags" wx:if="{{strategy.tags && strategy.tags.length > 0}}">
+          <view class="strategy-reading-tag" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
+        </view>
       </view>
 
       <!-- 推进节奏 (Buffs) -->
@@ -266,6 +253,9 @@
       <text class="flight-deck-info-text">NAV_UNIT: MK-IV STATUS: STANDBY</text>
       <text class="flight-deck-info-text">LAST_SYNC: {{currentDate}}</text>
     </view>
+
+    <!-- 底部安全区占位，确保滚动到底部时不被 Tab Bar 遮挡 -->
+    <view style="width: 100%; height: var(--sr-page-bottom-safe, calc(240rpx + env(safe-area-inset-bottom))); flex-shrink: 0;"></view>
 
   </view>
 

@@ -1,0 +1,11 @@
+--- a/miniprogram/pages/fortune/fortune.wxss
++++ b/miniprogram/pages/fortune/fortune.wxss
+@@ -10,8 +10,6 @@
+   align-items: center;
+   box-sizing: border-box;
+   position: relative;
+-  /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
+-  padding: 24rpx;
+-  padding-bottom: var(--sr-page-bottom-safe, calc(240rpx + env(safe-area-inset-bottom)));
++  padding: 24rpx;
+ }

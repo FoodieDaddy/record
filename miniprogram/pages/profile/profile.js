@@ -117,6 +117,10 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 3 })
     }
+    this.setData({ routeAnimating: true });
+    setTimeout(() => {
+      this.setData({ routeAnimating: false });
+    }, 450);
     app.globalData.activeTabKey = 'identity'
     this.syncRoomStatus()
     const loggedIn = !!app.globalData.token;
@@ -645,6 +649,7 @@ Page({
   },
 
   onHide() {
+    this.setData({ routeAnimating: 'prepare' });
     this.flushSave();
     this.hideHud();
     if (this.data.nicknameDrawerVisible) {

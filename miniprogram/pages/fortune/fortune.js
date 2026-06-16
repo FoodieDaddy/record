@@ -289,6 +289,10 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ selected: 1 })
     }
+    this.setData({ routeAnimating: true });
+    setTimeout(() => {
+      this.setData({ routeAnimating: false });
+    }, 450);
     app.globalData.activeTabKey = 'nav'
     wx.setNavigationBarTitle({ title: '导航舱' })
     this._startCountdown()
@@ -371,6 +375,7 @@ Page({
   },
 
   onHide() {
+    this.setData({ routeAnimating: 'prepare' });
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
     // 海报弹层可能已隐藏 tabbar，离开页面时恢复
@@ -1438,6 +1443,7 @@ Page({
   /* ==================== poster_preview 状态 ==================== */
 
   onSavePoster() {
+    vibrateShort('light')
     if (!this._posterImagePath) return
     wx.saveImageToPhotosAlbum({
       filePath: this._posterImagePath,
@@ -1460,6 +1466,7 @@ Page({
   },
 
   onSharePosterImage() {
+    vibrateShort('light')
     if (!this._posterImagePath) return
     if (wx.showShareImageMenu) {
       wx.showShareImageMenu({
@@ -1474,6 +1481,7 @@ Page({
   },
 
   onClosePoster() {
+    vibrateShort('light')
     this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -1482,6 +1490,7 @@ Page({
   },
 
   onPosterRetry() {
+    vibrateShort('light')
     this.setData({ posterError: '', phase: 'poster_generating' })
     setTimeout(() => {
       this._renderPosterCanvas()
@@ -1489,6 +1498,7 @@ Page({
   },
 
   onPosterCancel() {
+    vibrateShort('light')
     this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {

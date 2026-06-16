@@ -36,9 +36,9 @@ function getEnvVersion() {
 }
 
 function resolveConfig() {
-  // Storage 运行时覆盖优先
-  const override = readRuntimeOverride();
-  if (override) return override;
+  // 暂时屏蔽 Storage 运行时覆盖，强制读取 env.js 以使真机 IP 生效
+  // const override = readRuntimeOverride();
+  // if (override) return override;
 
   const mode = ENV.mode || 'local';
 

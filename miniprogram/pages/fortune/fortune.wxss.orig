@@ -1,19 +1,14 @@
 /* ===== 1. 全局容器 ===== */
 .strategy-page {
   background:
-    radial-gradient(circle at 20% 0%, rgba(0, 175, 255, 0.08), transparent 32%),
-    radial-gradient(
-      circle at 90% 18%,
-      rgba(94, 92, 230, 0.05),
-      transparent 30%
-    ),
-    #05070a;
+    radial-gradient(circle at 20% 0%, rgba(0,175,255,0.08), transparent 32%),
+    radial-gradient(circle at 90% 18%, rgba(94,92,230,0.05), transparent 30%),
+    #05070A;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-sizing: border-box;
   position: relative;
-  /* 自定义 tabbar 140rpx + Home Indicator + 操作栏预留 */
   padding: 24rpx;
 }
 
@@ -26,7 +21,7 @@
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: #0a0a0a;
+  background: #0A0A0A;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -37,12 +32,12 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: #00c8ff;
-  box-shadow: 0 0 16rpx rgba(0, 200, 255, 0.45);
+  background: #00C8FF;
+  box-shadow: 0 0 16rpx rgba(0,200,255,.45);
 }
 
 .page-skeleton-text {
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255,255,255,.58);
   font-size: 24rpx;
   letter-spacing: 2rpx;
 }
@@ -83,28 +78,14 @@
   opacity: 1 !important;
 }
 
-.reduce-motion .core-dot {
-  opacity: 0.6;
-}
-.reduce-motion .core-glow {
-  opacity: 0.3;
-}
-.reduce-motion .flight-heartbeat-dot {
-  opacity: 0.6;
-}
+.reduce-motion .core-dot { opacity: 0.6; }
+.reduce-motion .core-glow { opacity: 0.3; }
+.reduce-motion .flight-heartbeat-dot { opacity: 0.6; }
 
-.reduce-motion .plasma-flame {
-  display: none !important;
-}
-.reduce-motion .nav-core-beam {
-  display: none !important;
-}
-.reduce-motion .projection-line {
-  display: none !important;
-}
-.reduce-motion .sync-bar-line {
-  display: none !important;
-}
+.reduce-motion .plasma-flame { display: none !important; }
+.reduce-motion .nav-core-beam { display: none !important; }
+.reduce-motion .projection-line { display: none !important; }
+.reduce-motion .sync-bar-line { display: none !important; }
 
 .reduce-motion .flight-deck--plasma,
 .reduce-motion .flight-deck--lifting,
@@ -113,50 +94,16 @@
 }
 
 /* reduce-motion: 结果直接可见 */
-.reduce-motion .directive-projection.dp-visible {
-  opacity: 1;
-  transform: none;
-}
-.reduce-motion .directive-projection .projection-card {
-  opacity: 1;
-  transform: none;
-  animation: none !important;
-}
+.reduce-motion .directive-projection.dp-visible { opacity: 1; transform: none; }
+.reduce-motion .directive-projection .projection-card { opacity: 1; transform: none; animation: none !important; }
 
 /* ===== 3. 可见性工具类 ===== */
-.fdh-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-.fdh-hidden {
-  opacity: 0;
-  pointer-events: none;
-  height: 0;
-  margin: 0;
-  overflow: hidden;
-}
-.fdi-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-.fdi-hidden {
-  opacity: 0;
-  pointer-events: none;
-  height: 0;
-  margin: 0;
-  overflow: hidden;
-}
-.dhb-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-.dhb-hidden {
-  opacity: 0;
-  pointer-events: none;
-  height: 0;
-  margin: 0;
-  overflow: hidden;
-}
+.fdh-visible { opacity: 1; pointer-events: auto; }
+.fdh-hidden { opacity: 0; pointer-events: none; height: 0; margin: 0; overflow: hidden; }
+.fdi-visible { opacity: 1; pointer-events: auto; }
+.fdi-hidden { opacity: 0; pointer-events: none; height: 0; margin: 0; overflow: hidden; }
+.dhb-visible { opacity: 1; pointer-events: auto; }
+.dhb-hidden { opacity: 0; pointer-events: none; height: 0; margin: 0; overflow: hidden; }
 
 /* ===== 4. 飞控核心通用元素 ===== */
 .core-inner {
@@ -171,7 +118,7 @@
 .core-ring {
   position: absolute;
   border-radius: 50%;
-  border: 1rpx solid rgba(255, 255, 255, 0.04);
+  border: 1rpx solid rgba(255,255,255,0.04);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -180,19 +127,19 @@
 .core-ring--1 {
   width: 200rpx;
   height: 200rpx;
-  border-color: rgba(10, 132, 255, 0.12);
+  border-color: rgba(10,132,255,0.12);
 }
 
 .core-ring--2 {
   width: 130rpx;
   height: 130rpx;
-  border-color: rgba(10, 132, 255, 0.08);
+  border-color: rgba(10,132,255,0.08);
 }
 
 .core-ring--3 {
   width: 60rpx;
   height: 60rpx;
-  border-color: rgba(10, 132, 255, 0.06);
+  border-color: rgba(10,132,255,0.06);
 }
 
 /* 能量辉光 */
@@ -200,11 +147,7 @@
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(10, 132, 255, 0.25),
-    transparent 70%
-  );
+  background: radial-gradient(circle, rgba(10,132,255,0.25), transparent 70%);
   position: absolute;
   top: 50%;
   left: 50%;
@@ -214,15 +157,8 @@
 }
 
 @keyframes coreGlowPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  50% {
-    opacity: 0.7;
-    transform: translate(-50%, -50%) scale(1.2);
-  }
+  0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.8); }
+  50%      { opacity: 0.7; transform: translate(-50%, -50%) scale(1.2); }
 }
 
 /* 能量点 */
@@ -230,21 +166,16 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: rgba(10, 132, 255, 0.6);
-  box-shadow: 0 0 12rpx rgba(10, 132, 255, 0.4);
+  background: rgba(10,132,255,0.6);
+  box-shadow: 0 0 12rpx rgba(10,132,255,0.4);
   position: relative;
   z-index: 2;
   animation: coreDotPulse 2s ease-in-out infinite;
 }
 
 @keyframes coreDotPulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.9;
-  }
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.9; }
 }
 
 /* ===== 5. 扫描环 ===== */
@@ -253,16 +184,16 @@
   width: 340rpx;
   height: 340rpx;
   border-radius: 50%;
-  border: 1px solid rgba(0, 175, 255, 0.18);
+  border: 1px solid rgba(0,175,255,0.18);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
-  box-shadow: 0 0 12rpx rgba(0, 175, 255, 0.06);
+  box-shadow: 0 0 12rpx rgba(0,175,255,0.06);
 }
 
 .scan-ring::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -2rpx;
   border-radius: 50%;
@@ -270,16 +201,11 @@
     from 0deg,
     transparent 0deg,
     transparent 300deg,
-    rgba(10, 132, 255, 0.3) 340deg,
+    rgba(10,132,255,0.3) 340deg,
     transparent 360deg
   );
   mask: radial-gradient(transparent 48%, black 49%, black 51%, transparent 52%);
-  -webkit-mask: radial-gradient(
-    transparent 48%,
-    black 49%,
-    black 51%,
-    transparent 52%
-  );
+  -webkit-mask: radial-gradient(transparent 48%, black 49%, black 51%, transparent 52%);
 }
 
 .scan-ring--idle {
@@ -299,12 +225,8 @@
 }
 
 @keyframes scanRotate {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 /* ===== 6. 甲板透视线 ===== */
@@ -324,32 +246,16 @@
   bottom: 0;
   height: 200rpx;
   width: 1rpx;
-  background: linear-gradient(to top, rgba(10, 132, 255, 0.08), transparent);
+  background: linear-gradient(to top, rgba(10,132,255,0.08), transparent);
   transform-origin: bottom center;
   transition: opacity 0.8s ease;
 }
 
-.deck-line--1 {
-  left: 8%;
-  transform: perspective(300rpx) rotateX(50deg) rotate(-16deg);
-}
-.deck-line--2 {
-  left: 25%;
-  transform: perspective(300rpx) rotateX(50deg) rotate(-8deg);
-}
-.deck-line--3 {
-  left: 50%;
-  transform: perspective(300rpx) rotateX(50deg) rotate(0deg);
-  background: linear-gradient(to top, rgba(10, 132, 255, 0.14), transparent);
-}
-.deck-line--4 {
-  left: 75%;
-  transform: perspective(300rpx) rotateX(50deg) rotate(8deg);
-}
-.deck-line--5 {
-  left: 92%;
-  transform: perspective(300rpx) rotateX(50deg) rotate(16deg);
-}
+.deck-line--1 { left: 8%; transform: perspective(300rpx) rotateX(50deg) rotate(-16deg); }
+.deck-line--2 { left: 25%; transform: perspective(300rpx) rotateX(50deg) rotate(-8deg); }
+.deck-line--3 { left: 50%; transform: perspective(300rpx) rotateX(50deg) rotate(0deg); background: linear-gradient(to top, rgba(10,132,255,0.14), transparent); }
+.deck-line--4 { left: 75%; transform: perspective(300rpx) rotateX(50deg) rotate(8deg); }
+.deck-line--5 { left: 92%; transform: perspective(300rpx) rotateX(50deg) rotate(16deg); }
 
 /* ===== 7. HUD 刻度线 ===== */
 .hud-marks {
@@ -362,54 +268,27 @@
   z-index: 3;
 }
 
-.hud-marks--left {
-  left: 48rpx;
-}
-.hud-marks--right {
-  right: 48rpx;
-}
+.hud-marks--left { left: 48rpx; }
+.hud-marks--right { right: 48rpx; }
 
 .hud-mark {
   width: 12rpx;
   height: 2rpx;
-  background: rgba(10, 132, 255, 0.2);
+  background: rgba(10,132,255,0.2);
   animation: hudMarkPulse 3s ease-in-out infinite;
 }
 
-.hud-marks--left .hud-mark:nth-child(2) {
-  width: 8rpx;
-  animation-delay: 0.3s;
-}
-.hud-marks--left .hud-mark:nth-child(3) {
-  width: 16rpx;
-  animation-delay: 0.6s;
-}
-.hud-marks--left .hud-mark:nth-child(4) {
-  width: 6rpx;
-  animation-delay: 0.9s;
-}
+.hud-marks--left .hud-mark:nth-child(2) { width: 8rpx; animation-delay: 0.3s; }
+.hud-marks--left .hud-mark:nth-child(3) { width: 16rpx; animation-delay: 0.6s; }
+.hud-marks--left .hud-mark:nth-child(4) { width: 6rpx; animation-delay: 0.9s; }
 
-.hud-marks--right .hud-mark:nth-child(2) {
-  width: 8rpx;
-  animation-delay: 0.3s;
-}
-.hud-marks--right .hud-mark:nth-child(3) {
-  width: 16rpx;
-  animation-delay: 0.6s;
-}
-.hud-marks--right .hud-mark:nth-child(4) {
-  width: 6rpx;
-  animation-delay: 0.9s;
-}
+.hud-marks--right .hud-mark:nth-child(2) { width: 8rpx; animation-delay: 0.3s; }
+.hud-marks--right .hud-mark:nth-child(3) { width: 16rpx; animation-delay: 0.6s; }
+.hud-marks--right .hud-mark:nth-child(4) { width: 6rpx; animation-delay: 0.9s; }
 
 @keyframes hudMarkPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.8; }
 }
 
 /* ===== 8. 飞行甲板统一舞台 ===== */
@@ -443,10 +322,7 @@
 .flight-deck-header {
   text-align: center;
   margin-bottom: 48rpx;
-  transition:
-    opacity 0.4s ease,
-    height 0.4s ease,
-    margin 0.4s ease;
+  transition: opacity 0.4s ease, height 0.4s ease, margin 0.4s ease;
 }
 
 .fdh-visible {
@@ -464,7 +340,7 @@
 
 .flight-deck-date {
   display: block;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
   color: rgba(126, 156, 180, 0.12);
   margin-top: 4rpx;
@@ -481,20 +357,13 @@
   margin-bottom: 32rpx;
   opacity: 0;
   animation: coreEntrance 0.7s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-  transition:
-    transform 0.45s cubic-bezier(0.23, 1, 0.32, 1),
-    opacity 0.4s ease;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.4s ease;
+  flex-shrink: 0;
 }
 
 @keyframes coreEntrance {
-  from {
-    opacity: 0;
-    transform: translateY(60rpx) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(60rpx) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .nav-core-rings {
@@ -512,12 +381,7 @@
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(10, 132, 255, 0.5),
-    rgba(10, 132, 255, 0.1),
-    transparent
-  );
+  background: linear-gradient(to bottom, rgba(10,132,255,0.5), rgba(10,132,255,0.1), transparent);
   border-radius: 3rpx;
   z-index: 1;
   opacity: 0;
@@ -530,12 +394,7 @@
 .projection-line {
   width: 560rpx;
   height: 2rpx;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 200, 255, 0.4),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(0,200,255,0.4), transparent);
   margin-bottom: 24rpx;
   opacity: 0;
   transform: scaleX(0);
@@ -554,23 +413,16 @@
 }
 
 @keyframes projectionLineIn {
-  from {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  to {
-    opacity: 0.55;
-    transform: scaleX(1);
-  }
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 0.55; transform: scaleX(1); }
 }
 
 /* ===== 10. 底部说明 ===== */
 .flight-deck-info {
   text-align: center;
   margin-bottom: 24rpx;
-  transition:
-    opacity 0.4s ease,
-    height 0.4s ease;
+  transition: opacity 0.4s ease, height 0.4s ease;
+  flex-shrink: 0;
 }
 
 .fdi-visible {
@@ -586,7 +438,7 @@
 
 .flight-deck-info-text {
   display: block;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
   color: rgba(126, 156, 180, 0.28);
   letter-spacing: 3rpx;
@@ -599,30 +451,12 @@
   width: 520rpx;
   position: relative;
   padding: 36rpx 32rpx 24rpx;
-  clip-path: polygon(
-    20rpx 0,
-    calc(100% - 20rpx) 0,
-    100% 20rpx,
-    100% calc(100% - 20rpx),
-    calc(100% - 20rpx) 100%,
-    20rpx 100%,
-    0 calc(100% - 20rpx),
-    0 20rpx
-  );
-  background: linear-gradient(
-    170deg,
-    rgba(6, 14, 24, 0.92) 0%,
-    rgba(4, 6, 10, 0.96) 100%
-  );
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 20rpx, 100% calc(100% - 20rpx), calc(100% - 20rpx) 100%, 20rpx 100%, 0 calc(100% - 20rpx), 0 20rpx);
+  background: linear-gradient(170deg, rgba(6,14,24,0.92) 0%, rgba(4,6,10,0.96) 100%);
   z-index: 2;
   opacity: 0;
   animation: fadeIn 0.6s ease 0.5s forwards;
-  transition:
-    opacity 0.35s ease,
-    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
-    max-height 0.35s ease,
-    margin 0.35s ease,
-    padding 0.35s ease;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), max-height 0.35s ease, margin 0.35s ease, padding 0.35s ease;
 }
 
 /* 首次入场完成后：移除动画，保持可见 */
@@ -632,46 +466,28 @@
 }
 
 .ignition-console::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  clip-path: polygon(
-    20rpx 0,
-    calc(100% - 20rpx) 0,
-    100% 20rpx,
-    100% calc(100% - 20rpx),
-    calc(100% - 20rpx) 100%,
-    20rpx 100%,
-    0 calc(100% - 20rpx),
-    0 20rpx
-  );
-  border: 1rpx solid rgba(0, 200, 255, 0.12);
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 20rpx, 100% calc(100% - 20rpx), calc(100% - 20rpx) 100%, 20rpx 100%, 0 calc(100% - 20rpx), 0 20rpx);
+  border: 1rpx solid rgba(0,200,255,0.12);
   pointer-events: none;
   transition: border-color 0.4s ease;
 }
 
 .ignition-console::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: -1rpx;
-  clip-path: polygon(
-    20rpx 0,
-    calc(100% - 20rpx) 0,
-    100% 20rpx,
-    100% calc(100% - 20rpx),
-    calc(100% - 20rpx) 100%,
-    20rpx 100%,
-    0 calc(100% - 20rpx),
-    0 20rpx
-  );
-  background: linear-gradient(170deg, rgba(0, 200, 255, 0.04), transparent 50%);
+  clip-path: polygon(20rpx 0, calc(100% - 20rpx) 0, 100% 20rpx, 100% calc(100% - 20rpx), calc(100% - 20rpx) 100%, 20rpx 100%, 0 calc(100% - 20rpx), 0 20rpx);
+  background: linear-gradient(170deg, rgba(0,200,255,0.04), transparent 50%);
   pointer-events: none;
   z-index: -1;
 }
 
 /* 点火态：边框增亮 */
 .ignition-console--active::before {
-  border-color: rgba(0, 200, 255, 0.28);
+  border-color: rgba(0,200,255,0.28);
 }
 
 /* 保险态：略微降低透明度 */
@@ -714,9 +530,9 @@
 }
 
 .ignition-arm-label {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
-  color: rgba(0, 200, 255, 0.45);
+  color: rgba(0,200,255,0.45);
   letter-spacing: 4rpx;
   font-weight: 700;
 }
@@ -730,31 +546,24 @@
   width: 6rpx;
   height: 6rpx;
   border-radius: 50%;
-  background: rgba(0, 200, 255, 0.2);
+  background: rgba(0,200,255,0.2);
   animation: armDotPulse 2s ease-in-out infinite;
 }
 
-.ignition-arm-dot:nth-child(2) {
-  animation-delay: 1s;
-}
+.ignition-arm-dot:nth-child(2) { animation-delay: 1s; }
 
 @keyframes armDotPulse {
-  0%,
-  100% {
-    opacity: 0.2;
-  }
-  50% {
-    opacity: 0.7;
-  }
+  0%, 100% { opacity: 0.2; }
+  50%      { opacity: 0.7; }
 }
 
 .ignition-console--active .ignition-arm-label {
-  color: rgba(0, 200, 255, 0.8);
+  color: rgba(0,200,255,0.8);
 }
 
 .ignition-console--active .ignition-arm-dot {
-  background: rgba(0, 200, 255, 0.6);
-  box-shadow: 0 0 6rpx rgba(0, 200, 255, 0.4);
+  background: rgba(0,200,255,0.6);
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.4);
 }
 
 /* 保险栅 */
@@ -770,10 +579,8 @@
 .rail-half {
   height: 2rpx;
   width: 80rpx;
-  background: rgba(0, 200, 255, 0.25);
-  transition:
-    transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
-    opacity 0.35s ease;
+  background: rgba(0,200,255,0.25);
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.35s ease;
 }
 
 .rail-gap {
@@ -797,35 +604,21 @@
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: rgba(0, 200, 255, 0.15);
-  border: 1rpx solid rgba(0, 200, 255, 0.25);
+  background: rgba(0,200,255,0.15);
+  border: 1rpx solid rgba(0,200,255,0.25);
   z-index: 5;
-  transition:
-    opacity 0.4s ease,
-    transform 0.4s ease;
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.ignition-bolt--tl {
-  top: 14rpx;
-  left: 14rpx;
-}
-.ignition-bolt--tr {
-  top: 14rpx;
-  right: 14rpx;
-}
-.ignition-bolt--bl {
-  bottom: 14rpx;
-  left: 14rpx;
-}
-.ignition-bolt--br {
-  bottom: 14rpx;
-  right: 14rpx;
-}
+.ignition-bolt--tl { top: 14rpx; left: 14rpx; }
+.ignition-bolt--tr { top: 14rpx; right: 14rpx; }
+.ignition-bolt--bl { bottom: 14rpx; left: 14rpx; }
+.ignition-bolt--br { bottom: 14rpx; right: 14rpx; }
 
 .ignition-console--active .ignition-bolt {
-  background: rgba(0, 200, 255, 0.35);
-  border-color: rgba(0, 200, 255, 0.5);
-  box-shadow: 0 0 6rpx rgba(0, 200, 255, 0.3);
+  background: rgba(0,200,255,0.35);
+  border-color: rgba(0,200,255,0.5);
+  box-shadow: 0 0 6rpx rgba(0,200,255,0.3);
 }
 
 /* 状态灯 */
@@ -839,92 +632,56 @@
   z-index: 5;
 }
 
-.ignition-led--left {
-  left: 16rpx;
-}
-.ignition-led--right {
-  right: 16rpx;
-}
+.ignition-led--left { left: 16rpx; }
+.ignition-led--right { right: 16rpx; }
 
 .ignition-led-dot {
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: rgba(10, 132, 255, 0.25);
+  background: rgba(10,132,255,0.25);
   animation: ledPulse 3s ease-in-out infinite;
 }
 
-.ignition-led--left .ignition-led-dot:nth-child(2) {
-  animation-delay: 1.5s;
-}
-.ignition-led--right .ignition-led-dot:nth-child(2) {
-  animation-delay: 1.5s;
-}
+.ignition-led--left .ignition-led-dot:nth-child(2) { animation-delay: 1.5s; }
+.ignition-led--right .ignition-led-dot:nth-child(2) { animation-delay: 1.5s; }
 
 @keyframes ledPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.8; }
 }
 
 .ignition-console--active .ignition-led-dot {
-  background: rgba(0, 200, 255, 0.7);
-  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.5);
+  background: rgba(0,200,255,0.7);
+  box-shadow: 0 0 8rpx rgba(0,200,255,0.5);
   animation: ledFire 0.6s ease-in-out infinite;
 }
 
 @keyframes ledFire {
-  0%,
-  100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
 }
 
 /* 安全护框 */
 .ignition-guard {
   padding: 6rpx;
-  clip-path: polygon(
-    14rpx 0,
-    calc(100% - 14rpx) 0,
-    100% 14rpx,
-    100% calc(100% - 14rpx),
-    calc(100% - 14rpx) 100%,
-    14rpx 100%,
-    0 calc(100% - 14rpx),
-    0 14rpx
-  );
-  border: 1rpx solid rgba(0, 200, 255, 0.1);
+  clip-path: polygon(14rpx 0, calc(100% - 14rpx) 0, 100% 14rpx, 100% calc(100% - 14rpx), calc(100% - 14rpx) 100%, 14rpx 100%, 0 calc(100% - 14rpx), 0 14rpx);
+  border: 1rpx solid rgba(0,200,255,0.1);
   position: relative;
   transition: border-color 0.3s ease;
 }
 
 .ignition-guard::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  clip-path: polygon(
-    14rpx 0,
-    calc(100% - 14rpx) 0,
-    100% 14rpx,
-    100% calc(100% - 14rpx),
-    calc(100% - 14rpx) 100%,
-    14rpx 100%,
-    0 calc(100% - 14rpx),
-    0 14rpx
-  );
-  border: 1rpx solid rgba(0, 200, 255, 0.08);
+  clip-path: polygon(14rpx 0, calc(100% - 14rpx) 0, 100% 14rpx, 100% calc(100% - 14rpx), calc(100% - 14rpx) 100%, 14rpx 100%, 0 calc(100% - 14rpx), 0 14rpx);
+  border: 1rpx solid rgba(0,200,255,0.08);
   pointer-events: none;
 }
 
 .ignition-console--active .ignition-guard {
-  border-color: rgba(0, 200, 255, 0.3);
+  border-color: rgba(0,200,255,0.3);
 }
 
 /* 主点火按钮 */
@@ -935,63 +692,43 @@
   justify-content: center;
   height: 100rpx;
   padding: 0 40rpx;
-  clip-path: polygon(
-    10rpx 0,
-    calc(100% - 10rpx) 0,
-    100% 10rpx,
-    100% calc(100% - 10rpx),
-    calc(100% - 10rpx) 100%,
-    10rpx 100%,
-    0 calc(100% - 10rpx),
-    0 10rpx
-  );
-  background: rgba(10, 132, 255, 0.06);
+  clip-path: polygon(10rpx 0, calc(100% - 10rpx) 0, 100% 10rpx, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 10rpx 100%, 0 calc(100% - 10rpx), 0 10rpx);
+  background: rgba(10,132,255,0.06);
   position: relative;
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .ignition-button::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
-  clip-path: polygon(
-    10rpx 0,
-    calc(100% - 10rpx) 0,
-    100% 10rpx,
-    100% calc(100% - 10rpx),
-    calc(100% - 10rpx) 100%,
-    10rpx 100%,
-    0 calc(100% - 10rpx),
-    0 10rpx
-  );
-  border: 1rpx solid rgba(0, 200, 255, 0.18);
+  clip-path: polygon(10rpx 0, calc(100% - 10rpx) 0, 100% 10rpx, 100% calc(100% - 10rpx), calc(100% - 10rpx) 100%, 10rpx 100%, 0 calc(100% - 10rpx), 0 10rpx);
+  border: 1rpx solid rgba(0,200,255,0.18);
   pointer-events: none;
   transition: border-color 0.3s ease;
 }
 
 .ignition-button:active {
   transform: translateY(6rpx) scale(0.985);
-  background: rgba(10, 132, 255, 0.14);
+  background: rgba(10,132,255,0.14);
 }
 
 /* 点火态按钮下沉 */
 .ignition-console--active .ignition-button {
   transform: translateY(6rpx) scale(0.985);
-  background: rgba(10, 132, 255, 0.12);
+  background: rgba(10,132,255,0.12);
 }
 
 .ignition-console--active .ignition-button::before {
-  border-color: rgba(0, 200, 255, 0.45);
-  box-shadow: inset 0 0 20rpx rgba(0, 200, 255, 0.08);
+  border-color: rgba(0,200,255,0.45);
+  box-shadow: inset 0 0 20rpx rgba(0,200,255,0.08);
 }
 
 .ignition-button-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 28rpx;
   font-weight: 700;
-  color: rgba(0, 200, 255, 0.88);
+  color: rgba(0,200,255,0.88);
   letter-spacing: 6rpx;
 }
 
@@ -1016,30 +753,17 @@
 }
 
 @keyframes plasmaFlicker {
-  0% {
-    transform: translateX(-50%) scaleY(0.92) scaleX(0.96);
-  }
-  100% {
-    transform: translateX(-50%) scaleY(1.08) scaleX(1.04);
-  }
+  0%   { transform: translateX(-50%) scaleY(0.92) scaleX(0.96); }
+  100% { transform: translateX(-50%) scaleY(1.08) scaleX(1.04); }
 }
 
 .plasma-flame-core {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(
-      circle at 50% 85%,
-      rgba(255, 255, 255, 0.7),
-      transparent 30%
-    ),
-    radial-gradient(circle at 50% 70%, rgba(0, 200, 255, 0.5), transparent 50%),
-    linear-gradient(
-      to top,
-      rgba(10, 132, 255, 0.5),
-      rgba(0, 200, 255, 0.15),
-      transparent
-    );
+    radial-gradient(circle at 50% 85%, rgba(255,255,255,0.7), transparent 30%),
+    radial-gradient(circle at 50% 70%, rgba(0,200,255,0.5), transparent 50%),
+    linear-gradient(to top, rgba(10,132,255,0.5), rgba(0,200,255,0.15), transparent);
   clip-path: polygon(50% 0, 70% 35%, 62% 100%, 38% 100%, 30% 35%);
   border-radius: 50% 50% 20% 20%;
 }
@@ -1049,19 +773,15 @@
 }
 
 @keyframes plasmaCore {
-  0% {
-    opacity: 0.8;
-  }
-  100% {
-    opacity: 1;
-  }
+  0%   { opacity: 0.8; }
+  100% { opacity: 1; }
 }
 
 /* 底部能量槽 */
 .ignition-energy-slot {
   margin-top: 16rpx;
   height: 4rpx;
-  background: rgba(0, 200, 255, 0.06);
+  background: rgba(0,200,255,0.06);
   border-radius: 2rpx;
   overflow: hidden;
 }
@@ -1069,12 +789,7 @@
 .ignition-energy-fill {
   width: 0;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 200, 255, 0.1),
-    rgba(0, 200, 255, 0.6),
-    rgba(0, 200, 255, 0.1)
-  );
+  background: linear-gradient(90deg, rgba(0,200,255,0.1), rgba(0,200,255,0.6), rgba(0,200,255,0.1));
   border-radius: 2rpx;
   transition: none;
 }
@@ -1084,15 +799,9 @@
 }
 
 @keyframes energyFlow {
-  0% {
-    width: 0;
-  }
-  40% {
-    width: 60%;
-  }
-  100% {
-    width: 100%;
-  }
+  0%   { width: 0; }
+  40%  { width: 60%; }
+  100% { width: 100%; }
 }
 
 /* 底部状态 */
@@ -1113,13 +822,13 @@
   width: 6rpx;
   height: 6rpx;
   border-radius: 50%;
-  background: rgba(48, 209, 88, 0.4);
+  background: rgba(48,209,88,0.4);
 }
 
 .ignition-status-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 16rpx;
-  color: rgba(126, 156, 180, 0.22);
+  color: rgba(126,156,180,0.22);
   letter-spacing: 2rpx;
 }
 
@@ -1131,24 +840,9 @@
 }
 
 @keyframes igniteDotExpand {
-  0% {
-    width: 10rpx;
-    height: 10rpx;
-    opacity: 0.6;
-    box-shadow: 0 0 12rpx rgba(10, 132, 255, 0.4);
-  }
-  50% {
-    width: 28rpx;
-    height: 28rpx;
-    opacity: 1;
-    box-shadow: 0 0 40rpx rgba(10, 132, 255, 0.7);
-  }
-  100% {
-    width: 20rpx;
-    height: 20rpx;
-    opacity: 0.9;
-    box-shadow: 0 0 60rpx rgba(10, 132, 255, 0.5);
-  }
+  0%   { width: 10rpx; height: 10rpx; opacity: 0.6; box-shadow: 0 0 12rpx rgba(10,132,255,0.4); }
+  50%  { width: 28rpx; height: 28rpx; opacity: 1; box-shadow: 0 0 40rpx rgba(10,132,255,0.7); }
+  100% { width: 20rpx; height: 20rpx; opacity: 0.9; box-shadow: 0 0 60rpx rgba(10,132,255,0.5); }
 }
 
 .flight-deck--pressed .core-glow {
@@ -1156,21 +850,9 @@
 }
 
 @keyframes igniteGlowExpand {
-  0% {
-    width: 40rpx;
-    height: 40rpx;
-    opacity: 0.3;
-  }
-  60% {
-    width: 120rpx;
-    height: 120rpx;
-    opacity: 0.8;
-  }
-  100% {
-    width: 160rpx;
-    height: 160rpx;
-    opacity: 0.6;
-  }
+  0%   { width: 40rpx; height: 40rpx; opacity: 0.3; }
+  60%  { width: 120rpx; height: 120rpx; opacity: 0.8; }
+  100% { width: 160rpx; height: 160rpx; opacity: 0.6; }
 }
 
 .flight-deck--pressed .nav-core-rings {
@@ -1201,14 +883,8 @@
 }
 
 @keyframes plasmaDotFlash {
-  0% {
-    opacity: 1;
-    box-shadow: 0 0 80rpx rgba(0, 200, 255, 0.9);
-  }
-  100% {
-    opacity: 0.9;
-    box-shadow: 0 0 40rpx rgba(10, 132, 255, 0.5);
-  }
+  0%   { opacity: 1; box-shadow: 0 0 80rpx rgba(0,200,255,0.9); }
+  100% { opacity: 0.9; box-shadow: 0 0 40rpx rgba(10,132,255,0.5); }
 }
 
 /* lifting: 光束拉长、核心上浮（限制幅度） */
@@ -1220,22 +896,10 @@
 }
 
 @keyframes igniteBeam {
-  0% {
-    opacity: 0;
-    height: 0;
-  }
-  30% {
-    opacity: 0.8;
-    height: 80rpx;
-  }
-  70% {
-    opacity: 0.6;
-    height: 160rpx;
-  }
-  100% {
-    opacity: 0.3;
-    height: 200rpx;
-  }
+  0%   { opacity: 0; height: 0; }
+  30%  { opacity: 0.8; height: 80rpx; }
+  70%  { opacity: 0.6; height: 160rpx; }
+  100% { opacity: 0.3; height: 200rpx; }
 }
 
 .flight-deck--lifting .nav-core-stage {
@@ -1256,15 +920,8 @@
 }
 
 @keyframes beamPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-    height: 100rpx;
-  }
-  50% {
-    opacity: 0.7;
-    height: 140rpx;
-  }
+  0%, 100% { opacity: 0.3; height: 100rpx; }
+  50%      { opacity: 0.7; height: 140rpx; }
 }
 
 /* projecting: 核心轻微缩小变暗（限制幅度） */
@@ -1305,15 +962,8 @@
   opacity: 0;
 }
 
-.flight-deck--done .deck-perspective {
-  opacity: 0;
-  transition: opacity 0.4s ease;
-}
-.flight-deck--done .hud-marks {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
+.flight-deck--done .deck-perspective { opacity: 0; transition: opacity 0.4s ease; }
+.flight-deck--done .hud-marks { opacity: 0; pointer-events: none; transition: opacity 0.4s ease; }
 
 /* ===== 13. 日志接入条（轻量 chip 形式，紧贴核心下方） ===== */
 .sync-bar {
@@ -1324,9 +974,7 @@
   margin-top: -4rpx;
   opacity: 0;
   transform: translate(-50%, -8rpx);
-  transition:
-    opacity 0.4s ease,
-    transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -1370,7 +1018,7 @@
 .sync-bar-line {
   width: 2rpx;
   height: 24rpx;
-  background: linear-gradient(to bottom, rgba(0, 200, 255, 0.3), transparent);
+  background: linear-gradient(to bottom, rgba(0,200,255,0.3), transparent);
   margin-bottom: 10rpx;
 }
 
@@ -1386,14 +1034,12 @@
   align-items: center;
   gap: 10rpx;
   padding: 8rpx 16rpx;
-  background: rgba(0, 175, 255, 0.03);
-  border: 1rpx solid rgba(0, 175, 255, 0.06);
+  background: rgba(0,175,255,0.03);
+  border: 1rpx solid rgba(0,175,255,0.06);
   border-radius: 6rpx;
   opacity: 0;
   transform: translateX(-8rpx);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .sync-chip--on {
@@ -1405,41 +1051,31 @@
   width: 6rpx;
   height: 6rpx;
   border-radius: 50%;
-  background: rgba(0, 175, 255, 0.5);
+  background: rgba(0,175,255,0.5);
   flex-shrink: 0;
   animation: chipDotPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes chipDotPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.9;
-  }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.9; }
 }
 
 .sync-chip-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
   color: rgba(140, 176, 205, 0.55);
   letter-spacing: 1rpx;
 }
 
 .sync-chip-typing {
-  border-right: 2rpx solid rgba(10, 132, 255, 0.6);
+  border-right: 2rpx solid rgba(10,132,255,0.6);
   animation: blink 0.6s step-end infinite;
 }
 
 @keyframes blink {
-  0%,
-  100% {
-    border-color: rgba(10, 132, 255, 0.6);
-  }
-  50% {
-    border-color: transparent;
-  }
+  0%, 100% { border-color: rgba(10,132,255,0.6); }
+  50%      { border-color: transparent; }
 }
 
 /* ===== 14. heartbeat ===== */
@@ -1460,26 +1096,19 @@
   width: 8rpx;
   height: 8rpx;
   border-radius: 50%;
-  background: rgba(0, 175, 255, 0.5);
+  background: rgba(0,175,255,0.5);
   animation: heartbeatDot 1.2s ease-in-out infinite;
 }
 
 @keyframes heartbeatDot {
-  0%,
-  100% {
-    opacity: 0.3;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.2);
-  }
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.2); }
 }
 
 .flight-heartbeat-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(0, 175, 255, 0.5);
+  color: rgba(0,175,255,0.50);
   letter-spacing: 2rpx;
 }
 
@@ -1495,9 +1124,7 @@
   box-sizing: border-box;
   opacity: 0;
   transform: translateY(20rpx);
-  transition:
-    opacity 0.5s ease,
-    transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   pointer-events: none;
   flex-shrink: 0;
 }
@@ -1512,52 +1139,27 @@
 .projection-card {
   opacity: 0;
   transform: translateY(16rpx);
+  flex-shrink: 0;
 }
 
 .dp-visible .projection-card {
   animation: projectionCardIn 0.45s cubic-bezier(0.23, 1, 0.32, 1) both;
 }
 
-.dp-visible .projection-card:nth-child(1) {
-  animation-delay: 0.05s;
-}
-.dp-visible .projection-card:nth-child(2) {
-  animation-delay: 0.12s;
-}
-.dp-visible .projection-card:nth-child(3) {
-  animation-delay: 0.19s;
-}
-.dp-visible .projection-card:nth-child(4) {
-  animation-delay: 0.26s;
-}
-.dp-visible .projection-card:nth-child(5) {
-  animation-delay: 0.33s;
-}
-.dp-visible .projection-card:nth-child(6) {
-  animation-delay: 0.4s;
-}
-.dp-visible .projection-card:nth-child(7) {
-  animation-delay: 0.47s;
-}
-.dp-visible .projection-card:nth-child(8) {
-  animation-delay: 0.54s;
-}
-.dp-visible .projection-card:nth-child(9) {
-  animation-delay: 0.61s;
-}
-.dp-visible .projection-card:nth-child(10) {
-  animation-delay: 0.68s;
-}
+.dp-visible .projection-card:nth-child(1) { animation-delay: 0.05s; }
+.dp-visible .projection-card:nth-child(2) { animation-delay: 0.12s; }
+.dp-visible .projection-card:nth-child(3) { animation-delay: 0.19s; }
+.dp-visible .projection-card:nth-child(4) { animation-delay: 0.26s; }
+.dp-visible .projection-card:nth-child(5) { animation-delay: 0.33s; }
+.dp-visible .projection-card:nth-child(6) { animation-delay: 0.40s; }
+.dp-visible .projection-card:nth-child(7) { animation-delay: 0.47s; }
+.dp-visible .projection-card:nth-child(8) { animation-delay: 0.54s; }
+.dp-visible .projection-card:nth-child(9) { animation-delay: 0.61s; }
+.dp-visible .projection-card:nth-child(10) { animation-delay: 0.68s; }
 
 @keyframes projectionCardIn {
-  from {
-    opacity: 0;
-    transform: translateY(16rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16rpx); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* 投影标题区 */
@@ -1577,35 +1179,24 @@
 
 .dp-date {
   display: block;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
   color: rgba(126, 156, 180, 0.16);
   margin-top: 4rpx;
 }
 
-/* 状态胶囊 & 芯片组合 */
-.strategy-header-group {
-  width: 100%;
-  max-width: 640rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 16rpx;
-  margin-bottom: 32rpx;
-}
-
+/* 状态胶囊 */
 .strategy-tag-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14rpx 48rpx;
-  border-radius: 12rpx;
+  padding: 12rpx 36rpx;
+  border-radius: 8rpx;
   border: 1rpx solid;
-  font-size: 32rpx;
-  font-weight: 700;
-  letter-spacing: 4rpx;
-  margin-bottom: 24rpx;
-  backdrop-filter: blur(8px);
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+  margin-bottom: 20rpx;
 }
 
 /* HUD 芯片（单行轻量） */
@@ -1615,9 +1206,10 @@
   gap: 0;
   width: 100%;
   max-width: 640rpx;
+  margin-bottom: 24rpx;
   padding: 14rpx 20rpx;
-  background: rgba(0, 175, 255, 0.02);
-  border: 1rpx solid rgba(0, 175, 255, 0.06);
+  background: rgba(0,175,255,0.02);
+  border: 1rpx solid rgba(0,175,255,0.06);
   border-radius: 8rpx;
 }
 
@@ -1632,95 +1224,110 @@
 .strategy-hud-chip-divider {
   width: 1rpx;
   height: 24rpx;
-  background: rgba(0, 175, 255, 0.1);
+  background: rgba(0,175,255,0.1);
   flex-shrink: 0;
 }
 
 .strategy-hud-chip-label {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 16rpx;
   color: rgba(126, 156, 180, 0.32);
   letter-spacing: 1rpx;
 }
 
 .strategy-hud-chip-value {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(0, 175, 255, 0.72);
+  color: rgba(0,175,255,0.72);
   letter-spacing: 1rpx;
   font-weight: 600;
 }
 
-/* 核心判决区 */
-.strategy-core-verdict {
+/* 舰载指令（主视觉，首屏优先） */
+.strategy-section--directive {
+  margin-bottom: 20rpx;
+}
+
+/* 状态读数 */
+.strategy-insight {
   width: 100%;
   max-width: 640rpx;
-  position: relative;
-  padding: 40rpx 48rpx;
-  margin-bottom: 32rpx;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.04),
-    rgba(255, 255, 255, 0.01)
-  );
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
-  border-radius: 20rpx;
-  box-shadow:
-    0 16rpx 48rpx rgba(0, 0, 0, 0.2),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(12px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  background: rgba(255,255,255,0.025);
+  border: 1rpx solid rgba(255,255,255,0.06);
+  border-radius: 16rpx;
 }
 
-.verdict-bracket {
-  position: absolute;
-  width: 24rpx;
-  height: 24rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.4);
-  opacity: 0.8;
-}
-.verdict-bracket--tl {
-  top: 24rpx;
-  left: 24rpx;
-  border-right: none;
-  border-bottom: none;
-  border-top-left-radius: 8rpx;
-}
-.verdict-bracket--br {
-  bottom: 24rpx;
-  right: 24rpx;
-  border-left: none;
-  border-top: none;
-  border-bottom-right-radius: 8rpx;
-}
-
-.strategy-verdict-text {
+.strategy-insight-text {
   display: block;
-  font-size: 34rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255,255,255,0.90);
   line-height: 1.6;
+  letter-spacing: 1rpx;
+}
+
+/* 区块标题 */
+.strategy-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+
+.strategy-section-title {
+  font-size: 22rpx;
+  color: var(--accent, #0A84FF);
   letter-spacing: 2rpx;
-  text-align: justify;
+  font-weight: 600;
+}
+
+.strategy-section-title--pos {
+  color: #00C8FF;
+}
+
+.strategy-section-title--neg {
+  color: #FF9F0A;
+}
+
+/* 舰载指令卡片 */
+.strategy-reading {
+  width: 100%;
+  max-width: 640rpx;
+  padding: 24rpx 28rpx;
+  background: rgba(255,255,255,0.025);
+  border: 1rpx solid rgba(255,255,255,0.06);
+  border-radius: 16rpx;
+}
+
+.strategy-reading-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.strategy-reading-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: rgba(255,255,255,0.92);
+  letter-spacing: 1rpx;
 }
 
 .strategy-reading-tags {
   display: flex;
-  flex-wrap: wrap;
   gap: 12rpx;
-  margin-top: 24rpx;
 }
 
 .strategy-reading-tag {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(0, 175, 255, 0.6);
+  color: rgba(0,175,255,0.6);
   letter-spacing: 2rpx;
   padding: 6rpx 16rpx;
-  background: rgba(0, 175, 255, 0.05);
-  border: 1rpx solid rgba(0, 175, 255, 0.12);
+  background: rgba(0,175,255,0.05);
+  border: 1rpx solid rgba(0,175,255,0.12);
   border-radius: 6rpx;
 }
 
@@ -1737,7 +1344,7 @@
   justify-content: center;
   width: 28rpx;
   height: 28rpx;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
   font-weight: 700;
   border-radius: 4rpx;
@@ -1745,25 +1352,25 @@
 }
 
 .strategy-section-icon--pos {
-  color: #30d158;
-  border: 1rpx solid rgba(48, 209, 88, 0.3);
+  color: #30D158;
+  border: 1rpx solid rgba(48,209,88,0.3);
 }
 
 .strategy-section-icon--neg {
-  color: #ff9f0a;
-  border: 1rpx solid rgba(255, 159, 10, 0.3);
+  color: #FF9F0A;
+  border: 1rpx solid rgba(255,159,10,0.3);
 }
 
 /* 列表卡片 */
 .strategy-list-card {
-  background: rgba(255, 255, 255, 0.025);
-  border: 1rpx solid rgba(255, 255, 255, 0.05);
+  background: rgba(255,255,255,0.025);
+  border: 1rpx solid rgba(255,255,255,0.05);
   border-radius: 14rpx;
   padding: 14rpx 24rpx;
 }
 
 .strategy-list-card--risk {
-  border-color: rgba(255, 159, 10, 0.08);
+  border-color: rgba(255,159,10,0.08);
 }
 
 .strategy-list-item {
@@ -1774,7 +1381,7 @@
 }
 
 .strategy-list-item + .strategy-list-item {
-  border-top: 1rpx solid rgba(255, 255, 255, 0.04);
+  border-top: 1rpx solid rgba(255,255,255,0.04);
 }
 
 .strategy-list-index {
@@ -1783,7 +1390,7 @@
   justify-content: center;
   width: 44rpx;
   height: 44rpx;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
@@ -1793,20 +1400,20 @@
 }
 
 .strategy-list-index--pos {
-  color: #30d158;
-  background: rgba(48, 209, 88, 0.08);
-  border: 1rpx solid rgba(48, 209, 88, 0.18);
+  color: #30D158;
+  background: rgba(48,209,88,0.08);
+  border: 1rpx solid rgba(48,209,88,0.18);
 }
 
 .strategy-list-index--neg {
-  color: #ff9f0a;
-  background: rgba(255, 159, 10, 0.08);
-  border: 1rpx solid rgba(255, 159, 10, 0.18);
+  color: #FF9F0A;
+  background: rgba(255,159,10,0.08);
+  border: 1rpx solid rgba(255,159,10,0.18);
 }
 
 .strategy-list-text {
   font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(255,255,255,0.76);
   line-height: 1.55;
   letter-spacing: 1rpx;
 }
@@ -1835,68 +1442,22 @@
 
 .strategy-action-btn {
   flex: 1;
-  position: relative;
-  height: 80rpx;
-  border-radius: 14rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  box-sizing: border-box;
 }
 
 /* button 元素重置（分享按钮） */
 button.strategy-action-btn {
   margin: 0;
   padding: 0;
-  line-height: normal;
-  font-size: inherit;
   background: transparent;
   border: none;
-  border-radius: 14rpx;
 }
 
 button.strategy-action-btn::after {
   display: none;
 }
 
-.strategy-action-btn--secondary {
-  border: 1rpx solid rgba(126, 156, 180, 0.1);
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.strategy-action-btn--secondary:active {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.strategy-action-btn--secondary .strategy-action-text {
-  color: rgba(255, 255, 255, 0.62);
-}
-
-.strategy-action-btn--primary {
-  border: 1rpx solid var(--accent, rgba(10, 132, 255, 0.45));
-  background: linear-gradient(
-    135deg,
-    rgba(10, 132, 255, 0.15),
-    rgba(0, 200, 255, 0.06)
-  );
-  box-shadow: 0 0 24rpx rgba(10, 132, 255, 0.08);
-}
-
-.strategy-action-btn--primary:active {
-  background: linear-gradient(
-    135deg,
-    rgba(10, 132, 255, 0.25),
-    rgba(0, 200, 255, 0.12)
-  );
-}
-
-.strategy-action-btn--primary .strategy-action-text {
-  color: var(--accent, #00c8ff);
-}
-
 .strategy-action-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 26rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
@@ -1910,27 +1471,27 @@ button.strategy-action-btn::after {
   justify-content: center;
   gap: 12rpx;
   padding: 14rpx 32rpx;
-  background: rgba(0, 175, 255, 0.03);
-  border: 1rpx solid rgba(0, 175, 255, 0.08);
+  background: rgba(0,175,255,0.03);
+  border: 1rpx solid rgba(0,175,255,0.08);
   border-radius: 8rpx;
 }
 
 .countdown-label {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 18rpx;
   color: rgba(126, 156, 180, 0.28);
   letter-spacing: 3rpx;
 }
 
 .countdown-value {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 20rpx;
-  color: rgba(0, 175, 255, 0.6);
+  color: rgba(0,175,255,0.6);
   letter-spacing: 2rpx;
 }
 
 .countdown-kicker {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 14rpx;
   color: rgba(126, 156, 180, 0.12);
   letter-spacing: 3rpx;
@@ -1941,7 +1502,7 @@ button.strategy-action-btn::after {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: rgba(0, 0, 0, 0.92);
+  background: rgba(0,0,0,0.92);
   backdrop-filter: blur(16px);
   display: flex;
   align-items: center;
@@ -1976,45 +1537,29 @@ button.strategy-action-btn::after {
   width: 10rpx;
   height: 10rpx;
   border-radius: 50%;
-  background: rgba(0, 200, 255, 0.5);
+  background: rgba(0,200,255,0.5);
   animation: genDotPulse 1.2s ease-in-out infinite;
 }
 
-.poster-gen-dot:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.poster-gen-dot:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.poster-gen-dot:nth-child(2) { animation-delay: 0.2s; }
+.poster-gen-dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes genDotPulse {
-  0%,
-  100% {
-    opacity: 0.2;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.3);
-  }
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 1; transform: scale(1.3); }
 }
 
 .poster-gen-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 24rpx;
-  color: rgba(0, 200, 255, 0.65);
+  color: rgba(0,200,255,0.65);
   letter-spacing: 4rpx;
   animation: posterBreathe 1.5s ease-in-out infinite;
 }
 
 @keyframes posterBreathe {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.9;
-  }
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.9; }
 }
 
 /* 海报预览 */
@@ -2027,7 +1572,7 @@ button.strategy-action-btn::after {
 .poster-image {
   width: 600rpx;
   border-radius: 12rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.2);
+  border: 1rpx solid rgba(0,175,255,0.2);
 }
 
 .poster-error {
@@ -2039,9 +1584,9 @@ button.strategy-action-btn::after {
 }
 
 .poster-error-text {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 24rpx;
-  color: rgba(255, 69, 58, 0.8);
+  color: rgba(255,69,58,0.8);
   letter-spacing: 2rpx;
 }
 
@@ -2051,12 +1596,12 @@ button.strategy-action-btn::after {
 }
 
 .poster-error-btn {
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255,255,255,0.62);
   letter-spacing: 3rpx;
   padding: 16rpx 40rpx;
-  border: 1rpx solid rgba(126, 156, 180, 0.1);
+  border: 1rpx solid rgba(126, 156, 180, 0.10);
   border-radius: 4rpx;
 }
 
@@ -2066,35 +1611,6 @@ button.strategy-action-btn::after {
 
 .poster-btn {
   flex: 1;
-  text-align: center;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 22rpx;
-  letter-spacing: 2rpx;
-  padding: 20rpx 0;
-  border-radius: 4rpx;
-  transition: opacity 0.15s ease;
-}
-
-.poster-btn:active {
-  opacity: 0.5;
-}
-
-.poster-btn--save {
-  color: #f5f5f7;
-  background: rgba(0, 175, 255, 0.1);
-  border: 1rpx solid rgba(0, 175, 255, 0.3);
-}
-
-.poster-btn--share {
-  color: var(--color-cyan);
-  background: rgba(0, 175, 255, 0.08);
-  border: 1rpx solid rgba(0, 175, 255, 0.4);
-  box-shadow: 0 0 12rpx rgba(0, 175, 255, 0.15);
-}
-
-.poster-btn--close {
-  color: rgba(126, 156, 180, 0.35);
-  border: 1rpx solid rgba(255, 255, 255, 0.05);
 }
 
 .poster-canvas {
@@ -2105,20 +1621,12 @@ button.strategy-action-btn::after {
 
 /* ===== 18. 动画关键帧汇总 ===== */
 @keyframes fadeIn {
-  to {
-    opacity: 1;
-  }
+  to { opacity: 1; }
 }
 
 @keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20rpx);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20rpx); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ===== 19. 统一等待主文案 ===== */
@@ -2132,10 +1640,10 @@ button.strategy-action-btn::after {
   justify-content: center;
   gap: 10rpx;
   min-height: 34rpx;
-  font-family: "Courier New", Courier, monospace;
+  font-family: 'Courier New', Courier, monospace;
   font-size: 22rpx;
   letter-spacing: 1rpx;
-  color: rgba(0, 200, 255, 0.62);
+  color: rgba(0,200,255,0.62);
   opacity: 0;
   transform: translateX(-50%);
   animation: fadeIn 0.4s ease forwards;
@@ -2143,11 +1651,11 @@ button.strategy-action-btn::after {
 }
 
 .generation-status--deep {
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255,255,255,0.58);
 }
 
 .generation-status--fallback {
-  color: rgba(255, 159, 10, 0.76);
+  color: rgba(255,159,10,0.76);
 }
 
 .generation-status-dot {
@@ -2160,13 +1668,8 @@ button.strategy-action-btn::after {
 }
 
 @keyframes engineWaitDotPulse {
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
 }
 
 .reduce-motion .generation-status-dot {
@@ -2196,23 +1699,23 @@ button.strategy-action-btn::after {
 .wait-step {
   height: 4rpx;
   border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255,255,255,0.10);
 }
 
 .wait-step--active {
-  background: rgba(0, 200, 255, 0.58);
-  box-shadow: 0 0 10rpx rgba(0, 200, 255, 0.25);
+  background: rgba(0,200,255,0.58);
+  box-shadow: 0 0 10rpx rgba(0,200,255,0.25);
 }
 
 .wait-steps--3 .wait-step--active {
-  background: rgba(255, 159, 10, 0.72);
-  box-shadow: 0 0 10rpx rgba(255, 159, 10, 0.25);
+  background: rgba(255,159,10,0.72);
+  box-shadow: 0 0 10rpx rgba(255,159,10,0.25);
 }
 
 /* ===== 20. 海报按钮布局 ===== */
 .poster-actions--two {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: 1.2fr .8fr;
   gap: 20rpx;
 }
 
@@ -2223,4 +1726,11 @@ button.strategy-action-btn::after {
 
 .poster-actions--three .poster-btn {
   flex: 1;
+}
+
+/* 底部安全区占位 */
+.safe-area-spacer {
+  width: 100%;
+  flex-shrink: 0;
+  height: var(--sr-page-bottom-safe, calc(240rpx + env(safe-area-inset-bottom)));
 }
