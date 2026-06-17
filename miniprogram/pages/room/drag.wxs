@@ -1,0 +1,69 @@
+function touchStart(e, ins) {
+  var dataset = e.currentTarget.dataset;
+  var userId = dataset.userId;
+  if (!userId) return;
+  var touch = e.touches[0];
+  var state = ins.getState();
+  state.dragUserId = userId;
+  state.startX = touch.pageX;
+  state.startY = touch.pageY;
+  state.moved = false;
+
+  // Read initial position directly from the inline style or dataset if possible
+  // We can also trigger a logic layer event if needed, but WXS focuses on visual changes
+  ins.callMethod('handleShipTouchStart', e);
+}
+
+function touchMove(e, ins) {
+  var state = ins.getState();
+  if (!state.dragUserId) return;
+  var touch = e.touches[0];
+  var dx = touch.pageX - state.startX;
+  var dy = touch.pageY - state.startY;
+
+  if (!state.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
+    state.moved = true;
+  }
+  if (!state.moved) return;
+
+  var instance = ins.selectComponent('#seat-' + state.dragUserId);
+  if (instance) {
+    // Instead of absolute positioning via JS, we use CSS transform for the drag offset
+    instance.setStyle({
+      transform: 'translate(' + dx + 'px, ' + dy + 'px)',
+      transition: 'none'
+    });
+  }
+}
+
+function touchEnd(e, ins) {
+  var state = ins.getState();
+  if (!state.dragUserId) return;
+  
+  var instance = ins.selectComponent('#seat-' + state.dragUserId);
+  if (instance) {
+    // reset transform
+    instance.setStyle({
+      transform: '',
+      transition: 'all 0.3s ease'
+    });
+  }
+
+  // Trigger JS to save final position based on touch offset
+  if (state.moved) {
+    var touch = e.changedTouches[0] || e.touches[0];
+    if (touch) {
+      e.detail = { dx: touch.pageX - state.startX, dy: touch.pageY - state.startY };
+    }
+  }
+  
+  ins.callMethod('handleShipTouchEnd', e);
+  state.dragUserId = null;
+  state.moved = false;
+}
+
+module.exports = {
+  touchStart: touchStart,
+  touchMove: touchMove,
+  touchEnd: touchEnd
+};

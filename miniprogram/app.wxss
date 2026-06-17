@@ -217,6 +217,15 @@ page {
   overflow: hidden;
 }
 
+/* 低端机降级：去除毛玻璃，改用带一定透明度的纯色或深色渐变底 */
+.low-perf .glass-card,
+.low-perf .glass-card-glow,
+.low-perf .glass-card-compact {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(15, 25, 40, 0.95) !important; /* 降低透明度，避免底层文字穿透 */
+}
+
 /* 带顶部光晕的卡片 */
 .glass-card-glow {
   background: var(--glass-bg);
@@ -953,6 +962,16 @@ page {
   background: var(--bg-card);
   color: var(--text-secondary);
   font-size: 28rpx;
+  /* 增加可点击区域 */
+  position: relative;
+}
+.fi::after {
+  content: '';
+  position: absolute;
+  top: -16rpx;
+  bottom: -16rpx;
+  left: -16rpx;
+  right: -16rpx;
 }
 .fi:active {
   background: var(--glass-bg);

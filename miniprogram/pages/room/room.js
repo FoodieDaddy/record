@@ -616,63 +616,52 @@ Page(Object.assign(
       }).exec();
     },
 
-    handleShipTouchMove(e) {
-      if (!this._dragData) return;
-      const touch = e.touches[0];
-      const dx = touch.pageX - this._dragData.startX;
-      const dy = touch.pageY - this._dragData.startY;
-
-      // 判定是否发生了移动（防抖/防误点）
-      if (!this._dragData.moved && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
-        this._dragData.moved = true;
-      }
-
-      if (!this._dragData.moved) return;
-
-      // 计算百分比位移
-      const pxToPercentX = (dx / this._dragData.containerWidth) * 100;
-      const pxToPercentY = (dy / this._dragData.containerHeight) * 100;
-
-      const newX = Math.max(
-        FORMATION_SAFE_ZONE.minX,
-        Math.min(FORMATION_SAFE_ZONE.maxX, this._dragData.initialX + pxToPercentX)
-      );
-      const newY = Math.max(
-        FORMATION_SAFE_ZONE.minY,
-        Math.min(FORMATION_SAFE_ZONE.maxY, this._dragData.initialY + pxToPercentY)
-      );
-
-      // ===== 1. 物理碰撞检测 (防重叠) =====
-      const COLLISION_THRESHOLD = 14;
-      const otherShips = (this.data.cockpitView.externalShips || [])
-        .filter(s => String(s.userId) !== this._dragData.userId);
-
-      const isCollidingWithOthers = otherShips.some(s => {
-        const dist = Math.sqrt(Math.pow(newX - s.x, 2) + Math.pow(newY - s.y, 2));
-        return dist < COLLISION_THRESHOLD;
-      });
-
-      if (isCollidingWithOthers) return;
-
-      const customPositions = { ...this.data.customPositions };
-      customPositions[this._dragData.userId] = { x: newX, y: newY };
-
-      this.setData({ customPositions });
-      this.syncCockpitView();
-    },
-
     handleShipTouchEnd(e) {
       if (!this._dragData) return;
       
+      // 读取 WXS 传过来的位移数据
+      const dx = e.detail && e.detail.dx ? e.detail.dx : 0;
+      const dy = e.detail && e.detail.dy ? e.detail.dy : 0;
+      const moved = Math.abs(dx) > 5 || Math.abs(dy) > 5;
+      
       // 如果没有实质移动，视作点击，触发原有的选中逻辑
-      if (!this._dragData.moved) {
+      if (!moved) {
         this.handleTapShip(e);
       } else {
-        // 拖拽结束，持久化位置偏好
-        const roomId = this.data.currentRoom?.roomId;
-        if (roomId) {
-          const key = `custom_pos_${roomId}`;
-          wx.setStorageSync(key, this.data.customPositions);
+        // 拖拽结束，计算新的百分比位置并持久化偏好
+        const pxToPercentX = (dx / this._dragData.containerWidth) * 100;
+        const pxToPercentY = (dy / this._dragData.containerHeight) * 100;
+
+        const newX = Math.max(
+          FORMATION_SAFE_ZONE.minX,
+          Math.min(FORMATION_SAFE_ZONE.maxX, this._dragData.initialX + pxToPercentX)
+        );
+        const newY = Math.max(
+          FORMATION_SAFE_ZONE.minY,
+          Math.min(FORMATION_SAFE_ZONE.maxY, this._dragData.initialY + pxToPercentY)
+        );
+
+        // ===== 1. 物理碰撞检测 (防重叠) =====
+        const COLLISION_THRESHOLD = 14;
+        const otherShips = (this.data.cockpitView.externalShips || [])
+          .filter(s => String(s.userId) !== this._dragData.userId);
+
+        const isCollidingWithOthers = otherShips.some(s => {
+          const dist = Math.sqrt(Math.pow(newX - s.x, 2) + Math.pow(newY - s.y, 2));
+          return dist < COLLISION_THRESHOLD;
+        });
+
+        if (!isCollidingWithOthers) {
+          const customPositions = { ...this.data.customPositions };
+          customPositions[this._dragData.userId] = { x: newX, y: newY };
+          this.setData({ customPositions });
+          this.syncCockpitView();
+          
+          const roomId = this.data.currentRoom?.roomId;
+          if (roomId) {
+            const key = `custom_pos_${roomId}`;
+            wx.setStorageSync(key, customPositions);
+          }
         }
       }
 

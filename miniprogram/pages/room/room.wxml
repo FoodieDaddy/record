@@ -1,4 +1,5 @@
 <wxs src="./room.wxs" module="fmt" />
+<wxs src="./drag.wxs" module="drag" />
 <wxs src="../../utils/truncate.wxs" module="t" />
 <!-- 全局切页扫描遮罩 -->
 <view class="route-transition-mask {{routeAnimating ? 'is-animating' : ''}}"></view>
@@ -316,10 +317,10 @@
             class="hud-member {{item.online ? 'hud-member--online' : ''}} {{item.isNew ? 'hud-member--new' : ''}} {{impactCrewId == item.userId ? 'hud-member--impact' : ''}} {{contactFxUserId == item.userId ? (contactFxRole === 'sending' ? 'hud-member--sending' : 'hud-member--receiving') : ''}}"
             style="left: {{item.x}}%; top: {{item.y}}%;"
             bindtap="handleTapShip"
-            catchtouchstart="handleShipTouchStart"
-            catchtouchmove="handleShipTouchMove"
-            catchtouchend="handleShipTouchEnd"
-            catchtouchcancel="handleShipTouchEnd"
+            catchtouchstart="{{drag.touchStart}}"
+            catchtouchmove="{{drag.touchMove}}"
+            catchtouchend="{{drag.touchEnd}}"
+            catchtouchcancel="{{drag.touchEnd}}"
             hover-class="hud-member--tap"
             hover-stay-time="120"
             data-user-id="{{item.userId}}"
