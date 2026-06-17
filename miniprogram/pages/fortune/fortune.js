@@ -229,14 +229,7 @@ Page({
     // HUD panel stability percent (derived from strategy data)
     stabilityPercent: 72,
 
-    // 星核卫星点（微型星图结构）
-    coreSatellites: [
-      { x: -52, y: -30, size: 5, delay: 0, opacity: 0.55 },
-      { x: 44, y: -48, size: 4, delay: 0.8, opacity: 0.45 },
-      { x: 60, y: 22, size: 6, delay: 1.5, opacity: 0.6 },
-      { x: -38, y: 50, size: 4, delay: 2.2, opacity: 0.4 },
-      { x: 10, y: -62, size: 3, delay: 0.4, opacity: 0.35 },
-    ],
+    // 中央多行星系统（由 _generateStarMap 的 coreSystem 子结构驱动，不再硬编码）
 
     // 校准阶段文案
     calibrationText: '',
@@ -479,30 +472,30 @@ Page({
 
     let statusDot = 'idle'
     let statusLabel = '导航舱待机中'
-    let statusLineText = '导航待机'
+    let statusLineText = '待机'
 
     if (baseState === 'starting' || baseState === 'calibrating') {
       statusDot = 'starting'
-      statusLabel = '导航计算中'
-      statusLineText = '星图校准中'
+      statusLabel = '星图校准中'
+      statusLineText = '校准中'
     } else if (baseState === 'completing' || baseState === 'completed') {
       statusDot = 'online'
-      statusLabel = '指令已生成'
-      statusLineText = '校准完成'
+      statusLabel = '校准已完成'
+      statusLineText = '已完成'
     } else if (baseState === 'regenerating') {
       statusDot = 'starting'
       statusLabel = '星图重构中'
-      statusLineText = '重构星图'
+      statusLineText = '校准中'
     } else {
       const roomId = wx.getStorageSync('currentRoomId')
       if (roomId) {
         statusDot = 'online'
         statusLabel = '导航舱已接入'
-        statusLineText = '导航待机中'
+        statusLineText = '待机'
       } else {
         statusDot = 'idle'
         statusLabel = '导航舱待机中'
-        statusLineText = '导航待机中'
+        statusLineText = '待机'
       }
     }
 
@@ -523,6 +516,17 @@ Page({
     const rand = (min, max) => min + random() * (max - min)
     const randInt = (min, max) => min + Math.floor(random() * (max - min + 1))
 
+    // 打乱数组算法
+    const shuffle = (arr) => {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(random() * (i + 1));
+        const temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+      }
+      return arr
+    }
+
     // 星核偏移（中心附近 ±8%）
     const coreOffset = {
       x: +(rand(-8, 8)).toFixed(1),
@@ -536,7 +540,7 @@ Page({
       y: +(rand(4, 96)).toFixed(1),
       size: +(rand(1.5, 5.5)).toFixed(1),
       opacity: +(rand(0.2, 0.8)).toFixed(2),
-      flickerDelay: +(rand(0, 4)).toFixed(1),
+      flickerDelay: +(rand(-4.0, 0)).toFixed(1), // 用负延时错开初始状态
     }))
 
     // 航线：2~4 条
@@ -557,8 +561,7 @@ Page({
     })
 
     // 光晕：2~4 个
-    const hlCount = randInt(2, 4)
-    const highlights = Array.from({ length: hlCount }, () => ({
+    const highlights = Array.from({ length: hlCount => randInt(2, 4) }, () => ({
       x: +(rand(12, 88)).toFixed(1),
       y: +(rand(12, 88)).toFixed(1),
       size: +(rand(80, 180)).toFixed(0),
@@ -579,7 +582,7 @@ Page({
       size: +(rand(0.8, 2)).toFixed(1),
       opacity: +(rand(0.06, 0.22)).toFixed(2),
       driftDuration: randInt(60, 120),
-      driftDelay: +(rand(0, 30)).toFixed(0),
+      driftDelay: +(rand(-30, 0)).toFixed(0),
     }))
 
     // 轨道弧线：2~5 条
@@ -591,8 +594,8 @@ Page({
       ry: +(rand(8, 22)).toFixed(1),
       rotation: +(rand(-30, 30)).toFixed(1),
       opacity: +(rand(0.04, 0.14)).toFixed(2),
-      breatheDuration: +(rand(8, 14)).toFixed(1),
-      breatheDelay: +(rand(0, 5)).toFixed(1),
+      breatheDuration: +(rand(8.0, 14.0)).toFixed(1),
+      breatheDelay: +(rand(-5.0, 0)).toFixed(1),
     }))
 
     // 连接线：4~8 条（随机配对星点）
@@ -618,7 +621,7 @@ Page({
       y: +(rand(15, 85)).toFixed(1),
       size: +(rand(4, 8)).toFixed(1),
       pulseDuration: +(rand(3, 6)).toFixed(1),
-      pulseDelay: +(rand(0, 3)).toFixed(1),
+      pulseDelay: +(rand(-3.0, 0)).toFixed(1),
     }))
 
     // 雷达扫描中心
@@ -630,14 +633,134 @@ Page({
     // 星图唯一 ID（从 seed 派生）
     const starMapId = 'SM-' + (seed || '').slice(0, 6).toUpperCase()
 
-    // 色相偏移
-    const tints = ['cyan', 'blue-green', 'blue', 'teal']
+    // 色相偏移：青蓝 / 蓝绿（原 teal 改为更明显的 teal） / 暗紫（即 purple）
+    const tints = ['cyan', 'teal', 'purple']
     const colorTint = tints[randInt(0, tints.length - 1)]
+
+    // ===== 中央多行星系统（核心主视觉） =====
+    // 容器 480rpx × 480rpx，坐标以中心为原点（rpx）；同 seed → 同布局
+    const coreSystem = (() => {
+      // 主核心：在中心附近轻微偏移
+      const main = {
+        x: +(rand(-15, 15)).toFixed(1),
+        y: +(rand(-15, 15)).toFixed(1),
+        dotSize: randInt(22, 28),      // 主点 22~28rpx
+        glowSize: randInt(150, 190),   // 内层光晕
+        haloSize: randInt(220, 270),   // 外层光晕
+        haloDur: +(rand(4.5, 7.5)).toFixed(1),
+        glowDur: +(rand(3.0, 5.0)).toFixed(1),
+        dotDur: +(rand(2.5, 4.5)).toFixed(1),
+        scanDur: +(rand(1.8, 3.2)).toFixed(1),
+      }
+
+      // 轨道：2~5 条，半径分层（近→远），椭圆有倾角
+      const coreOrbitCount = randInt(2, 5)
+      const orbitArcs = ['full', 'full', 'half', 'dash', 'half']
+      const orbits = Array.from({ length: coreOrbitCount }, (_, i) => {
+        const layerRatio = (i + 1) / coreOrbitCount  // 0.x ~ 1
+        const baseRx = 90 + layerRatio * 130 + rand(-12, 12)
+        const rx = +baseRx.toFixed(1)
+        const ry = +(rx * rand(0.42, 0.85)).toFixed(1)  // 椭圆形
+        const opacity = +(0.20 - layerRatio * 0.13).toFixed(2)  // 0.20 → 0.07
+        return {
+          rx, ry,
+          rotation: +(rand(-40, 40)).toFixed(1),
+          arc: orbitArcs[(i + randInt(0, 4)) % orbitArcs.length],
+          opacity: Math.max(opacity, 0.06),
+          breatheDuration: +(rand(8.0, 16.0)).toFixed(1),
+          breatheDelay: +(rand(-5.0, 0.0)).toFixed(1),
+        }
+      })
+
+      // 次级行星：3~6 个，绑定到某条轨道并固定相位
+      const planetCount = randInt(3, 6)
+      // 颜色池：以青蓝为主，部分为蓝色或蓝绿（与 tint 统一）
+      const colorPool = ['cyan', 'cyan', 'blue', 'teal']
+      const useViolet = random() < 0.6
+      const planets = []
+      // 生成打乱的点亮顺序
+      const lightUpOrders = shuffle(Array.from({ length: planetCount }, (_, idx) => idx))
+
+      for (let i = 0; i < planetCount; i++) {
+        const orbitIdx = i % coreOrbitCount
+        const orbit = orbits[orbitIdx]
+        // 相位：均分基础上加随机扰动，避免行星正好重叠
+        const angleDeg = +((360 / planetCount) * i + rand(-22, 22)).toFixed(1)
+        const angleRad = angleDeg * Math.PI / 180
+        // 椭圆参数化 + 反向旋转还原到容器坐标
+        const ex = Math.cos(angleRad) * orbit.rx
+        const ey = Math.sin(angleRad) * orbit.ry
+        const rot = orbit.rotation * Math.PI / 180
+        const x = +(ex * Math.cos(rot) - ey * Math.sin(rot) + main.x).toFixed(1)
+        const y = +(ex * Math.sin(rot) + ey * Math.cos(rot) + main.y).toFixed(1)
+        
+        // 颜色：第一颗暗紫（如果 useViolet），其余从 colorPool
+        const color = (i === planetCount - 1 && useViolet)
+          ? 'violet'
+          : colorPool[randInt(0, colorPool.length - 1)]
+        
+        // 大小：内圈行星更大，外圈更小
+        const size = +(16 - orbitIdx * 1.6 + rand(-1.5, 1.5)).toFixed(1)
+        planets.push({
+          orbitIndex: orbitIdx,
+          angleDeg, x, y,
+          size: Math.max(size, 7),
+          color,
+          opacity: +(rand(0.55, 0.85)).toFixed(2),
+          glow: +(rand(10, 20)).toFixed(0),
+          twinkleDuration: +(rand(2.2, 4.5)).toFixed(1),
+          twinkleDelay: +(rand(-4.0, 0.0)).toFixed(1),
+          lightUpOrder: lightUpOrders[i],  // 打乱点亮顺序
+        })
+      }
+
+      // 远轨小节点：2~4 个，距离更远、更淡
+      const farCount = randInt(2, 4)
+      const farNodes = Array.from({ length: farCount }, () => {
+        const angle = rand(0, Math.PI * 2)
+        const r = rand(225, 260)
+        return {
+          x: +(Math.cos(angle) * r).toFixed(1),
+          y: +(Math.sin(angle) * r * 0.78).toFixed(1),  // 略压扁
+          size: +(rand(2.5, 4.5)).toFixed(1),
+          opacity: +(rand(0.18, 0.32)).toFixed(2),
+          twinkleDuration: +(rand(3.0, 6.0)).toFixed(1),
+          twinkleDelay: +(rand(-5.0, 0.0)).toFixed(1),
+        }
+      })
+
+      // 连接线：1~4 条，从主核 → 某颗行星，或行星之间
+      const linkCount = randInt(1, 4)
+      const links = []
+      for (let i = 0; i < linkCount; i++) {
+        const a = (i === 0 && planets.length > 0)
+          ? { x: main.x, y: main.y }    // 从主核起
+          : planets[randInt(0, planets.length - 1)]
+        const b = planets[(i + 1) % planets.length]
+        if (!a || !b || a === b) continue
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const length = Math.sqrt(dx * dx + dy * dy)
+        if (length < 40) continue
+        links.push({
+          x1: +a.x.toFixed(1),
+          y1: +a.y.toFixed(1),
+          length: +length.toFixed(1),
+          angle: +(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1),
+          opacity: +(rand(0.06, 0.14)).toFixed(2),
+          pulseDuration: +(rand(1.8, 3.6)).toFixed(1),
+          pulseDelay: +(rand(-3.0, 0.0)).toFixed(1),
+        })
+      }
+
+      return { main, orbits, planets, farNodes, links }
+    })()
 
     return {
       seed, stars, routes, highlights, scanCenter,
       dustParticles, orbitArcs, connectionLines, energyNodes, radarCenter,
       coreOffset, starMapId, colorTint,
+      coreSystem,
     }
   },
 
@@ -1906,11 +2029,8 @@ Page({
       ctx.arc(tx, ty, 12, 0, Math.PI * 2)
       ctx.stroke()
 
-      // 中央星点
-      ctx.fillStyle = 'rgba(70,255,145,0.9)'
-      ctx.beginPath()
-      ctx.arc(x + w * 0.5, y + h * 0.5, 4, 0, Math.PI * 2)
-      ctx.fill()
+      // 中央多行星系统（与页面主视觉同 seed 同布局，缩放至星图区 0.7×）
+      this._drawCoreSystem(ctx, x + w * 0.5, y + h * 0.46, Math.min(w, h) / 480 * 0.7)
 
       // 指示灯
       ctx.fillStyle = 'rgba(0,200,255,0.7)'
@@ -1927,6 +2047,127 @@ Page({
     }
 
     ctx.restore()
+  },
+
+  /** 分享卡：绘制中央多行星系统（与页面 coreSystem 同 seed） */
+  _drawCoreSystem(ctx, cx, cy, scale) {
+    const cs = this.data.starMap && this.data.starMap.coreSystem
+    if (!cs) return
+    // rpx→海报像素：海报 ctx 已按 750 设计，1rpx ≈ 1 海报 px
+    const s = scale
+    const planetColors = {
+      cyan:   { halo: '92,220,255',  body: ['rgba(170,240,255,0.95)', 'rgba(92,220,255,0.85)']  },
+      blue:   { halo: '106,166,255', body: ['rgba(184,214,255,0.95)', 'rgba(106,166,255,0.85)'] },
+      teal:   { halo: '95,232,192',  body: ['rgba(179,244,221,0.95)', 'rgba(95,232,192,0.85)']  },
+      violet: { halo: '138,130,200', body: ['rgba(197,190,232,0.85)', 'rgba(138,130,200,0.65)'] },
+    }
+
+    // 1) 远轨节点
+    ;(cs.farNodes || []).forEach((n) => {
+      const px = cx + n.x * s
+      const py = cy + n.y * s
+      const r = Math.max(n.size * s, 0.6)
+      ctx.fillStyle = `rgba(180,220,255,${n.opacity})`
+      ctx.beginPath()
+      ctx.arc(px, py, r, 0, Math.PI * 2)
+      ctx.fill()
+    })
+
+    // 2) 轨道椭圆（根据 arc 类型选择全弧/半弧/虚线）
+    const orbitOriginY = cs.main.y * 0.3 * s
+    ;(cs.orbits || []).forEach((o) => {
+      const rx = Math.max(o.rx * s, 1)
+      const ry = Math.max(o.ry * s, 1)
+      const rot = (o.rotation || 0) * Math.PI / 180
+      ctx.save()
+      ctx.translate(cx, cy + orbitOriginY)
+      ctx.rotate(rot)
+      ctx.scale(1, ry / rx)
+      ctx.strokeStyle = `rgba(140,215,255,${o.opacity})`
+      ctx.lineWidth = 1
+      if (o.arc === 'dash') {
+        if (typeof ctx.setLineDash === 'function') ctx.setLineDash([3, 3])
+      }
+      ctx.beginPath()
+      if (o.arc === 'half') {
+        // 半弧：上半（rotate 后的局部坐标系下，0~π）
+        ctx.arc(0, 0, rx, Math.PI, Math.PI * 2)
+      } else {
+        ctx.arc(0, 0, rx, 0, Math.PI * 2)
+      }
+      ctx.stroke()
+      if (o.arc === 'dash' && typeof ctx.setLineDash === 'function') ctx.setLineDash([])
+      ctx.restore()
+    })
+
+    // 3) 连接线（行星↔主核 / 行星间）
+    ;(cs.links || []).forEach((l) => {
+      const x1 = cx + l.x1 * s
+      const y1 = cy + l.y1 * s
+      const len = l.length * s
+      const ang = l.angle * Math.PI / 180
+      const x2 = x1 + Math.cos(ang) * len
+      const y2 = y1 + Math.sin(ang) * len
+      const grad = ctx.createLinearGradient(x1, y1, x2, y2)
+      grad.addColorStop(0,   'rgba(0,220,255,0)')
+      grad.addColorStop(0.5, `rgba(0,220,255,${l.opacity})`)
+      grad.addColorStop(1,   'rgba(0,220,255,0)')
+      ctx.strokeStyle = grad
+      ctx.lineWidth = 0.6
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.lineTo(x2, y2)
+      ctx.stroke()
+    })
+
+    // 4) 次级行星
+    ;(cs.planets || []).forEach((p) => {
+      const px = cx + p.x * s
+      const py = cy + p.y * s
+      const r = Math.max(p.size * 0.5 * s, 1)
+      const cols = planetColors[p.color] || planetColors.cyan
+      // 外光晕
+      const glow = ctx.createRadialGradient(px, py, 0, px, py, r * 3.5)
+      glow.addColorStop(0, `rgba(${cols.halo},${(p.opacity * 0.55).toFixed(2)})`)
+      glow.addColorStop(1, `rgba(${cols.halo},0)`)
+      ctx.fillStyle = glow
+      ctx.beginPath()
+      ctx.arc(px, py, r * 3.5, 0, Math.PI * 2)
+      ctx.fill()
+      // 主体
+      const body = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 0, px, py, r)
+      body.addColorStop(0, cols.body[0])
+      body.addColorStop(1, cols.body[1])
+      ctx.fillStyle = body
+      ctx.beginPath()
+      ctx.arc(px, py, r, 0, Math.PI * 2)
+      ctx.fill()
+    })
+
+    // 5) 主核心：halo + glow + dot
+    const mx = cx + cs.main.x * s
+    const my = cy + cs.main.y * s
+    const haloR = Math.max(cs.main.haloSize * 0.5 * s, 1)
+    const glowR = Math.max(cs.main.glowSize * 0.5 * s, 1)
+    const dotR  = Math.max(cs.main.dotSize  * 0.5 * s, 1)
+    const halo = ctx.createRadialGradient(mx, my, 0, mx, my, haloR)
+    halo.addColorStop(0, 'rgba(0,200,255,0.06)')
+    halo.addColorStop(1, 'rgba(0,200,255,0)')
+    ctx.fillStyle = halo
+    ctx.beginPath()
+    ctx.arc(mx, my, haloR, 0, Math.PI * 2)
+    ctx.fill()
+    const glow = ctx.createRadialGradient(mx, my, 0, mx, my, glowR)
+    glow.addColorStop(0, 'rgba(0,215,255,0.30)')
+    glow.addColorStop(1, 'rgba(0,180,255,0)')
+    ctx.fillStyle = glow
+    ctx.beginPath()
+    ctx.arc(mx, my, glowR, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(0,225,255,0.95)'
+    ctx.beginPath()
+    ctx.arc(mx, my, dotR, 0, Math.PI * 2)
+    ctx.fill()
   },
   _wrapText(ctx, text, maxWidth) {
     const lines = []

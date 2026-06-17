@@ -1,5 +1,14 @@
 # 计划
 
+## 指令 / 星图校准页中央多行星系统升级（2026-06-18） ✅
+
+- ✅ `_generateStarMap(seed)` 追加 `coreSystem` 子结构（main / orbits / planets / farNodes / links），同 seed 决定布局
+- ✅ 中央容器 `.star-core` 由 `200rpx` 扩到 `480rpx`，子结构替换为 `.core-system / .cs-main / .cs-orbit / .cs-planet / .cs-link / .cs-far-node`
+- ✅ 颜色池：cyan / blue / teal 主色 + 最多 1 颗 violet 暗紫点缀；轨道支持 full / half（上半弧）/ dash 三类
+- ✅ 状态机 idle / starting / calibrating / regenerating 全部迁移到新选择器；`reduce-motion` 全静音
+- ✅ 分享卡 `_drawCoreSystem` 复用同 seed 按 `0.7×` 缩放绘制同套行星系统
+- ✅ 同步 `docs/UI_GUIDELINES.md`、`CHANGELOG.md`、`docs/DEVELOPMENT_LOG.md`、`PLAN.md`
+
 ## 小程序英文副标题全局清理（2026-06-13） ✅
 
 - ✅ 更新产品语言、界面指南与内容安全规则，明确禁止英文副标题、英文翻译和英文装饰标签

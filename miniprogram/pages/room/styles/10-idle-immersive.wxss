@@ -617,7 +617,7 @@
 }
 
 /* ============================================================
-   操作区 — 底部控制台
+   操作区 — 底部控制台 (重构为圆润风格)
    ============================================================ */
 .base-actions {
   position: relative;
@@ -626,38 +626,29 @@
   margin-bottom: calc(24rpx + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
+  gap: 24rpx;
 }
 
-/* 主按钮：终端确认风格 */
+/* 主按钮：更圆润、更饱满 */
 .base-btn-primary {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
-  height: 96rpx;
-  border: 1rpx solid rgba(0, 168, 216, 0.24);
-  border-radius: 12rpx;
+  gap: 6rpx;
+  height: 104rpx;
+  border: 1rpx solid rgba(0, 168, 216, 0.28);
+  border-radius: 24rpx;
   background: linear-gradient(
     180deg,
-    rgba(0, 140, 190, 0.07),
-    rgba(0, 168, 216, 0.025)
+    rgba(0, 140, 190, 0.12),
+    rgba(0, 168, 216, 0.05)
   );
-  color: rgba(215, 238, 247, 0.90);
+  color: rgba(215, 238, 247, 0.95);
   overflow: hidden;
-  clip-path: polygon(
-    12rpx 0,
-    calc(100% - 12rpx) 0,
-    100% 12rpx,
-    100% calc(100% - 12rpx),
-    calc(100% - 12rpx) 100%,
-    12rpx 100%,
-    0 calc(100% - 12rpx),
-    0 12rpx
-  );
-  transition: border-color .25s, background-color .25s, transform .15s;
+  transition: border-color .25s, background-color .25s, transform .15s, box-shadow .25s;
+  box-shadow: 0 8rpx 32rpx rgba(0, 168, 216, 0.08);
 }
 
 .base-btn-primary::after {
@@ -666,77 +657,120 @@
 
 .base-btn-primary:active {
   transform: scale(0.97);
-  border-color: rgba(0, 168, 216, 0.44);
+  border-color: rgba(0, 168, 216, 0.5);
   background: linear-gradient(
     180deg,
-    rgba(0, 140, 190, 0.10),
-    rgba(0, 168, 216, 0.05)
+    rgba(0, 140, 190, 0.18),
+    rgba(0, 168, 216, 0.08)
   );
+  box-shadow: 0 4rpx 16rpx rgba(0, 168, 216, 0.12);
 }
 
 .base-btn-primary--loading {
-  opacity: 0.55;
+  opacity: 0.6;
   pointer-events: none;
 }
 
-/* 按钮内柔光扫 */
-.base-btn-glow {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0, 168, 216, 0.05),
-    transparent
-  );
-  animation: baseBtnGlow 6s ease-in-out infinite;
-  pointer-events: none;
+/* 加入编队区：包含输入框与按钮 */
+.base-join-area {
+  display: flex;
+  align-items: stretch;
+  gap: 16rpx;
+  height: 96rpx;
 }
 
-@keyframes baseBtnGlow {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+.base-join-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: rgba(3, 10, 18, 0.4);
+  border: 1rpx solid rgba(0, 160, 210, 0.18);
+  border-radius: 20rpx;
+  padding: 0 8rpx 0 32rpx;
+  transition: border-color .3s;
 }
 
-.base-btn-text {
-  position: relative;
-  z-index: 1;
+.base-join-input-wrap:focus-within {
+  border-color: rgba(0, 168, 216, 0.4);
+}
+
+.base-join-input {
+  flex: 1;
+  height: 100%;
   font-size: 28rpx;
-  font-weight: 600;
-  letter-spacing: 2rpx;
+  color: rgba(215, 238, 247, 0.9);
 }
 
-.base-btn-hint {
-  position: relative;
-  z-index: 1;
-  font-size: 20rpx;
-  color: rgba(127, 152, 168, 0.44);
-  font-weight: 400;
-  letter-spacing: 1rpx;
+.base-join-input-placeholder {
+  color: rgba(127, 152, 168, 0.4);
+  font-size: 26rpx;
 }
 
-/* 次按钮：明显可点击，不像禁用 */
+.base-join-scan {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  color: rgba(127, 152, 168, 0.7);
+  transition: background-color .2s, color .2s;
+}
+
+.base-join-scan:active {
+  background: rgba(0, 168, 216, 0.15);
+  color: rgba(0, 168, 216, 0.9);
+}
+
+.icon-scan {
+  width: 36rpx;
+  height: 36rpx;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7V5a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M17 3h2a2 2 0 0 1 2 2v2'/%3E%3Cpath d='M21 17v2a2 2 0 0 1-2 2h-2'/%3E%3Cpath d='M7 21H5a2 2 0 0 1-2-2v-2'/%3E%3Crect x='7' y='7' width='10' height='10' rx='1'/%3E%3C/svg%3E") no-repeat center center;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7V5a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M17 3h2a2 2 0 0 1 2 2v2'/%3E%3Cpath d='M21 17v2a2 2 0 0 1-2 2h-2'/%3E%3Cpath d='M7 21H5a2 2 0 0 1-2-2v-2'/%3E%3Crect x='7' y='7' width='10' height='10' rx='1'/%3E%3C/svg%3E") no-repeat center center;
+}
+
+.base-btn-join {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 40rpx;
+  border-radius: 20rpx;
+  background: rgba(0, 168, 216, 0.12);
+  border: 1rpx solid rgba(0, 168, 216, 0.25);
+  color: rgba(215, 238, 247, 0.9);
+  font-size: 28rpx;
+  font-weight: 500;
+  transition: transform .15s, background-color .2s;
+  margin: 0;
+}
+
+.base-btn-join::after {
+  display: none;
+}
+
+.base-btn-join:active {
+  transform: scale(0.96);
+  background: rgba(0, 168, 216, 0.2);
+}
+
+.base-btn-join--loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* 次按钮：圆润风格（用于退出/解散等） */
 .base-btn-secondary {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4rpx;
-  height: 84rpx;
-  border: 1rpx solid rgba(0, 160, 210, 0.14);
-  border-radius: 12rpx;
-  background: rgba(3, 10, 18, 0.28);
-  color: rgba(160, 185, 200, 0.74);
-  clip-path: polygon(
-    12rpx 0,
-    calc(100% - 12rpx) 0,
-    100% 12rpx,
-    100% calc(100% - 12rpx),
-    calc(100% - 12rpx) 100%,
-    12rpx 100%,
-    0 calc(100% - 12rpx),
-    0 12rpx
-  );
+  height: 96rpx;
+  border: 1rpx solid rgba(0, 160, 210, 0.18);
+  border-radius: 20rpx;
+  background: rgba(3, 10, 18, 0.35);
+  color: rgba(160, 185, 200, 0.8);
   transition: border-color .25s, color .25s, box-shadow .25s, transform .15s;
 }
 
@@ -746,15 +780,85 @@
 
 .base-btn-secondary:active {
   transform: scale(0.97);
-  border-color: rgba(0, 168, 216, 0.30);
-  color: rgba(215, 238, 247, 0.82);
-  box-shadow:
-    0 0 16rpx rgba(0, 168, 216, 0.08),
-    inset 0 0 12rpx rgba(0, 168, 216, 0.04);
+  border-color: rgba(0, 168, 216, 0.35);
+  color: rgba(215, 238, 247, 0.9);
+  background: rgba(0, 168, 216, 0.08);
 }
 
 .base-btn-secondary .base-btn-hint {
-  color: rgba(127, 152, 168, 0.40);
+  color: rgba(127, 152, 168, 0.45);
+}
+
+/* ============================================================
+   未编队态 - 新增场景视觉
+   ============================================================ */
+.base-scene {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translateX(-50%);
+  width: 380rpx;
+  height: 380rpx;
+  z-index: 1;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.base-scene-person {
+  width: 140rpx;
+  height: 220rpx;
+  background: 
+    radial-gradient(ellipse at 50% 20%, rgba(0, 168, 216, 0.15) 0%, transparent 40%),
+    linear-gradient(180deg, rgba(127, 152, 168, 0.08) 0%, rgba(0, 168, 216, 0.25) 100%);
+  border-radius: 70rpx 70rpx 20rpx 20rpx;
+  opacity: 0.8;
+  mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, black 60%, transparent 100%);
+  filter: blur(2rpx);
+}
+
+.base-scene-holo {
+  position: absolute;
+  bottom: 10%;
+  width: 260rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(0, 168, 216, 0.15);
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 168, 216, 0.08) 0%, transparent 60%);
+  transform: rotateX(70deg);
+  box-shadow: 0 0 30rpx rgba(0, 168, 216, 0.1);
+  animation: holoFloat 4s ease-in-out infinite;
+}
+
+@keyframes holoFloat {
+  0%, 100% { transform: rotateX(70deg) translateY(0); opacity: 0.6; }
+  50% { transform: rotateX(70deg) translateY(-10rpx); opacity: 1; }
+}
+
+.base-status-light {
+  position: relative;
+  z-index: 3;
+  margin: 32rpx auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 30rpx;
+  background: rgba(0, 168, 216, 0.06);
+  border: 1rpx solid rgba(0, 168, 216, 0.15);
+  font-size: 20rpx;
+  color: rgba(127, 152, 168, 0.7);
+  letter-spacing: 1rpx;
+}
+
+.base-status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: rgba(0, 168, 216, 0.8);
+  box-shadow: 0 0 12rpx rgba(0, 168, 216, 0.5);
 }
 
 /* ============================================================

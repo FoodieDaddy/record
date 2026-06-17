@@ -117,16 +117,39 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
-    <!-- 中央星核（idle/calibrating/regenerating 态可见） -->
+    <!-- 中央多行星系统（idle/calibrating/regenerating 态可见） -->
     <view class="star-core star-core--{{baseState}}" wx:if="{{baseState !== 'completed' && baseState !== 'completing'}}">
-      <view class="star-core-glow"></view>
-      <view class="star-core-ring star-core-ring--1"></view>
-      <view class="star-core-ring star-core-ring--2"></view>
-      <view class="star-core-dot"></view>
-      <view class="star-core-scan" wx:if="{{baseState === 'calibrating'}}"></view>
-      <!-- 星核卫星点（微型星图结构） -->
-      <view class="star-core-satellite" wx:for="{{coreSatellites}}" wx:key="index"
-            style="--sat-x:{{item.x}}rpx;--sat-y:{{item.y}}rpx;--sat-size:{{item.size}}rpx;--sat-delay:{{item.delay}}s;--sat-opacity:{{item.opacity}}"></view>
+      <view class="core-system core-system--{{baseState}}" wx:if="{{starMap.coreSystem}}">
+
+        <!-- 远轨小节点（最远，最淡，最先入场） -->
+        <view wx:for="{{starMap.coreSystem.farNodes}}" wx:key="index" wx:for-item="node"
+              class="cs-far-node"
+              style="left:calc(50% + {{node.x}}rpx);top:calc(50% + {{node.y}}rpx);width:{{node.size}}rpx;height:{{node.size}}rpx;opacity:{{node.opacity}};--twinkle-dur:{{node.twinkleDuration}}s;--twinkle-delay:{{node.twinkleDelay}}s"></view>
+
+        <!-- 轨道弧线（多层） -->
+        <view wx:for="{{starMap.coreSystem.orbits}}" wx:key="index" wx:for-item="orbit"
+              class="cs-orbit cs-orbit--{{orbit.arc}}"
+              style="width:{{orbit.rx * 2}}rpx;height:{{orbit.ry * 2}}rpx;left:50%;top:calc(50% + {{starMap.coreSystem.main.y * 0.3}}rpx);transform:translate(-50%,-50%) rotate({{orbit.rotation}}deg);opacity:{{orbit.opacity}};--orbit-dur:{{orbit.breatheDuration}}s;--orbit-delay:{{orbit.breatheDelay}}s"></view>
+
+        <!-- 行星↔主核 / 行星间连接线 -->
+        <view wx:for="{{starMap.coreSystem.links}}" wx:key="index" wx:for-item="link"
+              class="cs-link"
+              style="left:calc(50% + {{link.x1}}rpx);top:calc(50% + {{link.y1}}rpx);width:{{link.length}}rpx;transform:rotate({{link.angle}}deg);opacity:{{link.opacity}};--pulse-dur:{{link.pulseDuration}}s;--pulse-delay:{{link.pulseDelay}}s"></view>
+
+        <!-- 次级行星 -->
+        <view wx:for="{{starMap.coreSystem.planets}}" wx:key="index" wx:for-item="planet"
+              class="cs-planet cs-planet--{{planet.color}}"
+              style="left:calc(50% + {{planet.x}}rpx);top:calc(50% + {{planet.y}}rpx);width:{{planet.size}}rpx;height:{{planet.size}}rpx;--planet-opacity:{{planet.opacity}};--planet-glow:{{planet.glow}}rpx;--twinkle-dur:{{planet.twinkleDuration}}s;--twinkle-delay:{{planet.twinkleDelay}}s;--light-up-delay:{{planet.lightUpOrder * 0.18}}s"></view>
+
+        <!-- 主核心（最大、最亮，位于中央偏上） -->
+        <view class="cs-main" style="left:calc(50% + {{starMap.coreSystem.main.x}}rpx);top:calc(50% + {{starMap.coreSystem.main.y}}rpx)">
+          <view class="cs-main-halo" style="width:{{starMap.coreSystem.main.haloSize}}rpx;height:{{starMap.coreSystem.main.haloSize}}rpx;--halo-dur:{{starMap.coreSystem.main.haloDur}}s"></view>
+          <view class="cs-main-glow" style="width:{{starMap.coreSystem.main.glowSize}}rpx;height:{{starMap.coreSystem.main.glowSize}}rpx;--glow-dur:{{starMap.coreSystem.main.glowDur}}s"></view>
+          <view class="cs-main-dot" style="width:{{starMap.coreSystem.main.dotSize}}rpx;height:{{starMap.coreSystem.main.dotSize}}rpx;--dot-dur:{{starMap.coreSystem.main.dotDur}}s"></view>
+          <view class="cs-main-scan" wx:if="{{baseState === 'calibrating'}}" style="--scan-dur:{{starMap.coreSystem.main.scanDur}}s"></view>
+        </view>
+
+      </view>
     </view>
 
     <!-- idle 态状态文案 -->
@@ -135,75 +158,30 @@
       <text class="idle-hint-sub">等待星图校准指令</text>
     </view>
 
-    <!-- 校准阶段文案（calibrating 态） -->
-    <view class="calibration-phase-text" wx:if="{{calibrationText}}">
-      <text>{{calibrationText}}</text>
+    <!-- starting/calibrating 态文案 -->
+    <view class="calibrating-status-hint" wx:if="{{baseState === 'starting' || baseState === 'calibrating'}}">
+      <text class="calibrating-hint-main">{{baseState === 'starting' ? '星图启动中' : '星图校准中'}}</text>
+      <text class="calibrating-hint-sub">{{calibrationText || '同步坐标...'}}</text>
     </view>
 
-    <!-- 主操作按钮（仅 idle 态显示） -->
-    <view class="nav-launch-btn-area" wx:if="{{baseState === 'idle'}}">
-      <view class="nav-launch-btn" bindtap="onTapLaunchCore">
-        <text>开始校准</text>
+    <!-- 主操作按钮 -->
+    <view class="nav-launch-btn-area {{baseState === 'idle' ? 'btn-visible' : (baseState === 'starting' ? 'btn-fade-out' : 'btn-hidden')}}">
+      <view class="nav-launch-btn {{baseState === 'starting' ? 'nav-launch-btn--starting' : ''}}" bindtap="onTapLaunchCore">
+        <text>{{baseState === 'starting' ? '启动中' : '开始校准'}}</text>
       </view>
     </view>
 
     <!-- done 态：结果投影内容 -->
     <view class="directive-projection {{baseState === 'completed' ? 'dp-visible' : ''}}" wx:if="{{baseState === 'completing' || baseState === 'completed'}}">
 
-      <!-- HUD 数据面板 -->
-      <view class="result-panel hud-panel projection-card">
-        <!-- 顶部状态胶囊 -->
-        <view class="rp-status-capsule">
-          <view class="rp-capsule-dot"></view>
-          <text>校准完成</text>
-        </view>
-
+      <!-- 极简 HUD 结果面板 -->
+      <view class="result-panel-simple projection-card">
         <!-- 主标题 -->
-        <view class="rp-verdict">{{strategy.verdict}}</view>
-
-        <!-- 副标签 -->
-        <view class="rp-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
-          <view class="rp-tag-pill" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
-        </view>
-
-        <!-- 细分割线 -->
-        <view class="rp-divider"></view>
-
-        <!-- 参数区：2 列小卡片 -->
-        <view class="rp-params">
-          <view class="rp-param-group" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
-            <view class="rp-param-title">
-              <view class="rp-param-dot rp-param-dot--buff"></view>
-              <text>推进参数</text>
-            </view>
-            <view class="rp-param-grid">
-              <view class="rp-param-card" wx:for="{{strategy.buffs}}" wx:key="*this">
-                <view class="rp-param-indicator"></view>
-                <text>{{item}}</text>
-              </view>
-            </view>
-          </view>
-          <view class="rp-param-group" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
-            <view class="rp-param-title">
-              <view class="rp-param-dot rp-param-dot--debuff"></view>
-              <text>警戒边界</text>
-            </view>
-            <view class="rp-param-grid">
-              <view class="rp-param-card" wx:for="{{strategy.debuffs}}" wx:key="*this">
-                <view class="rp-param-indicator rp-param-indicator--warn"></view>
-                <text>{{item}}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-
-        <!-- 底部稳定度进度线 -->
-        <view class="rp-stability-bar">
-          <view class="rp-stability-fill" style="width: {{stabilityPercent || 72}}%"></view>
-        </view>
-        <view class="rp-stability-label">
-          <text>稳定度 {{stabilityPercent || 72}}%</text>
-        </view>
+        <view class="rp-verdict-simple">{{strategy.verdict}}</view>
+        <!-- 描述 -->
+        <view class="rp-desc-simple" wx:if="{{directiveText}}">{{directiveText}}</view>
+        <!-- 稳定度简单显示 -->
+        <view class="rp-stability-simple">系统稳定度 {{stabilityPercent || 72}}%</view>
       </view>
 
       <!-- 操作按钮 -->
@@ -217,12 +195,6 @@
       <!-- 底部安全间距 -->
       <view class="strategy-result-spacer"></view>
 
-    </view>
-
-    <!-- 底部说明（idle 态显示） -->
-    <view class="flight-deck-info {{baseState === 'idle' ? 'fdi-visible' : 'fdi-hidden'}} {{firstEnter === false ? 'fdi-entered' : ''}}">
-      <text class="flight-deck-info-text">NAV_UNIT: MK-IV STATUS: STANDBY</text>
-      <text class="flight-deck-info-text">LAST_SYNC: {{currentDate}}</text>
     </view>
 
     <!-- 底部安全区占位，确保滚动到底部时不被 Tab Bar 遮挡 -->

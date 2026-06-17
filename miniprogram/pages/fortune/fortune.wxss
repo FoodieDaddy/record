@@ -519,11 +519,11 @@
   display: none;
 }
 
-/* ===== 中央星核 ===== */
+/* ===== 中央多行星系统 ===== */
 .star-core {
   position: relative;
-  width: 200rpx;
-  height: 200rpx;
+  width: 480rpx;
+  height: 480rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -531,108 +531,274 @@
   flex-shrink: 0;
 }
 
-.star-core-glow {
+.core-system {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ----- 主核心 ----- */
+.cs-main {
   position: absolute;
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 200, 255, 0.08), transparent 70%);
-  animation: coreGlowPulse 4s ease-in-out infinite;
+  left: 50%;
+  /* top 由 inline style 提供（main.y 偏移） */
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.star-core-ring {
+.cs-main-halo,
+.cs-main-glow,
+.cs-main-dot,
+.cs-main-scan {
   position: absolute;
   border-radius: 50%;
-  border: 1rpx solid rgba(0, 200, 255, 0.10);
 }
 
-.star-core-ring--1 {
-  width: 80rpx;
-  height: 80rpx;
-  animation: coreRingPulse 3s ease-in-out infinite;
+.cs-main-halo {
+  background: radial-gradient(circle,
+    rgba(0, 200, 255, 0.05) 0%,
+    rgba(0, 200, 255, 0.02) 45%,
+    transparent 75%);
+  animation: csHaloBreathe var(--halo-dur, 6s) ease-in-out infinite;
 }
 
-.star-core-ring--2 {
-  width: 140rpx;
-  height: 140rpx;
-  opacity: 0.5;
-  animation: coreRingPulse 3s ease-in-out infinite;
-  animation-delay: 0.5s;
+.cs-main-glow {
+  background: radial-gradient(circle,
+    rgba(0, 215, 255, 0.18) 0%,
+    rgba(0, 180, 255, 0.06) 50%,
+    transparent 80%);
+  animation: csGlowBreathe var(--glow-dur, 4s) ease-in-out infinite;
 }
 
-.star-core-dot {
-  width: 20rpx;
-  height: 20rpx;
-  border-radius: 50%;
-  background: rgba(0, 210, 255, 0.85);
+.cs-main-dot {
+  background: rgba(0, 220, 255, 0.92);
   box-shadow:
-    0 0 16rpx rgba(0, 210, 255, 0.50),
-    0 0 40rpx rgba(0, 150, 255, 0.20);
-  animation: coreDotPulse 3s ease-in-out infinite;
+    0 0 24rpx rgba(0, 220, 255, 0.6),
+    0 0 60rpx rgba(0, 170, 255, 0.28);
+  animation: csDotBreathe var(--dot-dur, 3.4s) ease-in-out infinite;
   z-index: 2;
 }
 
-.star-core-scan {
-  position: absolute;
-  width: 60rpx;
-  height: 60rpx;
-  border-radius: 50%;
-  border: 2rpx solid rgba(0, 200, 255, 0.30);
-  animation: coreScanWave 2s ease-out infinite;
+.cs-main-scan {
+  width: 80rpx;
+  height: 80rpx;
+  border: 2rpx solid rgba(0, 200, 255, 0.32);
+  animation: csScanWave var(--scan-dur, 2.2s) ease-out infinite;
 }
 
+@keyframes csHaloBreathe {
+  0%, 100% { transform: scale(1);    opacity: 0.55; }
+  50%      { transform: scale(1.10); opacity: 0.85; }
+}
+@keyframes csGlowBreathe {
+  0%, 100% { transform: scale(1);    opacity: 0.7; }
+  50%      { transform: scale(1.12); opacity: 1; }
+}
+@keyframes csDotBreathe {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 22rpx rgba(0, 220, 255, 0.5),  0 0 50rpx rgba(0, 170, 255, 0.20); }
+  50%      { transform: scale(1.10); box-shadow: 0 0 32rpx rgba(0, 220, 255, 0.75), 0 0 72rpx rgba(0, 170, 255, 0.32); }
+}
+@keyframes csScanWave {
+  0%   { transform: scale(0.5); opacity: 0.7; }
+  100% { transform: scale(4.2); opacity: 0; }
+}
+
+/* 旧关键帧保留（被 .core-glow / .core-dot 等 nav-planet 节点复用） */
 @keyframes coreGlowPulse {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50%      { transform: scale(1.15); opacity: 1; }
-}
-
-@keyframes coreRingPulse {
-  0%, 100% { transform: scale(1); opacity: 0.4; }
-  50%      { transform: scale(1.08); opacity: 0.7; }
+  0%, 100% { transform: translate(-50%, -50%) scale(1);    opacity: 0.6; }
+  50%      { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
 }
 
 @keyframes coreDotPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 16rpx rgba(0, 210, 255, 0.4); }
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 16rpx rgba(0, 210, 255, 0.4); }
   50%      { transform: scale(1.15); box-shadow: 0 0 28rpx rgba(0, 210, 255, 0.7); }
 }
 
-@keyframes coreScanWave {
-  0%   { transform: scale(0.5); opacity: 0.7; }
-  100% { transform: scale(4); opacity: 0; }
+/* ----- 轨道 ----- */
+.cs-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1rpx solid rgba(140, 215, 255, 0.55);
+  pointer-events: none;
+  animation: csOrbitBreathe var(--orbit-dur, 10s) ease-in-out infinite;
+  animation-delay: var(--orbit-delay, 0s);
+  /* opacity 由 inline 控制 */
 }
 
-/* starting 态：星核激活 */
-.star-core--starting .star-core-dot {
-  animation: startingCoreBrighten 600ms ease-out forwards;
+.cs-orbit--full {
+  /* 默认完整环 */
 }
 
-.star-core--starting .star-core-glow {
-  animation: igniteGlowExpand 1.8s ease-in-out forwards;
+.cs-orbit--half {
+  /* 半弧：仅显示上半圆 */
+  clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
 }
 
-.star-core--starting .star-core-ring {
-  animation: coreRingSpin 1.2s linear infinite;
+.cs-orbit--dash {
+  border-style: dashed;
+  border-width: 1rpx;
+  opacity: 0.85;  /* 与 inline 相乘体感不变；dashed 视觉感更弱所以保留 */
 }
 
-@keyframes startingCoreBrighten {
-  0%   { width: 20rpx; height: 20rpx; box-shadow: 0 0 16rpx rgba(0, 210, 255, 0.4); }
-  100% { width: 30rpx; height: 30rpx; box-shadow: 0 0 50rpx rgba(0, 210, 255, 0.8); }
+@keyframes csOrbitBreathe {
+  0%, 100% { transform: translate(-50%, -50%) rotate(var(--orbit-rot, 0deg)) scale(1); }
+  50%      { transform: translate(-50%, -50%) rotate(var(--orbit-rot, 0deg)) scale(1.015); }
 }
 
-@keyframes igniteDotExpand {
-  0%   { width: 20rpx; height: 20rpx; box-shadow: 0 0 16rpx rgba(0, 210, 255, 0.4); }
-  50%  { width: 36rpx; height: 36rpx; box-shadow: 0 0 50rpx rgba(0, 210, 255, 0.8); }
-  100% { width: 28rpx; height: 28rpx; box-shadow: 0 0 60rpx rgba(0, 210, 255, 0.5); }
+/* ----- 次级行星 ----- */
+.cs-planet {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: var(--planet-opacity, 0.7);
+  animation: csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate;
+  animation-delay: var(--twinkle-delay, 0s);
+  z-index: 3;
+  pointer-events: none;
 }
 
-@keyframes igniteGlowExpand {
-  0%   { width: 120rpx; height: 120rpx; opacity: 0.6; }
-  100% { width: 200rpx; height: 200rpx; opacity: 0.8; }
+.cs-planet--cyan {
+  background: radial-gradient(circle, #aaf0ff 0%, #5cdcff 45%, #2da6d8 100%);
+  color: #5cdcff;
+  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(92, 220, 255, 0.55);
+}
+.cs-planet--blue {
+  background: radial-gradient(circle, #b8d6ff 0%, #6aa6ff 50%, #2e6cc8 100%);
+  color: #6aa6ff;
+  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(106, 166, 255, 0.50);
+}
+.cs-planet--teal {
+  background: radial-gradient(circle, #b3f4dd 0%, #5fe8c0 50%, #2aa284 100%);
+  color: #5fe8c0;
+  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(95, 232, 192, 0.45);
+}
+.cs-planet--violet {
+  background: radial-gradient(circle, #c5bee8 0%, #8a82c8 50%, #524a90 100%);
+  color: #8a82c8;
+  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(138, 130, 200, 0.38);
+  opacity: calc(var(--planet-opacity, 0.6) * 0.75);  /* 暗紫总透明度收一档 */
 }
 
-@keyframes coreRingSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes csPlanetTwinkle {
+  0%   { opacity: var(--planet-opacity, 0.7); }
+  100% { opacity: calc(var(--planet-opacity, 0.7) * 0.55); }
+}
+
+/* ----- 远轨小节点 ----- */
+.cs-far-node {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(180, 220, 255, 0.9);
+  box-shadow: 0 0 6rpx rgba(120, 200, 255, 0.4);
+  animation: csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate;
+  animation-delay: var(--twinkle-delay, 0s);
+  z-index: 1;
+}
+
+@keyframes csFarTwinkle {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.7); }
+}
+
+/* ----- 连接线 ----- */
+.cs-link {
+  position: absolute;
+  height: 1rpx;
+  background: linear-gradient(90deg,
+    rgba(0, 220, 255, 0) 0%,
+    rgba(0, 220, 255, 0.85) 50%,
+    rgba(0, 220, 255, 0) 100%);
+  transform-origin: 0 50%;
+  animation: csLinkPulse var(--pulse-dur, 2.4s) ease-in-out infinite;
+  animation-delay: var(--pulse-delay, 0s);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ===== 状态：starting（点火） ===== */
+.core-system--starting .cs-main-dot {
+  animation: csDotIgnite 700ms ease-out forwards;
+}
+.core-system--starting .cs-main-glow {
+  animation: csGlowIgnite 1.6s ease-in-out forwards;
+}
+.core-system--starting .cs-orbit {
+  animation: csOrbitFlash 1s ease-out forwards;
+}
+.core-system--starting .cs-planet {
+  animation: csPlanetLightUp 1.2s ease-out forwards;
+  animation-delay: var(--light-up-delay, 0s);
+}
+
+@keyframes csDotIgnite {
+  0%   { transform: scale(1);   box-shadow: 0 0 24rpx rgba(0, 220, 255, 0.6); }
+  100% { transform: scale(1.4); box-shadow: 0 0 60rpx rgba(0, 220, 255, 0.9); }
+}
+@keyframes csGlowIgnite {
+  0%   { opacity: 0.7;  transform: scale(1); }
+  60%  { opacity: 1;    transform: scale(1.4); }
+  100% { opacity: 0.85; transform: scale(1.25); }
+}
+@keyframes csOrbitFlash {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(2.4); }
+  100% { filter: brightness(1.2); }
+}
+@keyframes csPlanetLightUp {
+  0%   { opacity: var(--planet-opacity, 0.5); transform: translate(-50%, -50%) scale(1); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.45); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* ===== 状态：calibrating（校准同步） ===== */
+.core-system--calibrating .cs-main-dot {
+  box-shadow:
+    0 0 36rpx rgba(0, 220, 255, 0.75),
+    0 0 80rpx rgba(0, 170, 255, 0.4);
+}
+.core-system--calibrating .cs-orbit {
+  border-color: rgba(140, 215, 255, 0.85);
+}
+.core-system--calibrating .cs-planet {
+  /* 行星持续微亮 */
+  filter: brightness(1.18);
+}
+.core-system--calibrating .cs-link {
+  animation: csLinkPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes csLinkPulse {
+  0%, 100% { opacity: var(--link-base, 0.10); filter: brightness(1); }
+  50%      { opacity: 0.35; filter: brightness(1.6); }
+}
+
+/* ===== 状态：regenerating（重生成） ===== */
+.core-system--regenerating .cs-main-dot {
+  animation: csDotRegen 800ms ease-out forwards;
+}
+
+@keyframes csDotRegen {
+  0%   { transform: scale(0.4); opacity: 0.3; box-shadow: 0 0 4rpx rgba(0, 220, 255, 0.2); }
+  50%  { transform: scale(1.6); opacity: 1;   box-shadow: 0 0 60rpx rgba(0, 220, 255, 0.9); }
+  100% { transform: scale(1);   opacity: 1;   box-shadow: 0 0 16rpx rgba(0, 220, 255, 0.5); }
+}
+
+/* ===== reduce-motion：所有中央系统动画静音 ===== */
+.reduce-motion .cs-main-halo,
+.reduce-motion .cs-main-glow,
+.reduce-motion .cs-main-dot,
+.reduce-motion .cs-main-scan,
+.reduce-motion .cs-orbit,
+.reduce-motion .cs-planet,
+.reduce-motion .cs-far-node,
+.reduce-motion .cs-link {
+  animation: none !important;
 }
 
 /* ===== 启动按钮 ===== */
@@ -640,6 +806,21 @@
   display: flex;
   justify-content: center;
   margin-top: 36rpx;
+  transition: opacity 500ms ease;
+}
+
+.btn-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.btn-fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.btn-hidden {
+  display: none !important;
 }
 
 .nav-launch-btn {
@@ -657,7 +838,7 @@
   font-size: 32rpx;
   font-weight: 600;
   letter-spacing: 4rpx;
-  transition: all 200ms ease;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
 }
 
 .nav-launch-btn:active {
@@ -665,6 +846,14 @@
   background: rgba(4, 18, 30, 0.65);
   border-color: rgba(0, 190, 255, 0.36);
   box-shadow: 0 0 28rpx rgba(0, 170, 255, 0.12);
+}
+
+.nav-launch-btn--starting {
+  transform: scale(0.98);
+  border-color: rgba(0, 200, 255, 0.8) !important;
+  box-shadow: 0 0 32rpx rgba(0, 200, 255, 0.4) !important;
+  background: rgba(4, 18, 30, 0.75) !important;
+  color: #00c8ff !important;
 }
 
 /* ===== 状态指示线 ===== */
@@ -711,57 +900,29 @@
   animation: statusPulse 2s ease-in-out infinite;
 }
 
-/* ===== 星核卫星点 ===== */
-.star-core-satellite {
-  position: absolute;
-  left: calc(50% + var(--sat-x));
-  top: calc(50% + var(--sat-y));
-  width: var(--sat-size);
-  height: var(--sat-size);
-  border-radius: 50%;
-  background: rgba(180, 220, 255, var(--sat-opacity));
-  box-shadow: 0 0 6rpx rgba(100, 200, 255, 0.3);
-  animation: satelliteTwinkle 3s ease-in-out infinite alternate;
-  animation-delay: calc(var(--sat-delay) * 1s);
-}
-
-@keyframes satelliteTwinkle {
-  0%   { opacity: var(--sat-opacity); transform: scale(1); }
-  100% { opacity: calc(var(--sat-opacity) * 0.4); transform: scale(0.7); }
-}
-
-/* ===== 校准阶段文案 ===== */
-.calibration-phase-text {
-  text-align: center;
-  margin-top: 32rpx;
+/* ===== calibrating 态状态文案 ===== */
+.calibrating-status-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 24rpx;
   animation: fadeIn 0.4s ease-out both;
 }
 
-.calibration-phase-text text {
-  font-size: 24rpx;
-  color: rgba(0, 200, 255, 0.55);
-  letter-spacing: 3rpx;
-  font-family: 'Courier New', monospace;
+.calibrating-hint-main {
+  font-size: 28rpx;
+  color: rgba(0, 200, 255, 0.85);
+  letter-spacing: 4rpx;
+  font-family: "Courier New", Courier, monospace;
 }
 
-/* calibrating 态：星核持续扫描 */
-.star-core--calibrating .star-core-dot {
-  width: 24rpx;
-  height: 24rpx;
-  box-shadow: 0 0 30rpx rgba(0, 210, 255, 0.6);
-}
-
-.star-core--calibrating .star-core-ring {
-  animation: coreRingSpin 3s linear infinite;
-  border-color: rgba(0, 200, 255, 0.18);
-}
-
-/* reduce-motion */
-.reduce-motion .star-core-dot,
-.reduce-motion .star-core-glow,
-.reduce-motion .star-core-ring,
-.reduce-motion .star-core-scan {
-  animation: none !important;
+.calibrating-hint-sub {
+  font-size: 22rpx;
+  color: rgba(0, 200, 255, 0.45);
+  letter-spacing: 2rpx;
+  font-family: "Courier New", Courier, monospace;
+  min-height: 32rpx;
 }
 
 /* ===== idle 态状态文案 ===== */
@@ -2021,7 +2182,6 @@
 }
 
 /* ===== 新增动画 reduce-motion 覆盖 ===== */
-.reduce-motion .star-core-satellite,
 .reduce-motion .calibration-phase-text {
   animation: none !important;
 }
@@ -2053,14 +2213,14 @@
 }
 
 /* completing 星核聚光脉冲 */
-.star-core--completing .star-core-dot {
+.star-core--completing .cs-main-dot {
   animation: completingCorePulse 700ms ease-out forwards;
 }
 
 @keyframes completingCorePulse {
-  0%   { width: 24rpx; box-shadow: 0 0 30rpx rgba(0, 210, 255, 0.6); }
-  40%  { width: 40rpx; box-shadow: 0 0 80rpx rgba(0, 210, 255, 1); }
-  100% { width: 16rpx; box-shadow: 0 0 12rpx rgba(0, 210, 255, 0.3); }
+  0%   { transform: scale(1);   box-shadow: 0 0 30rpx rgba(0, 210, 255, 0.6); }
+  40%  { transform: scale(1.6); box-shadow: 0 0 80rpx rgba(0, 210, 255, 1); }
+  100% { transform: scale(0.8); box-shadow: 0 0 12rpx rgba(0, 210, 255, 0.3); }
 }
 
 /* completing 光波扩散（从星核） */
@@ -2094,16 +2254,10 @@
   100% { opacity: var(--conn-opacity, 0.08); }
 }
 
-/* ===== regenerating 星核重构脉冲 ===== */
-.star-core--regenerating .star-core-dot {
-  animation: regenerateCorePulse 800ms ease-out forwards;
-}
-
-@keyframes regenerateCorePulse {
-  0%   { width: 8rpx; opacity: 0.3; box-shadow: 0 0 4rpx rgba(0, 210, 255, 0.2); }
-  50%  { width: 36rpx; opacity: 1; box-shadow: 0 0 60rpx rgba(0, 210, 255, 0.9); }
-  100% { width: 20rpx; opacity: 1; box-shadow: 0 0 16rpx rgba(0, 210, 255, 0.4); }
-}
+/* ===== regenerating 星核重构脉冲 =====
+ * 由 .core-system--regenerating .cs-main-dot 的 csDotRegen 处理（见上）；
+ * 这里保留 .star-core--regenerating 钩子用于父层联动（如有），不再附加额外动画。
+ */
 
 /* ===== starting 按钮淡出 ===== */
 .flight-deck--starting .nav-launch-btn-area {
@@ -2118,8 +2272,53 @@
 .reduce-motion .nav-map-window--completing,
 .reduce-motion .nav-map-window--completing::before,
 .reduce-motion .nav-map-window--crossfade-out,
-.reduce-motion .star-core--completing .star-core-dot,
-.reduce-motion .star-core--regenerating .star-core-dot,
+.reduce-motion .star-core--completing .cs-main-dot,
+.reduce-motion .core-system--regenerating .cs-main-dot,
 .reduce-motion .flight-deck--starting .nav-launch-btn-area {
   animation: none !important;
+}
+
+/* ===== 极简 HUD 结果面板样式 ===== */
+.result-panel-simple {
+  width: 640rpx;
+  padding: 48rpx 32rpx;
+  border-radius: 20rpx;
+  background: rgba(3, 16, 24, 0.28); /* 极弱极淡的背景 */
+  border: 1rpx solid rgba(0, 200, 255, 0.08); /* 极细极淡的边框 */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 0 20rpx rgba(0, 0, 0, 0.15);
+  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  box-sizing: border-box;
+}
+
+.rp-verdict-simple {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: rgba(230, 246, 255, 0.95);
+  letter-spacing: 4rpx;
+  text-align: center;
+  text-shadow: 0 0 20rpx rgba(0, 200, 255, 0.2);
+}
+
+.rp-desc-simple {
+  font-size: 24rpx;
+  color: rgba(160, 210, 235, 0.65);
+  letter-spacing: 2rpx;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.rp-stability-simple {
+  font-size: 20rpx;
+  color: rgba(0, 200, 255, 0.4);
+  letter-spacing: 2rpx;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  margin-top: 8rpx;
 }

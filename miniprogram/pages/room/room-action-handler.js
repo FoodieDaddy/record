@@ -108,6 +108,39 @@ const roomActionHandler = {
     this.setData({ joinCode: value });
   },
 
+  /** 扫码加入 */
+  handleScanCode() {
+    if (this.data.joining || this.data.launching) return;
+    wx.scanCode({
+      success: (res) => {
+        const result = res.result || '';
+        // 尝试从结果中提取6位编队码（根据实际二维码格式调整）
+        const match = result.match(/room\/([A-Z0-9]{6})/i) || result.match(/code=([A-Z0-9]{6})/i) || result.match(/^([A-Z0-9]{6})$/i);
+        if (match && match[1]) {
+          this.setData({ joinCode: match[1].toUpperCase() });
+          // 自动触发加入
+          this.handleJoinSpace();
+        } else if (result.length >= 6) {
+          // Fallback: 如果是一串长文本，尝试提取最后6位英文数字
+          const fallbackMatch = result.match(/[A-Z0-9]{6}$/i);
+          if (fallbackMatch) {
+            this.setData({ joinCode: fallbackMatch[0].toUpperCase() });
+            this.handleJoinSpace();
+          } else {
+            wx.showToast({ title: '未识别到有效编队码', icon: 'none' });
+          }
+        } else {
+          wx.showToast({ title: '无效的二维码', icon: 'none' });
+        }
+      },
+      fail: (err) => {
+        if (err.errMsg && err.errMsg.indexOf('cancel') === -1) {
+          wx.showToast({ title: '扫码失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
   /** 处理加入太空 */
   async handleJoinSpace() {
     const code = this.data.joinCode.trim();

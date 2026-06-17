@@ -1,5 +1,30 @@
 # 开发日志
 
+## 2026-06-18 — 指令 / 星图校准页中央多行星系统升级
+
+### 变更原因
+
+- 中央主视觉是单蓝点 + 单圆环，更像孤立信标，缺少「正在运行的导航星图」体感。
+- 单点结构无法承载导航关系、轨道分层和星图层次，与背景星图脱节。
+
+### 变更内容
+
+- `miniprogram/pages/fortune/fortune.js`：移除硬编码的 `coreSatellites`；在 `_generateStarMap(seed)` 末尾追加 `coreSystem` 子结构，包含主核心、3~5 条椭圆轨道（full / half / dash 三类）、3~5 颗次级行星（cyan/blue/teal/violet 颜色池，最多 1 颗 violet）、1~2 个远轨节点、1~3 条极淡连接线；同 seed → 同布局。
+- `miniprogram/pages/fortune/fortune.wxml`：替换 `.star-core` 子结构为 `.core-system / .cs-main / .cs-orbit / .cs-planet / .cs-link / .cs-far-node`，全部由 `starMap.coreSystem` 数据驱动。
+- `miniprogram/pages/fortune/fortune.wxss`：`.star-core` 容器尺寸由 `200rpx` 扩至 `480rpx`；新增多行星系统样式与状态变体（idle 呼吸 / starting 顺序点亮 / calibrating 持续微亮 + 连接线脉冲 / regenerating 重构脉冲）；`reduce-motion` 全部静音；保留旧 `coreGlowPulse / coreDotPulse` 关键帧供 `nav-planet` 节点复用。
+- `miniprogram/pages/fortune/fortune.js` 分享卡：新增 `_drawCoreSystem(ctx, cx, cy, scale)`，在 `_drawShareStarMap` 中央位置以 `0.7×` 缩放绘制同 seed 的多行星系统，替换原来的 4px 单绿点。
+
+### 验证方式
+
+- `node --check miniprogram/pages/fortune/fortune.js` 通过语法检查
+- 微信开发者工具：进入指令页观察 idle/starting/calibrating/regenerating 四态、reduce-motion 开关、重新生成 seed 后行星布局变更、分享卡导出与页面布局一致
+
+### 后续事项
+
+- 暂无；如后续要做行星轨道公转动画，需在 JS 侧增加 `requestAnimationFrame` 控制并配合 `animationEnabled` 开关。
+
+---
+
 ## 2026-06-13 — 小程序英文副标题全局清理
 
 ### 变更原因

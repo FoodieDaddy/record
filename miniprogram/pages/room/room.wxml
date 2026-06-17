@@ -36,8 +36,71 @@
     </view>
   </view>
 
-  <!-- idle 状态：基地编队终端 · 待命中 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle idle-base {{cockpitView.hasRoom ? 'idle-base--formed' : ''}}">
+  <!-- idle 状态：基地编队终端 · 待命中 (未编队) -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle' && !cockpitView.hasRoom}}" class="cockpit-viewport cockpit-viewport--idle idle-base">
+
+    <!-- 基地环境层: 舱内场景氛围 -->
+    <view class="base-ambient">
+      <view class="base-glow"></view>
+      <view class="base-vignette"></view>
+    </view>
+
+    <!-- 主视觉：单人舱内等待 -->
+    <view class="base-scene">
+      <view class="base-scene-person"></view>
+      <view class="base-scene-holo"></view>
+    </view>
+
+    <!-- 顶部轻提示 -->
+    <view class="base-status-light">
+      <view class="base-status-dot"></view>
+      <text>基地终端在线</text>
+    </view>
+
+    <!-- 中央信息区 -->
+    <view class="base-center-info">
+      <view class="base-main-title">基地待命中</view>
+      <view class="base-sub-title">当前位于基地编队终端，可创建或加入编队后申请出航</view>
+      <view class="base-channel-status">
+        <view class="base-channel-dot"></view>
+        <text>基地信道开启中</text>
+      </view>
+    </view>
+
+    <!-- 操作区：创建与加入 -->
+    <view class="base-actions">
+      <!-- 主按钮：创建编队 -->
+      <button class="base-btn-primary {{launching ? 'base-btn-primary--loading' : ''}}" bindtap="handleStartSpace">
+        <text class="base-btn-text">创建编队</text>
+        <text class="base-btn-hint">建立小队后可发起出航</text>
+      </button>
+
+      <!-- 加入编队区 -->
+      <view class="base-join-area">
+        <view class="base-join-input-wrap">
+          <input
+            class="base-join-input"
+            value="{{joinCode}}"
+            type="text"
+            adjust-position="{{false}}"
+            maxlength="6"
+            placeholder="输入编队编号"
+            placeholder-class="base-join-input-placeholder"
+            bindinput="onJoinCodeInput"
+          />
+          <view class="base-join-scan" bindtap="handleScanCode">
+            <view class="icon-scan"></view>
+          </view>
+        </view>
+        <button class="base-btn-join {{joining ? 'base-btn-join--loading' : ''}}" bindtap="handleJoinSpace">
+          <text>加入编队</text>
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- idle 状态：已创建编队，等待集结 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle' && cockpitView.hasRoom}}" class="cockpit-viewport cockpit-viewport--idle idle-base idle-base--formed">
 
     <!-- 基地环境层 -->
     <view class="base-ambient">
@@ -59,19 +122,11 @@
 
     <!-- 中央信息区 -->
     <view class="base-center-info">
-      <!-- 状态A：未创建编队 -->
-      <block wx:if="{{!cockpitView.hasRoom}}">
-        <view class="base-main-title">基地待命中</view>
-        <view class="base-sub-title">当前位于基地编队终端，可创建或加入编队后申请出航</view>
-      </block>
-      <!-- 状态B：已创建编队 -->
-      <block wx:else>
-        <view class="base-main-title">等待编队集结</view>
-        <view class="base-sub-title">当前位于基地编队终端，队员集结完成后可申请出航</view>
-      </block>
+      <view class="base-main-title">等待编队集结</view>
+      <view class="base-sub-title">当前位于基地编队终端，队员集结完成后可申请出航</view>
       <view class="base-channel-status">
         <view class="base-channel-dot"></view>
-        <text>{{cockpitView.hasRoom ? '基地信道广播中' : '基地信道开启中'}}</text>
+        <text>基地信道广播中</text>
       </view>
     </view>
 
@@ -89,30 +144,8 @@
       </view>
     </view>
 
-    <!-- 状态面板：未创建编队 -->
-    <view wx:if="{{!cockpitView.hasRoom}}" class="base-status-row">
-      <view class="base-status-chips">
-        <view class="base-chip">
-          <text class="base-chip-label">当前状态</text>
-          <text class="base-chip-value">基地待命</text>
-        </view>
-        <view class="base-chip">
-          <text class="base-chip-label">编队人数</text>
-          <text class="base-chip-value">0/16</text>
-        </view>
-        <view class="base-chip">
-          <text class="base-chip-label">出航许可</text>
-          <text class="base-chip-value">未激活</text>
-        </view>
-        <view class="base-chip">
-          <text class="base-chip-label">编队状态</text>
-          <text class="base-chip-value">未建立</text>
-        </view>
-      </view>
-    </view>
-
     <!-- 状态面板：已创建编队 -->
-    <view wx:if="{{cockpitView.hasRoom}}" class="base-status-row">
+    <view class="base-status-row">
       <view class="base-status-chips">
         <view class="base-chip">
           <text class="base-chip-label">当前状态</text>
@@ -133,36 +166,8 @@
       </view>
     </view>
 
-    <!-- 组队方式：仅未创建时显示 -->
-    <view wx:if="{{!cockpitView.hasRoom}}" class="base-protocol">
-      <view class="base-protocol-label">组队方式</view>
-      <view class="base-protocol-capsule">
-        <view class="base-protocol-opt {{scoreMode === 1 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
-          <view class="base-protocol-dot {{scoreMode === 1 ? 'base-protocol-dot--on' : ''}}"></view>
-          <text>公开编队</text>
-        </view>
-        <view class="base-protocol-opt {{scoreMode === 2 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="2">
-          <view class="base-protocol-dot {{scoreMode === 2 ? 'base-protocol-dot--on' : ''}}"></view>
-          <text>编队码加入</text>
-        </view>
-      </view>
-    </view>
-
-    <!-- 操作区：未创建编队 -->
-    <view wx:if="{{!cockpitView.hasRoom}}" class="base-actions">
-      <button class="base-btn-primary {{launching ? 'base-btn-primary--loading' : ''}}" bindtap="handleStartSpace">
-        <view class="base-btn-glow"></view>
-        <text class="base-btn-text">创建编队</text>
-        <text class="base-btn-hint">建立小队后可发起出航</text>
-      </button>
-      <button class="base-btn-secondary" bindtap="openJoinPanel">
-        <text class="base-btn-text">加入编队</text>
-        <text class="base-btn-hint">输入编号进入待命</text>
-      </button>
-    </view>
-
     <!-- 操作区：已创建编队 -->
-    <view wx:if="{{cockpitView.hasRoom}}" class="base-actions">
+    <view class="base-actions">
       <button class="base-btn-primary" bindtap="openBeacon">
         <view class="base-btn-glow"></view>
         <text class="base-btn-text">复制编队码</text>

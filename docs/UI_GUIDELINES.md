@@ -272,6 +272,30 @@ Active 态星空规范要点：
 - 分享卡必须独立海报排版，不做页面截图缩小；英文品牌如需出现，使用独立的 `SPACE SCOREKEEPER` 标识
 - 底部状态用「航迹协议」，不用「成员协议」
 
+中央主视觉（多行星导航星图）：
+
+页面中央构图为一组以 `starMap.coreSystem` 子结构驱动的小型多行星系统，单容器尺寸 `480rpx × 480rpx`，与背景星图共用同一个 `starMapSeed`，同 seed → 同布局：
+
+- 主核心：1 个，最大、最亮，位于容器中央偏上 `y ≈ -14~-26rpx`，由 `cs-main-halo` / `cs-main-glow` / `cs-main-dot` 三层光晕组成；`calibrating` 态下叠加 `cs-main-scan` 扫描波环。
+- 次级行星：3~5 个，绑定到不同轨道并固定相位，颜色池 `cyan / blue / teal`，最多 1 颗 `violet` 暗紫点缀（透明度上限收一档）；按 `lightUpOrder` 在 `starting` 态依次点亮。
+- 远轨小节点：1~2 个，距离 `225~260rpx`，`size ≤4.5rpx`，`opacity ≤0.32`，仅强化层次。
+- 轨道弧线：3~5 条椭圆轨道，倾角 `±26°`，按近→远递减透明度 `0.20 → 0.06`；类型 `full / half（上半弧）/ dash（虚线）` 三选一。
+- 连接线：1~3 条极淡 `linear-gradient` 线段，行星↔主核或行星↔行星，体现导航关系而非密集网络。
+
+动画约束：
+
+- idle：主核呼吸 + 行星错相位轻微闪烁，无轨道公转，避免渲染抖动
+- starting：主核点燃 + 轨道亮度脉冲 + 行星按 `--light-up-delay` 顺序点亮
+- calibrating：主核与行星持续微亮 + 连接线 `csLinkPulse` 缓慢呼吸
+- regenerating：主核 `csDotRegen` 重构脉冲，配合 `oldStarMap` crossfade
+- `reduce-motion` 下所有 `cs-*` 动画 `none`，行星仍以静态布局可见
+
+种子驱动要求：
+
+- `starMapSeed` 决定行星数量、位置、大小、轨道数量与角度、连接线分布；同 seed 重渲染稳定不抖动
+- 重新生成星图时刷新 seed，多行星布局随之全部更新
+- 分享卡 Canvas（`_drawCoreSystem`）必须复用当前 seed，按 `0.7×` 缩放绘制同一套行星系统
+
 ### 镜像页（全息舱）
 
 负责 MBTI 协议、历史画像、人格一致性、全息扫描、航迹档案/回放、画像分享。判读必须短、冷静、数据感，不写 AI 心理鸡汤。
