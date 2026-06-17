@@ -79,3 +79,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Temp directories
+temp/
+
+# Additional AI assistant project files
+CLAUDE.md
+CODEBUDDY.md

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 # ========== 配置（通过环境变量或 .env 注入） ==========
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 # 加载 .env（如果存在）
 if [ -f "$PROJECT_DIR/.env" ]; then

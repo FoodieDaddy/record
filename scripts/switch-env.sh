@@ -11,7 +11,7 @@ info() { echo -e "${GREEN}[switch]${NC} $*"; }
 warn() { echo -e "${YELLOW}[switch]${NC} $*"; }
 
 ENV="${1:-}"
-CONFIG_FILE="$(dirname "$0")/miniprogram/config/env.js"
+CONFIG_FILE="$(dirname "$0")/../miniprogram/config/env.js"
 
 if [ -z "$ENV" ]; then
   echo "用法: ./switch-env.sh <local|dev>"
