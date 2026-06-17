@@ -1019,61 +1019,95 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 130rpx;
-  height: 130rpx;
+  width: 140rpx;
+  height: 140rpx;
   border-radius: 50%;
-  background: rgba(2, 12, 22, 0.65); /* 深蓝黑半透明 */
-  border: 1rpx solid rgba(0, 190, 255, 0.28); /* 细青蓝描边 */
+  background: radial-gradient(circle at 50% 50%, rgba(4, 28, 48, 0.72) 0%, rgba(2, 12, 22, 0.95) 100%);
+  border: 1.5rpx solid rgba(0, 200, 255, 0.32);
   box-shadow: 
-    0 0 24rpx rgba(0, 170, 255, 0.08), 
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.03);
-  transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease, transform 200ms ease;
-  animation: btnBorderBreathe 4s ease-in-out infinite alternate;
+    inset 0 0 20rpx rgba(0, 200, 255, 0.22),
+    inset 0 2rpx 4rpx rgba(255, 255, 255, 0.1),
+    0 10rpx 32rpx rgba(0, 0, 0, 0.65);
+  transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease, transform 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: btnMainBreathe 4s ease-in-out infinite alternate;
 }
 
-/* 按钮外侧极淡能量虚线环 */
-.nav-launch-btn::before {
-  content: '';
+/* 按钮外侧控制环 (极细青蓝描边) */
+.btn-outer-control-ring {
   position: absolute;
-  inset: -12rpx;
-  border: 1.5rpx dashed rgba(0, 200, 255, 0.22);
+  inset: -16rpx;
+  border: 1.5rpx solid rgba(0, 200, 255, 0.15);
   border-radius: 50%;
-  animation: btnOuterRingRotate 20s linear infinite;
   pointer-events: none;
-  transition: all 0.3s ease;
-  z-index: 1;
+  transition: all 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: btnOuterRingRotate 28s linear infinite;
+}
+
+/* 外环对称的四个刻度 */
+.btn-ring-tick {
+  position: absolute;
+  background: rgba(0, 200, 255, 0.45);
+  transition: all 300ms ease;
+}
+.btn-ring-tick--1 { top: -6rpx; left: 50%; width: 2rpx; height: 10rpx; transform: translateX(-50%); }
+.btn-ring-tick--2 { right: -6rpx; top: 50%; width: 10rpx; height: 2rpx; transform: translateY(-50%); }
+.btn-ring-tick--3 { bottom: -6rpx; left: 50%; width: 2rpx; height: 10rpx; transform: translateX(-50%); }
+.btn-ring-tick--4 { left: -6rpx; top: 50%; width: 10rpx; height: 2rpx; transform: translateY(-50%); }
+
+/* 内部微弱呼吸能量光 */
+.btn-internal-energy {
+  position: absolute;
+  inset: 6rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 200, 255, 0.08) 0%, transparent 75%);
+  pointer-events: none;
+  animation: btnEnergyBreathe 3.5s ease-in-out infinite alternate;
 }
 
 .nav-launch-btn:active {
-  transform: scale(0.98);
-  background: rgba(4, 18, 30, 0.65);
-  border-color: rgba(0, 200, 255, 0.70) !important;
-  box-shadow: 0 0 28rpx rgba(0, 170, 255, 0.16) !important;
+  transform: scale(0.96);
+  background: radial-gradient(circle at 50% 50%, rgba(6, 40, 68, 0.82) 0%, rgba(1, 8, 16, 0.96) 100%) !important;
+  border-color: rgba(0, 200, 255, 0.65) !important;
+  box-shadow: 
+    inset 0 0 32rpx rgba(0, 200, 255, 0.45),
+    0 4rpx 16rpx rgba(0, 200, 255, 0.15) !important;
 }
 
-.nav-launch-btn:active::before {
-  inset: -8rpx;
-  border-color: rgba(0, 200, 255, 0.65);
-  animation-duration: 6s;
+.nav-launch-btn:active .btn-outer-control-ring {
+  inset: -12rpx;
+  border-color: rgba(0, 200, 255, 0.45);
 }
 
+.nav-launch-btn:active .btn-ring-tick {
+  background: rgba(0, 200, 255, 0.8);
+}
+
+@keyframes btnMainBreathe {
+  0% {
+    border-color: rgba(0, 200, 255, 0.28);
+    box-shadow: inset 0 0 16rpx rgba(0, 200, 255, 0.16), 0 10rpx 32rpx rgba(0, 0, 0, 0.65);
+  }
+  100% {
+    border-color: rgba(0, 200, 255, 0.45);
+    box-shadow: inset 0 0 28rpx rgba(0, 200, 255, 0.28), 0 10rpx 36rpx rgba(0, 170, 255, 0.1);
+  }
+}
+
+/* Starting状态：按钮快速向内坍缩淡出，视觉交给星图 */
 .nav-launch-btn--starting {
   transform: scale(0.01) !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  background: rgba(4, 18, 30, 0.9) !important;
-  border-color: rgba(0, 200, 255, 0.8) !important;
-  box-shadow: 0 0 32rpx rgba(0, 200, 255, 0.4) !important;
-  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 700ms ease !important;
+  box-shadow: 0 0 32rpx rgba(0, 200, 255, 0.6) !important;
+  transition: transform 650ms cubic-bezier(0.6, -0.28, 0.735, 0.045), opacity 550ms ease !important;
   animation: none !important;
 }
 
-.nav-launch-btn--starting::before {
+.nav-launch-btn--starting .btn-outer-control-ring {
   inset: 0rpx !important;
   opacity: 0 !important;
   border-color: rgba(0, 200, 255, 0.8) !important;
-  box-shadow: 0 0 16rpx rgba(0, 200, 255, 0.2);
-  transition: inset 700ms cubic-bezier(0.22, 1, 0.36, 1), opacity 600ms ease !important;
+  transition: inset 550ms cubic-bezier(0.22, 1, 0.36, 1), opacity 500ms ease !important;
   animation: btnOuterRingRotate 3s linear infinite !important;
 }
 
@@ -1082,85 +1116,9 @@
   to   { transform: rotate(-360deg); }
 }
 
-/* 按钮内部横向扫描光 */
-.btn-scan-light {
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.15), transparent);
-  transform: skewX(-25deg);
-  pointer-events: none;
-  animation: btnScanSweep 6s ease-in-out infinite;
-}
-
-.nav-launch-btn:active .btn-scan-light {
-  animation: btnScanSweepActive 0.3s ease-out forwards;
-}
-
-.nav-launch-btn--starting .btn-scan-light {
-  animation: btnScanSweepActive 0.4s linear infinite !important;
-}
-
-/* 按钮底部能量线 */
-.btn-energy-line {
-  position: absolute;
-  bottom: 0;
-  left: 15%;
-  right: 15%;
-  height: 2rpx;
-  background: rgba(0, 200, 255, 0.45);
-  box-shadow: 
-    0 0 6rpx rgba(0, 200, 255, 0.6),
-    0 0 12rpx rgba(0, 200, 255, 0.2);
-  border-radius: 99rpx;
-  opacity: 0.65;
-  pointer-events: none;
-  animation: btnEnergyBreathe 3s ease-in-out infinite;
-}
-
-.nav-launch-btn--starting .btn-energy-line {
-  left: 8%;
-  right: 8%;
-  background: #00c8ff;
-  box-shadow: 
-    0 0 10rpx #00c8ff,
-    0 0 20rpx rgba(0, 200, 255, 0.8);
-  opacity: 1;
-  transition: all 400ms ease;
-  animation: btnEnergyFlash 0.3s ease-in-out infinite alternate !important;
-}
-
-@keyframes btnBorderBreathe {
-  0% { 
-    border-color: rgba(0, 190, 255, 0.22); 
-    box-shadow: 0 0 16rpx rgba(0, 170, 255, 0.05), inset 0 1rpx 0 rgba(255, 255, 255, 0.02); 
-  }
-  100% { 
-    border-color: rgba(0, 190, 255, 0.40); 
-    box-shadow: 0 0 24rpx rgba(0, 170, 255, 0.12), inset 0 1rpx 0 rgba(255, 255, 255, 0.04); 
-  }
-}
-
-@keyframes btnScanSweep {
-  0% { left: -100%; }
-  15%, 100% { left: 150%; }
-}
-
-@keyframes btnScanSweepActive {
-  0% { left: -100%; }
-  100% { left: 150%; }
-}
-
 @keyframes btnEnergyBreathe {
-  0%, 100% { opacity: 0.4; transform: scaleX(0.9); }
-  50%      { opacity: 0.85; transform: scaleX(1.05); }
-}
-
-@keyframes btnEnergyFlash {
-  0%   { opacity: 0.7; }
-  100% { opacity: 1; }
+  0% { opacity: 0.35; transform: scale(0.92); }
+  100% { opacity: 0.9; transform: scale(1.05); }
 }
 
 /* ===== 状态指示线 ===== */
@@ -1765,31 +1723,33 @@
 
 .directive-projection {
   position: absolute;
-  bottom: calc(180rpx + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translate(-50%, 24rpx);
+  inset: 0;
   width: 100%;
-  max-width: 680rpx;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24rpx 40rpx;
+  justify-content: center;
+  padding: calc(var(--custom-nav-height, 176rpx) + 30rpx) 40rpx calc(env(safe-area-inset-bottom) + 30rpx);
   box-sizing: border-box;
   opacity: 0;
+  transform: scale(0.97) translateY(20rpx);
   transition:
-    opacity 450ms ease,
-    transform 450ms cubic-bezier(0.22, 1, 0.36, 1),
-    backdrop-filter 450ms ease;
+    opacity 550ms ease,
+    transform 550ms cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 550ms ease,
+    background 550ms ease;
   pointer-events: none;
+  background: rgba(2, 10, 18, 0);
   /* 增加背景动态数据流 */
   background-image:
     radial-gradient(
       circle at 50% 50%,
-      rgba(0, 200, 255, 0.04) 0%,
+      rgba(0, 200, 255, 0.03) 0%,
       transparent 80%
     ),
-    linear-gradient(rgba(0, 200, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 200, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(0, 200, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.04) 1px, transparent 1px);
   background-size:
     100% 100%,
     60rpx 60rpx,
@@ -1804,10 +1764,11 @@
 
 .dp-visible {
   opacity: 1;
-  transform: translate(-50%, 0);
+  transform: scale(1) translateY(0);
   pointer-events: auto;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background: rgba(2, 10, 18, 0.76);
 }
 
 .projection-card {
@@ -2597,38 +2558,59 @@
 
 /* ===== 精致按钮内部元素 ===== */
 .btn-cockpit-icon {
-  width: 36rpx;
-  height: 36rpx;
+  width: 44rpx;
+  height: 44rpx;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 
 .btn-icon-pulse {
   position: absolute;
   width: 100%;
   height: 100%;
-  border: 1.5rpx solid rgba(0, 200, 255, 0.4);
+  border: 1.5rpx solid rgba(0, 200, 255, 0.45);
   border-radius: 50%;
-  animation: btnIconPulse 2s ease-out infinite;
+  animation: btnIconPulse 2.5s ease-out infinite;
 }
 
 .btn-icon-core {
-  width: 12rpx;
-  height: 12rpx;
+  width: 10rpx;
+  height: 10rpx;
   background: #00c8ff;
   border-radius: 50%;
-  box-shadow: 0 0 8rpx #00c8ff;
+  box-shadow: 0 0 10rpx #00c8ff;
+  z-index: 3;
 }
 
 .btn-icon-reticle {
   position: absolute;
-  width: 140%;
-  height: 140%;
-  border: 1rpx dashed rgba(0, 200, 255, 0.3);
+  width: 130%;
+  height: 130%;
+  border: 1rpx dashed rgba(0, 200, 255, 0.25);
   border-radius: 50%;
-  animation: btnIconRotate 12s linear infinite;
+  animation: btnIconRotate 14s linear infinite;
+  z-index: 1;
+}
+
+.btn-icon-cross-h {
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  height: 1.5rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.4), transparent);
+  z-index: 2;
+}
+
+.btn-icon-cross-v {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  width: 1.5rpx;
+  background: linear-gradient(180deg, transparent, rgba(0, 200, 255, 0.4), transparent);
+  z-index: 2;
 }
 
 .btn-caption-text {
@@ -2740,18 +2722,20 @@
 .result-card-container {
   width: 640rpx;
   background: rgba(3, 16, 28, 0.45);
-  border: 1rpx solid rgba(0, 190, 255, 0.15);
-  border-radius: 16rpx;
+  border: 1.5rpx solid rgba(0, 190, 255, 0.2);
+  border-radius: 20rpx;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  padding: 36rpx 32rpx;
+  padding: 40rpx 32rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  margin-bottom: 24rpx;
-  box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.3);
+  margin-bottom: 28rpx;
+  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.5);
+  /* 严格防拉长页面：卡片最大高度自适应 */
+  max-height: calc(100vh - var(--custom-nav-height, 176rpx) - env(safe-area-inset-bottom) - 340rpx);
 }
 
 /* 结果面板高光流线装饰 */
@@ -2842,6 +2826,8 @@
   gap: 16rpx;
   margin-bottom: 20rpx;
   width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .rc-detail-item {
@@ -2895,21 +2881,68 @@
   letter-spacing: 2rpx;
 }
 
-/* ===== 自定义导航栏引导字样式微调 ===== */
-.cockpit-nav-hud__link {
+/* ===== 自定义导航栏左上角极简 HUD 视觉痕迹 (无字) ===== */
+.cockpit-hud-indicator {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  padding: 6rpx 20rpx;
-  background: rgba(3, 16, 28, 0.4);
-  border: 1rpx solid rgba(0, 190, 255, 0.15);
-  border-radius: 99rpx;
-  transition: all 0.3s ease;
+  height: 40rpx;
+  pointer-events: none;
 }
 
-.cockpit-nav-hud__link text {
-  font-size: 20rpx;
-  font-weight: 600;
-  color: rgba(230, 246, 255, 0.9);
-  letter-spacing: 2rpx;
+/* 状态信号线：一个极小状态点 */
+.css-status-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  transition: all 0.4s ease;
+}
+.css-status-dot--idle {
+  background: rgba(0, 200, 255, 0.45);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.35);
+}
+.css-status-dot--starting {
+  background: rgba(0, 200, 255, 0.95);
+  box-shadow: 0 0 12rpx rgba(0, 200, 255, 0.7);
+  animation: cssStatusDotPulse 1.2s ease-in-out infinite alternate;
+}
+.css-status-dot--online {
+  background: rgba(50, 215, 75, 0.85);
+  box-shadow: 0 0 10rpx rgba(50, 215, 75, 0.5);
+}
+
+@keyframes cssStatusDotPulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+/* 一条极淡弱光状态线 */
+.css-status-line {
+  width: 32rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, rgba(0, 200, 255, 0.45) 0%, rgba(0, 200, 255, 0.05) 100%);
+  box-shadow: 0 0 4rpx rgba(0, 200, 255, 0.25);
+  border-radius: 1rpx;
+}
+
+/* 一个极淡图形信号标记：三根递增高度的细信号竖杠 */
+.css-hud-signal {
+  display: flex;
+  align-items: flex-end;
+  gap: 3rpx;
+  height: 14rpx;
+  width: 16rpx;
+}
+.css-hud-signal::before {
+  content: '';
+  width: 2rpx;
+  height: 6rpx;
+  background: rgba(0, 200, 255, 0.22);
+}
+.css-hud-signal::after {
+  content: '';
+  width: 2rpx;
+  height: 12rpx;
+  background: rgba(0, 200, 255, 0.22);
+  box-shadow: -5rpx 0 0 rgba(0, 200, 255, 0.22);
 }
