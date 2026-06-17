@@ -159,16 +159,37 @@ function mapSolarTermToLabel(solarTerm) {
   return map[solarTerm] || solarTerm
 }
 
+/** 基于 seed 字符串创建确定性伪随机数生成器 (mulberry32) */
+function createSeededRandom(seed) {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0
+  }
+  return function () {
+    h |= 0; h = h + 0x6D2B79F5 | 0
+    let t = Math.imul(h ^ h >>> 15, 1 | h)
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+
+/** 生成新 seed */
+function createStarMapSeed() {
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
+}
+
 Page({
   data: {
-    pageMode: 'launch',     // launch | generating | result | relaunchReady
-    flightStage: 'idle',    // idle | arming | pressed | plasma | lifting | syncing | projecting | done
-    uiPhase: 'idle',
+    // ===== 状态机 =====
+    baseState: 'idle',       // idle | starting | calibrating | completing | completed | regenerating
+    overlayState: 'none',    // none | share | confirmRegenerate
+    starMapSeed: '',
     starMap: { stars: [], routes: [], highlights: [], scanCenter: { x: 50, y: 50 } },
+    oldStarMap: null,        // crossfade 期间保留的旧星图
+
     statusLineText: '导航待机',
     animationEnabled: true,
     reduceMotion: false,
-    showRegenerateModal: false,
     forcePending: false,
     currentDate: '',
     countdownText: '',
@@ -177,9 +198,6 @@ Page({
     // 跨 Tab 骨架屏
     pageReady: false,
     firstEnter: true,
-
-    // generating (保留 forcePending)
-    forcePending: false,
 
     // result
     strategy: null,
@@ -204,13 +222,9 @@ Page({
     phase: '',
     posterPath: '',
     posterError: '',
-    posterModalVisible: false,
 
     // share capability
     canUseWxShare: false,
-
-    // regenerate loading state
-    regenerating: false,
 
     // HUD panel stability percent (derived from strategy data)
     stabilityPercent: 72,
@@ -228,7 +242,6 @@ Page({
     calibrationText: '',
 
     // projection visibility
-    projectionVisible: false,
     coreCompact: false,
 
     // Page layout
@@ -280,17 +293,19 @@ Page({
     const y = now.getFullYear()
     const m = String(now.getMonth() + 1).padStart(2, '0')
     const d = String(now.getDate()).padStart(2, '0')
+    const seed = createStarMapSeed()
     this.setData({
       animationEnabled: app.globalData.animationEnabled !== false,
       reduceMotion: app.globalData.animationEnabled === false,
       currentDate: `${y}.${m}.${d}`,
       pageReady: true,
-      starMap: this._generateStarMap(),
+      starMapSeed: seed,
+      starMap: this._generateStarMap(seed),
     })
     this._calcPageHeight()
     this._initShareCapability()
     this._checkCache()
-    this._updateCockpitStatusByPhase()
+    this._updateCockpitStatusByState()
     this._setupEntranceAnimation()
   },
 
@@ -307,18 +322,14 @@ Page({
     wx.setNavigationBarTitle({ title: '导航舱' })
     this._startCountdown()
     this.syncRoomStatus()
-    // pageReady 立即为 true，避免空暗场；骨架屏仅用于极端冷启动
     if (!this.data.pageReady) {
       this.setData({ pageReady: true })
     }
-    // 确保 TabBar 可见（防止异常路径漏恢复）
-    // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }
-    // 每次展示重新计算高度，防止横竖屏切换等场景
     this._calcPageHeight()
-    this._updateCockpitStatusByPhase()
+    this._updateCockpitStatusByState()
   },
 
   initCustomNav() {
@@ -350,7 +361,7 @@ Page({
         cockpitState: 'active'
       });
     }
-    this._updateCockpitStatusByPhase();
+    this._updateCockpitStatusByState();
   },
 
   _calcPageHeight() {
@@ -375,15 +386,15 @@ Page({
     this.setData({ routeAnimating: 'prepare' });
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
-    // 海报弹层可能已隐藏 tabbar，离开页面时恢复
-    if (this.data.posterModalVisible) {
-      this.setData({ posterModalVisible: false, phase: '', posterPath: '', posterError: '' })
-      // 只使用自定义 tabbar 的方法
+    this._closeOverlay()
+    this.setData({ oldStarMap: null })
+    if (this.data.overlayState === 'share') {
+      this.setData({ phase: '', posterPath: '', posterError: '' })
       if (typeof this.getTabBar === 'function' && this.getTabBar()) {
         this.getTabBar().setData({ hidden: false, selected: 1 });
       }
     }
-    this._updateCockpitStatusByPhase()
+    this._updateCockpitStatusByState()
   },
 
   onUnload() {
@@ -391,11 +402,11 @@ Page({
     this._hideSystemLoadingSafe()
     this._stopCountdown()
     this._abortCurrentFlight({ resetToLaunch: false })
-    // 只使用自定义 tabbar 的方法
+    this._closeOverlay()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }
-    this._updateCockpitStatusByPhase()
+    this._updateCockpitStatusByState()
   },
 
   /* ==================== 分享能力检测 ==================== */
@@ -432,20 +443,17 @@ Page({
         wx.setStorageSync('strategy_result', { date: today, data: strategy })
         const viewState = this._buildStrategyViewState(strategy)
         this.setData({
-          pageMode: 'result',
-          flightStage: 'done',
-          uiPhase: 'result',
-          projectionVisible: true,
+          baseState: 'completed',
           coreCompact: true,
           firstEnter: false,
           _ignitionEntered: true,
           ...viewState,
         })
-        this._updateCockpitStatusByPhase()
+        this._updateCockpitStatusByState()
         return
       }
     } catch (e) {}
-    this.setData({ pageMode: 'launch', flightStage: 'idle' })
+    this.setData({ baseState: 'idle' })
   },
 
   _hideSystemLoadingSafe() {
@@ -460,12 +468,11 @@ Page({
     this.setData({
       requesting: false,
       loading: false,
-      regenerating: false,
     })
   },
 
-  _updateCockpitStatusByPhase() {
-    const { pageMode, uiPhase, flightStage } = this.data
+  _updateCockpitStatusByState() {
+    const { baseState } = this.data
     const roomNo = wx.getStorageSync('currentRoomNo') || '--'
     const memberCount = wx.getStorageSync('currentMemberCount') || 0
     const memberCountText = `${memberCount}/16`
@@ -474,14 +481,18 @@ Page({
     let statusLabel = '导航舱待机中'
     let statusLineText = '导航待机'
 
-    if (pageMode === 'generating' || uiPhase === 'loading' || flightStage === 'syncing') {
+    if (baseState === 'starting' || baseState === 'calibrating') {
       statusDot = 'starting'
       statusLabel = '导航计算中'
       statusLineText = '星图校准中'
-    } else if (pageMode === 'result' || uiPhase === 'result' || flightStage === 'done') {
+    } else if (baseState === 'completing' || baseState === 'completed') {
       statusDot = 'online'
       statusLabel = '指令已生成'
       statusLineText = '校准完成'
+    } else if (baseState === 'regenerating') {
+      statusDot = 'starting'
+      statusLabel = '星图重构中'
+      statusLineText = '重构星图'
     } else {
       const roomId = wx.getStorageSync('currentRoomId')
       if (roomId) {
@@ -506,13 +517,20 @@ Page({
     })
   },
 
-  /** 生成随机星图数据 */
-  _generateStarMap() {
-    const rand = (min, max) => min + Math.random() * (max - min)
-    const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1))
+  /** 基于 seed 生成确定性星图数据 */
+  _generateStarMap(seed) {
+    const random = createSeededRandom(seed || 'default')
+    const rand = (min, max) => min + random() * (max - min)
+    const randInt = (min, max) => min + Math.floor(random() * (max - min + 1))
 
-    // 星点：12~25 个（比之前更密集）
-    const starCount = randInt(12, 25)
+    // 星核偏移（中心附近 ±8%）
+    const coreOffset = {
+      x: +(rand(-8, 8)).toFixed(1),
+      y: +(rand(-6, 6)).toFixed(1),
+    }
+
+    // 星点：35~60 个
+    const starCount = randInt(35, 60)
     const stars = Array.from({ length: starCount }, (_, i) => ({
       x: +(rand(4, 96)).toFixed(1),
       y: +(rand(4, 96)).toFixed(1),
@@ -521,7 +539,7 @@ Page({
       flickerDelay: +(rand(0, 4)).toFixed(1),
     }))
 
-    // 航线：2~4 条（保留）
+    // 航线：2~4 条
     const routeCount = randInt(2, 4)
     const routes = Array.from({ length: routeCount }, () => {
       const x1 = +(rand(8, 40)).toFixed(1)
@@ -564,8 +582,8 @@ Page({
       driftDelay: +(rand(0, 30)).toFixed(0),
     }))
 
-    // 轨道弧线：3~5 条
-    const orbitCount = randInt(3, 5)
+    // 轨道弧线：2~5 条
+    const orbitCount = randInt(2, 5)
     const orbitArcs = Array.from({ length: orbitCount }, (_, i) => ({
       cx: +(rand(20, 80)).toFixed(1),
       cy: +(rand(15, 85)).toFixed(1),
@@ -609,24 +627,57 @@ Page({
       y: +(rand(35, 65)).toFixed(1),
     }
 
-    // 星图唯一 ID（用于分享卡标识）
-    const starMapId = 'SM-' + Date.now().toString(36).slice(-6).toUpperCase()
+    // 星图唯一 ID（从 seed 派生）
+    const starMapId = 'SM-' + (seed || '').slice(0, 6).toUpperCase()
 
-    // 色相偏移（每次生成随机选择）
+    // 色相偏移
     const tints = ['cyan', 'blue-green', 'blue', 'teal']
     const colorTint = tints[randInt(0, tints.length - 1)]
 
     return {
-      stars, routes, highlights, scanCenter,
+      seed, stars, routes, highlights, scanCenter,
       dustParticles, orbitArcs, connectionLines, energyNodes, radarCenter,
-      starMapId, colorTint,
+      coreOffset, starMapId, colorTint,
+    }
+  },
+
+  /* ==================== 状态机核心 ==================== */
+
+  /** 统一状态转换 */
+  _transition(nextState, options) {
+    options = options || {}
+    const prev = this.data.baseState
+    this._cleanupState(prev)
+    const dataPatch = Object.assign({ baseState: nextState }, options.extraData || {})
+    this.setData(dataPatch)
+    this._updateCockpitStatusByState()
+  },
+
+  /** overlay 管理（不影响 baseState） */
+  _openOverlay(type) {
+    this.setData({ overlayState: type })
+  },
+  _closeOverlay() {
+    this.setData({ overlayState: 'none' })
+  },
+
+  /** 按前一状态清理资源 */
+  _cleanupState(prevState) {
+    if (prevState === 'starting' || prevState === 'calibrating') {
+      this._clearFlightTimers()
+    }
+    if (prevState === 'calibrating') {
+      this._clearGeneratingTextState()
+    }
+    if (prevState === 'completing') {
+      this._clearProjectionTimers()
     }
   },
 
   /* ==================== 校准航行核心 ==================== */
 
   onTapLaunchCore() {
-    if (this.data.flightStage !== 'idle') return
+    if (this.data.baseState !== 'idle') return
     vibrateShort('light')
 
     if (!this._isMotionEnabled()) {
@@ -634,12 +685,7 @@ Page({
       this._calcSettled = false
       this._calcFinishing = false
       this._hideSystemLoadingSafe()
-      this.setData({
-        flightStage: 'syncing',
-        pageMode: 'generating',
-        uiPhase: 'sync',
-      })
-      this._updateCockpitStatusByPhase()
+      this._transition('calibrating')
       this._fireApiRequest()
       this._calcAnimDone = true
       this._tryFinishCalc(this._runId)
@@ -658,23 +704,14 @@ Page({
 
     const runId = this._runId
 
-    this.setData({
-      uiPhase: 'boot',
-      flightStage: 'pressed',
-    })
-    this._updateCockpitStatusByPhase()
-
+    // 进入 starting
+    this._transition('starting')
     this._fireApiRequest()
 
-    // 220ms: BOOT → SYNC
+    // T=600ms: starting → calibrating
     const t1 = setTimeout(() => {
       if (runId !== this._runId) return
-      this.setData({
-        pageMode: 'generating',
-        uiPhase: 'sync',
-        flightStage: 'syncing',
-      })
-      this._updateCockpitStatusByPhase()
+      this._transition('calibrating')
 
       // 校准阶段文案循环
       const phases = ['星图校准中', '同步坐标...', '锁定低熵窗口...', '写入指令参数...']
@@ -684,16 +721,9 @@ Page({
         phaseIdx = Math.min(phaseIdx + 1, phases.length - 1)
         this.setData({ calibrationText: phases[phaseIdx] })
       }, 2000)
-    }, 220)
+    }, 600)
 
-    // 860ms: SYNC 动画序列完成，解锁 _tryFinishCalc 的 animReady 门控
-    const t2 = setTimeout(() => {
-      if (runId !== this._runId) return
-      if (this.data.pageMode !== 'generating') return
-      this._calcAnimDone = true
-    }, 860)
-
-    this._flightTimers.push(t1, t2)
+    this._flightTimers.push(t1)
   },
 
   /** 提前发送 API 请求，不等 UI */
@@ -837,18 +867,14 @@ Page({
     this._hideSystemLoadingSafe()
     this._calcSettled = true
     this._clearCalcTimers()
+    this._clearGeneratingTextState()
     this.setData({
-      pageMode: 'launch',
-      flightStage: 'idle',
-      uiPhase: 'idle',
       error: null,
-      projectionVisible: false,
       coreCompact: false,
       firstEnter: false,
       _ignitionEntered: true,
-      regenerating: false,
     })
-    this._updateCockpitStatusByPhase()
+    this._transition('idle')
     wx.showToast({ title: sanitizeStrategyText(message) || '导航计算响应超时，请稍后再试', icon: 'none' })
   },
 
@@ -862,81 +888,63 @@ Page({
     this._stopHeartbeat()
 
     if (!this._isMotionEnabled()) {
-      this.setData({
-        pageMode: 'result',
-        flightStage: 'done',
-        uiPhase: 'result',
-        projectionVisible: true,
+      this.setData(Object.assign({
+        baseState: 'completed',
         coreCompact: true,
-        ...viewState
-      })
-      this._updateCockpitStatusByPhase()
+      }, viewState))
+      this._updateCockpitStatusByState()
       return
     }
 
-    this.setData({
-      pageMode: 'result',
-      flightStage: 'projecting',
-      uiPhase: 'project',
-      projectionVisible: false,
-      ...viewState
-    })
-    this._updateCockpitStatusByPhase()
-    this._hideSystemLoadingSafe()
+    // 进入 completing 转场（700ms）
+    this._transition('completing', { extraData: viewState })
 
-    const showTimer = setTimeout(() => {
-      if (runId !== this._runId) return
-      this.setData({
-        projectionVisible: true
-      })
-    }, 60)
-
+    // T=700ms: completing → completed
     const doneTimer = setTimeout(() => {
       if (runId !== this._runId) return
       this._resetLoadingState()
       this._hideSystemLoadingSafe()
       this.setData({
-        pageMode: 'result',
-        flightStage: 'done',
-        uiPhase: 'result',
+        baseState: 'completed',
         coreCompact: true,
-        projectingResult: false
+        projectingResult: false,
       })
-      this._updateCockpitStatusByPhase()
-    }, 420)
+      this._updateCockpitStatusByState()
+    }, 700)
 
-    this._projectionTimers.push(showTimer, doneTimer)
+    this._projectionTimers.push(doneTimer)
   },
 
   /* ==================== 统一清理 ==================== */
 
   /** 中断当前校准流程 */
-  _abortCurrentFlight(options = {}) {
+  _abortCurrentFlight(options) {
+    options = options || {}
     this._resetLoadingState()
     this._hideSystemLoadingSafe()
     this._clearFlightTimers()
     this._clearCalcTimers()
     this._clearProjectionTimers()
     this._resetCalcFlags()
+    this._clearGeneratingTextState()
 
     if (options.resetToLaunch) {
+      const seed = createStarMapSeed()
       this.setData({
-        pageMode: 'launch',
-        flightStage: 'idle',
-        uiPhase: 'idle',
+        baseState: 'idle',
+        starMapSeed: seed,
+        starMap: this._generateStarMap(seed),
+        oldStarMap: null,
         projectingResult: false,
-        projectionVisible: false,
         coreCompact: false,
         firstEnter: false,
         _ignitionEntered: true,
-        posterModalVisible: false,
         phase: '',
         posterPath: '',
         posterError: '',
-        starMap: this._generateStarMap(),
+        overlayState: 'none',
       })
-      this._updateCockpitStatusByPhase()
-      // 只使用自定义 tabbar 的方法
+      this._updateCockpitStatusByState()
       if (typeof this.getTabBar === 'function' && this.getTabBar()) {
         this.getTabBar().setData({ hidden: false, selected: 1 });
       }
@@ -1029,99 +1037,78 @@ Page({
   },
 
   _isRunActive(runId) {
-    return runId === this._runId && this.data.pageMode === 'generating'
+    return runId === this._runId && (this.data.baseState === 'starting' || this.data.baseState === 'calibrating')
   },
 
   /* ==================== result → 重新生成星图弹窗 ==================== */
 
   onTapRegenerate() {
     vibrateShort('light')
-    this._resetLoadingState()
-    this._hideSystemLoadingSafe()
-    this.setData({ showRegenerateModal: true })
+    this._openOverlay('confirmRegenerate')
   },
 
   onCancelRegenerate() {
-    this._resetLoadingState()
-    this._hideSystemLoadingSafe()
-    this.setData({ showRegenerateModal: false })
+    this._closeOverlay()
   },
 
   onConfirmRegenerate() {
     vibrateShort('light')
-    this._resetLoadingState()
-    this._clearFlightTimers()
-    this._clearCalcTimers()
-    this._clearProjectionTimers()
-    this._clearLongWaitTimers()
-    if (this._calibrationTimer) {
-      clearInterval(this._calibrationTimer)
-      this._calibrationTimer = null
-    }
-    this._stopHeartbeat()
-    this._hideSystemLoadingSafe()
-
+    // 1. 关闭弹窗
+    this._closeOverlay()
+    // 2. 保留旧星图用于 crossfade
+    const oldMap = this.data.starMap
+    this.setData({ oldStarMap: oldMap })
+    // 3. 清除旧结果
     try { wx.removeStorageSync('strategy_result') } catch (e) {}
     this._abortCurrentFlight({ resetToLaunch: false })
-
-    // 原子化复位：一次性回到完整待机态
-    // firstEnter / _ignitionEntered 保留 true，跳过入场动画
-    this.setData({
-      pageMode: 'launch',
-      flightStage: 'idle',
-      uiPhase: 'idle',
-      starMap: this._generateStarMap(),
-      showRegenerateModal: false,
-      firstEnter: false,
-      _ignitionEntered: true,
-
-      strategy: null,
-      directiveText: '',
-      strategyTheme: '',
-      strategySummary: '',
-      sourceLabel: '待同步',
-      solarTermLabel: '待同步',
-      userTagLabel: '待同步',
-      userTagColor: '#0A84FF',
-      themeColor: '#0A84FF',
-      targetDistance: '2.4',
-      nextRefreshAtEpochMs: 0,
-
-      projectionVisible: false,
-      coreCompact: false,
-      projectingResult: false,
-
-      posterPath: '',
-      posterError: '',
-      phase: '',
-      posterModalVisible: false,
-
-      error: null,
-      forcePending: true,
+    this._clearGeneratingTextState()
+    // 4. 生成新 seed + 新星图
+    const newSeed = createStarMapSeed()
+    this._transition('regenerating', {
+      extraData: {
+        starMapSeed: newSeed,
+        starMap: this._generateStarMap(newSeed),
+        strategy: null,
+        directiveText: '',
+        strategyTheme: '',
+        strategySummary: '',
+        sourceLabel: '待同步',
+        solarTermLabel: '待同步',
+        userTagLabel: '待同步',
+        userTagColor: '#0A84FF',
+        themeColor: '#0A84FF',
+        targetDistance: '2.4',
+        nextRefreshAtEpochMs: 0,
+        coreCompact: false,
+        projectingResult: false,
+        phase: '',
+        posterPath: '',
+        posterError: '',
+        error: null,
+        forcePending: true,
+      }
     })
-    this._resetLoadingState()
-    this._updateCockpitStatusByPhase()
-    // regenerating 标记需在 _resetLoadingState 之后设置，避免被覆盖
-    this.setData({ regenerating: true })
-    // 只使用自定义 tabbar 的方法
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ hidden: false, selected: 1 });
-    }
+    // 5. T=800ms 清除旧星图，进入 idle
+    const t = setTimeout(() => {
+      this.setData({ oldStarMap: null })
+      this._transition('idle')
+    }, 800)
+    this._flightTimers.push(t)
   },
 
   /* ==================== 分享指令 ==================== */
 
   onTapGeneratePoster() {
     vibrateShort('light')
-    this._hideSystemLoadingSafe()
-    this.setData({ phase: 'poster_generating', posterError: '', posterModalVisible: true })
-    // 只使用自定义 tabbar 的方法
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ hidden: true });
-    }
+    this._openOverlay('share')
+    this.setData({ phase: 'poster_generating', posterError: '' })
+    // TabBar 在 overlay 完全入场后再隐藏
     setTimeout(() => {
+      if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+        this.getTabBar().setData({ hidden: true })
+      }
       this._renderPosterCanvas()
-    }, 500)
+    }, 400)
   },
 
   _renderPosterCanvas(retryCount) {
@@ -2047,8 +2034,8 @@ Page({
 
   onClosePoster() {
     vibrateShort('light')
-    this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
-    // 只使用自定义 tabbar 的方法
+    this._closeOverlay()
+    this.setData({ phase: '', posterPath: '', posterError: '' })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }
@@ -2064,8 +2051,8 @@ Page({
 
   onPosterCancel() {
     vibrateShort('light')
-    this.setData({ phase: '', posterPath: '', posterError: '', posterModalVisible: false })
-    // 只使用自定义 tabbar 的方法
+    this._closeOverlay()
+    this.setData({ phase: '', posterPath: '', posterError: '' })
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }

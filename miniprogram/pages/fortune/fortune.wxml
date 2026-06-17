@@ -1,4 +1,4 @@
-<scroll-view class="strategy-page strategy-page--{{uiPhase}} {{reduceMotion ? 'reduce-motion' : ''}} {{showRegenerateModal || posterModalVisible ? 'strategy-page--modal-open' : ''}}" scroll-y="{{pageMode === 'result' && !posterModalVisible && !showRegenerateModal}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px; padding-top: {{customNavHeight}}px;">
+<scroll-view class="strategy-page strategy-page--{{baseState}} {{reduceMotion ? 'reduce-motion' : ''}} {{overlayState !== 'none' ? 'strategy-page--overlay-active' : ''}}" scroll-y="{{baseState === 'completed' && overlayState === 'none'}}" enable-flex="{{true}}" enhanced="{{true}}" show-scrollbar="{{false}}" style="height: {{pageHeight}}px; padding-top: {{customNavHeight}}px;">
 
   <!-- 统一沉浸式导航条 -->
   <view
@@ -22,8 +22,19 @@
     <text class="page-skeleton-text">接入导航舱</text>
   </view>
 
+  <!-- 旧星图层（crossfade 重新生成时短暂保留） -->
+  <view class="nav-map-window nav-map-window--crossfade-out nav-map-window--tint-{{oldStarMap.colorTint}}"
+        wx:if="{{oldStarMap}}">
+    <view wx:for="{{oldStarMap.stars}}" wx:key="index" class="nav-star"
+          style="left:{{item.x}}%;top:{{item.y}}%;width:{{item.size}}rpx;height:{{item.size}}rpx;opacity:{{item.opacity}}"></view>
+    <view wx:for="{{oldStarMap.orbitArcs}}" wx:key="index" class="nav-map-orbit"
+          style="left:{{item.cx - item.rx}}%;top:{{item.cy - item.ry}}%;width:{{item.rx * 2}}%;height:{{item.ry * 2}}%;transform:rotate({{item.rotation}}deg);opacity:{{item.opacity}}"></view>
+    <view wx:for="{{oldStarMap.connectionLines}}" wx:key="index" class="nav-conn-line"
+          style="left:{{item.x1}}%;top:{{item.y1}}%;width:{{item.length}}vw;height:1rpx;transform:rotate({{item.angle}}deg);opacity:{{item.opacity}}"></view>
+  </view>
+
   <!-- 星图舷窗 — 全屏背景视觉层（三层结构） -->
-  <view class="nav-map-window nav-map-window--{{uiPhase}} nav-map-window--tint-{{starMap.colorTint || 'cyan'}}" wx:if="{{pageReady}}">
+  <view class="nav-map-window nav-map-window--{{baseState}} nav-map-window--tint-{{starMap.colorTint || 'cyan'}} nav-map-window--crossfade-in" wx:if="{{pageReady}}" wx:key="starMapSeed">
 
     <!-- 第一层：宇宙背景 + 星尘 -->
     <view class="nav-map-cosmos"></view>
@@ -88,14 +99,8 @@
   <!-- 暗色渐变遮罩层：星图与内容融合 -->
   <view class="page-dark-overlay" wx:if="{{pageReady}}"></view>
 
-  <!-- 飞行甲板统一舞台（贯穿 idle -> result） -->
-  <view class="flight-deck flight-deck--{{flightStage}}" wx:if="{{pageReady}}">
-
-    <!-- 左上角舱位状态 Tab (已迁移至导航栏，此页面内隐藏) -->
-    <view class="bay-status-tab bay-status-tab--{{pageMode === 'generating' ? 'starting' : pageMode === 'result' || pageMode === 'relaunchReady' ? 'online' : 'standby'}}" style="display: none;">
-      <view class="bay-status-tab__dot"></view>
-      <text class="bay-status-tab__label">{{pageMode === 'generating' ? '导航舱启动中' : pageMode === 'result' || pageMode === 'relaunchReady' ? '导航舱已接入' : '导航舱待机中'}}</text>
-    </view>
+  <!-- 飞行甲板统一舞台（贯穿 idle -> completed） -->
+  <view class="flight-deck flight-deck--{{baseState}}" wx:if="{{pageReady}}">
 
     <!-- 状态指示线 -->
     <view class="nav-status-line">
@@ -112,41 +117,38 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
-    <!-- 中央星核（idle/generating 态可见） -->
-    <view class="star-core star-core--{{flightStage}}" wx:if="{{pageMode !== 'result'}}">
+    <!-- 中央星核（idle/calibrating/regenerating 态可见） -->
+    <view class="star-core star-core--{{baseState}}" wx:if="{{baseState !== 'completed' && baseState !== 'completing'}}">
       <view class="star-core-glow"></view>
       <view class="star-core-ring star-core-ring--1"></view>
       <view class="star-core-ring star-core-ring--2"></view>
       <view class="star-core-dot"></view>
-      <view class="star-core-scan" wx:if="{{pageMode === 'generating'}}"></view>
+      <view class="star-core-scan" wx:if="{{baseState === 'calibrating'}}"></view>
       <!-- 星核卫星点（微型星图结构） -->
       <view class="star-core-satellite" wx:for="{{coreSatellites}}" wx:key="index"
             style="--sat-x:{{item.x}}rpx;--sat-y:{{item.y}}rpx;--sat-size:{{item.size}}rpx;--sat-delay:{{item.delay}}s;--sat-opacity:{{item.opacity}}"></view>
     </view>
 
     <!-- idle 态状态文案 -->
-    <view class="idle-status-hint" wx:if="{{pageMode === 'launch' && flightStage === 'idle'}}">
+    <view class="idle-status-hint" wx:if="{{baseState === 'idle'}}">
       <text class="idle-hint-main">导航待机中</text>
       <text class="idle-hint-sub">等待星图校准指令</text>
     </view>
 
-    <!-- 校准阶段文案（generating 态） -->
+    <!-- 校准阶段文案（calibrating 态） -->
     <view class="calibration-phase-text" wx:if="{{calibrationText}}">
       <text>{{calibrationText}}</text>
     </view>
 
-    <!-- 主操作按钮 -->
-    <view class="nav-launch-btn-area" wx:if="{{pageMode !== 'result'}}">
-      <view
-        class="nav-launch-btn {{pageMode === 'generating' ? 'nav-launch-btn--loading' : ''}}"
-        bindtap="onTapLaunchCore"
-      >
-        <text>{{pageMode === 'generating' ? '校准中...' : '开始校准'}}</text>
+    <!-- 主操作按钮（仅 idle 态显示） -->
+    <view class="nav-launch-btn-area" wx:if="{{baseState === 'idle'}}">
+      <view class="nav-launch-btn" bindtap="onTapLaunchCore">
+        <text>开始校准</text>
       </view>
     </view>
 
     <!-- done 态：结果投影内容 -->
-    <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{pageMode === 'result'}}">
+    <view class="directive-projection {{baseState === 'completed' ? 'dp-visible' : ''}}" wx:if="{{baseState === 'completing' || baseState === 'completed'}}">
 
       <!-- HUD 数据面板 -->
       <view class="result-panel hud-panel projection-card">
@@ -207,8 +209,8 @@
       <!-- 操作按钮 -->
       <view class="result-actions projection-card">
         <view class="result-primary-btn" bindtap="onTapGeneratePoster">分享指令</view>
-        <view class="result-secondary-link {{regenerating ? 'result-secondary-link--loading' : ''}}" bindtap="onTapRegenerate">
-          {{regenerating ? '生成中...' : '重新生成星图'}}
+        <view class="result-secondary-link {{baseState === 'regenerating' ? 'result-secondary-link--loading' : ''}}" bindtap="onTapRegenerate">
+          {{baseState === 'regenerating' ? '生成中...' : '重新生成星图'}}
         </view>
       </view>
 
@@ -218,7 +220,7 @@
     </view>
 
     <!-- 底部说明（idle 态显示） -->
-    <view class="flight-deck-info {{flightStage === 'idle' ? 'fdi-visible' : 'fdi-hidden'}} {{firstEnter === false ? 'fdi-entered' : ''}}">
+    <view class="flight-deck-info {{baseState === 'idle' ? 'fdi-visible' : 'fdi-hidden'}} {{firstEnter === false ? 'fdi-entered' : ''}}">
       <text class="flight-deck-info-text">NAV_UNIT: MK-IV STATUS: STANDBY</text>
       <text class="flight-deck-info-text">LAST_SYNC: {{currentDate}}</text>
     </view>
@@ -230,7 +232,7 @@
 
   <!-- 重新生成弹窗 -->
   <terminal-popup
-    visible="{{showRegenerateModal}}"
+    visible="{{overlayState === 'confirmRegenerate'}}"
     title="确认重新生成星图？"
     content="当前指令将被清除，系统将重新生成星图 seed 与校准结果。"
     cancelText="维持现状"
@@ -242,7 +244,7 @@
   />
 
   <!-- 海报弹层 -->
-  <view class="poster-mask" wx:if="{{posterModalVisible}}" catchtouchmove="noop">
+  <view class="poster-mask poster-mask--{{overlayState === 'share' ? 'visible' : 'hidden'}}" catchtouchmove="noop">
     <view class="poster-container">
 
       <!-- 生成中 -->

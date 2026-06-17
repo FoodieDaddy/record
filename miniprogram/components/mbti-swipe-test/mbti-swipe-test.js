@@ -39,6 +39,7 @@ Component({
 
   data: {
     currentIndex: 0,
+    displayIndex: 1,
     progressPercent: 5,
     totalQuestions: 20,
     answers: [],
@@ -47,6 +48,7 @@ Component({
     printedLines: [],
     activeLinePrefix: '',
     activeLineText: '',
+    typingDone: false,
     scrollTop: 0
   },
 
@@ -89,6 +91,7 @@ Component({
       this.clearLocalTimers();
       this.setData({
         currentIndex: 0,
+        displayIndex: 1,
         progressPercent: 5,
         printedLines: [],
         activeLinePrefix: '',
@@ -107,7 +110,8 @@ Component({
       var self = this;
       this.typewrite('', q.text, function() {
         self.setData({
-          cardAnimating: false
+          cardAnimating: false,
+          typingDone: true
         });
       });
     },
@@ -183,7 +187,9 @@ Component({
       } else {
         this.setData({
           currentIndex: nextIndex,
-          cardAnimating: true
+          displayIndex: nextIndex + 1,
+          cardAnimating: true,
+          typingDone: false
         });
         this.printQuestion(nextIndex);
       }

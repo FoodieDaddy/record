@@ -52,9 +52,9 @@
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 50% 88%, rgba(0, 140, 190, 0.045), transparent 42%),
-    radial-gradient(ellipse at 50% 12%, rgba(0, 100, 160, 0.028), transparent 38%),
-    linear-gradient(180deg, #030a12 0%, #041420 50%, #030e18 100%);
+    radial-gradient(ellipse at 50% 88%, rgba(0, 140, 190, 0.065), transparent 45%),
+    radial-gradient(ellipse at 50% 12%, rgba(0, 100, 160, 0.04), transparent 40%),
+    linear-gradient(180deg, #040d16 0%, #061828 50%, #040f1a 100%);
 }
 
 /* 设备微光：从底部终端区域发出的柔和光 */
@@ -66,7 +66,7 @@
   height: 50%;
   background: radial-gradient(
     ellipse at 50% 100%,
-    rgba(0, 168, 216, 0.04) 0%,
+    rgba(0, 168, 216, 0.07) 0%,
     transparent 70%
   );
 }
@@ -76,10 +76,10 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(0, 160, 210, 0.024) 1rpx, transparent 1rpx),
-    linear-gradient(90deg, rgba(0, 160, 210, 0.02) 1rpx, transparent 1rpx);
+    linear-gradient(rgba(0, 160, 210, 0.016) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 160, 210, 0.014) 1rpx, transparent 1rpx);
   background-size: 80rpx 80rpx;
-  opacity: 0.55;
+  opacity: 0.25;
   mask-image: radial-gradient(ellipse at 50% 55%, black 0%, black 30%, transparent 65%);
   -webkit-mask-image: radial-gradient(ellipse at 50% 55%, black 0%, black 30%, transparent 65%);
 }
@@ -89,8 +89,8 @@
   position: absolute;
   inset: 0;
   box-shadow:
-    inset 0 0 220rpx rgba(0, 0, 0, 0.60),
-    inset 0 0 110rpx rgba(0, 0, 0, 0.30);
+    inset 0 0 220rpx rgba(0, 2, 8, 0.65),
+    inset 0 0 110rpx rgba(0, 2, 8, 0.35);
   pointer-events: none;
 }
 
@@ -100,7 +100,7 @@
   inset: 0;
   background: radial-gradient(
     ellipse at 50% 50%,
-    rgba(0, 168, 216, 0.014) 0%,
+    rgba(0, 168, 216, 0.025) 0%,
     transparent 50%
   );
   animation: baseBreathe 8s ease-in-out infinite;
@@ -124,7 +124,7 @@
   height: 55%;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0.38;
   background:
     linear-gradient(
       175deg,
@@ -161,8 +161,8 @@
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(0, 6, 14, 0.42) 0%, transparent 14%),
-    linear-gradient(270deg, rgba(0, 6, 14, 0.42) 0%, transparent 14%);
+    linear-gradient(90deg, rgba(0, 6, 14, 0.52) 0%, transparent 18%),
+    linear-gradient(270deg, rgba(0, 6, 14, 0.52) 0%, transparent 18%);
 }
 
 /* 远处机库门轮廓：可隐约感知 */
@@ -175,7 +175,7 @@
   height: 220rpx;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.055;
+  opacity: 0.10;
   border: 1rpx solid rgba(0, 168, 216, 0.8);
   border-bottom: none;
   border-radius: 18rpx 18rpx 0 0;
@@ -201,18 +201,18 @@
   height: 2rpx;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.6;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(0, 168, 216, 0.12) 12%,
-    rgba(0, 168, 216, 0.22) 50%,
-    rgba(0, 168, 216, 0.12) 88%,
+    rgba(0, 168, 216, 0.15) 12%,
+    rgba(0, 168, 216, 0.28) 50%,
+    rgba(0, 168, 216, 0.15) 88%,
     transparent
   );
   box-shadow:
-    0 2rpx 20rpx rgba(0, 168, 216, 0.06),
-    0 0 40rpx rgba(0, 168, 216, 0.03);
+    0 2rpx 24rpx rgba(0, 168, 216, 0.08),
+    0 0 50rpx rgba(0, 168, 216, 0.04);
 }
 
 /* 中央终端投影区域：底部微弱光斑 */
@@ -226,8 +226,8 @@
   pointer-events: none;
   background: radial-gradient(
     ellipse at 50% 85%,
-    rgba(0, 168, 216, 0.022) 0%,
-    transparent 55%
+    rgba(0, 168, 216, 0.04) 0%,
+    transparent 60%
   );
 }
 
@@ -240,7 +240,7 @@
   z-index: 1;
   pointer-events: none;
   /* 长边线极弱，几乎消失 */
-  border: 1rpx solid rgba(0, 160, 210, 0.02);
+  border: 1rpx solid rgba(0, 160, 210, 0.035);
   border-radius: 28rpx;
   box-shadow:
     inset 0 0 80rpx rgba(0, 20, 40, 0.10);
@@ -336,8 +336,8 @@
 }
 
 /* ============================================================
-   编队信标 — 基地编队广播核心
-   外圈极淡，内圈略亮，慢速呼吸，非雷达
+   编队信标 — 基地终端核心
+   静态结构环 + 柔和呼吸，信道待命感，非雷达扫描
    ============================================================ */
 .base-beacon {
   position: relative;
@@ -357,11 +357,20 @@
   border: 1rpx solid rgba(0, 168, 216, 0.04);
 }
 
+@keyframes baseBeaconPulse {
+  0%, 100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 /* 外圈：极淡 */
 .base-beacon-ring--outer {
   width: 340rpx;
   height: 340rpx;
-  animation: baseBeaconPulse 9s ease-in-out infinite;
+  animation: baseBeaconPulse 14s ease-in-out infinite;
 }
 
 /* 中圈：稍亮 */
@@ -369,7 +378,7 @@
   width: 220rpx;
   height: 220rpx;
   border-color: rgba(0, 168, 216, 0.055);
-  animation: baseBeaconPulse 9s ease-in-out 2s infinite;
+  animation: baseBeaconPulse 14s ease-in-out 3s infinite;
 }
 
 /* 内圈：最亮 */
@@ -377,18 +386,7 @@
   width: 100rpx;
   height: 100rpx;
   border-color: rgba(0, 168, 216, 0.07);
-  animation: baseBeaconPulse 9s ease-in-out 4s infinite;
-}
-
-@keyframes baseBeaconPulse {
-  0%, 100% {
-    opacity: 0.2;
-    transform: translate(-50%, -50%) scale(0.97);
-  }
-  50% {
-    opacity: 0.75;
-    transform: translate(-50%, -50%) scale(1.03);
-  }
+  animation: baseBeaconPulse 14s ease-in-out 6s infinite;
 }
 
 /* 信标核心：中央微光点 */
@@ -404,7 +402,7 @@
   box-shadow:
     0 0 16rpx rgba(0, 168, 216, 0.22),
     0 0 40rpx rgba(0, 168, 216, 0.08);
-  animation: baseBeaconCore 5s ease-in-out infinite;
+  animation: baseBeaconCore 8s ease-in-out infinite;
 }
 
 @keyframes baseBeaconCore {
@@ -429,6 +427,23 @@
     transparent
   );
   opacity: 0.6;
+}
+
+/* 终端投影纵线：从核心向下方延伸，强化投影台感 */
+.base-beacon-line::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translateX(-50%);
+  width: 1rpx;
+  height: 120rpx;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 168, 216, 0.10),
+    rgba(0, 168, 216, 0.04) 60%,
+    transparent
+  );
 }
 
 /* 信标连接节点：2-3 个微弱光点 */

@@ -209,6 +209,7 @@ Page(Object.assign(
       // ===== 驾驶舱视图 =====
       cockpitView: {
         hasFormation: false,
+        hasRoom: false,
         statusLabel: '基地终端在线',
         subtitle: '创建编队，记录脉冲',
         formationCode: '--',

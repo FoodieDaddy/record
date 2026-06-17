@@ -463,7 +463,7 @@
           <!-- AR 顶部系统状态栏 -->
           <view class="ar-top-bar">
             <view class="ar-system-dot"></view>
-            <text class="ar-system-title">协议评测终端</text>
+            <text class="ar-system-title">镜像校准</text>
             <view class="ar-close-btn" bindtap="closeMbtiTest">
               <sr-hatch-close bind:close="closeMbtiTest" reduceMotion="{{reduceMotion}}" />
             </view>
@@ -604,7 +604,10 @@
   <!-- 生成扫描匣 -->
   <view class="card-scan-layer" wx:if="{{cardOverlayVisible && !isCardPreview}}" catchtouchmove="noop">
     <view class="card-scan-box">
-      <view class="card-scan-ring {{reduceMotion ? '' : 'card-scan-ring-spin'}}"></view>
+      <view class="card-scan-rings">
+        <view class="card-scan-ring-outer {{reduceMotion ? '' : 'card-scan-ring-outer-spin'}}"></view>
+        <view class="card-scan-ring {{reduceMotion ? '' : 'card-scan-ring-spin'}}"></view>
+      </view>
       <text class="card-scan-title">镜像计算中</text>
       <view class="card-scan-subtitle">正在折叠人格信号</view>
       <view class="card-scan-terminal">

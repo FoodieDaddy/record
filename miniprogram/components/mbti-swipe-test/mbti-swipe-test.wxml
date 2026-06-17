@@ -1,18 +1,24 @@
 <view class="swipe-overlay {{reduceMotion ? 'reduce-motion' : ''}}">
   <!-- 分段式精密发光能量块进度条 -->
   <view class="segmented-progress">
-    <view 
-      class="progress-segment {{index < currentIndex ? 'progress-segment--active' : ''}} {{index === currentIndex && !cardAnimating ? 'progress-segment--current' : ''}}" 
-      wx:for="{{totalQuestions}}" 
+    <view
+      class="progress-segment {{index < currentIndex ? 'progress-segment--active' : ''}} {{index === currentIndex && !cardAnimating ? 'progress-segment--current' : ''}}"
+      wx:for="{{totalQuestions}}"
       wx:key="*this"
     ></view>
+  </view>
+
+  <!-- 信号进度信息 -->
+  <view class="signal-info">
+    <text class="signal-info__label">SIGNAL {{displayIndex}}/{{totalQuestions}}</text>
+    <text class="signal-info__percent">采样进度 {{progressPercent}}%</text>
   </view>
 
   <!-- 题目显示区：始终在第一行开始输出，无滚动条及跳动 -->
   <view class="terminal-body">
     <view class="terminal-row term-row--active" wx:if="{{activeLineText}}">
       <text class="term-line-content">{{activeLineText}}</text>
-      <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}"></view>
+      <view class="term-cursor {{reduceMotion ? 'reduce-motion' : ''}}" wx:if="{{!typingDone}}"></view>
     </view>
   </view>
 

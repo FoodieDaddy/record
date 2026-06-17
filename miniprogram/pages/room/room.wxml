@@ -37,7 +37,7 @@
   </view>
 
   <!-- idle 状态：基地编队终端 · 待命中 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle idle-base {{currentRoom ? 'idle-base--formed' : ''}}">
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle idle-base {{cockpitView.hasRoom ? 'idle-base--formed' : ''}}">
 
     <!-- 基地环境层 -->
     <view class="base-ambient">
@@ -60,7 +60,7 @@
     <!-- 中央信息区 -->
     <view class="base-center-info">
       <!-- 状态A：未创建编队 -->
-      <block wx:if="{{!currentRoom}}">
+      <block wx:if="{{!cockpitView.hasRoom}}">
         <view class="base-main-title">基地待命中</view>
         <view class="base-sub-title">当前位于基地编队终端，可创建或加入编队后申请出航</view>
       </block>
@@ -71,7 +71,7 @@
       </block>
       <view class="base-channel-status">
         <view class="base-channel-dot"></view>
-        <text>{{currentRoom ? '基地信道广播中' : '基地信道开启中'}}</text>
+        <text>{{cockpitView.hasRoom ? '基地信道广播中' : '基地信道开启中'}}</text>
       </view>
     </view>
 
@@ -90,7 +90,7 @@
     </view>
 
     <!-- 状态面板：未创建编队 -->
-    <view wx:if="{{!currentRoom}}" class="base-status-row">
+    <view wx:if="{{!cockpitView.hasRoom}}" class="base-status-row">
       <view class="base-status-chips">
         <view class="base-chip">
           <text class="base-chip-label">当前状态</text>
@@ -112,7 +112,7 @@
     </view>
 
     <!-- 状态面板：已创建编队 -->
-    <view wx:if="{{currentRoom}}" class="base-status-row">
+    <view wx:if="{{cockpitView.hasRoom}}" class="base-status-row">
       <view class="base-status-chips">
         <view class="base-chip">
           <text class="base-chip-label">当前状态</text>
@@ -120,7 +120,7 @@
         </view>
         <view class="base-chip">
           <text class="base-chip-label">编队人数</text>
-          <text class="base-chip-value">{{currentRoom.members ? currentRoom.members.length : 1}}/16</text>
+          <text class="base-chip-value">{{cockpitView.formationCount}}/16</text>
         </view>
         <view class="base-chip">
           <text class="base-chip-label">出航许可</text>
@@ -134,12 +134,12 @@
     </view>
 
     <!-- 组队方式：仅未创建时显示 -->
-    <view wx:if="{{!currentRoom}}" class="base-protocol">
+    <view wx:if="{{!cockpitView.hasRoom}}" class="base-protocol">
       <view class="base-protocol-label">组队方式</view>
       <view class="base-protocol-capsule">
         <view class="base-protocol-opt {{scoreMode === 1 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
           <view class="base-protocol-dot {{scoreMode === 1 ? 'base-protocol-dot--on' : ''}}"></view>
-          <text>广播招募</text>
+          <text>公开编队</text>
         </view>
         <view class="base-protocol-opt {{scoreMode === 2 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="2">
           <view class="base-protocol-dot {{scoreMode === 2 ? 'base-protocol-dot--on' : ''}}"></view>
@@ -149,7 +149,7 @@
     </view>
 
     <!-- 操作区：未创建编队 -->
-    <view wx:if="{{!currentRoom}}" class="base-actions">
+    <view wx:if="{{!cockpitView.hasRoom}}" class="base-actions">
       <button class="base-btn-primary {{launching ? 'base-btn-primary--loading' : ''}}" bindtap="handleStartSpace">
         <view class="base-btn-glow"></view>
         <text class="base-btn-text">创建编队</text>
@@ -162,7 +162,7 @@
     </view>
 
     <!-- 操作区：已创建编队 -->
-    <view wx:if="{{currentRoom}}" class="base-actions">
+    <view wx:if="{{cockpitView.hasRoom}}" class="base-actions">
       <button class="base-btn-primary" bindtap="openBeacon">
         <view class="base-btn-glow"></view>
         <text class="base-btn-text">复制编队码</text>
@@ -263,15 +263,15 @@
   </view>
 
   <!-- idle 状态：已有编队快捷入口 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle' && currentRoom && !viewingRoom}}" class="reentry-card sr-card">
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle' && cockpitView.hasRoom && !viewingRoom}}" class="reentry-card sr-card">
     <view class="reentry-head">
       <view class="reentry-title">基地编队待命中</view>
     </view>
     <view class="reentry-info">
-      <view class="reentry-code">{{currentRoom.roomNo}}</view>
+      <view class="reentry-code">{{cockpitView.roomNo}}</view>
       <view class="reentry-meta">
-        <text>编队成员 {{currentRoom.members ? currentRoom.members.length : 0}}</text>
-        <text>{{currentRoom.scoreMode === 1 ? '广播招募' : '编队码加入'}}</text>
+        <text>编队成员 {{cockpitView.formationCount}}</text>
+        <text>{{currentRoom.scoreMode === 1 ? '公开编队' : '编队码加入'}}</text>
       </view>
     </view>
     <view class="reentry-actions">

@@ -58,11 +58,35 @@
   opacity: 0.8;
 }
 
+/* 信号进度信息 */
+.signal-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 4rpx;
+  margin-bottom: 12rpx;
+}
+
+.signal-info__label {
+  font-size: 20rpx;
+  font-family: "SF Mono", "Courier New", monospace;
+  color: rgba(0, 216, 255, 0.62);
+  letter-spacing: 2rpx;
+}
+
+.signal-info__percent {
+  font-size: 20rpx;
+  font-family: "SF Mono", "Courier New", monospace;
+  color: rgba(170, 195, 215, 0.42);
+  letter-spacing: 1rpx;
+}
+
 .terminal-body {
   flex: 1;
   width: 100%;
   box-sizing: border-box;
-  padding: 36rpx 12rpx 0 12rpx; /* 在大屏幕顶部空出距离，首行对齐 */
+  padding: 20rpx 12rpx 0 12rpx;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -79,6 +103,13 @@
   width: 100%;
   color: var(--text-primary, #ffffff);
   display: block;
+  animation: questionScan 0.35s ease-out;
+}
+
+@keyframes questionScan {
+  0%   { opacity: 0; transform: translateY(8rpx); }
+  60%  { opacity: 1; }
+  100% { transform: translateY(0); }
 }
 
 .term-line-content {
@@ -109,4 +140,23 @@
 .reduce-motion .term-cursor {
   animation: none;
   opacity: 0.8;
+}
+
+.reduce-motion .term-row--active {
+  animation: none;
+}
+
+/* 数据加载提示 */
+.data-loading-hint {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.loading-text {
+  font-size: 24rpx;
+  color: rgba(170, 195, 215, 0.38);
+  letter-spacing: 2rpx;
 }

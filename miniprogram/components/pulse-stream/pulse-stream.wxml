@@ -49,9 +49,9 @@
     </scroll-view>
   </view>
 
-  <view class="pulse-stream__footer">
-    <text>显示最近 {{visibleRecords.length}} 条</text>
+  <view class="pulse-stream__footer" wx:if="{{visibleRecords.length > 0}}">
+    <text wx:if="{{!live && visibleRecords.length > 0}}">共 {{visibleRecords.length}} 条</text>
     <text wx:if="{{hiddenCount > 0}}">其余 {{hiddenCount}} 条已折叠</text>
-    <text wx:elif="{{live}}">增量刷新已开启</text>
+    <text wx:if="{{live}}">增量刷新已开启</text>
   </view>
 </view>

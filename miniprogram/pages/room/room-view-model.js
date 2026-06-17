@@ -305,6 +305,7 @@ function buildCockpitView(ctx = {}) {
 
   return {
     hasFormation: hasFormation || isConnecting,
+    hasRoom,
     isConnecting,
     statusLabel,
     statusDot,

@@ -75,39 +75,31 @@
 
   <!-- Part 2 & Part 3: Flat bottom container for actions -->
   <view class="picker-bottom-actions {{showAnimation ? 'actions-show' : ''}}" catchtap="noop">
-    <!-- Part 2: 独立悬浮的单按钮切换控制板 (Floating Toggle Controllers) -->
-    <view class="ar-floating-controllers">
+    <!-- Part 2: 维度条展示（替代旧I/N/F/P卡片按钮） -->
+    <view class="ar-floating-controllers dim-bars">
       <view
-        class="floating-btn-card"
+        class="dim-bar"
         wx:for="{{dims}}"
         wx:key="key"
         wx:for-index="dimIdx"
         bindtap="onDimToggle"
         data-dimindex="{{dimIdx}}"
       >
-        <view class="dim-toggle-btn">
-          <text class="toggle-letter">{{item.selected}}</text>
-          <view class="toggle-btn-status">
-            <view class="toggle-dot"></view>
-          </view>
-        </view>
+        <text class="dim-bar__letter">{{item.selected}}</text>
+        <text class="dim-bar__label">{{item.dimLabel}}</text>
       </view>
+      <text class="dim-bars__hint">点击维度可微调协议</text>
     </view>
 
-    <!-- Part 3: 屏幕下方的科幻级飞船物理确认按键 (Cockpit Ignition Crystal) -->
+    <!-- Part 3: 确认/返回操作按钮 -->
     <view class="ar-console-bottom-hardware">
-      <!-- 确认写入键：六角梯形切角的水晶按键，仅有精密刻度及状态指示，无字 -->
-      <view class="hardware-crystal-btn {{syncState === 'syncing' ? 'hw-syncing' : ''}} {{syncState === 'success' ? 'hw-success' : ''}} {{syncState === 'error' ? 'hw-error' : ''}}" bindtap="onConfirm" title="写入协议">
-        <!-- 装饰性偏振刻度角线 -->
-        <view class="crystal-decor crystal-decor-l"></view>
-        <view class="crystal-decor crystal-decor-r"></view>
-        
-        <!-- 按钮核心状态区 -->
-        <view class="crystal-trigger-area">
-          <view class="hw-btn-icon-check" wx:if="{{syncState !== 'syncing' && syncState !== 'success' && syncState !== 'error'}}"></view>
-          <view class="hw-loading-spinner" wx:if="{{syncState === 'syncing'}}"></view>
-          <view class="hw-success-check" wx:if="{{syncState === 'success'}}"></view>
-          <view class="hw-error-excl" wx:if="{{syncState === 'error'}}"></view>
+      <view class="picker-confirm-actions">
+        <view class="picker-cmd-btn picker-cmd-btn--primary {{syncState === 'syncing' ? 'is-syncing' : ''}} {{syncState === 'success' ? 'is-success' : ''}} {{syncState === 'error' ? 'is-error' : ''}}" bindtap="onConfirm">
+          <view class="picker-btn-spinner" wx:if="{{syncState === 'syncing'}}"></view>
+          <text class="picker-cmd-text">{{syncState === 'syncing' ? '写入中...' : syncState === 'success' ? '已写入' : syncState === 'error' ? '写入失败' : '确认镜像'}}</text>
+        </view>
+        <view class="picker-cmd-btn picker-cmd-btn--ghost {{syncState === 'syncing' ? 'is-disabled' : ''}}" bindtap="onClose">
+          <text class="picker-cmd-text">返回修改</text>
         </view>
       </view>
     </view>

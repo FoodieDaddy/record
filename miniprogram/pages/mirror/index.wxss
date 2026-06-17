@@ -1566,6 +1566,19 @@
   pointer-events: none;
 }
 
+/* 校准壳深空网格背景 */
+.calibration-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 180, 255, 0.03) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 180, 255, 0.03) 1rpx, transparent 1rpx);
+  background-size: 72rpx 72rpx;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .calibration-shell--entering {
   opacity: 0.5;
   transform: scale(0.98);
@@ -1820,7 +1833,7 @@
   position: absolute;
   left: 32rpx;
   right: 32rpx;
-  bottom: calc(188rpx + env(safe-area-inset-bottom));
+  bottom: calc(120rpx + env(safe-area-inset-bottom));
   z-index: 3010;
   display: flex;
   justify-content: center;
@@ -2174,6 +2187,32 @@
   letter-spacing: 2rpx;
 }
 
+.card-scan-rings {
+  position: relative;
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-scan-ring-outer {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1rpx dashed rgba(0, 216, 255, 0.15);
+  border-bottom-color: rgba(0, 216, 255, 0.45);
+}
+
+.card-scan-ring-outer-spin {
+  animation: cardScanRingOuterSpin 3s linear infinite;
+}
+
+@keyframes cardScanRingOuterSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-360deg); }
+}
+
 .card-scan-ring {
   width: 80rpx;
   height: 80rpx;
@@ -2235,6 +2274,7 @@
 .card-scan-line--done .scan-line-text  { color: rgba(48, 209, 88, 0.78); }
 
 .reduce-motion .card-scan-ring { animation: none; }
+.reduce-motion .card-scan-ring-outer { animation: none; }
 .reduce-motion .card-scan-line,
 .reduce-motion .scan-status-dot,
 .reduce-motion .scan-line-text { transition: none; }
