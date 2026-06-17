@@ -95,22 +95,7 @@
           style="left:{{starMap.radarCenter.x}}%;top:{{starMap.radarCenter.y}}%"></view>
     <view class="nav-hud-edge-glow"></view>
 
-    <!-- 左上角 HUD 状态控制器 -->
-    <view class="hud-status-module" wx:if="{{pageReady}}">
-      <view class="hud-row hud-row--connection">
-        <view class="hud-connection-dot css-connection-dot--{{cockpitView.statusDot || 'idle'}}"></view>
-        <text class="hud-connection-text">{{cockpitView.statusDot === 'online' ? '已连接' : (cockpitView.statusDot === 'starting' ? '连接中' : '已连接')}}</text>
-      </view>
-      <view class="hud-row hud-row--state">
-        <text class="hud-state-label">{{baseState === 'idle' ? '待机' : (baseState === 'starting' ? '启动中' : (baseState === 'calibrating' ? '校准中' : (baseState === 'regenerating' ? '重构中' : '已完成')))}}</text>
-      </view>
-      <!-- step row migrated to custom nav bar header -->
-      <view class="hud-row hud-row--micro">
-        <text class="hud-micro-text" wx:if="{{baseState === 'calibrating'}}">CAL_TIME: {{calibrationTime || '0.0'}}s</text>
-        <text class="hud-micro-text" wx:elif="{{baseState === 'completed'}}">SEC_STATUS: SECURE</text>
-        <text class="hud-micro-text" wx:else>SEC_STATUS: STANDBY</text>
-      </view>
-    </view>
+
   </view>
 
   <!-- 暗色渐变遮罩层：星图与内容融合 -->
