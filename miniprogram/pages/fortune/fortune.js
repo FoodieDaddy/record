@@ -640,119 +640,121 @@ Page({
     // ===== 中央多行星系统（核心主视觉） =====
     // 容器 480rpx × 480rpx，坐标以中心为原点（rpx）；同 seed → 同布局
     const coreSystem = (() => {
-      // 主核心：在中心附近轻微偏移，尺寸比原来放大 25% ~ 35%
+      // 主核心：继续放大，更大、更亮、更有层次
       const main = {
         x: +(rand(-15, 15)).toFixed(1),
         y: +(rand(-15, 15)).toFixed(1),
-        dotSize: randInt(28, 36),      // 主点放大到 28~36rpx
-        glowSize: randInt(180, 220),   // 内层光晕放大到 180~220rpx
-        haloSize: randInt(250, 310),   // 外层光晕放大到 250~310rpx
+        dotSize: randInt(38, 48),      // 主星核放大到 38~48rpx
+        glowSize: randInt(220, 270),   // 内层光晕放大到 220~270rpx
+        haloSize: randInt(300, 380),   // 外层光晕放大到 300~380rpx
         haloDur: +(rand(4.5, 7.5)).toFixed(1),
         glowDur: +(rand(3.0, 5.0)).toFixed(1),
         dotDur: +(rand(2.5, 4.5)).toFixed(1),
         scanDur: +(rand(1.8, 3.2)).toFixed(1),
       }
 
-      // 轨道：3~5 条主轨道
+      // 轨道：3~5 条主轨道，整体向外扩，半径增大
       const coreOrbitCount = randInt(3, 5)
       const orbitArcs = ['full', 'full', 'half', 'dash', 'half']
       const orbits = Array.from({ length: coreOrbitCount }, (_, i) => {
         const layerRatio = (i + 1) / coreOrbitCount  // 0.x ~ 1
-        const baseRx = 90 + layerRatio * 130 + rand(-12, 12)
+        const baseRx = 110 + layerRatio * 180 + rand(-15, 15)  // 半径整体调大
         const rx = +baseRx.toFixed(1)
-        const ry = +(rx * rand(0.42, 0.85)).toFixed(1)  // 椭圆形
-        const opacity = +(0.20 - layerRatio * 0.13).toFixed(2)  // 0.20 → 0.07
+        const ry = +(rx * rand(0.45, 0.82)).toFixed(1)  // 椭圆形
+        const opacity = +(0.22 - layerRatio * 0.14).toFixed(2)
         return {
           rx, ry,
           rotation: +(rand(-40, 40)).toFixed(1),
           arc: orbitArcs[(i + randInt(0, 4)) % orbitArcs.length],
-          opacity: Math.max(opacity, 0.06),
+          opacity: Math.max(opacity, 0.07),
           breatheDuration: +(rand(8.0, 16.0)).toFixed(1),
           breatheDelay: +(rand(-5.0, 0.0)).toFixed(1),
           predict: false,
         }
       })
 
-      // 额外增加 1 条辅助预测轨道 (断续线，半径更宽，位于最外层，极淡)
-      const predictRx = 210 + rand(10, 30)
+      // 额外增加 1 条辅助预测轨道 (断续线，最外层，极淡)
+      const predictRx = 290 + rand(10, 40)
       orbits.push({
         rx: +predictRx.toFixed(1),
-        ry: +(predictRx * rand(0.45, 0.72)).toFixed(1),
+        ry: +(predictRx * rand(0.48, 0.75)).toFixed(1),
         rotation: +(rand(-45, 45)).toFixed(1),
         arc: 'dash',
-        opacity: +(rand(0.04, 0.07)).toFixed(2),
+        opacity: +(rand(0.04, 0.08)).toFixed(2),
         breatheDuration: +(rand(10.0, 18.0)).toFixed(1),
         breatheDelay: +(rand(-6.0, 0.0)).toFixed(1),
         predict: true,
       })
 
-      // 次级行星：4~6 个，让视觉更丰富饱满
+      // 次级行星：4~6 个，让体积更饱满明显
       const planetCount = randInt(4, 6)
-      // 颜色池：包含偏蓝、偏蓝绿、偏冷白
       const colorPool = ['cyan', 'teal', 'blue', 'white']
       const useViolet = random() < 0.6
       const planets = []
-      // 生成打乱的点亮顺序
       const lightUpOrders = shuffle(Array.from({ length: planetCount }, (_, idx) => idx))
 
       for (let i = 0; i < planetCount; i++) {
         const orbitIdx = i % coreOrbitCount
         const orbit = orbits[orbitIdx]
-        // 相位：均分基础上加随机扰动，避免行星正好重叠
         const angleDeg = +((360 / planetCount) * i + rand(-22, 22)).toFixed(1)
         const angleRad = angleDeg * Math.PI / 180
-        // 椭圆参数化 + 反向旋转还原到容器坐标
         const ex = Math.cos(angleRad) * orbit.rx
         const ey = Math.sin(angleRad) * orbit.ry
         const rot = orbit.rotation * Math.PI / 180
         const x = +(ex * Math.cos(rot) - ey * Math.sin(rot) + main.x).toFixed(1)
         const y = +(ex * Math.sin(rot) + ey * Math.cos(rot) + main.y).toFixed(1)
         
-        // 颜色：第一颗暗紫（如果 useViolet），其余从 colorPool
         const color = (i === planetCount - 1 && useViolet)
           ? 'violet'
           : colorPool[randInt(0, colorPool.length - 1)]
         
-        // 大小：近轨行星(轨道索引<=1)比原来放大 40%~60%，大小 22~28rpx；远轨行星大小 14~18rpx
+        // 大小：近轨行星更明显（大小 32~42rpx），远轨行星大小 18~24rpx，富有层次与质量感
         const isNear = orbitIdx <= 1
         const size = isNear 
-          ? +(22 + rand(0, 6)).toFixed(1) 
-          : +(14 + rand(0, 4)).toFixed(1)
+          ? +(32 + rand(0, 10)).toFixed(1) 
+          : +(18 + rand(0, 6)).toFixed(1)
+
+        // 确定性的自转/公转速度：近轨快，远轨慢
+        const orbitSpinDur = isNear
+          ? +(rand(12.0, 16.0)).toFixed(1)
+          : +(rand(24.0, 34.0)).toFixed(1)
 
         planets.push({
           orbitIndex: orbitIdx,
           angleDeg, x, y,
-          size: Math.max(size, 8),
+          size: Math.max(size, 10),
           color,
           opacity: +(rand(0.65, 0.90)).toFixed(2),
-          glow: isNear ? +(rand(14, 24)).toFixed(0) : +(rand(10, 16)).toFixed(0),
+          glow: isNear ? +(rand(16, 26)).toFixed(0) : +(rand(10, 18)).toFixed(0),
           twinkleDuration: +(rand(2.2, 4.5)).toFixed(1),
           twinkleDelay: +(rand(-4.0, 0.0)).toFixed(1),
-          lightUpOrder: lightUpOrders[i],  // 打乱点亮顺序
+          lightUpOrder: lightUpOrders[i],
+          orbitSpinDur,
         })
       }
 
-      // 远轨小节点/信标：2~4 个，距离更远、更淡，依然清晰可见
+      // 远轨小节点/信标：2~4 个，距离更远、慢速公转
       const farCount = randInt(2, 4)
       const farNodes = Array.from({ length: farCount }, () => {
         const angle = rand(0, Math.PI * 2)
-        const r = rand(225, 260)
+        const r = rand(290, 340) // 向外扩，配合放大的主星系
         return {
           x: +(Math.cos(angle) * r).toFixed(1),
-          y: +(Math.sin(angle) * r * 0.78).toFixed(1),  // 略压扁
-          size: +(rand(8, 12)).toFixed(1),  // 放大到 8~12rpx
+          y: +(Math.sin(angle) * r * 0.78).toFixed(1),
+          size: +(rand(10, 14)).toFixed(1), // 尺寸稍微调大，更清晰
           opacity: +(rand(0.25, 0.45)).toFixed(2),
           twinkleDuration: +(rand(3.0, 6.0)).toFixed(1),
           twinkleDelay: +(rand(-5.0, 0.0)).toFixed(1),
+          orbitSpinDur: +(rand(48.0, 72.0)).toFixed(1), // 信标公转极慢，符合深空定位标的感
         }
       })
 
-      // 连接线：1~4 条，从主核 → 某颗行星，或行星之间，其中一部分作为路径推演预测线
+      // 连接线：1~4 条
       const linkCount = randInt(1, 4)
       const links = []
       for (let i = 0; i < linkCount; i++) {
         const a = (i === 0 && planets.length > 0)
-          ? { x: main.x, y: main.y }    // 从主核起
+          ? { x: main.x, y: main.y }
           : planets[randInt(0, planets.length - 1)]
         const b = planets[(i + 1) % planets.length]
         if (!a || !b || a === b) continue
@@ -768,7 +770,7 @@ Page({
           opacity: +(rand(0.06, 0.14)).toFixed(2),
           pulseDuration: +(rand(1.8, 3.6)).toFixed(1),
           pulseDelay: +(rand(-3.0, 0.0)).toFixed(1),
-          predict: i % 2 === 1, // 奇数索引连线作为“路径推演”预测线
+          predict: i % 2 === 1,
         })
       }
 

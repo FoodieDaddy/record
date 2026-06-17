@@ -522,27 +522,27 @@
 /* ===== 中央多行星系统 ===== */
 .star-core {
   position: relative;
-  width: 600rpx;
-  height: 600rpx;
+  width: 640rpx;
+  height: 640rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 20rpx;
   flex-shrink: 0;
-  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1), transform 800ms cubic-bezier(0.22, 1, 0.36, 1), margin-bottom 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 850ms cubic-bezier(0.22, 1, 0.36, 1), transform 850ms cubic-bezier(0.22, 1, 0.36, 1), margin-bottom 850ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .star-core--completing {
-  opacity: 0.5;
-  transform: scale(0.85) translateY(-60rpx);
-  margin-bottom: -100rpx;
+  opacity: 0.55;
+  transform: scale(0.80) translateY(-80rpx);
+  margin-bottom: -120rpx;
   pointer-events: none;
 }
 
 .star-core--completed {
   opacity: 0.18;
-  transform: scale(0.68) translateY(-140rpx);
-  margin-bottom: -220rpx;
+  transform: scale(0.64) translateY(-160rpx);
+  margin-bottom: -240rpx;
   pointer-events: none;
 }
 
@@ -699,11 +699,33 @@
   border-radius: 50%;
   transform: translate(-50%, -50%);
   opacity: var(--planet-opacity, 0.8);
-  animation: csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate;
-  animation-delay: var(--twinkle-delay, 0s);
+  transform-origin: calc(50% - var(--planet-x, 0rpx)) calc(50% - var(--planet-y, 0rpx));
   z-index: 3;
   pointer-events: none;
   transition: filter 300ms ease, opacity 300ms ease;
+}
+
+/* 轨道自转/公转动画：配合 baseState 不同阶段有明显的速度层次 */
+.core-system--idle .cs-planet {
+  animation: 
+    csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate,
+    csOrbitSpin calc(var(--orbit-spin-dur, 20s) * 3) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
+}
+
+.core-system--starting .cs-planet,
+.core-system--calibrating .cs-planet {
+  animation: 
+    csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate,
+    csOrbitSpin var(--orbit-spin-dur, 20s) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
+}
+
+.core-system--completed .cs-planet {
+  animation: 
+    csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate,
+    csOrbitSpin calc(var(--orbit-spin-dur, 20s) * 6) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
 }
 
 .cs-planet--cyan {
@@ -747,16 +769,37 @@
   position: absolute;
   border-radius: 50%;
   transform: translate(-50%, -50%);
+  transform-origin: calc(50% - var(--node-x, 0rpx)) calc(50% - var(--node-y, 0rpx));
   background: rgba(180, 220, 255, 0.9);
   box-shadow: 0 0 6rpx rgba(120, 200, 255, 0.4);
-  animation: csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate;
-  animation-delay: var(--twinkle-delay, 0s);
   z-index: 1;
 }
 
+.core-system--idle .cs-far-node {
+  animation: 
+    csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate,
+    csOrbitSpin calc(var(--orbit-spin-dur, 50s) * 3.5) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
+}
+
+.core-system--starting .cs-far-node,
+.core-system--calibrating .cs-far-node {
+  animation: 
+    csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate,
+    csOrbitSpin var(--orbit-spin-dur, 50s) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
+}
+
+.core-system--completed .cs-far-node {
+  animation: 
+    csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate,
+    csOrbitSpin calc(var(--orbit-spin-dur, 50s) * 8) linear infinite;
+  animation-delay: var(--twinkle-delay, 0s), 0s;
+}
+
 @keyframes csFarTwinkle {
-  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.7); }
+  0%   { opacity: var(--node-opacity, 0.45); }
+  100% { opacity: calc(var(--node-opacity, 0.45) * 0.35); }
 }
 
 /* ----- 连接线 ----- */
@@ -950,9 +993,21 @@
   box-shadow: 
     0 0 24rpx rgba(0, 170, 255, 0.08), 
     inset 0 1rpx 0 rgba(255, 255, 255, 0.03);
-  overflow: hidden;
   transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease, transform 200ms ease;
   animation: btnBorderBreathe 4s ease-in-out infinite alternate;
+}
+
+/* 按钮外侧极淡能量虚线环 */
+.nav-launch-btn::before {
+  content: '';
+  position: absolute;
+  inset: -12rpx;
+  border: 1.5rpx dashed rgba(0, 200, 255, 0.22);
+  border-radius: 50%;
+  animation: btnOuterRingRotate 20s linear infinite;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 1;
 }
 
 .nav-launch-btn:active {
@@ -962,13 +1017,30 @@
   box-shadow: 0 0 28rpx rgba(0, 170, 255, 0.16) !important;
 }
 
+.nav-launch-btn:active::before {
+  inset: -8rpx;
+  border-color: rgba(0, 200, 255, 0.65);
+  animation-duration: 6s;
+}
+
 .nav-launch-btn--starting {
-  transform: scale(0.98);
+  transform: scale(0.95); /* 精致的轻微收缩 */
   border-color: rgba(0, 200, 255, 0.8) !important;
   box-shadow: 0 0 32rpx rgba(0, 200, 255, 0.4) !important;
   background: rgba(4, 18, 30, 0.75) !important;
-  color: #00c8ff !important;
   animation: none !important;
+}
+
+.nav-launch-btn--starting::before {
+  inset: -6rpx !important;
+  border-color: rgba(0, 200, 255, 0.8) !important;
+  animation: btnOuterRingRotate 3s linear infinite !important;
+  box-shadow: 0 0 16rpx rgba(0, 200, 255, 0.2);
+}
+
+@keyframes btnOuterRingRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
 }
 
 /* 按钮内部横向扫描光 */

@@ -120,7 +120,7 @@
         <!-- 远轨小节点（最远，最淡，最先入场） -->
         <view wx:for="{{starMap.coreSystem.farNodes}}" wx:key="index" wx:for-item="node"
               class="cs-far-node"
-              style="left:calc(50% + {{node.x}}rpx);top:calc(50% + {{node.y}}rpx);width:{{node.size}}rpx;height:{{node.size}}rpx;opacity:{{node.opacity}};--twinkle-dur:{{node.twinkleDuration}}s;--twinkle-delay:{{node.twinkleDelay}}s"></view>
+              style="left:calc(50% + {{node.x}}rpx);top:calc(50% + {{node.y}}rpx);width:{{node.size}}rpx;height:{{node.size}}rpx;opacity:{{node.opacity}};--twinkle-dur:{{node.twinkleDuration}}s;--twinkle-delay:{{node.twinkleDelay}}s;--node-x:{{node.x}}rpx;--node-y:{{node.y}}rpx;--orbit-spin-dur:{{node.orbitSpinDur}}s;"></view>
 
         <!-- 轨道弧线（多层） -->
         <view wx:for="{{starMap.coreSystem.orbits}}" wx:key="index" wx:for-item="orbit"
@@ -135,7 +135,7 @@
         <!-- 次级行星 -->
         <view wx:for="{{starMap.coreSystem.planets}}" wx:key="index" wx:for-item="planet"
               class="cs-planet cs-planet--{{planet.color}}"
-              style="left:calc(50% + {{planet.x}}rpx);top:calc(50% + {{planet.y}}rpx);width:{{planet.size}}rpx;height:{{planet.size}}rpx;--planet-opacity:{{planet.opacity}};--planet-glow:{{planet.glow}}rpx;--twinkle-dur:{{planet.twinkleDuration}}s;--twinkle-delay:{{planet.twinkleDelay}}s;--light-up-delay:{{planet.lightUpOrder * 0.18}}s"></view>
+              style="left:calc(50% + {{planet.x}}rpx);top:calc(50% + {{planet.y}}rpx);width:{{planet.size}}rpx;height:{{planet.size}}rpx;--planet-opacity:{{planet.opacity}};--planet-glow:{{planet.glow}}rpx;--twinkle-dur:{{planet.twinkleDuration}}s;--twinkle-delay:{{planet.twinkleDelay}}s;--light-up-delay:{{planet.lightUpOrder * 0.18}}s;--planet-x:{{planet.x}}rpx;--planet-y:{{planet.y}}rpx;--orbit-spin-dur:{{planet.orbitSpinDur}}s;"></view>
 
         <!-- 主核心（最大、最亮，位于中央偏上） -->
         <view class="cs-main" style="left:calc(50% + {{starMap.coreSystem.main.x}}rpx);top:calc(50% + {{starMap.coreSystem.main.y}}rpx)">
