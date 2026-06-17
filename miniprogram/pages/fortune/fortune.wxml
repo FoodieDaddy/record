@@ -184,6 +184,9 @@
           <view class="btn-icon-reticle"></view>
         </view>
       </view>
+      <!-- 控制台底座与物理感装饰 -->
+      <view class="btn-cockpit-base-line"></view>
+      <text class="btn-cockpit-base-text">{{baseState === 'starting' ? 'LAUN_LOCK // ENGAGING' : 'LAUN_LOCK // STANDBY'}}</text>
     </view>
 
     <!-- done 态：结果信息区域 (重新设计，层级清晰，文字完整) -->

@@ -962,6 +962,55 @@
   justify-content: center;
   margin-top: 36rpx;
   transition: opacity 500ms ease;
+  position: relative;
+  padding-bottom: 50rpx;
+}
+
+.btn-cockpit-base-line {
+  position: absolute;
+  bottom: 15rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.35) 20%, rgba(0, 200, 255, 0.35) 80%, transparent);
+  box-shadow: 0 0 10rpx rgba(0, 200, 255, 0.2);
+  pointer-events: none;
+}
+
+.btn-cockpit-base-line::before,
+.btn-cockpit-base-line::after {
+  content: '';
+  position: absolute;
+  width: 12rpx;
+  height: 4rpx;
+  background: rgba(0, 200, 255, 0.45);
+  top: -1rpx;
+}
+.btn-cockpit-base-line::before {
+  left: 25rpx;
+}
+.btn-cockpit-base-line::after {
+  right: 25rpx;
+}
+
+.btn-cockpit-base-text {
+  position: absolute;
+  bottom: -16rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14rpx;
+  color: rgba(126, 156, 180, 0.35);
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+  pointer-events: none;
+  animation: cockpitBaseTextBreathe 3s ease-in-out infinite alternate;
+}
+
+@keyframes cockpitBaseTextBreathe {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; text-shadow: 0 0 6rpx rgba(0, 200, 255, 0.2); }
 }
 
 .btn-visible {
@@ -1775,7 +1824,9 @@
 }
 
 .dp-visible .projection-card {
-  animation: projectionCardIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: 
+    projectionCardIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    cardBorderFlash 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .dp-visible .projection-card:nth-child(1) { animation-delay: 20ms; }
@@ -1791,6 +1842,23 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cardBorderFlash {
+  0% {
+    border-color: rgba(0, 190, 255, 0.15);
+    box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.3);
+  }
+  25% {
+    border-color: rgba(0, 200, 255, 0.85) !important;
+    box-shadow: 
+      0 0 32rpx rgba(0, 200, 255, 0.3),
+      0 10rpx 40rpx rgba(0, 0, 0, 0.45) !important;
+  }
+  100% {
+    border-color: rgba(0, 190, 255, 0.15);
+    box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.3);
   }
 }
 
