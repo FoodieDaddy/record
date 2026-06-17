@@ -850,13 +850,21 @@ Page({
     this._transition('starting')
     this._fireApiRequest()
 
+    // 启动 HUD 计时器
+    this._startTime = Date.now()
+    this.setData({ calibrationTime: '0.0' })
+    this._timeTimer = setInterval(() => {
+      const elapsed = ((Date.now() - this._startTime) / 1000).toFixed(1)
+      this.setData({ calibrationTime: elapsed })
+    }, 100)
+
     // T=600ms: starting → calibrating
     const t1 = setTimeout(() => {
       if (runId !== this._runId) return
       this._transition('calibrating')
 
-      // 校准阶段文案循环
-      const phases = ['星图校准中', '同步坐标...', '锁定低熵窗口...', '写入指令参数...']
+      // 校准阶段文案循环：同步星图、锁定轨道、推演路径、写入结果
+      const phases = ['同步星图', '锁定轨道', '推演路径', '写入结果']
       let phaseIdx = 0
       this.setData({ calibrationText: phases[0] })
       this._calibrationTimer = setInterval(() => {
@@ -1160,9 +1168,14 @@ Page({
       clearInterval(this._calibrationTimer)
       this._calibrationTimer = null
     }
-    if (this.data.calibrationText) {
-      this.setData({ calibrationText: '' })
+    if (this._timeTimer) {
+      clearInterval(this._timeTimer)
+      this._timeTimer = null
     }
+    this.setData({
+      calibrationText: '',
+      calibrationTime: '0.0'
+    })
     this._stopHeartbeat()
   },
 

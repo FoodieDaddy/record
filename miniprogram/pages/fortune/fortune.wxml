@@ -94,6 +94,25 @@
     <view class="nav-hud-radar"
           style="left:{{starMap.radarCenter.x}}%;top:{{starMap.radarCenter.y}}%"></view>
     <view class="nav-hud-edge-glow"></view>
+
+    <!-- 左上角 HUD 状态控制器 -->
+    <view class="hud-status-module" wx:if="{{pageReady}}">
+      <view class="hud-row hud-row--connection">
+        <view class="hud-connection-dot css-connection-dot--{{cockpitView.statusDot || 'idle'}}"></view>
+        <text class="hud-connection-text">{{cockpitView.statusDot === 'online' ? '已连接' : (cockpitView.statusDot === 'starting' ? '连接中' : '已连接')}}</text>
+      </view>
+      <view class="hud-row hud-row--state">
+        <text class="hud-state-label">{{baseState === 'idle' ? '待机' : (baseState === 'starting' ? '启动中' : (baseState === 'calibrating' ? '校准中' : (baseState === 'regenerating' ? '重构中' : '已完成')))}}</text>
+      </view>
+      <view class="hud-row hud-row--step">
+        <text class="hud-step-text">{{baseState === 'idle' ? '等待指令' : (baseState === 'starting' ? '初始化星图' : (baseState === 'completed' ? '结果已生成' : (calibrationText || '同步星图')))}}</text>
+      </view>
+      <view class="hud-row hud-row--micro">
+        <text class="hud-micro-text" wx:if="{{baseState === 'calibrating'}}">CAL_TIME: {{calibrationTime || '0.0'}}s</text>
+        <text class="hud-micro-text" wx:elif="{{baseState === 'completed'}}">SEC_STATUS: SECURE</text>
+        <text class="hud-micro-text" wx:else>SEC_STATUS: STANDBY</text>
+      </view>
+    </view>
   </view>
 
   <!-- 暗色渐变遮罩层：星图与内容融合 -->
@@ -101,12 +120,6 @@
 
   <!-- 飞行甲板统一舞台（贯穿 idle -> completed） -->
   <view class="flight-deck flight-deck--{{baseState}}" wx:if="{{pageReady}}">
-
-    <!-- 状态指示线 -->
-    <view class="nav-status-line">
-      <view class="nav-status-indicator nav-status-indicator--{{cockpitView.statusDot || 'idle'}}"></view>
-      <text class="nav-status-text">{{statusLineText}}</text>
-    </view>
 
     <!-- 甲板透视线 -->
     <view class="deck-perspective">
@@ -117,8 +130,8 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
-    <!-- 中央多行星系统（idle/calibrating/regenerating 态可见） -->
-    <view class="star-core star-core--{{baseState}}" wx:if="{{baseState !== 'completed' && baseState !== 'completing'}}">
+    <!-- 中央多行星系统 -->
+    <view class="star-core star-core--{{baseState}}">
       <view class="core-system core-system--{{baseState}}" wx:if="{{starMap.coreSystem}}">
 
         <!-- 远轨小节点（最远，最淡，最先入场） -->
@@ -128,12 +141,12 @@
 
         <!-- 轨道弧线（多层） -->
         <view wx:for="{{starMap.coreSystem.orbits}}" wx:key="index" wx:for-item="orbit"
-              class="cs-orbit cs-orbit--{{orbit.arc}}"
+              class="cs-orbit cs-orbit--{{orbit.arc}} {{orbit.predict ? 'cs-orbit--predict' : ''}}"
               style="width:{{orbit.rx * 2}}rpx;height:{{orbit.ry * 2}}rpx;left:50%;top:calc(50% + {{starMap.coreSystem.main.y * 0.3}}rpx);transform:translate(-50%,-50%) rotate({{orbit.rotation}}deg);opacity:{{orbit.opacity}};--orbit-dur:{{orbit.breatheDuration}}s;--orbit-delay:{{orbit.breatheDelay}}s"></view>
 
         <!-- 行星↔主核 / 行星间连接线 -->
         <view wx:for="{{starMap.coreSystem.links}}" wx:key="index" wx:for-item="link"
-              class="cs-link"
+              class="cs-link {{link.predict ? 'cs-link--predict' : ''}}"
               style="left:calc(50% + {{link.x1}}rpx);top:calc(50% + {{link.y1}}rpx);width:{{link.length}}rpx;transform:rotate({{link.angle}}deg);opacity:{{link.opacity}};--pulse-dur:{{link.pulseDuration}}s;--pulse-delay:{{link.pulseDelay}}s"></view>
 
         <!-- 次级行星 -->
@@ -154,38 +167,77 @@
       </view>
     </view>
 
-    <!-- idle 态状态文案 -->
-    <view class="idle-status-hint" wx:if="{{baseState === 'idle'}}">
-      <text class="idle-hint-main">导航待机中</text>
-      <text class="idle-hint-sub">等待星图校准指令</text>
-    </view>
-
-    <!-- starting/calibrating 态文案 -->
-    <view class="calibrating-status-hint" wx:if="{{baseState === 'starting' || baseState === 'calibrating'}}">
-      <text class="calibrating-hint-main">{{baseState === 'starting' ? '星图启动中' : '星图校准中'}}</text>
-      <text class="calibrating-hint-sub">{{calibrationText || '同步坐标...'}}</text>
-    </view>
-
     <!-- 主操作按钮 -->
     <view class="nav-launch-btn-area {{baseState === 'idle' ? 'btn-visible' : (baseState === 'starting' ? 'btn-fade-out' : 'btn-hidden')}}">
       <view class="nav-launch-btn {{baseState === 'starting' ? 'nav-launch-btn--starting' : ''}}" bindtap="onTapLaunchCore">
         <view class="btn-scan-light"></view>
         <view class="btn-energy-line"></view>
-        <text>{{baseState === 'starting' ? '启动中' : '开始校准'}}</text>
+        
+        <!-- 精致飞船按钮图形 -->
+        <view class="btn-cockpit-icon">
+          <view class="btn-icon-pulse"></view>
+          <view class="btn-icon-core"></view>
+          <view class="btn-icon-reticle"></view>
+        </view>
+        
+        <text class="btn-caption-text">CALIBRATE</text>
       </view>
     </view>
 
-    <!-- done 态：结果投影内容 -->
+    <!-- done 态：结果信息区域 (重新设计，层级清晰，文字完整) -->
     <view class="directive-projection {{baseState === 'completed' ? 'dp-visible' : ''}}" wx:if="{{baseState === 'completing' || baseState === 'completed'}}">
 
-      <!-- 极简 HUD 结果面板 -->
-      <view class="result-panel-simple projection-card">
-        <!-- 主标题 -->
-        <view class="rp-verdict-simple">{{strategy.verdict}}</view>
-        <!-- 描述 -->
-        <view class="rp-desc-simple" wx:if="{{directiveText}}">{{directiveText}}</view>
-        <!-- 稳定度简单显示 -->
-        <view class="rp-stability-simple">系统稳定度 {{stabilityPercent || 72}}%</view>
+      <!-- 飞船指令结果投影卡片 -->
+      <view class="result-card-container projection-card">
+        <!-- 头部小装饰线 -->
+        <view class="rc-header-line">
+          <text class="rc-serial">NO.{{starMap.starMapId || 'SM-0000'}}</text>
+          <view class="rc-line-deco"></view>
+          <text class="rc-type">{{strategy.tag || '状态校准'}}</text>
+        </view>
+
+        <!-- 结果摘要 verdict -->
+        <view class="rc-verdict">{{strategy.verdict}}</view>
+
+        <!-- 关键结果属性徽章区 -->
+        <view class="rc-badges">
+          <view class="rc-badge-pill">
+            <text class="rc-badge-label">适性区间</text>
+            <text class="rc-badge-value">{{solarTermLabel || '待同步'}}</text>
+          </view>
+          <view class="rc-badge-pill">
+            <text class="rc-badge-label">适性特征</text>
+            <text class="rc-badge-value" style="color: {{userTagColor}}">{{userTagLabel || '待同步'}}</text>
+          </view>
+          <view class="rc-badge-pill">
+            <text class="rc-badge-label">系统稳定度</text>
+            <text class="rc-badge-value">{{stabilityPercent || 72}}%</text>
+          </view>
+        </view>
+
+        <!-- 细虚分割线 -->
+        <view class="rc-divider-dash"></view>
+
+        <!-- 更完整的结果说明内容 -->
+        <view class="rc-details" wx:if="{{strategy.buffs && strategy.buffs.length}}">
+          <view class="rc-detail-item" wx:for="{{strategy.buffs}}" wx:key="*this">
+            <view class="rc-detail-dot rc-detail-dot--buff"></view>
+            <text class="rc-detail-text">{{item}}</text>
+          </view>
+          <view class="rc-detail-item" wx:for="{{strategy.debuffs}}" wx:key="*this">
+            <view class="rc-detail-dot rc-detail-dot--debuff"></view>
+            <text class="rc-detail-text">{{item}}</text>
+          </view>
+        </view>
+        
+        <view class="rc-summary" wx:else>
+          <text>{{directiveText || '保持当前星轨平稳运行，锁定低噪视窗，等待系统状态反馈。'}}</text>
+        </view>
+
+        <!-- 底部小修饰字 -->
+        <view class="rc-footer-tip">
+          <text>COMMAND DIRECTIVE // AUTONOMOUS CALIBRATION COMPLETED</text>
+        </view>
       </view>
 
       <!-- 操作按钮 -->

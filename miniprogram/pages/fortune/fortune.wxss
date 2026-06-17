@@ -522,13 +522,28 @@
 /* ===== 中央多行星系统 ===== */
 .star-core {
   position: relative;
-  width: 480rpx;
-  height: 480rpx;
+  width: 600rpx;
+  height: 600rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 20rpx;
   flex-shrink: 0;
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1), transform 800ms cubic-bezier(0.22, 1, 0.36, 1), margin-bottom 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.star-core--completing {
+  opacity: 0.5;
+  transform: scale(0.85) translateY(-60rpx);
+  margin-bottom: -100rpx;
+  pointer-events: none;
+}
+
+.star-core--completed {
+  opacity: 0.18;
+  transform: scale(0.68) translateY(-140rpx);
+  margin-bottom: -220rpx;
+  pointer-events: none;
 }
 
 .core-system {
@@ -2463,47 +2478,303 @@
   animation: none !important;
 }
 
-/* ===== 极简 HUD 结果面板样式 ===== */
-.result-panel-simple {
+/* ===== 精致按钮内部元素 ===== */
+.btn-cockpit-icon {
+  width: 36rpx;
+  height: 36rpx;
+  position: relative;
+  margin-right: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 1.5rpx solid rgba(0, 200, 255, 0.4);
+  border-radius: 50%;
+  animation: btnIconPulse 2s ease-out infinite;
+}
+
+.btn-icon-core {
+  width: 12rpx;
+  height: 12rpx;
+  background: #00c8ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8rpx #00c8ff;
+}
+
+.btn-icon-reticle {
+  position: absolute;
+  width: 140%;
+  height: 140%;
+  border: 1rpx dashed rgba(0, 200, 255, 0.3);
+  border-radius: 50%;
+  animation: btnIconRotate 12s linear infinite;
+}
+
+.btn-caption-text {
+  font-size: 20rpx;
+  color: rgba(230, 246, 255, 0.85);
+  letter-spacing: 6rpx;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 600;
+  text-shadow: 0 0 10rpx rgba(0, 200, 255, 0.3);
+}
+
+@keyframes btnIconPulse {
+  0% { transform: scale(0.7); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes btnIconRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===== 左上角 HUD 状态控制器 ===== */
+.hud-status-module {
+  position: absolute;
+  top: calc(180rpx + env(safe-area-inset-top));
+  left: 40rpx;
+  z-index: 90;
+  padding: 16rpx 20rpx;
+  background: rgba(3, 16, 28, 0.35);
+  border: 1rpx solid rgba(0, 190, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  font-family: "Courier New", Courier, monospace;
+  min-width: 240rpx;
+  pointer-events: auto;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+}
+
+.hud-row--connection {
+  gap: 8rpx;
+  margin-bottom: 2rpx;
+}
+
+.hud-connection-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.css-connection-dot--idle {
+  background: rgba(160, 210, 235, 0.4);
+  box-shadow: 0 0 4rpx rgba(160, 210, 235, 0.2);
+}
+
+.css-connection-dot--starting {
+  background: rgba(0, 200, 255, 0.75);
+  box-shadow: 0 0 8rpx rgba(0, 200, 255, 0.4);
+  animation: hudDotPulse 1.5s infinite;
+}
+
+.css-connection-dot--online {
+  background: rgba(50, 215, 75, 0.75);
+  box-shadow: 0 0 8rpx rgba(50, 215, 75, 0.4);
+}
+
+@keyframes hudDotPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.hud-connection-text {
+  font-size: 16rpx;
+  color: rgba(160, 210, 235, 0.5);
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+.hud-state-label {
+  font-size: 24rpx;
+  font-weight: 700;
+  color: rgba(230, 246, 255, 0.9);
+  letter-spacing: 2rpx;
+}
+
+.hud-step-text {
+  font-size: 18rpx;
+  color: rgba(0, 200, 255, 0.7);
+  letter-spacing: 1.5rpx;
+}
+
+.hud-micro-text {
+  font-size: 14rpx;
+  color: rgba(126, 156, 180, 0.35);
+  letter-spacing: 1rpx;
+  margin-top: 2rpx;
+}
+
+/* ===== 诊断信息结果卡片 ===== */
+.result-card-container {
   width: 640rpx;
-  padding: 48rpx 32rpx;
-  border-radius: 20rpx;
-  background: rgba(3, 16, 24, 0.28); /* 极弱极淡的背景 */
-  border: 1rpx solid rgba(0, 200, 255, 0.08); /* 极细极淡的边框 */
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 0 20rpx rgba(0, 0, 0, 0.15);
+  background: rgba(3, 16, 28, 0.45);
+  border: 1rpx solid rgba(0, 190, 255, 0.15);
+  border-radius: 16rpx;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 36rpx 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
   margin-bottom: 24rpx;
+  box-shadow: 0 10rpx 40rpx rgba(0, 0, 0, 0.3);
+}
+
+/* 结果面板高光流线装饰 */
+.rc-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+  width: 100%;
+}
+
+.rc-serial {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16rpx;
+  color: rgba(126, 156, 180, 0.45);
+  letter-spacing: 2rpx;
+}
+
+.rc-line-deco {
+  flex: 1;
+  height: 1rpx;
+  background: linear-gradient(90deg, rgba(0, 190, 255, 0.04), rgba(0, 190, 255, 0.15), rgba(0, 190, 255, 0.04));
+  margin: 0 16rpx;
+}
+
+.rc-type {
+  font-size: 18rpx;
+  color: rgba(0, 200, 255, 0.65);
+  letter-spacing: 2rpx;
+  border: 1rpx solid rgba(0, 200, 255, 0.25);
+  padding: 2rpx 10rpx;
+  border-radius: 4rpx;
+}
+
+.rc-verdict {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: rgba(230, 246, 255, 0.95);
+  line-height: 1.5;
+  text-align: center;
+  margin-bottom: 28rpx;
+  letter-spacing: 3rpx;
+}
+
+.rc-badges {
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 24rpx;
+  width: 100%;
+}
+
+.rc-badge-pill {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 12rpx 8rpx;
+  border-radius: 8rpx;
+  background: rgba(0, 190, 255, 0.05);
+  border: 1rpx solid rgba(0, 190, 255, 0.1);
+}
+
+.rc-badge-label {
+  font-size: 14rpx;
+  color: rgba(126, 156, 180, 0.5);
+  margin-bottom: 4rpx;
+  letter-spacing: 1rpx;
+}
+
+.rc-badge-value {
+  font-size: 20rpx;
+  font-weight: 600;
+  color: rgba(230, 246, 255, 0.9);
+}
+
+.rc-divider-dash {
+  height: 1rpx;
+  border-top: 1rpx dashed rgba(0, 190, 255, 0.18);
+  width: 100%;
+  margin: 20rpx 0;
+}
+
+.rc-details {
+  display: flex;
+  flex-direction: column;
   gap: 16rpx;
-  box-sizing: border-box;
+  margin-bottom: 20rpx;
+  width: 100%;
 }
 
-.rp-verdict-simple {
-  font-size: 38rpx;
-  font-weight: 700;
-  color: rgba(230, 246, 255, 0.95);
-  letter-spacing: 4rpx;
-  text-align: center;
-  text-shadow: 0 0 20rpx rgba(0, 200, 255, 0.2);
+.rc-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
 }
 
-.rp-desc-simple {
-  font-size: 24rpx;
-  color: rgba(160, 210, 235, 0.65);
-  letter-spacing: 2rpx;
-  text-align: center;
+.rc-detail-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  margin-top: 10rpx;
+  flex-shrink: 0;
+}
+
+.rc-detail-dot--buff {
+  background: #32d74b;
+  box-shadow: 0 0 6rpx rgba(50, 215, 75, 0.5);
+}
+
+.rc-detail-dot--debuff {
+  background: #ff9f0a;
+  box-shadow: 0 0 6rpx rgba(255, 159, 10, 0.5);
+}
+
+.rc-detail-text {
+  font-size: 22rpx;
+  color: rgba(230, 246, 255, 0.85);
   line-height: 1.5;
 }
 
-.rp-stability-simple {
-  font-size: 20rpx;
-  color: rgba(0, 200, 255, 0.4);
+.rc-summary {
+  font-size: 22rpx;
+  color: rgba(230, 246, 255, 0.8);
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+  text-align: center;
+}
+
+.rc-footer-tip {
+  margin-top: 16rpx;
+  text-align: center;
+  width: 100%;
+}
+
+.rc-footer-tip text {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12rpx;
+  color: rgba(126, 156, 180, 0.3);
   letter-spacing: 2rpx;
-  font-family: 'Courier New', monospace;
-  text-transform: uppercase;
-  margin-top: 8rpx;
 }
