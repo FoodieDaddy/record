@@ -730,6 +730,7 @@ Page({
           twinkleDelay: +(rand(-4.0, 0.0)).toFixed(1),
           lightUpOrder: lightUpOrders[i],
           orbitSpinDur,
+          orbitRx: orbit.rx, // 缓存轨道半径用于 CSS 旋转定位
         })
       }
 
@@ -746,6 +747,8 @@ Page({
           twinkleDuration: +(rand(3.0, 6.0)).toFixed(1),
           twinkleDelay: +(rand(-5.0, 0.0)).toFixed(1),
           orbitSpinDur: +(rand(48.0, 72.0)).toFixed(1), // 信标公转极慢，符合深空定位标的感
+          angleDeg: +(angle * 180 / Math.PI).toFixed(1), // 缓存角度用于 CSS 旋转
+          orbitRx: r, // 缓存轨道半径
         }
       })
 
