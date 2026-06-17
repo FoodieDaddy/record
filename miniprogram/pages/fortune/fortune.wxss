@@ -623,7 +623,7 @@
 .cs-orbit {
   position: absolute;
   border-radius: 50%;
-  border: 1rpx solid rgba(140, 215, 255, 0.55);
+  border: 1rpx solid rgba(140, 215, 255, 0.45);
   pointer-events: none;
   animation: csOrbitBreathe var(--orbit-dur, 10s) ease-in-out infinite;
   animation-delay: var(--orbit-delay, 0s);
@@ -642,7 +642,13 @@
 .cs-orbit--dash {
   border-style: dashed;
   border-width: 1rpx;
-  opacity: 0.85;  /* 与 inline 相乘体感不变；dashed 视觉感更弱所以保留 */
+  opacity: 0.85;  /* 与 inline 相乘体感不变 */
+}
+
+.cs-orbit--predict {
+  border-style: dotted;
+  border-color: rgba(0, 220, 255, 0.35) !important;
+  opacity: 0.5 !important;
 }
 
 @keyframes csOrbitBreathe {
@@ -650,38 +656,70 @@
   50%      { transform: translate(-50%, -50%) rotate(var(--orbit-rot, 0deg)) scale(1.015); }
 }
 
+/* 测量校准点阵环 (主核心附近极其精致的小点阵环) */
+.cs-calibration-ring {
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 1rpx dashed rgba(0, 200, 255, 0.12);
+  background-image: radial-gradient(circle, rgba(0, 200, 255, 0.28) 1px, transparent 1px);
+  background-size: 8rpx 8rpx;
+  transform-origin: center center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: calibrateRingRotate 24s linear infinite;
+  z-index: 1;
+}
+
+@keyframes calibrateRingRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
 /* ----- 次级行星 ----- */
 .cs-planet {
   position: absolute;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  opacity: var(--planet-opacity, 0.7);
+  opacity: var(--planet-opacity, 0.8);
   animation: csPlanetTwinkle var(--twinkle-dur, 3s) ease-in-out infinite alternate;
   animation-delay: var(--twinkle-delay, 0s);
   z-index: 3;
   pointer-events: none;
+  transition: filter 300ms ease, opacity 300ms ease;
 }
 
 .cs-planet--cyan {
-  background: radial-gradient(circle, #aaf0ff 0%, #5cdcff 45%, #2da6d8 100%);
-  color: #5cdcff;
-  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(92, 220, 255, 0.55);
+  background: radial-gradient(circle at 35% 35%, #e0faff 0%, #5cdcff 40%, #007fa9 75%, #003a50 100%);
+  box-shadow:
+    inset 1rpx 1rpx 3rpx rgba(255, 255, 255, 0.65),
+    0 0 var(--planet-glow, 16rpx) rgba(92, 220, 255, 0.45);
 }
 .cs-planet--blue {
-  background: radial-gradient(circle, #b8d6ff 0%, #6aa6ff 50%, #2e6cc8 100%);
-  color: #6aa6ff;
-  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(106, 166, 255, 0.50);
+  background: radial-gradient(circle at 35% 35%, #f0f5ff 0%, #6aa6ff 40%, #205ab8 75%, #0c2b60 100%);
+  box-shadow:
+    inset 1rpx 1rpx 3rpx rgba(255, 255, 255, 0.65),
+    0 0 var(--planet-glow, 16rpx) rgba(106, 166, 255, 0.4);
 }
 .cs-planet--teal {
-  background: radial-gradient(circle, #b3f4dd 0%, #5fe8c0 50%, #2aa284 100%);
-  color: #5fe8c0;
-  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(95, 232, 192, 0.45);
+  background: radial-gradient(circle at 35% 35%, #ebfaf4 0%, #5fe8c0 40%, #17a07a 75%, #054835 100%);
+  box-shadow:
+    inset 1rpx 1rpx 3rpx rgba(255, 255, 255, 0.65),
+    0 0 var(--planet-glow, 16rpx) rgba(95, 232, 192, 0.35);
 }
 .cs-planet--violet {
-  background: radial-gradient(circle, #c5bee8 0%, #8a82c8 50%, #524a90 100%);
-  color: #8a82c8;
-  box-shadow: 0 0 var(--planet-glow, 14rpx) rgba(138, 130, 200, 0.38);
-  opacity: calc(var(--planet-opacity, 0.6) * 0.75);  /* 暗紫总透明度收一档 */
+  background: radial-gradient(circle at 35% 35%, #f4f2fa 0%, #a29beb 40%, #584fb3 75%, #272163 100%);
+  box-shadow:
+    inset 1rpx 1rpx 3rpx rgba(255, 255, 255, 0.5),
+    0 0 var(--planet-glow, 16rpx) rgba(162, 155, 235, 0.32);
+}
+.cs-planet--white {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #e0e6ed 40%, #9cb2c9 75%, #4b5e70 100%);
+  box-shadow:
+    inset 1rpx 1rpx 3rpx rgba(255, 255, 255, 0.8),
+    0 0 var(--planet-glow, 16rpx) rgba(255, 255, 255, 0.35);
 }
 
 @keyframes csPlanetTwinkle {
@@ -719,6 +757,50 @@
   animation-delay: var(--pulse-delay, 0s);
   z-index: 2;
   pointer-events: none;
+}
+
+.cs-link--predict {
+  background: linear-gradient(90deg,
+    rgba(0, 220, 255, 0) 0%,
+    rgba(0, 220, 255, 0.28) 30%,
+    rgba(0, 220, 255, 0.28) 70%,
+    rgba(0, 220, 255, 0) 100%) !important;
+  height: 2rpx !important;
+}
+
+/* 路径推演上的流动采样点 (由 CSS 模拟，避免增加 DOM 节点) */
+.cs-link--predict::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  background: #00c8ff;
+  box-shadow: 
+    0 0 8rpx #00c8ff,
+    0 0 16rpx rgba(0, 200, 255, 0.5);
+  transform: translate(-50%, -50%);
+  animation: linkDotMove var(--pulse-dur, 3s) linear infinite;
+  animation-delay: var(--pulse-delay, 0s);
+}
+
+@keyframes linkDotMove {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.85;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
 }
 
 /* ===== 状态：starting（点火） ===== */
@@ -764,13 +846,30 @@
 }
 .core-system--calibrating .cs-orbit {
   border-color: rgba(140, 215, 255, 0.85);
+  animation: csOrbitBreathe var(--orbit-dur, 10s) ease-in-out infinite, csOrbitHighlight var(--scan-dur, 2.4s) ease-out infinite;
+  animation-delay: var(--orbit-delay, 0s), calc(var(--orbit-delay, 0s) * 0.5);
 }
 .core-system--calibrating .cs-planet {
   /* 行星持续微亮 */
   filter: brightness(1.18);
 }
 .core-system--calibrating .cs-link {
-  animation: csLinkPulse 2.4s ease-in-out infinite;
+  animation: csLinkPulse var(--pulse-dur, 2.4s) ease-in-out infinite;
+}
+.core-system--calibrating .cs-far-node {
+  animation: csFarTwinkle var(--twinkle-dur, 4.5s) ease-in-out infinite alternate, csFarPulse 3.5s ease-out infinite;
+  animation-delay: var(--twinkle-delay, 0s), calc(var(--twinkle-delay, 0s) * 0.7);
+}
+
+@keyframes csOrbitHighlight {
+  0%, 100% { border-color: rgba(140, 215, 255, 0.45); filter: brightness(1); }
+  15%      { border-color: rgba(0, 220, 255, 0.85); filter: brightness(1.8); }
+  35%      { border-color: rgba(140, 215, 255, 0.45); filter: brightness(1); }
+}
+
+@keyframes csFarPulse {
+  0%, 100% { box-shadow: 0 0 6rpx rgba(120, 200, 255, 0.4); filter: brightness(1); }
+  50%      { box-shadow: 0 0 24rpx rgba(0, 200, 255, 0.85); filter: brightness(1.6); transform: translate(-50%, -50%) scale(1.35); }
 }
 
 @keyframes csLinkPulse {
@@ -829,23 +928,27 @@
   align-items: center;
   justify-content: center;
   width: 400rpx;
-  height: 96rpx;
+  height: 90rpx; /* 更精致的 90rpx 高度 */
   border-radius: 999rpx;
-  background: rgba(4, 18, 30, 0.50);
-  border: 1rpx solid rgba(0, 190, 255, 0.24);
-  box-shadow: 0 0 20rpx rgba(0, 170, 255, 0.06), inset 0 1rpx 0 rgba(255, 255, 255, 0.03);
+  background: rgba(2, 12, 22, 0.6); /* 深蓝黑半透明 */
+  border: 1rpx solid rgba(0, 190, 255, 0.22); /* 细青蓝描边 */
+  box-shadow: 
+    0 0 16rpx rgba(0, 170, 255, 0.05), 
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.02);
   color: rgba(230, 246, 255, 0.88);
   font-size: 32rpx;
   font-weight: 600;
   letter-spacing: 4rpx;
-  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+  overflow: hidden;
+  transition: background 250ms ease, border-color 250ms ease, box-shadow 250ms ease, transform 200ms ease;
+  animation: btnBorderBreathe 4s ease-in-out infinite alternate;
 }
 
 .nav-launch-btn:active {
   transform: scale(0.98);
   background: rgba(4, 18, 30, 0.65);
-  border-color: rgba(0, 190, 255, 0.36);
-  box-shadow: 0 0 28rpx rgba(0, 170, 255, 0.12);
+  border-color: rgba(0, 200, 255, 0.70) !important;
+  box-shadow: 0 0 28rpx rgba(0, 170, 255, 0.16) !important;
 }
 
 .nav-launch-btn--starting {
@@ -854,6 +957,88 @@
   box-shadow: 0 0 32rpx rgba(0, 200, 255, 0.4) !important;
   background: rgba(4, 18, 30, 0.75) !important;
   color: #00c8ff !important;
+  animation: none !important;
+}
+
+/* 按钮内部横向扫描光 */
+.btn-scan-light {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 200, 255, 0.15), transparent);
+  transform: skewX(-25deg);
+  pointer-events: none;
+  animation: btnScanSweep 6s ease-in-out infinite;
+}
+
+.nav-launch-btn:active .btn-scan-light {
+  animation: btnScanSweepActive 0.3s ease-out forwards;
+}
+
+.nav-launch-btn--starting .btn-scan-light {
+  animation: btnScanSweepActive 0.4s linear infinite !important;
+}
+
+/* 按钮底部能量线 */
+.btn-energy-line {
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 2rpx;
+  background: rgba(0, 200, 255, 0.45);
+  box-shadow: 
+    0 0 6rpx rgba(0, 200, 255, 0.6),
+    0 0 12rpx rgba(0, 200, 255, 0.2);
+  border-radius: 99rpx;
+  opacity: 0.65;
+  pointer-events: none;
+  animation: btnEnergyBreathe 3s ease-in-out infinite;
+}
+
+.nav-launch-btn--starting .btn-energy-line {
+  left: 8%;
+  right: 8%;
+  background: #00c8ff;
+  box-shadow: 
+    0 0 10rpx #00c8ff,
+    0 0 20rpx rgba(0, 200, 255, 0.8);
+  opacity: 1;
+  transition: all 400ms ease;
+  animation: btnEnergyFlash 0.3s ease-in-out infinite alternate !important;
+}
+
+@keyframes btnBorderBreathe {
+  0% { 
+    border-color: rgba(0, 190, 255, 0.22); 
+    box-shadow: 0 0 16rpx rgba(0, 170, 255, 0.05), inset 0 1rpx 0 rgba(255, 255, 255, 0.02); 
+  }
+  100% { 
+    border-color: rgba(0, 190, 255, 0.40); 
+    box-shadow: 0 0 24rpx rgba(0, 170, 255, 0.12), inset 0 1rpx 0 rgba(255, 255, 255, 0.04); 
+  }
+}
+
+@keyframes btnScanSweep {
+  0% { left: -100%; }
+  15%, 100% { left: 150%; }
+}
+
+@keyframes btnScanSweepActive {
+  0% { left: -100%; }
+  100% { left: 150%; }
+}
+
+@keyframes btnEnergyBreathe {
+  0%, 100% { opacity: 0.4; transform: scaleX(0.9); }
+  50%      { opacity: 0.85; transform: scaleX(1.05); }
+}
+
+@keyframes btnEnergyFlash {
+  0%   { opacity: 0.7; }
+  100% { opacity: 1; }
 }
 
 /* ===== 状态指示线 ===== */

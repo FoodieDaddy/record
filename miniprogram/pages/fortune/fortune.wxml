@@ -143,6 +143,8 @@
 
         <!-- 主核心（最大、最亮，位于中央偏上） -->
         <view class="cs-main" style="left:calc(50% + {{starMap.coreSystem.main.x}}rpx);top:calc(50% + {{starMap.coreSystem.main.y}}rpx)">
+          <!-- 精致的测量校准点阵环 -->
+          <view class="cs-calibration-ring"></view>
           <view class="cs-main-halo" style="width:{{starMap.coreSystem.main.haloSize}}rpx;height:{{starMap.coreSystem.main.haloSize}}rpx;--halo-dur:{{starMap.coreSystem.main.haloDur}}s"></view>
           <view class="cs-main-glow" style="width:{{starMap.coreSystem.main.glowSize}}rpx;height:{{starMap.coreSystem.main.glowSize}}rpx;--glow-dur:{{starMap.coreSystem.main.glowDur}}s"></view>
           <view class="cs-main-dot" style="width:{{starMap.coreSystem.main.dotSize}}rpx;height:{{starMap.coreSystem.main.dotSize}}rpx;--dot-dur:{{starMap.coreSystem.main.dotDur}}s"></view>
@@ -167,6 +169,8 @@
     <!-- 主操作按钮 -->
     <view class="nav-launch-btn-area {{baseState === 'idle' ? 'btn-visible' : (baseState === 'starting' ? 'btn-fade-out' : 'btn-hidden')}}">
       <view class="nav-launch-btn {{baseState === 'starting' ? 'nav-launch-btn--starting' : ''}}" bindtap="onTapLaunchCore">
+        <view class="btn-scan-light"></view>
+        <view class="btn-energy-line"></view>
         <text>{{baseState === 'starting' ? '启动中' : '开始校准'}}</text>
       </view>
     </view>

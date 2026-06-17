@@ -640,21 +640,21 @@ Page({
     // ===== 中央多行星系统（核心主视觉） =====
     // 容器 480rpx × 480rpx，坐标以中心为原点（rpx）；同 seed → 同布局
     const coreSystem = (() => {
-      // 主核心：在中心附近轻微偏移
+      // 主核心：在中心附近轻微偏移，尺寸比原来放大 25% ~ 35%
       const main = {
         x: +(rand(-15, 15)).toFixed(1),
         y: +(rand(-15, 15)).toFixed(1),
-        dotSize: randInt(22, 28),      // 主点 22~28rpx
-        glowSize: randInt(150, 190),   // 内层光晕
-        haloSize: randInt(220, 270),   // 外层光晕
+        dotSize: randInt(28, 36),      // 主点放大到 28~36rpx
+        glowSize: randInt(180, 220),   // 内层光晕放大到 180~220rpx
+        haloSize: randInt(250, 310),   // 外层光晕放大到 250~310rpx
         haloDur: +(rand(4.5, 7.5)).toFixed(1),
         glowDur: +(rand(3.0, 5.0)).toFixed(1),
         dotDur: +(rand(2.5, 4.5)).toFixed(1),
         scanDur: +(rand(1.8, 3.2)).toFixed(1),
       }
 
-      // 轨道：2~5 条，半径分层（近→远），椭圆有倾角
-      const coreOrbitCount = randInt(2, 5)
+      // 轨道：3~5 条主轨道
+      const coreOrbitCount = randInt(3, 5)
       const orbitArcs = ['full', 'full', 'half', 'dash', 'half']
       const orbits = Array.from({ length: coreOrbitCount }, (_, i) => {
         const layerRatio = (i + 1) / coreOrbitCount  // 0.x ~ 1
@@ -669,13 +669,27 @@ Page({
           opacity: Math.max(opacity, 0.06),
           breatheDuration: +(rand(8.0, 16.0)).toFixed(1),
           breatheDelay: +(rand(-5.0, 0.0)).toFixed(1),
+          predict: false,
         }
       })
 
-      // 次级行星：3~6 个，绑定到某条轨道并固定相位
-      const planetCount = randInt(3, 6)
-      // 颜色池：以青蓝为主，部分为蓝色或蓝绿（与 tint 统一）
-      const colorPool = ['cyan', 'cyan', 'blue', 'teal']
+      // 额外增加 1 条辅助预测轨道 (断续线，半径更宽，位于最外层，极淡)
+      const predictRx = 210 + rand(10, 30)
+      orbits.push({
+        rx: +predictRx.toFixed(1),
+        ry: +(predictRx * rand(0.45, 0.72)).toFixed(1),
+        rotation: +(rand(-45, 45)).toFixed(1),
+        arc: 'dash',
+        opacity: +(rand(0.04, 0.07)).toFixed(2),
+        breatheDuration: +(rand(10.0, 18.0)).toFixed(1),
+        breatheDelay: +(rand(-6.0, 0.0)).toFixed(1),
+        predict: true,
+      })
+
+      // 次级行星：4~6 个，让视觉更丰富饱满
+      const planetCount = randInt(4, 6)
+      // 颜色池：包含偏蓝、偏蓝绿、偏冷白
+      const colorPool = ['cyan', 'teal', 'blue', 'white']
       const useViolet = random() < 0.6
       const planets = []
       // 生成打乱的点亮顺序
@@ -699,22 +713,26 @@ Page({
           ? 'violet'
           : colorPool[randInt(0, colorPool.length - 1)]
         
-        // 大小：内圈行星更大，外圈更小
-        const size = +(16 - orbitIdx * 1.6 + rand(-1.5, 1.5)).toFixed(1)
+        // 大小：近轨行星(轨道索引<=1)比原来放大 40%~60%，大小 22~28rpx；远轨行星大小 14~18rpx
+        const isNear = orbitIdx <= 1
+        const size = isNear 
+          ? +(22 + rand(0, 6)).toFixed(1) 
+          : +(14 + rand(0, 4)).toFixed(1)
+
         planets.push({
           orbitIndex: orbitIdx,
           angleDeg, x, y,
-          size: Math.max(size, 7),
+          size: Math.max(size, 8),
           color,
-          opacity: +(rand(0.55, 0.85)).toFixed(2),
-          glow: +(rand(10, 20)).toFixed(0),
+          opacity: +(rand(0.65, 0.90)).toFixed(2),
+          glow: isNear ? +(rand(14, 24)).toFixed(0) : +(rand(10, 16)).toFixed(0),
           twinkleDuration: +(rand(2.2, 4.5)).toFixed(1),
           twinkleDelay: +(rand(-4.0, 0.0)).toFixed(1),
           lightUpOrder: lightUpOrders[i],  // 打乱点亮顺序
         })
       }
 
-      // 远轨小节点：2~4 个，距离更远、更淡
+      // 远轨小节点/信标：2~4 个，距离更远、更淡，依然清晰可见
       const farCount = randInt(2, 4)
       const farNodes = Array.from({ length: farCount }, () => {
         const angle = rand(0, Math.PI * 2)
@@ -722,14 +740,14 @@ Page({
         return {
           x: +(Math.cos(angle) * r).toFixed(1),
           y: +(Math.sin(angle) * r * 0.78).toFixed(1),  // 略压扁
-          size: +(rand(2.5, 4.5)).toFixed(1),
-          opacity: +(rand(0.18, 0.32)).toFixed(2),
+          size: +(rand(8, 12)).toFixed(1),  // 放大到 8~12rpx
+          opacity: +(rand(0.25, 0.45)).toFixed(2),
           twinkleDuration: +(rand(3.0, 6.0)).toFixed(1),
           twinkleDelay: +(rand(-5.0, 0.0)).toFixed(1),
         }
       })
 
-      // 连接线：1~4 条，从主核 → 某颗行星，或行星之间
+      // 连接线：1~4 条，从主核 → 某颗行星，或行星之间，其中一部分作为路径推演预测线
       const linkCount = randInt(1, 4)
       const links = []
       for (let i = 0; i < linkCount; i++) {
@@ -750,6 +768,7 @@ Page({
           opacity: +(rand(0.06, 0.14)).toFixed(2),
           pulseDuration: +(rand(1.8, 3.6)).toFixed(1),
           pulseDelay: +(rand(-3.0, 0.0)).toFixed(1),
+          predict: i % 2 === 1, // 奇数索引连线作为“路径推演”预测线
         })
       }
 
