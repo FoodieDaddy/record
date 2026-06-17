@@ -10,7 +10,7 @@
       <view class="cockpit-nav-hud">
         <view class="cockpit-nav-hud__link">
           <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
-          <text>{{cockpitView.statusLabel}}</text>
+          <text>{{cockpitView.statusDot === 'online' ? '已连接' : cockpitView.statusDot === 'starting' ? '计算中' : '待机'}}</text>
         </view>
       </view>
     </view>
@@ -22,6 +22,72 @@
     <text class="page-skeleton-text">接入导航舱</text>
   </view>
 
+  <!-- 星图舷窗 — 全屏背景视觉层（三层结构） -->
+  <view class="nav-map-window nav-map-window--{{uiPhase}} nav-map-window--tint-{{starMap.colorTint || 'cyan'}}" wx:if="{{pageReady}}">
+
+    <!-- 第一层：宇宙背景 + 星尘 -->
+    <view class="nav-map-cosmos"></view>
+    <view wx:for="{{starMap.dustParticles}}" wx:key="index" class="nav-dust"
+          style="left:{{item.x}}%;top:{{item.y}}%;width:{{item.size}}rpx;height:{{item.size}}rpx;opacity:{{item.opacity}};animation-duration:{{item.driftDuration}}s;animation-delay:{{item.driftDelay}}s"></view>
+
+    <!-- 第二层：主星图 -->
+    <!-- 轨道弧线（动态数据驱动） -->
+    <view wx:for="{{starMap.orbitArcs}}" wx:key="index" class="nav-map-orbit"
+          style="left:{{item.cx - item.rx}}%;top:{{item.cy - item.ry}}%;width:{{item.rx * 2}}%;height:{{item.ry * 2}}%;transform:rotate({{item.rotation}}deg);opacity:{{item.opacity}};--orbit-dur:{{item.breatheDuration}}s;--orbit-delay:{{item.breatheDelay}}s"></view>
+
+    <!-- 连接线 -->
+    <view wx:for="{{starMap.connectionLines}}" wx:key="index" class="nav-conn-line"
+          style="left:{{item.x1}}%;top:{{item.y1}}%;width:{{item.length}}vw;height:1rpx;transform:rotate({{item.angle}}deg);opacity:{{item.opacity}}"></view>
+
+    <!-- 随机航线 -->
+    <view wx:for="{{starMap.routes}}" wx:key="index" class="nav-route-line"
+          style="left:{{item.x1}}%;top:{{item.y1}}%;width:{{item.length}}rpx;transform:rotate({{item.angle}}deg);opacity:{{item.opacity}}"></view>
+
+    <!-- 主航线 -->
+    <view class="nav-map-route"></view>
+
+    <!-- 随机光晕 -->
+    <view wx:for="{{starMap.highlights}}" wx:key="index" class="nav-glow"
+          style="left:{{item.x}}%;top:{{item.y}}%;width:{{item.size}}rpx;height:{{item.size}}rpx;opacity:{{item.opacity}}"></view>
+
+    <!-- 随机星点 -->
+    <view wx:for="{{starMap.stars}}" wx:key="index" class="nav-star"
+          style="left:{{item.x}}%;top:{{item.y}}%;width:{{item.size}}rpx;height:{{item.size}}rpx;opacity:{{item.opacity}};--flicker-delay:{{item.flickerDelay}}s"></view>
+
+    <!-- 能量节点 -->
+    <view wx:for="{{starMap.energyNodes}}" wx:key="index" class="nav-energy-node"
+          style="left:{{item.x}}%;top:{{item.y}}%;width:{{item.size}}rpx;height:{{item.size}}rpx;--pulse-dur:{{item.pulseDuration}}s;--pulse-delay:{{item.pulseDelay}}s"></view>
+
+    <!-- 扫描波纹 -->
+    <view class="nav-scan-wave"
+          style="left:{{starMap.scanCenter.x}}%;top:{{starMap.scanCenter.y}}%"></view>
+
+    <!-- 当前坐标 ORIGIN -->
+    <view class="nav-planet nav-planet--origin">
+      <view class="nav-planet-core"></view>
+    </view>
+
+    <!-- 目标星体 TARGET -->
+    <view class="nav-planet nav-planet--target"
+          style="--target-color: {{themeColor || '#32D74B'}}">
+      <view class="nav-planet-lock"></view>
+      <view class="nav-planet-core"></view>
+    </view>
+
+    <!-- 中央常驻星点 -->
+    <view class="nav-center-dot"></view>
+
+    <!-- 第三层：HUD 氛围 -->
+    <view class="nav-hud-grid"></view>
+    <view class="nav-hud-ticks"></view>
+    <view class="nav-hud-radar"
+          style="left:{{starMap.radarCenter.x}}%;top:{{starMap.radarCenter.y}}%"></view>
+    <view class="nav-hud-edge-glow"></view>
+  </view>
+
+  <!-- 暗色渐变遮罩层：星图与内容融合 -->
+  <view class="page-dark-overlay" wx:if="{{pageReady}}"></view>
+
   <!-- 飞行甲板统一舞台（贯穿 idle -> result） -->
   <view class="flight-deck flight-deck--{{flightStage}}" wx:if="{{pageReady}}">
 
@@ -31,53 +97,10 @@
       <text class="bay-status-tab__label">{{pageMode === 'generating' ? '导航舱启动中' : pageMode === 'result' || pageMode === 'relaunchReady' ? '导航舱已接入' : '导航舱待机中'}}</text>
     </view>
 
-    <!-- 星图舷窗（页面主视觉） -->
-    <view class="nav-map-window nav-map-window--{{uiPhase}}">
-      <view class="nav-map-grid"></view>
-
-      <!-- 轨道弧线 -->
-      <view class="nav-map-orbit nav-map-orbit--1"></view>
-      <view class="nav-map-orbit nav-map-orbit--2"></view>
-
-      <!-- 航线 -->
-      <view class="nav-map-route"></view>
-
-      <!-- 当前坐标 ORIGIN -->
-      <view class="nav-planet nav-planet--origin">
-        <view class="nav-planet-core"></view>
-      </view>
-
-      <!-- 目标星体 TARGET -->
-      <view class="nav-planet nav-planet--target"
-            style="--target-color: {{themeColor || '#32D74B'}}">
-        <view class="nav-planet-lock"></view>
-        <view class="nav-planet-core"></view>
-      </view>
-
-      <!-- 信标状态灯 -->
-      <view class="nav-map-status nav-map-status--beacon">
-        <view class="nav-map-status-dot"></view>
-        <text>信标</text>
-      </view>
-
-      <!-- 航迹状态灯 -->
-      <view class="nav-map-status nav-map-status--trace">
-        <view class="nav-map-status-dot nav-map-status-dot--green"></view>
-        <text>航迹</text>
-      </view>
-
-      <!-- 中央读数 -->
-      <view class="nav-center-readout">
-        <view class="nav-center-dot"></view>
-        <text class="nav-center-value {{dashboardValueIsZh ? 'nav-center-value--zh' : ''}}">{{dashboardValue}}</text>
-      </view>
-
-      <!-- SYNC 状态条 -->
-      <view class="nav-sync-strip" wx:if="{{pageMode === 'generating'}}">
-        <text class="{{syncStep >= 1 ? 'on' : ''}}">LINK</text>
-        <text class="{{syncStep >= 2 ? 'on' : ''}}">TRACE</text>
-        <text class="{{syncStep >= 3 ? 'on' : ''}}">LOCK</text>
-      </view>
+    <!-- 状态指示线 -->
+    <view class="nav-status-line">
+      <view class="nav-status-indicator nav-status-indicator--{{cockpitView.statusDot || 'idle'}}"></view>
+      <text class="nav-status-text">{{statusLineText}}</text>
     </view>
 
     <!-- 甲板透视线 -->
@@ -89,60 +112,108 @@
       <view class="deck-line deck-line--5"></view>
     </view>
 
+    <!-- 中央星核（idle/generating 态可见） -->
+    <view class="star-core star-core--{{flightStage}}" wx:if="{{pageMode !== 'result'}}">
+      <view class="star-core-glow"></view>
+      <view class="star-core-ring star-core-ring--1"></view>
+      <view class="star-core-ring star-core-ring--2"></view>
+      <view class="star-core-dot"></view>
+      <view class="star-core-scan" wx:if="{{pageMode === 'generating'}}"></view>
+      <!-- 星核卫星点（微型星图结构） -->
+      <view class="star-core-satellite" wx:for="{{coreSatellites}}" wx:key="index"
+            style="--sat-x:{{item.x}}rpx;--sat-y:{{item.y}}rpx;--sat-size:{{item.size}}rpx;--sat-delay:{{item.delay}}s;--sat-opacity:{{item.opacity}}"></view>
+    </view>
+
+    <!-- idle 态状态文案 -->
+    <view class="idle-status-hint" wx:if="{{pageMode === 'launch' && flightStage === 'idle'}}">
+      <text class="idle-hint-main">导航待机中</text>
+      <text class="idle-hint-sub">等待星图校准指令</text>
+    </view>
+
+    <!-- 校准阶段文案（generating 态） -->
+    <view class="calibration-phase-text" wx:if="{{calibrationText}}">
+      <text>{{calibrationText}}</text>
+    </view>
+
     <!-- 主操作按钮 -->
     <view class="nav-launch-btn-area" wx:if="{{pageMode !== 'result'}}">
       <view
         class="nav-launch-btn {{pageMode === 'generating' ? 'nav-launch-btn--loading' : ''}}"
         bindtap="onTapLaunchCore"
       >
-        <text>{{pageMode === 'generating' ? '校准中' : '开始校准'}}</text>
+        <text>{{pageMode === 'generating' ? '校准中...' : '开始校准'}}</text>
       </view>
     </view>
 
-    <!-- done 态：结果投影内容 (极简飞船导航重构) -->
+    <!-- done 态：结果投影内容 -->
     <view class="directive-projection {{projectionVisible ? 'dp-visible' : ''}}" wx:if="{{pageMode === 'result'}}">
 
-      <!-- 核心判决区 (简约主视觉) -->
-      <view class="nav-main-verdict projection-card">
-        <view class="nav-tag-minimal">{{strategy.tag || '状态同步'}}</view>
-        <text class="nav-verdict-text">{{strategy.verdict}}</text>
-        <view class="nav-reading-tags" wx:if="{{strategy.tags && strategy.tags.length > 0}}">
-          <view class="nav-mini-tag" wx:for="{{strategy.tags}}" wx:key="*this"># {{item}}</view>
+      <!-- HUD 数据面板 -->
+      <view class="result-panel hud-panel projection-card">
+        <!-- 顶部状态胶囊 -->
+        <view class="rp-status-capsule">
+          <view class="rp-capsule-dot"></view>
+          <text>校准完成</text>
+        </view>
+
+        <!-- 主标题 -->
+        <view class="rp-verdict">{{strategy.verdict}}</view>
+
+        <!-- 副标签 -->
+        <view class="rp-tags" wx:if="{{strategy.tags && strategy.tags.length}}">
+          <view class="rp-tag-pill" wx:for="{{strategy.tags}}" wx:key="*this">{{item}}</view>
+        </view>
+
+        <!-- 细分割线 -->
+        <view class="rp-divider"></view>
+
+        <!-- 参数区：2 列小卡片 -->
+        <view class="rp-params">
+          <view class="rp-param-group" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
+            <view class="rp-param-title">
+              <view class="rp-param-dot rp-param-dot--buff"></view>
+              <text>推进参数</text>
+            </view>
+            <view class="rp-param-grid">
+              <view class="rp-param-card" wx:for="{{strategy.buffs}}" wx:key="*this">
+                <view class="rp-param-indicator"></view>
+                <text>{{item}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="rp-param-group" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
+            <view class="rp-param-title">
+              <view class="rp-param-dot rp-param-dot--debuff"></view>
+              <text>警戒边界</text>
+            </view>
+            <view class="rp-param-grid">
+              <view class="rp-param-card" wx:for="{{strategy.debuffs}}" wx:key="*this">
+                <view class="rp-param-indicator rp-param-indicator--warn"></view>
+                <text>{{item}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 底部稳定度进度线 -->
+        <view class="rp-stability-bar">
+          <view class="rp-stability-fill" style="width: {{stabilityPercent || 72}}%"></view>
+        </view>
+        <view class="rp-stability-label">
+          <text>稳定度 {{stabilityPercent || 72}}%</text>
         </view>
       </view>
 
-      <!-- 执行指令模块 (简约列表) -->
-      <view class="nav-execution-params projection-card">
-
-        <!-- 推进参数 -->
-        <view class="nav-param-group" wx:if="{{strategy.buffs && strategy.buffs.length > 0}}">
-          <view class="nav-group-title">推进参数</view>
-          <view class="nav-param-list">
-            <view class="nav-param-item" wx:for="{{strategy.buffs}}" wx:key="*this">
-              <text class="nav-param-text">{{item}}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- 警戒边界 -->
-        <view class="nav-param-group" wx:if="{{strategy.debuffs && strategy.debuffs.length > 0}}">
-          <view class="nav-group-title">警戒边界</view>
-          <view class="nav-param-list">
-            <view class="nav-param-item" wx:for="{{strategy.debuffs}}" wx:key="*this">
-              <text class="nav-param-text">{{item}}</text>
-            </view>
-          </view>
+      <!-- 操作按钮 -->
+      <view class="result-actions projection-card">
+        <view class="result-primary-btn" bindtap="onTapGeneratePoster">分享指令</view>
+        <view class="result-secondary-link {{regenerating ? 'result-secondary-link--loading' : ''}}" bindtap="onTapRegenerate">
+          {{regenerating ? '生成中...' : '重新生成星图'}}
         </view>
       </view>
 
       <!-- 底部安全间距 -->
       <view class="strategy-result-spacer"></view>
-
-      <!-- 导航终端指令 -->
-      <view class="nav-terminal-actions projection-card">
-        <view class="result-secondary-link" bindtap="onTapRegenerate">重新点火</view>
-        <view class="result-primary-btn" bindtap="onTapGeneratePoster">投影档案</view>
-      </view>
 
     </view>
 
@@ -157,13 +228,13 @@
 
   </view>
 
-  <!-- 重新点火弹窗 -->
+  <!-- 重新生成弹窗 -->
   <terminal-popup
     visible="{{showRegenerateModal}}"
-    title="确认重新点火？"
-    content="每日指令校准仅限一次，强制重新点火可能导致导航轨迹偏移。确认执行？"
+    title="确认重新生成星图？"
+    content="当前指令将被清除，系统将重新生成星图 seed 与校准结果。"
     cancelText="维持现状"
-    confirmText="强制点火"
+    confirmText="确认生成"
     confirmType="primary"
     reduce-motion="{{reduceMotion}}"
     bind:cancel="onCancelRegenerate"
@@ -181,7 +252,7 @@
           <view class="poster-gen-dot"></view>
           <view class="poster-gen-dot"></view>
         </view>
-        <text class="poster-gen-text">档案卡封存中...</text>
+        <text class="poster-gen-text">分享卡生成中...</text>
       </view>
 
       <!-- 预览 -->
@@ -191,7 +262,7 @@
 
       <!-- 错误 -->
       <view class="poster-error" wx:if="{{phase === 'poster_error'}}">
-        <text class="poster-error-text">{{posterError || '档案卡封存失败'}}</text>
+        <text class="poster-error-text">{{posterError || '分享卡生成失败'}}</text>
         <view class="poster-error-actions">
           <view class="poster-error-btn" bindtap="onPosterRetry">重试</view>
           <view class="poster-error-btn" bindtap="onClosePoster">取消</view>
@@ -200,7 +271,7 @@
 
       <!-- 操作按钮 -->
       <view class="poster-actions {{canUseWxShare ? 'poster-actions--three' : 'poster-actions--two'}}" wx:if="{{phase === 'poster_preview'}}">
-        <view class="poster-btn poster-btn--save" bindtap="onSavePoster">保存图片</view>
+        <view class="poster-btn poster-btn--save" bindtap="onSavePoster">下载图片</view>
         <button class="poster-btn poster-btn--share" open-type="share" wx:if="{{canUseWxShare}}">分享朋友</button>
         <view class="poster-btn poster-btn--close" bindtap="onClosePoster">关闭</view>
       </view>
@@ -208,7 +279,7 @@
     </view>
   </view>
 
-  <canvas type="2d" id="posterCanvas" class="poster-canvas" style="width: 750px; height: 1300px;"></canvas>
+  <canvas type="2d" id="posterCanvas" class="poster-canvas" style="width: 750px; height: 1050px;"></canvas>
 
   <!-- 系统全局左上角提示 -->
   <sr-toast id="srToast" reduceMotion="{{!animationEnabled}}" />

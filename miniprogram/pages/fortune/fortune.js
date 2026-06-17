@@ -80,6 +80,15 @@ function normalizeThemeColor(strategy) {
   return '#0A84FF'
 }
 
+/** 将 #RRGGBB + alpha hex 转为 rgba() 字符串，兼容微信 Canvas 2D */
+function hexWithAlpha(hex, alphaHex) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const a = parseInt(alphaHex, 16) / 255
+  return `rgba(${r},${g},${b},${a.toFixed(2)})`
+}
+
 function deriveStrategyMeta(strategy) {
   if (!strategy) return { strategyTheme: '节奏校准', strategySummary: '当前指令已生成。建议先观察场上节奏，再根据反馈调整行动。' }
   const theme = strategy.tag || (strategy.tags && strategy.tags[0]) || '节奏校准'
@@ -150,27 +159,13 @@ function mapSolarTermToLabel(solarTerm) {
   return map[solarTerm] || solarTerm
 }
 
-/* ===== 生成中日志流 ===== */
-const CALC_LOG_LINES = [
-  { text: '航迹协议已同步' },
-  { text: '航迹样本已接入' },
-  { text: '安全边界生成中' },
-]
-
-/* ===== heartbeat 文案 ===== */
-const HEARTBEAT_LINES = [
-  '指令投影展开中',
-  '推进节奏校准中',
-  '导航核心校准中',
-  '安全边界校准中',
-]
-
 Page({
   data: {
     pageMode: 'launch',     // launch | generating | result | relaunchReady
     flightStage: 'idle',    // idle | arming | pressed | plasma | lifting | syncing | projecting | done
     uiPhase: 'idle',
-    dashboardValue: 'READY',
+    starMap: { stars: [], routes: [], highlights: [], scanCenter: { x: 50, y: 50 } },
+    statusLineText: '导航待机',
     animationEnabled: true,
     reduceMotion: false,
     showRegenerateModal: false,
@@ -183,19 +178,8 @@ Page({
     pageReady: false,
     firstEnter: true,
 
-    // generating
-    logs: [],
-    showSyncLogs: false,
-    compactSyncLogs: false,
-
-    // 统一等待主文案（唯一用户可见等待出口）
-    generationStatusText: '',
-    generationStatusLevel: 'normal', // normal | long | deep | fallback | timeout
-    waitStep: 0, // 0 | 1 | 2 | 3
-
-    // 旧字段保留兼容，不再直接渲染
-    waitLevel: 'normal',
-    engineWaitText: '',
+    // generating (保留 forcePending)
+    forcePending: false,
 
     // result
     strategy: null,
@@ -213,9 +197,6 @@ Page({
     userTagLabel: '待同步',
     userTagColor: '#0A84FF',
 
-    // heartbeat
-    heartbeatText: '',
-
     // error
     error: null,
 
@@ -228,15 +209,27 @@ Page({
     // share capability
     canUseWxShare: false,
 
+    // regenerate loading state
+    regenerating: false,
+
+    // HUD panel stability percent (derived from strategy data)
+    stabilityPercent: 72,
+
+    // 星核卫星点（微型星图结构）
+    coreSatellites: [
+      { x: -52, y: -30, size: 5, delay: 0, opacity: 0.55 },
+      { x: 44, y: -48, size: 4, delay: 0.8, opacity: 0.45 },
+      { x: 60, y: 22, size: 6, delay: 1.5, opacity: 0.6 },
+      { x: -38, y: 50, size: 4, delay: 2.2, opacity: 0.4 },
+      { x: 10, y: -62, size: 3, delay: 0.4, opacity: 0.35 },
+    ],
+
+    // 校准阶段文案
+    calibrationText: '',
+
     // projection visibility
     projectionVisible: false,
     coreCompact: false,
-
-    // 仪表盘中文标签标记
-    dashboardValueIsZh: false,
-
-    // 仪表盘同步步骤（1=LINK 2=TRACE 3=CORE）
-    syncStep: 0,
 
     // Page layout
     pageHeight: 0,
@@ -292,6 +285,7 @@ Page({
       reduceMotion: app.globalData.animationEnabled === false,
       currentDate: `${y}.${m}.${d}`,
       pageReady: true,
+      starMap: this._generateStarMap(),
     })
     this._calcPageHeight()
     this._initShareCapability()
@@ -441,7 +435,6 @@ Page({
           pageMode: 'result',
           flightStage: 'done',
           uiPhase: 'result',
-          dashboardValue: strategy.tag || 'DONE',
           projectionVisible: true,
           coreCompact: true,
           firstEnter: false,
@@ -452,7 +445,7 @@ Page({
         return
       }
     } catch (e) {}
-    this.setData({ pageMode: 'launch', flightStage: 'idle', dashboardValue: 'READY' })
+    this.setData({ pageMode: 'launch', flightStage: 'idle' })
   },
 
   _hideSystemLoadingSafe() {
@@ -467,15 +460,7 @@ Page({
     this.setData({
       requesting: false,
       loading: false,
-      generationStatusText: '',
-      generationStatusLevel: 'normal',
-      waitStep: 0,
-      showSyncLogs: false,
-      compactSyncLogs: false,
-      logs: [],
-      heartbeatText: '',
-      engineWaitText: '',
-      waitLevel: 'normal'
+      regenerating: false,
     })
   },
 
@@ -487,21 +472,26 @@ Page({
 
     let statusDot = 'idle'
     let statusLabel = '导航舱待机中'
+    let statusLineText = '导航待机'
 
     if (pageMode === 'generating' || uiPhase === 'loading' || flightStage === 'syncing') {
       statusDot = 'starting'
       statusLabel = '导航计算中'
+      statusLineText = '星图校准中'
     } else if (pageMode === 'result' || uiPhase === 'result' || flightStage === 'done') {
       statusDot = 'online'
       statusLabel = '指令已生成'
+      statusLineText = '校准完成'
     } else {
       const roomId = wx.getStorageSync('currentRoomId')
       if (roomId) {
         statusDot = 'online'
         statusLabel = '导航舱已接入'
+        statusLineText = '导航待机中'
       } else {
         statusDot = 'idle'
         statusLabel = '导航舱待机中'
+        statusLineText = '导航待机中'
       }
     }
 
@@ -512,11 +502,128 @@ Page({
         roomNo,
         memberCountText
       },
-      dashboardValueIsZh: pageMode === 'result' && this.data.strategy && this.data.strategy.tag && /[\u4e00-\u9fff]/.test(this.data.strategy.tag)
+      statusLineText,
     })
   },
 
-  /* ==================== 点火航行核心 ==================== */
+  /** 生成随机星图数据 */
+  _generateStarMap() {
+    const rand = (min, max) => min + Math.random() * (max - min)
+    const randInt = (min, max) => min + Math.floor(Math.random() * (max - min + 1))
+
+    // 星点：12~25 个（比之前更密集）
+    const starCount = randInt(12, 25)
+    const stars = Array.from({ length: starCount }, (_, i) => ({
+      x: +(rand(4, 96)).toFixed(1),
+      y: +(rand(4, 96)).toFixed(1),
+      size: +(rand(1.5, 5.5)).toFixed(1),
+      opacity: +(rand(0.2, 0.8)).toFixed(2),
+      flickerDelay: +(rand(0, 4)).toFixed(1),
+    }))
+
+    // 航线：2~4 条（保留）
+    const routeCount = randInt(2, 4)
+    const routes = Array.from({ length: routeCount }, () => {
+      const x1 = +(rand(8, 40)).toFixed(1)
+      const y1 = +(rand(10, 90)).toFixed(1)
+      const x2 = +(rand(60, 92)).toFixed(1)
+      const y2 = +(rand(10, 90)).toFixed(1)
+      const dx = (x2 - x1) / 100 * 640
+      const dy = (y2 - y1) / 100 * 420
+      return {
+        x1, y1,
+        length: +Math.sqrt(dx * dx + dy * dy).toFixed(1),
+        angle: +(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1),
+        opacity: +(rand(0.10, 0.32)).toFixed(2),
+      }
+    })
+
+    // 光晕：2~4 个
+    const hlCount = randInt(2, 4)
+    const highlights = Array.from({ length: hlCount }, () => ({
+      x: +(rand(12, 88)).toFixed(1),
+      y: +(rand(12, 88)).toFixed(1),
+      size: +(rand(80, 180)).toFixed(0),
+      opacity: +(rand(0.05, 0.14)).toFixed(2),
+    }))
+
+    // 扫描中心
+    const scanCenter = {
+      x: +(rand(30, 70)).toFixed(1),
+      y: +(rand(30, 70)).toFixed(1),
+    }
+
+    // 星尘粒子：20~35 个微小点
+    const dustCount = randInt(20, 35)
+    const dustParticles = Array.from({ length: dustCount }, () => ({
+      x: +(rand(2, 98)).toFixed(1),
+      y: +(rand(2, 98)).toFixed(1),
+      size: +(rand(0.8, 2)).toFixed(1),
+      opacity: +(rand(0.06, 0.22)).toFixed(2),
+      driftDuration: randInt(60, 120),
+      driftDelay: +(rand(0, 30)).toFixed(0),
+    }))
+
+    // 轨道弧线：3~5 条
+    const orbitCount = randInt(3, 5)
+    const orbitArcs = Array.from({ length: orbitCount }, (_, i) => ({
+      cx: +(rand(20, 80)).toFixed(1),
+      cy: +(rand(15, 85)).toFixed(1),
+      rx: +(rand(20, 45)).toFixed(1),
+      ry: +(rand(8, 22)).toFixed(1),
+      rotation: +(rand(-30, 30)).toFixed(1),
+      opacity: +(rand(0.04, 0.14)).toFixed(2),
+      breatheDuration: +(rand(8, 14)).toFixed(1),
+      breatheDelay: +(rand(0, 5)).toFixed(1),
+    }))
+
+    // 连接线：4~8 条（随机配对星点）
+    const connCount = Math.min(randInt(4, 8), stars.length - 1)
+    const connectionLines = Array.from({ length: connCount }, () => {
+      const a = stars[randInt(0, stars.length - 1)]
+      const b = stars[randInt(0, stars.length - 1)]
+      const dx = (b.x - a.x)
+      const dy = (b.y - a.y)
+      const length = Math.sqrt(dx * dx + dy * dy)
+      return {
+        x1: a.x, y1: a.y,
+        length: +length.toFixed(1),
+        angle: +(Math.atan2(dy, dx) * 180 / Math.PI).toFixed(1),
+        opacity: +(rand(0.04, 0.12)).toFixed(2),
+      }
+    })
+
+    // 能量节点：2~4 个
+    const nodeCount = randInt(2, 4)
+    const energyNodes = Array.from({ length: nodeCount }, () => ({
+      x: +(rand(15, 85)).toFixed(1),
+      y: +(rand(15, 85)).toFixed(1),
+      size: +(rand(4, 8)).toFixed(1),
+      pulseDuration: +(rand(3, 6)).toFixed(1),
+      pulseDelay: +(rand(0, 3)).toFixed(1),
+    }))
+
+    // 雷达扫描中心
+    const radarCenter = {
+      x: +(rand(35, 65)).toFixed(1),
+      y: +(rand(35, 65)).toFixed(1),
+    }
+
+    // 星图唯一 ID（用于分享卡标识）
+    const starMapId = 'SM-' + Date.now().toString(36).slice(-6).toUpperCase()
+
+    // 色相偏移（每次生成随机选择）
+    const tints = ['cyan', 'blue-green', 'blue', 'teal']
+    const colorTint = tints[randInt(0, tints.length - 1)]
+
+    return {
+      stars, routes, highlights, scanCenter,
+      dustParticles, orbitArcs, connectionLines, energyNodes, radarCenter,
+      starMapId, colorTint,
+    }
+  },
+
+  /* ==================== 校准航行核心 ==================== */
 
   onTapLaunchCore() {
     if (this.data.flightStage !== 'idle') return
@@ -531,11 +638,6 @@ Page({
         flightStage: 'syncing',
         pageMode: 'generating',
         uiPhase: 'sync',
-        dashboardValue: 'SYNC',
-        syncStep: 3,
-        showSyncLogs: true,
-        compactSyncLogs: true,
-        logs: CALC_LOG_LINES.map(item => ({ text: item.text, visible: true, typing: false })),
       })
       this._updateCockpitStatusByPhase()
       this._fireApiRequest()
@@ -558,44 +660,40 @@ Page({
 
     this.setData({
       uiPhase: 'boot',
-      dashboardValue: 'BOOT',
       flightStage: 'pressed',
-      syncStep: 0,
     })
     this._updateCockpitStatusByPhase()
 
     this._fireApiRequest()
 
-    // 220ms: BOOT → SYNC, step 1
+    // 220ms: BOOT → SYNC
     const t1 = setTimeout(() => {
       if (runId !== this._runId) return
       this.setData({
         pageMode: 'generating',
         uiPhase: 'sync',
-        dashboardValue: 'SYNC',
         flightStage: 'syncing',
-        syncStep: 1,
       })
       this._updateCockpitStatusByPhase()
+
+      // 校准阶段文案循环
+      const phases = ['星图校准中', '同步坐标...', '锁定低熵窗口...', '写入指令参数...']
+      let phaseIdx = 0
+      this.setData({ calibrationText: phases[0] })
+      this._calibrationTimer = setInterval(() => {
+        phaseIdx = Math.min(phaseIdx + 1, phases.length - 1)
+        this.setData({ calibrationText: phases[phaseIdx] })
+      }, 2000)
     }, 220)
 
-    // 520ms: SYNC step 2
+    // 860ms: SYNC 动画序列完成，解锁 _tryFinishCalc 的 animReady 门控
     const t2 = setTimeout(() => {
       if (runId !== this._runId) return
       if (this.data.pageMode !== 'generating') return
-      this.setData({ syncStep: 2 })
-    }, 520)
-
-    // 860ms: SYNC step 3
-    const t3 = setTimeout(() => {
-      if (runId !== this._runId) return
-      if (this.data.pageMode !== 'generating') return
-      this.setData({ syncStep: 3 })
-      // SYNC 动画序列完成，解锁 _tryFinishCalc 的 animReady 门控
       this._calcAnimDone = true
     }, 860)
 
-    this._flightTimers.push(t1, t2, t3)
+    this._flightTimers.push(t1, t2)
   },
 
   /** 提前发送 API 请求，不等 UI */
@@ -608,17 +706,9 @@ Page({
     this._apiStartedAt = Date.now()
 
     const params = this.data.forcePending ? { force: true } : undefined
-    const isTransitioning = this.data.uiPhase === 'launching' || this.data.uiPhase === 'loading'
     this.setData({
       forcePending: false,
       error: null,
-      waitLevel: 'normal',
-      engineWaitText: '',
-      generationStatusText: isTransitioning ? this.data.generationStatusText : '',
-      generationStatusLevel: isTransitioning ? this.data.generationStatusLevel : 'normal',
-      waitStep: isTransitioning ? this.data.waitStep : 0,
-      showSyncLogs: false,
-      compactSyncLogs: false,
     })
 
     // 启动长等待守卫
@@ -651,65 +741,6 @@ Page({
   },
 
   /* ==================== generating 状态 ==================== */
-
-  _runLogAnimation(options = {}) {
-    const runId = this._runId
-    const skipFirst = options.skipFirst === true
-
-    if (!this._isMotionEnabled()) {
-      this.setData({
-        logs: CALC_LOG_LINES.map(item => ({ text: item.text, visible: true, typing: false })),
-        showSyncLogs: true,
-        compactSyncLogs: true,
-      })
-      this._calcAnimDone = true
-      this._tryFinishCalc(runId)
-      return
-    }
-
-    if (!skipFirst) {
-      this.setData({
-        logs: [],
-        showSyncLogs: true,
-        compactSyncLogs: false,
-      })
-    }
-
-    const lines = skipFirst ? CALC_LOG_LINES.slice(1) : CALC_LOG_LINES
-
-    lines.forEach((line, index) => {
-      const logIndex = skipFirst ? index + 1 : index
-      const delay = skipFirst 
-        ? (index === 0 ? 240 : 520)
-        : (index === 0 ? 120 : index === 1 ? 360 : 640)
-
-      const showTimer = setTimeout(() => {
-        if (runId !== this._runId || this.data.pageMode !== 'generating') return
-        const logs = [...this.data.logs]
-        logs.push({ text: line.text, visible: true, typing: true })
-        this.setData({ logs })
-      }, delay)
-      this._calcTimers.push(showTimer)
-
-      const typeTimer = setTimeout(() => {
-        if (runId !== this._runId || this.data.pageMode !== 'generating') return
-        const logs = [...this.data.logs]
-        if (logs[logIndex]) {
-          logs[logIndex] = { ...logs[logIndex], typing: false }
-          this.setData({ logs })
-        }
-      }, delay + 200)
-      this._calcTimers.push(typeTimer)
-    })
-
-    const compactTimer = setTimeout(() => {
-      if (runId !== this._runId) return
-      this._calcAnimDone = true
-      this.setData({ compactSyncLogs: true })
-      this._tryFinishCalc(runId)
-    }, 1200)
-    this._calcTimers.push(compactTimer)
-  },
 
   /** 就绪检查：API 完成 + 最短展示时间满足即进入投影 */
   _tryFinishCalc(runId) {
@@ -778,6 +809,12 @@ Page({
     _fillArchetypeIfMissing(strategy)
     const themeColor = normalizeThemeColor(strategy)
     const meta = deriveStrategyMeta(strategy)
+    // 稳定度：根据 buff/debuff 比例计算视觉百分比
+    const buffCount = (strategy.buffs || []).length
+    const debuffCount = (strategy.debuffs || []).length
+    const stabilityPercent = debuffCount === 0
+      ? Math.min(65 + buffCount * 8, 92)
+      : Math.max(40, Math.min(85, 65 + (buffCount - debuffCount) * 10))
     return {
       strategy,
       strategyTheme: meta.strategyTheme,
@@ -790,7 +827,7 @@ Page({
       solarTermLabel: mapSolarTermToLabel(strategy.solarTerm),
       userTagLabel: mapUserTagToLabel(strategy.userTag),
       userTagColor: normalizeUserTagColor(strategy.userTag),
-      dashboardValueIsZh: strategy.tag && /[\u4e00-\u9fff]/.test(strategy.tag),
+      stabilityPercent,
     }
   },
 
@@ -804,18 +841,12 @@ Page({
       pageMode: 'launch',
       flightStage: 'idle',
       uiPhase: 'idle',
-      dashboardValue: 'READY',
       error: null,
       projectionVisible: false,
       coreCompact: false,
       firstEnter: false,
       _ignitionEntered: true,
-      syncStep: 0,
-      showSyncLogs: false,
-      compactSyncLogs: false,
-      logs: [],
-      generationStatusText: '',
-      waitStep: 0,
+      regenerating: false,
     })
     this._updateCockpitStatusByPhase()
     wx.showToast({ title: sanitizeStrategyText(message) || '导航计算响应超时，请稍后再试', icon: 'none' })
@@ -835,15 +866,8 @@ Page({
         pageMode: 'result',
         flightStage: 'done',
         uiPhase: 'result',
-        dashboardValue: viewState.strategy?.tag || viewState.strategyTheme || 'DONE',
         projectionVisible: true,
         coreCompact: true,
-        syncStep: 0,
-        showSyncLogs: false,
-        compactSyncLogs: false,
-        logs: [],
-        generationStatusText: '',
-        waitStep: 0,
         ...viewState
       })
       this._updateCockpitStatusByPhase()
@@ -854,14 +878,7 @@ Page({
       pageMode: 'result',
       flightStage: 'projecting',
       uiPhase: 'project',
-      dashboardValue: viewState.strategy?.tag || viewState.strategyTheme || 'DONE',
       projectionVisible: false,
-      compactSyncLogs: true,
-      syncStep: 0,
-      showSyncLogs: false,
-      logs: [],
-      generationStatusText: '',
-      waitStep: 0,
       ...viewState
     })
     this._updateCockpitStatusByPhase()
@@ -893,7 +910,7 @@ Page({
 
   /* ==================== 统一清理 ==================== */
 
-  /** 中断当前点火流程 */
+  /** 中断当前校准流程 */
   _abortCurrentFlight(options = {}) {
     this._resetLoadingState()
     this._hideSystemLoadingSafe()
@@ -907,7 +924,6 @@ Page({
         pageMode: 'launch',
         flightStage: 'idle',
         uiPhase: 'idle',
-        dashboardValue: 'READY',
         projectingResult: false,
         projectionVisible: false,
         coreCompact: false,
@@ -917,12 +933,7 @@ Page({
         phase: '',
         posterPath: '',
         posterError: '',
-        syncStep: 0,
-        showSyncLogs: false,
-        compactSyncLogs: false,
-        logs: [],
-        generationStatusText: '',
-        waitStep: 0,
+        starMap: this._generateStarMap(),
       })
       this._updateCockpitStatusByPhase()
       // 只使用自定义 tabbar 的方法
@@ -963,9 +974,8 @@ Page({
     this._calcSettled = false
   },
 
-  /* ===== heartbeat 已废弃：等待文案统一由 generationStatusText 接管 ===== */
+  /* ===== heartbeat 已废弃，保留方法签名防调用报错 ===== */
   _startHeartbeat() {
-    // 不再启动循环 heartbeat，避免与长等待文案叠加
     return
   },
 
@@ -978,36 +988,11 @@ Page({
       clearInterval(this._heartbeatTimer)
       this._heartbeatTimer = null
     }
-    if (this.data.heartbeatText) {
-      this.setData({ heartbeatText: '' })
-    }
   },
 
   /* ===== 长等待守卫（配合后端 25s LLM 上限） ===== */
   _startLongWaitGuard(runId) {
     this._clearLongWaitTimers()
-
-    // 4 秒：长等待态 — 同时收缩接入日志
-    const t1 = setTimeout(() => {
-      if (!this._isRunActive(runId) || this._calcApiDone) return
-      this._setGenerationStatus('导航核心校准中', 'long', 1)
-      this.setData({ compactSyncLogs: true })
-    }, 4000)
-    this._longWaitTimers.push(t1)
-
-    // 12 秒：深度等待态
-    const t2 = setTimeout(() => {
-      if (!this._isRunActive(runId) || this._calcApiDone) return
-      this._setGenerationStatus('指令投影校准中', 'deep', 2)
-    }, 12000)
-    this._longWaitTimers.push(t2)
-
-    // 20 秒：备用链路准备态
-    const t3 = setTimeout(() => {
-      if (!this._isRunActive(runId) || this._calcApiDone) return
-      this._setGenerationStatus('备用导航准备中', 'fallback', 3)
-    }, 20000)
-    this._longWaitTimers.push(t3)
 
     // 30 秒：前端兜底（晚于后端 25s）
     const t4 = setTimeout(() => {
@@ -1017,43 +1002,23 @@ Page({
     this._longWaitTimers.push(t4)
   },
 
-  /** 统一设置等待主文案（替换关系，不是追加） */
-  _setGenerationStatus(text, level, step) {
-    if (!this._isRunActive(this._runId) && this.data.pageMode === 'generating') return
-    this.setData({
-      generationStatusText: sanitizeStrategyText(text || ''),
-      generationStatusLevel: level || 'normal',
-      waitStep: typeof step === 'number' ? step : this.data.waitStep,
-      // 清掉旧字段，防止 WXML 残留
-      heartbeatText: '',
-      engineWaitText: '',
-    })
-  },
+  /** 统一设置等待主文案（已无 UI 消费，保留方法签名防调用报错） */
+  _setGenerationStatus() {},
 
   _clearGeneratingTextState() {
+    if (this._calibrationTimer) {
+      clearInterval(this._calibrationTimer)
+      this._calibrationTimer = null
+    }
+    if (this.data.calibrationText) {
+      this.setData({ calibrationText: '' })
+    }
     this._stopHeartbeat()
-    this.setData({
-      generationStatusText: '',
-      generationStatusLevel: 'normal',
-      heartbeatText: '',
-      engineWaitText: '',
-      waitStep: 0
-    })
   },
 
   /** 清理所有生成中视觉状态 */
   _clearGeneratingVisualState() {
     this._stopHeartbeat()
-    this.setData({
-      generationStatusText: '',
-      generationStatusLevel: 'normal',
-      heartbeatText: '',
-      engineWaitText: '',
-      waitStep: 0,
-      logs: [],
-      showSyncLogs: false,
-      compactSyncLogs: false,
-    })
   },
 
   _clearLongWaitTimers() {
@@ -1067,7 +1032,7 @@ Page({
     return runId === this._runId && this.data.pageMode === 'generating'
   },
 
-  /* ==================== result → 重新点火弹窗 ==================== */
+  /* ==================== result → 重新生成星图弹窗 ==================== */
 
   onTapRegenerate() {
     vibrateShort('light')
@@ -1089,6 +1054,10 @@ Page({
     this._clearCalcTimers()
     this._clearProjectionTimers()
     this._clearLongWaitTimers()
+    if (this._calibrationTimer) {
+      clearInterval(this._calibrationTimer)
+      this._calibrationTimer = null
+    }
     this._stopHeartbeat()
     this._hideSystemLoadingSafe()
 
@@ -1101,7 +1070,7 @@ Page({
       pageMode: 'launch',
       flightStage: 'idle',
       uiPhase: 'idle',
-      dashboardValue: 'READY',
+      starMap: this._generateStarMap(),
       showRegenerateModal: false,
       firstEnter: false,
       _ignitionEntered: true,
@@ -1121,13 +1090,6 @@ Page({
       projectionVisible: false,
       coreCompact: false,
       projectingResult: false,
-      dashboardValueIsZh: false,
-      syncStep: 0,
-      showSyncLogs: false,
-      compactSyncLogs: false,
-      logs: [],
-      generationStatusText: '',
-      waitStep: 0,
 
       posterPath: '',
       posterError: '',
@@ -1139,13 +1101,15 @@ Page({
     })
     this._resetLoadingState()
     this._updateCockpitStatusByPhase()
+    // regenerating 标记需在 _resetLoadingState 之后设置，避免被覆盖
+    this.setData({ regenerating: true })
     // 只使用自定义 tabbar 的方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ hidden: false, selected: 1 });
     }
   },
 
-  /* ==================== 分享 / 海报 ==================== */
+  /* ==================== 分享指令 ==================== */
 
   onTapGeneratePoster() {
     vibrateShort('light')
@@ -1157,15 +1121,20 @@ Page({
     }
     setTimeout(() => {
       this._renderPosterCanvas()
-    }, 300)
+    }, 500)
   },
 
-  _renderPosterCanvas() {
+  _renderPosterCanvas(retryCount) {
+    retryCount = retryCount || 0
     const query = wx.createSelectorQuery().in(this)
     query.select('#posterCanvas').fields({ node: true, size: true }).exec((res) => {
       if (!res || !res[0] || !res[0].node) {
+        if (retryCount < 2) {
+          console.warn('[poster] canvas node not ready, retry', retryCount + 1)
+          setTimeout(() => this._renderPosterCanvas(retryCount + 1), 300)
+          return
+        }
         this.setData({ phase: 'poster_error', posterError: '画布初始化失败' })
-        // 只使用自定义 tabbar 的方法
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
           this.getTabBar().setData({ hidden: false, selected: 1 });
         }
@@ -1173,13 +1142,13 @@ Page({
       }
 
       const canvas = res[0].node
-      const ctx = canvas.getContext('2d')
-      const dpr = wx.getWindowInfo().pixelRatio || 2
+      const dpr = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()).pixelRatio || 2
       const W = 750
-      const H = 1300
+      const H = 1050
 
       canvas.width = W * dpr
       canvas.height = H * dpr
+      const ctx = canvas.getContext('2d')
       ctx.scale(dpr, dpr)
 
       const s = this.data.strategy
@@ -1194,10 +1163,20 @@ Page({
 
       try {
         this._drawPosterBg(ctx, W, H)
+      } catch (bgErr) {
+        console.error('[poster] _drawPosterBg failed:', bgErr && bgErr.message, bgErr && bgErr.stack)
+        this.setData({ phase: 'poster_error', posterError: '背景绘制失败' })
+        if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+          this.getTabBar().setData({ hidden: false, selected: 1 });
+        }
+        return
+      }
+
+      try {
         this._drawPosterContent(ctx, W, H, s)
       } catch (e) {
-        this.setData({ phase: 'poster_error', posterError: '指令卡绘制失败' })
-        // 只使用自定义 tabbar 的方法
+        console.error('[poster] _drawPosterContent failed:', e && e.message, e && e.stack)
+        this.setData({ phase: 'poster_error', posterError: '内容绘制失败' })
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
           this.getTabBar().setData({ hidden: false, selected: 1 });
         }
@@ -1226,43 +1205,235 @@ Page({
     })
   },
 
-  /** 海报背景：终端作战风格 */
+  /** 海报背景：深空星图终端 HUD 风格 */
   _drawPosterBg(ctx, W, H) {
-    // 深黑底
-    ctx.fillStyle = '#06080C'
+    const map = this.data.starMap || {}
+
+    // 1. Deep black base
+    ctx.fillStyle = '#040810'
     ctx.fillRect(0, 0, W, H)
 
-    // 主辉光：左上蓝
-    const g1 = ctx.createRadialGradient(120, 60, 0, 120, 60, 480)
-    g1.addColorStop(0, 'rgba(10,132,255,0.16)')
+    // 2. Multi-layer radial glows
+    // Blue glow from top-left
+    const g1 = ctx.createRadialGradient(150, 80, 0, 150, 80, 500)
+    g1.addColorStop(0, 'rgba(10,132,255,0.18)')
     g1.addColorStop(1, 'rgba(10,132,255,0)')
     ctx.fillStyle = g1
     ctx.fillRect(0, 0, W, H)
 
-    // 次辉光：右下蓝
-    const g2 = ctx.createRadialGradient(W - 80, H - 200, 0, W - 80, H - 200, 360)
-    g2.addColorStop(0, 'rgba(0,200,255,0.06)')
-    g2.addColorStop(1, 'rgba(0,200,255,0)')
+    // Green glow from bottom-right
+    const g2 = ctx.createRadialGradient(W - 100, H - 180, 0, W - 100, H - 180, 400)
+    g2.addColorStop(0, 'rgba(50,215,75,0.10)')
+    g2.addColorStop(1, 'rgba(50,215,75,0)')
     ctx.fillStyle = g2
     ctx.fillRect(0, 0, W, H)
 
-    // 扫描线
-    ctx.strokeStyle = 'rgba(255,255,255,0.018)'
+    // Subtle center glow
+    const g3 = ctx.createRadialGradient(W / 2, H * 0.24, 0, W / 2, H * 0.24, 300)
+    g3.addColorStop(0, 'rgba(0,190,255,0.06)')
+    g3.addColorStop(1, 'rgba(0,190,255,0)')
+    ctx.fillStyle = g3
+    ctx.fillRect(0, 0, W, H)
+
+    // 3. Horizontal scan lines (very faint, every 5px)
+    ctx.strokeStyle = 'rgba(255,255,255,0.015)'
     ctx.lineWidth = 1
-    for (let sy = 0; sy < H; sy += 6) {
+    for (let sy = 0; sy < H; sy += 5) {
       ctx.beginPath()
       ctx.moveTo(0, sy)
       ctx.lineTo(W, sy)
       ctx.stroke()
     }
 
-    // 角标（终端感 L 形标记）
+    // 4. Full-page star map
+    try {
+      // Dust particles
+      (map.dustParticles || []).forEach(function (d) {
+        var dx = d.x / 100 * W
+        var dy = d.y / 100 * H
+        var dr = Math.max(d.size, 0.5)
+        ctx.fillStyle = 'rgba(180,210,240,' + d.opacity + ')'
+        ctx.beginPath()
+        ctx.arc(dx, dy, dr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // Orbit arcs (save/translate/scale/arc/restore — no ctx.ellipse)
+      (map.orbitArcs || []).forEach(function (arc) {
+        var cx = arc.cx / 100 * W
+        var cy = arc.cy / 100 * H
+        var rx = Math.max(arc.rx / 100 * W, 1)
+        var ry = Math.max(arc.ry / 100 * H, 1)
+        var rot = (arc.rotation || 0) * Math.PI / 180
+        ctx.strokeStyle = 'rgba(0,200,255,' + arc.opacity + ')'
+        ctx.lineWidth = 1
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(rot)
+        ctx.scale(1, ry / rx)
+        ctx.beginPath()
+        ctx.arc(0, 0, rx, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.restore()
+      })
+
+      // Connection lines (thin gradient lines between star pairs)
+      (map.connectionLines || []).forEach(function (cl) {
+        var startX = cl.x1 / 100 * W
+        var startY = cl.y1 / 100 * H
+        var angle = cl.angle * Math.PI / 180
+        var len = cl.length / 100 * Math.max(W, H) * 0.5
+        var endX = startX + Math.cos(angle) * len
+        var endY = startY + Math.sin(angle) * len
+        var grad = ctx.createLinearGradient(startX, startY, endX, endY)
+        grad.addColorStop(0, 'rgba(0,200,255,0)')
+        grad.addColorStop(0.5, 'rgba(0,200,255,' + cl.opacity + ')')
+        grad.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 0.5
+        ctx.beginPath()
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(endX, endY)
+        ctx.stroke()
+      })
+
+      // Star points with glow
+      (map.stars || []).forEach(function (star) {
+        var sx = star.x / 100 * W
+        var sy = star.y / 100 * H
+        var sr = Math.max(star.size / 5 * 3, 0.5)
+        // Outer glow
+        var gg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 3)
+        gg.addColorStop(0, 'rgba(200,230,255,' + (star.opacity * 0.4) + ')')
+        gg.addColorStop(1, 'rgba(200,230,255,0)')
+        ctx.fillStyle = gg
+        ctx.beginPath()
+        ctx.arc(sx, sy, sr * 3, 0, Math.PI * 2)
+        ctx.fill()
+        // Core dot
+        ctx.fillStyle = 'rgba(220,240,255,' + star.opacity + ')'
+        ctx.beginPath()
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // Highlights / glow spots
+      (map.highlights || []).forEach(function (hl) {
+        var hx = hl.x / 100 * W
+        var hy = hl.y / 100 * H
+        var hr = Math.max(hl.size / 140 * W * 0.3, 1)
+        var hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr)
+        hg.addColorStop(0, 'rgba(0,200,255,' + hl.opacity + ')')
+        hg.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.fillStyle = hg
+        ctx.fillRect(hx - hr, hy - hr, hr * 2, hr * 2)
+      })
+
+      // Energy nodes
+      (map.energyNodes || []).forEach(function (node) {
+        var nx = node.x / 100 * W
+        var ny = node.y / 100 * H
+        var nr = Math.max(node.size, 1)
+        // Outer pulse ring
+        ctx.strokeStyle = 'rgba(0,200,255,0.12)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.arc(nx, ny, nr * 2.5, 0, Math.PI * 2)
+        ctx.stroke()
+        // Inner core
+        var ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr)
+        ng.addColorStop(0, 'rgba(0,230,255,0.5)')
+        ng.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.fillStyle = ng
+        ctx.beginPath()
+        ctx.arc(nx, ny, nr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // Scan wave rings at scanCenter / radarCenter
+      var sc = map.scanCenter || map.radarCenter || { x: 50, y: 50 }
+      var scx = sc.x / 100 * W
+      var scy = sc.y / 100 * H
+      var ringRadii = [30, 60, 95]
+      for (var ri = 0; ri < ringRadii.length; ri++) {
+        ctx.strokeStyle = 'rgba(0,200,255,' + (0.08 - ri * 0.02) + ')'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.arc(scx, scy, ringRadii[ri], 0, Math.PI * 2)
+        ctx.stroke()
+      }
+
+      // ORIGIN planet (bottom-left area)
+      var ox = W * 0.15
+      var oy = H * 0.78
+      var og = ctx.createRadialGradient(ox, oy, 0, ox, oy, 20)
+      og.addColorStop(0, 'rgba(10,132,255,0.7)')
+      og.addColorStop(1, 'rgba(10,132,255,0)')
+      ctx.fillStyle = og
+      ctx.beginPath()
+      ctx.arc(ox, oy, 20, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(10,132,255,0.85)'
+      ctx.beginPath()
+      ctx.arc(ox, oy, 7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(10,132,255,0.3)'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(ox, oy, 14, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // TARGET planet (top-right area)
+      var tx = W * 0.85
+      var ty = H * 0.22
+      var tc = this.data.themeColor || '#32D74B'
+      var tg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 22)
+      tg.addColorStop(0, hexWithAlpha(tc, 'AA'))
+      tg.addColorStop(1, hexWithAlpha(tc, '00'))
+      ctx.fillStyle = tg
+      ctx.beginPath()
+      ctx.arc(tx, ty, 22, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = hexWithAlpha(tc, 'DD')
+      ctx.beginPath()
+      ctx.arc(tx, ty, 7, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = hexWithAlpha(tc, '55')
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(tx, ty, 16, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // Center dot
+      ctx.fillStyle = 'rgba(70,255,145,0.85)'
+      ctx.beginPath()
+      ctx.arc(W / 2, H * 0.24, 4, 0, Math.PI * 2)
+      ctx.fill()
+    } catch (mapErr) {
+      console.error('[poster] _drawPosterBg star map partial failure:', mapErr && mapErr.message)
+    }
+
+    // 5. HUD grid (very faint, only at edges)
+    ctx.strokeStyle = 'rgba(0,200,255,0.025)'
+    ctx.lineWidth = 0.5
+    for (var gx = 0; gx <= 100; gx += 50) {
+      ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, 80); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(gx, H - 80); ctx.lineTo(gx, H); ctx.stroke()
+    }
+    for (var gy = 0; gy <= H; gy += 50) {
+      if (gy < 80 || gy > H - 80) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(100, gy); ctx.stroke()
+        ctx.beginPath(); ctx.moveTo(W - 100, gy); ctx.lineTo(W, gy); ctx.stroke()
+      }
+    }
+
+    // 6. Corner L-marks
     this._drawCorner(ctx, 36, 36, 1, 1)
     this._drawCorner(ctx, W - 36, 36, -1, 1)
     this._drawCorner(ctx, 36, H - 36, 1, -1)
     this._drawCorner(ctx, W - 36, H - 36, -1, -1)
 
-    // 外框线
+    // 7. Outer frame line
     ctx.strokeStyle = 'rgba(0,200,255,0.10)'
     ctx.lineWidth = 1
     ctx.strokeRect(48, 48, W - 96, H - 96)
@@ -1281,289 +1452,495 @@ Page({
   },
 
   /**
-   * 海报内容：与结果页投影布局完全对齐
+   * 分享卡内容：星图终端 HUD 风格
    *
-   * 布局结构（750 x 1300）：
-   *   [标题区]      y: 72~126     dp-header
-   *   [舰载指令]    y: 160~380    strategy-section--directive + strategy-reading + tags
-   *   [状态读数]    y: 410~550    strategy-insight
-   *   [HUD 芯片]    y: 580~640    strategy-hud-chips
-   *   [状态胶囊]    y: 660~710    strategy-tag-pill
-   *   [推进节奏]    y: 740~970    strategy-section + strategy-list-card
-   *   [安全边界]    y: 1000~1180  strategy-section + strategy-list-card--risk
-   *   [底部标识]    y: 1220~1270
+   * 布局结构（750 x 1050）：
+   *   [中央星核装饰]  y: ~180-320
+   *   [HUD 数据面板]  y: ~360-880
+   *   [底部标识]      y: ~960-1020
    */
   _drawPosterContent(ctx, W, H, s) {
-    const padL = 72
+    const padL = 64
     const padR = W - padL
     const contentW = padR - padL
 
-    const directiveText = sanitizeStrategyText(this.data.directiveText || '保持低速推进，优先修正节奏。')
-    const statusText = sanitizeStrategyText(s.verdict || '当前状态读数待同步。保持节奏观察。')
-    const tags = (s.tags || []).map(sanitizeStrategyText).slice(0, 3)
-    const buffs = (s.buffs || []).map(sanitizeStrategyText).slice(0, 3)
-    const debuffs = (s.debuffs || []).map(sanitizeStrategyText).slice(0, 2)
-    const themeColor = this.data.themeColor || '#0A84FF'
-
-    /* ========== 标题区（dp-header） ========== */
-    ctx.fillStyle = 'rgba(226,242,255,0.90)'
-    ctx.font = 'bold 36px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('今日指令投影', W / 2, 100)
-
-    ctx.fillStyle = 'rgba(126,156,180,0.16)'
-    ctx.font = '14px Courier New'
-    ctx.textAlign = 'left'
-    ctx.fillText(this.data.currentDate, padL, 122)
-
-    /* ========== 舰载指令（strategy-section--directive） ========== */
-    let y = 160
-    this._drawSectionHead(ctx, padL, y, contentW, '今日指令', '#00C8FF')
-    y += 40
-
-    // strategy-reading 卡片
-    this._drawCardBg(ctx, padL, y, contentW, 170)
-    ctx.fillStyle = 'rgba(255,255,255,0.92)'
-    ctx.font = 'bold 30px sans-serif'
-    const dLines = this._wrapText(ctx, directiveText, contentW - 48)
-    const maxD = Math.min(dLines.length, 3)
-    let dy = y + 44
-    for (let i = 0; i < maxD; i++) {
-      ctx.fillText(dLines[i], padL + 24, dy)
-      dy += 42
-    }
-
-    // strategy-reading-tags
-    if (tags.length > 0) {
-      let tagX = padL + 24
-      const tagY = dy + 8
-      tags.forEach((tag) => {
-        const tw = ctx.measureText(tag).width + 24
-        ctx.fillStyle = 'rgba(0,175,255,0.05)'
-        ctx.fillRect(tagX, tagY, tw, 30)
-        ctx.strokeStyle = 'rgba(0,175,255,0.12)'
-        ctx.lineWidth = 1
-        ctx.strokeRect(tagX, tagY, tw, 30)
-        ctx.fillStyle = 'rgba(0,175,255,0.6)'
-        ctx.font = '16px Courier New'
-        ctx.fillText(tag, tagX + 12, tagY + 21)
-        tagX += tw + 12
-      })
-    }
-
-    /* ========== 状态读数（strategy-insight） ========== */
-    y += 186
-    this._drawSectionHead(ctx, padL, y, contentW, '状态读数', '#00C8FF')
-    y += 40
-
-    const sLines = this._wrapText(ctx, statusText, contentW - 48)
-    const maxS = Math.min(sLines.length, 3)
-    const statusCardH = maxS * 40 + 40
-    this._drawCardBg(ctx, padL, y, contentW, statusCardH)
-
-    ctx.fillStyle = 'rgba(255,255,255,0.90)'
-    ctx.font = '28px sans-serif'
-    let sy = y + 38
-    for (let i = 0; i < maxS; i++) {
-      ctx.fillText(sLines[i], padL + 24, sy)
-      sy += 40
-    }
-
-    /* ========== HUD 芯片（strategy-hud-chips） ========== */
-    y += statusCardH + 24
-    this._drawHudChips(ctx, padL, y, contentW)
-
-    /* ========== 状态胶囊（strategy-tag-pill） ========== */
-    if (s.tag) {
-      y += 72
-      const tagText = sanitizeStrategyText(s.tag)
-      ctx.font = 'bold 24px sans-serif'
-      const pillW = ctx.measureText(tagText).width + 48
-      const pillX = padL + (contentW - pillW) / 2
-      this._drawTagPill(ctx, pillX, y, pillW, 44, tagText, themeColor)
-    }
-
-    /* ========== 推进节奏（strategy-section + strategy-list-card） ========== */
-    y += (s.tag ? 72 : 24)
-    this._drawSectionHead(ctx, padL, y, contentW, '推进节奏', '#00C8FF', '+')
-    y += 40
-
-    buffs.forEach((b, i) => {
-      y = this._drawListItem(ctx, padL, y, contentW, i + 1, b, '#30D158', false)
-    })
-
-    /* ========== 安全边界（strategy-section + strategy-list-card--risk） ========== */
-    y += 20
-    this._drawSectionHead(ctx, padL, y, contentW, '安全边界', '#FF9F0A', '!')
-    y += 40
-
-    debuffs.forEach((d, i) => {
-      y = this._drawListItem(ctx, padL, y, contentW, i + 1, d, '#FF9F0A', true)
-    })
-
-    /* ========== 底部标识 ========== */
-    ctx.strokeStyle = 'rgba(0,200,255,0.08)'
-    ctx.lineWidth = 1
-    ctx.setLineDash([4, 8])
+    /* ===== Central star core (decorative, no text) y: ~180-320 ===== */
+    var coreX = W / 2
+    var coreY = 240
+    // Outer glow
+    var cg1 = ctx.createRadialGradient(coreX, coreY, 0, coreX, coreY, 90)
+    cg1.addColorStop(0, 'rgba(0,190,255,0.15)')
+    cg1.addColorStop(1, 'rgba(0,190,255,0)')
+    ctx.fillStyle = cg1
     ctx.beginPath()
-    ctx.moveTo(padL, H - 80)
-    ctx.lineTo(padR, H - 80)
+    ctx.arc(coreX, coreY, 90, 0, Math.PI * 2)
+    ctx.fill()
+    // Outer ring
+    ctx.strokeStyle = 'rgba(0,200,255,0.18)'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.arc(coreX, coreY, 55, 0, Math.PI * 2)
     ctx.stroke()
-    ctx.setLineDash([])
+    // Middle ring
+    ctx.strokeStyle = 'rgba(0,200,255,0.10)'
+    ctx.beginPath()
+    ctx.arc(coreX, coreY, 38, 0, Math.PI * 2)
+    ctx.stroke()
+    // Inner glow
+    var cg2 = ctx.createRadialGradient(coreX, coreY, 0, coreX, coreY, 20)
+    cg2.addColorStop(0, 'rgba(70,255,180,0.85)')
+    cg2.addColorStop(0.6, 'rgba(0,200,255,0.3)')
+    cg2.addColorStop(1, 'rgba(0,200,255,0)')
+    ctx.fillStyle = cg2
+    ctx.beginPath()
+    ctx.arc(coreX, coreY, 20, 0, Math.PI * 2)
+    ctx.fill()
+    // Center dot
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'
+    ctx.beginPath()
+    ctx.arc(coreX, coreY, 3.5, 0, Math.PI * 2)
+    ctx.fill()
+    // Crosshair lines
+    ctx.strokeStyle = 'rgba(0,200,255,0.12)'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(coreX - 68, coreY); ctx.lineTo(coreX - 28, coreY); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(coreX + 28, coreY); ctx.lineTo(coreX + 68, coreY); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(coreX, coreY - 68); ctx.lineTo(coreX, coreY - 28); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(coreX, coreY + 28); ctx.lineTo(coreX, coreY + 68); ctx.stroke()
 
-    ctx.fillStyle = 'rgba(255,255,255,0.18)'
-    ctx.font = '13px Courier New'
+    /* ===== HUD Panel (glassmorphism) y: ~360-880 ===== */
+    var panelX = 56
+    var panelY = 360
+    var panelW = W - 112
+    var panelH = 500
+    var panelR = 18
+
+    // Panel background
+    ctx.fillStyle = 'rgba(3,20,28,0.52)'
+    this._roundRect(ctx, panelX, panelY, panelW, panelH, panelR)
+    ctx.fill()
+
+    // Panel border
+    ctx.strokeStyle = 'rgba(0,190,255,0.12)'
+    ctx.lineWidth = 1
+    this._roundRect(ctx, panelX, panelY, panelW, panelH, panelR)
+    ctx.stroke()
+
+    // Corner decorations (small L-shapes at top-left and bottom-right of panel)
+    var cLen = 16
+    ctx.strokeStyle = 'rgba(0,200,255,0.38)'
+    ctx.lineWidth = 1.5
+    // Top-left
+    ctx.beginPath()
+    ctx.moveTo(panelX + 10, panelY + 10 + cLen)
+    ctx.lineTo(panelX + 10, panelY + 10)
+    ctx.lineTo(panelX + 10 + cLen, panelY + 10)
+    ctx.stroke()
+    // Bottom-right
+    ctx.beginPath()
+    ctx.moveTo(panelX + panelW - 10, panelY + panelH - 10 - cLen)
+    ctx.lineTo(panelX + panelW - 10, panelY + panelH - 10)
+    ctx.lineTo(panelX + panelW - 10 - cLen, panelY + panelH - 10)
+    ctx.stroke()
+
+    // Inner content
+    var iy = panelY + 32
+    var ix = panelX + 28
+    var iw = panelW - 56
+
+    // --- Status capsule: "校准完成" with green dot ---
+    ctx.fillStyle = 'rgba(50,215,75,0.72)'
+    ctx.beginPath()
+    ctx.arc(ix + 6, iy + 2, 4, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = 'rgba(50,215,75,0.55)'
+    ctx.font = '15px sans-serif'
     ctx.textAlign = 'left'
-    ctx.fillText(this.data.currentDate, padL, H - 48)
+    ctx.fillText('\u6821\u51C6\u5B8C\u6210', ix + 18, iy + 6)
 
-    ctx.textAlign = 'right'
-    ctx.fillStyle = 'rgba(0,175,255,0.18)'
-    this._fillLetterSpaced(ctx, 'SPACE SCOREKEEPER', padR, H - 48)
-    ctx.textAlign = 'left'
-  },
+    // Capsule outline
+    ctx.strokeStyle = 'rgba(50,215,75,0.22)'
+    ctx.lineWidth = 1
+    this._roundRect(ctx, ix - 4, iy - 10, 90, 24, 10)
+    ctx.stroke()
 
-  /** 绘制区块标题（与页面 strategy-section-head 对齐） */
-  _drawSectionHead(ctx, x, y, w, title, color, icon) {
-    // icon（可选）
-    let titleX = x
-    if (icon) {
-      ctx.fillStyle = color
-      ctx.font = 'bold 18px sans-serif'
-      ctx.fillText(icon, x, y + 2)
-      titleX = x + 24
+    iy += 36
+
+    // --- Verdict text (bold 30px, centered) ---
+    ctx.textAlign = 'center'
+    ctx.fillStyle = 'rgba(230,246,255,0.92)'
+    ctx.font = 'bold 30px sans-serif'
+    var verdictLines = this._wrapText(ctx, sanitizeStrategyText(s.verdict || ''), iw - 20)
+    var maxV = Math.min(verdictLines.length, 2)
+    for (var vi = 0; vi < maxV; vi++) {
+      ctx.fillText(verdictLines[vi], W / 2, iy + vi * 40)
+    }
+    iy += maxV * 40 + 10
+
+    // --- Tag pills (small rounded pills) ---
+    var allTags = (s.tags || []).map(sanitizeStrategyText)
+    if (s.tag && allTags.indexOf(sanitizeStrategyText(s.tag)) === -1) {
+      allTags.unshift(sanitizeStrategyText(s.tag))
+    }
+    if (allTags.length > 0) {
+      var tagX = W / 2 - (allTags.length * 70) / 2
+      for (var ti = 0; ti < Math.min(allTags.length, 4); ti++) {
+        var tw = Math.max(ctx.measureText(allTags[ti]).width + 20, 48)
+        ctx.fillStyle = 'rgba(0,190,255,0.08)'
+        this._roundRect(ctx, tagX, iy - 12, tw, 24, 12)
+        ctx.fill()
+        ctx.strokeStyle = 'rgba(0,190,255,0.22)'
+        ctx.lineWidth = 1
+        this._roundRect(ctx, tagX, iy - 12, tw, 24, 12)
+        ctx.stroke()
+        ctx.fillStyle = 'rgba(0,200,255,0.65)'
+        ctx.font = '14px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.fillText(allTags[ti], tagX + tw / 2, iy + 4)
+        tagX += tw + 10
+      }
+      iy += 28
     }
 
-    ctx.fillStyle = color
-    ctx.font = 'bold 22px sans-serif'
-    ctx.fillText(title, titleX, y + 2)
-  },
+    // --- Divider line ---
+    iy += 6
+    this._drawDivider(ctx, ix + 10, iy, iw - 20)
+    iy += 22
 
-  /** 绘制卡片背景（与页面 strategy-reading / strategy-insight 对齐） */
-  _drawCardBg(ctx, x, y, w, h) {
-    ctx.fillStyle = 'rgba(255,255,255,0.025)'
-    ctx.fillRect(x, y, w, h)
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'
-    ctx.lineWidth = 1
-    ctx.strokeRect(x, y, w, h)
-  },
+    // --- Param section (2-column grid of param cards) ---
+    var buffs = (s.buffs || []).map(sanitizeStrategyText).slice(0, 3)
+    var debuffs = (s.debuffs || []).map(sanitizeStrategyText).slice(0, 3)
+    var cardW = (iw - 16) / 2
+    var cardH = 38
+    var cardY = iy
 
-  /** 绘制 HUD 芯片行（与页面 strategy-hud-chips 对齐） */
-  _drawHudChips(ctx, x, y, w) {
-    const chipH = 48
-    // 背景
-    ctx.fillStyle = 'rgba(0,175,255,0.02)'
-    ctx.fillRect(x, y, w, chipH)
-    ctx.strokeStyle = 'rgba(0,175,255,0.06)'
-    ctx.lineWidth = 1
-    ctx.strokeRect(x, y, w, chipH)
+    // Left column: buffs
+    for (var bi = 0; bi < buffs.length; bi++) {
+      // Card background
+      ctx.fillStyle = 'rgba(0,190,255,0.04)'
+      this._roundRect(ctx, ix, cardY + bi * (cardH + 8), cardW, cardH, 8)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(0,190,255,0.08)'
+      ctx.lineWidth = 0.5
+      this._roundRect(ctx, ix, cardY + bi * (cardH + 8), cardW, cardH, 8)
+      ctx.stroke()
+      // Green dot
+      ctx.fillStyle = 'rgba(80,255,170,0.72)'
+      ctx.beginPath()
+      ctx.arc(ix + 14, cardY + bi * (cardH + 8) + cardH / 2, 3.5, 0, Math.PI * 2)
+      ctx.fill()
+      // Text
+      ctx.fillStyle = 'rgba(220,240,255,0.80)'
+      ctx.font = '16px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(buffs[bi], ix + 26, cardY + bi * (cardH + 8) + cardH / 2 + 5)
+    }
 
-    const colW = w / 3
-    const chips = [
-      { label: '指令源', value: this.data.sourceLabel || '待同步' },
-      { label: '观测窗', value: this.data.solarTermLabel || '待同步' },
-      { label: '状态噪声', value: this.data.userTagLabel || '待同步', color: this.data.userTagColor },
-    ]
+    // Right column: debuffs
+    for (var di = 0; di < debuffs.length; di++) {
+      var dxCol = ix + cardW + 16
+      // Card background
+      ctx.fillStyle = 'rgba(255,160,60,0.04)'
+      this._roundRect(ctx, dxCol, cardY + di * (cardH + 8), cardW, cardH, 8)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(255,160,60,0.08)'
+      ctx.lineWidth = 0.5
+      this._roundRect(ctx, dxCol, cardY + di * (cardH + 8), cardW, cardH, 8)
+      ctx.stroke()
+      // Orange dot
+      ctx.fillStyle = 'rgba(255,160,60,0.72)'
+      ctx.beginPath()
+      ctx.arc(dxCol + 14, cardY + di * (cardH + 8) + cardH / 2, 3.5, 0, Math.PI * 2)
+      ctx.fill()
+      // Text
+      ctx.fillStyle = 'rgba(220,240,255,0.80)'
+      ctx.font = '16px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(debuffs[di], dxCol + 26, cardY + di * (cardH + 8) + cardH / 2 + 5)
+    }
 
-    chips.forEach((chip, i) => {
-      const cx = x + colW * i + colW / 2
-      ctx.font = '14px Courier New'
-      ctx.fillStyle = 'rgba(126,156,180,0.32)'
+    var maxRows = Math.max(buffs.length, debuffs.length)
+    cardY += maxRows * (cardH + 8) + 16
+
+    // --- Stability bar (thin gradient line) ---
+    var stabPct = (this.data.stabilityPercent || 72) / 100
+    ctx.fillStyle = 'rgba(160,210,235,0.32)'
+    ctx.font = '13px sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText('\u7A33\u5B9A\u5EA6', ix, cardY)
+    cardY += 14
+    // Track background
+    ctx.fillStyle = 'rgba(0,190,255,0.08)'
+    this._roundRect(ctx, ix, cardY, iw, 5, 2.5)
+    ctx.fill()
+    // Filled portion (gradient)
+    var stabGrad = ctx.createLinearGradient(ix, cardY, ix + iw * stabPct, cardY)
+    stabGrad.addColorStop(0, 'rgba(0,200,255,0.55)')
+    stabGrad.addColorStop(1, 'rgba(50,215,75,0.55)')
+    ctx.fillStyle = stabGrad
+    this._roundRect(ctx, ix, cardY, Math.max(iw * stabPct, 4), 5, 2.5)
+    ctx.fill()
+
+    /* ===== Footer y: ~960-1020 ===== */
+    // starMapId 标识行
+    var mapId = (this.data.starMap && this.data.starMap.starMapId) || ''
+    if (mapId) {
+      ctx.fillStyle = 'rgba(0,200,255,0.12)'
+      ctx.font = '11px Courier New'
       ctx.textAlign = 'center'
-      ctx.fillText(chip.label, cx, y + 18)
+      ctx.fillText(mapId, W / 2, H - 60)
+    }
 
-      ctx.font = 'bold 18px Courier New'
-      ctx.fillStyle = chip.color || 'rgba(0,175,255,0.72)'
-      ctx.fillText(chip.value, cx, y + 38)
+    ctx.fillStyle = 'rgba(255,255,255,0.22)'
+    ctx.font = '12px Courier New'
+    ctx.textAlign = 'left'
+    ctx.fillText('STAR COMMAND / \u6307\u4EE4\u6863\u6848', padL, H - 36)
 
-      // 分隔线
-      if (i < 2) {
-        ctx.strokeStyle = 'rgba(0,175,255,0.10)'
+    ctx.fillStyle = 'rgba(0,175,255,0.18)'
+    this._fillLetterSpacedRight(ctx, 'NAVIGATION CABIN', padR, H - 36)
+  },
+
+  /** 分享卡星图缩略图（复用 starMap 数据，增强版） */
+  _drawShareStarMap(ctx, x, y, w, h) {
+    var map = this.data.starMap
+    if (!map) return
+
+    // 星图区域背景
+    ctx.fillStyle = 'rgba(2,8,14,0.85)'
+    this._roundRect(ctx, x, y, w, h, 16)
+    ctx.fill()
+
+    // 边框
+    ctx.strokeStyle = 'rgba(0,200,255,0.12)'
+    ctx.lineWidth = 1
+    this._roundRect(ctx, x, y, w, h, 16)
+    ctx.stroke()
+
+    // clip 到圆角区域
+    ctx.save()
+    this._roundRect(ctx, x, y, w, h, 16)
+    ctx.clip()
+
+    try {
+      // 网格线（轻量）
+      ctx.strokeStyle = 'rgba(0,200,255,0.04)'
+      ctx.lineWidth = 0.5
+      for (var gx = x; gx < x + w; gx += 40) {
+        ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + h); ctx.stroke()
+      }
+      for (var gy = y; gy < y + h; gy += 40) {
+        ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + w, gy); ctx.stroke()
+      }
+
+      // 星尘粒子 (dustParticles)
+      (map.dustParticles || []).forEach(function (d) {
+        var dx = x + d.x / 100 * w
+        var dy = y + d.y / 100 * h
+        var dr = Math.max(d.size, 0.5)
+        ctx.fillStyle = 'rgba(180,210,240,' + d.opacity + ')'
+        ctx.beginPath()
+        ctx.arc(dx, dy, dr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // 光晕 (highlights)
+      (map.highlights || []).forEach(function (hl) {
+        var hx = x + hl.x / 100 * w
+        var hy = y + hl.y / 100 * h
+        var hr = Math.max(hl.size / 140 * w * 0.3, 1)
+        var hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, hr)
+        hg.addColorStop(0, 'rgba(0,200,255,' + hl.opacity + ')')
+        hg.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.fillStyle = hg
+        ctx.fillRect(hx - hr, hy - hr, hr * 2, hr * 2)
+      })
+
+      // 轨道弧线 (orbitArcs) — save/translate/scale/arc/restore, no ctx.ellipse
+      (map.orbitArcs || []).forEach(function (arc) {
+        var cx = x + arc.cx / 100 * w
+        var cy = y + arc.cy / 100 * h
+        var rx = Math.max(arc.rx / 100 * w, 1)
+        var ry = Math.max(arc.ry / 100 * h, 1)
+        var rot = (arc.rotation || 0) * Math.PI / 180
+        ctx.strokeStyle = 'rgba(0,200,255,' + arc.opacity + ')'
+        ctx.lineWidth = 1
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(rot)
+        ctx.scale(1, ry / rx)
+        ctx.beginPath()
+        ctx.arc(0, 0, rx, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.restore()
+      })
+
+      // 连接线 (connectionLines) — thin gradient lines
+      (map.connectionLines || []).forEach(function (cl) {
+        var startX = x + cl.x1 / 100 * w
+        var startY = y + cl.y1 / 100 * h
+        var angle = cl.angle * Math.PI / 180
+        var len = cl.length / 100 * w * 0.5
+        var endX = startX + Math.cos(angle) * len
+        var endY = startY + Math.sin(angle) * len
+        var grad = ctx.createLinearGradient(startX, startY, endX, endY)
+        grad.addColorStop(0, 'rgba(0,200,255,0)')
+        grad.addColorStop(0.5, 'rgba(0,200,255,' + cl.opacity + ')')
+        grad.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.strokeStyle = grad
+        ctx.lineWidth = 0.5
+        ctx.beginPath()
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(endX, endY)
+        ctx.stroke()
+      })
+
+      // 随机航线 (routes)
+      (map.routes || []).forEach(function (rt) {
+        var startX = x + rt.x1 / 100 * w
+        var startY = y + rt.y1 / 100 * h
+        var angle = rt.angle * Math.PI / 180
+        var len = rt.length / 640 * w
+        var endX = startX + Math.cos(angle) * len
+        var endY = startY + Math.sin(angle) * len
+        var rtGrad = ctx.createLinearGradient(startX, startY, endX, endY)
+        rtGrad.addColorStop(0, 'rgba(0,210,255,0.08)')
+        rtGrad.addColorStop(0.5, 'rgba(0,210,255,0.22)')
+        rtGrad.addColorStop(1, 'rgba(88,255,160,0.28)')
+        ctx.strokeStyle = rtGrad
         ctx.lineWidth = 1
         ctx.beginPath()
-        ctx.moveTo(x + colW * (i + 1), y + 10)
-        ctx.lineTo(x + colW * (i + 1), y + chipH - 10)
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(endX, endY)
         ctx.stroke()
+      })
+
+      // 主航线（静态版）
+      ctx.strokeStyle = 'rgba(0,200,255,0.16)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(x + w * 0.2, y + h * 0.7)
+      ctx.quadraticCurveTo(x + w * 0.5, y + h * 0.3, x + w * 0.8, y + h * 0.35)
+      ctx.stroke()
+
+      // 星点 (stars) with glow
+      (map.stars || []).forEach(function (star) {
+        var sx = x + star.x / 100 * w
+        var sy = y + star.y / 100 * h
+        var sr = Math.max(star.size / 5 * 2.5, 0.5)
+        // Glow
+        var sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr * 2.5)
+        sg.addColorStop(0, 'rgba(200,230,255,' + (star.opacity * 0.35) + ')')
+        sg.addColorStop(1, 'rgba(200,230,255,0)')
+        ctx.fillStyle = sg
+        ctx.beginPath()
+        ctx.arc(sx, sy, sr * 2.5, 0, Math.PI * 2)
+        ctx.fill()
+        // Core
+        ctx.fillStyle = 'rgba(200,230,255,' + star.opacity + ')'
+        ctx.beginPath()
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // 能量节点 (energyNodes)
+      (map.energyNodes || []).forEach(function (node) {
+        var nx = x + node.x / 100 * w
+        var ny = y + node.y / 100 * h
+        var nr = Math.max(node.size, 1)
+        // Outer ring
+        ctx.strokeStyle = 'rgba(0,200,255,0.12)'
+        ctx.lineWidth = 0.8
+        ctx.beginPath()
+        ctx.arc(nx, ny, nr * 2, 0, Math.PI * 2)
+        ctx.stroke()
+        // Core gradient
+        var ng = ctx.createRadialGradient(nx, ny, 0, nx, ny, nr)
+        ng.addColorStop(0, 'rgba(0,230,255,0.45)')
+        ng.addColorStop(1, 'rgba(0,200,255,0)')
+        ctx.fillStyle = ng
+        ctx.beginPath()
+        ctx.arc(nx, ny, nr, 0, Math.PI * 2)
+        ctx.fill()
+      })
+
+      // 扫描波纹（静态圆环）
+      var sc = map.scanCenter || map.radarCenter
+      if (sc) {
+        var scx = x + sc.x / 100 * w
+        var scy = y + sc.y / 100 * h
+        var ringRadii = [28, 18, 10]
+        for (var ri = 0; ri < ringRadii.length; ri++) {
+          ctx.strokeStyle = 'rgba(0,200,255,' + (0.10 - ri * 0.025) + ')'
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.arc(scx, scy, ringRadii[ri], 0, Math.PI * 2)
+          ctx.stroke()
+        }
       }
-    })
-    ctx.textAlign = 'left'
-  },
 
-  /** 绘制状态胶囊（与页面 strategy-tag-pill 对齐） */
-  _drawTagPill(ctx, x, y, w, h, text, color) {
-    ctx.fillStyle = color + '12'
-    ctx.fillRect(x, y, w, h)
-    ctx.strokeStyle = color + '40'
-    ctx.lineWidth = 1
-    ctx.strokeRect(x, y, w, h)
-    ctx.fillStyle = color
-    ctx.font = 'bold 22px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText(text, x + w / 2, y + 30)
-    ctx.textAlign = 'left'
-  },
-
-  /**
-   * 绘制列表项（与页面 strategy-list-item 对齐）
-   * 返回下一项 y 坐标
-   */
-  _drawListItem(ctx, x, y, w, num, text, color, isRisk) {
-    const cardPadH = 20
-    const cardPadV = 14
-    const indexW = 52
-    const textMaxW = w - indexW - cardPadH * 2 - 8
-    const lines = this._wrapText(ctx, text, textMaxW)
-    const maxLines = Math.min(lines.length, 2)
-    const lineH = 38
-    const itemH = Math.max(56, maxLines * lineH + cardPadV * 2)
-
-    // 列表卡片背景
-    ctx.fillStyle = isRisk ? 'rgba(255,159,10,0.018)' : 'rgba(255,255,255,0.025)'
-    ctx.fillRect(x, y, w, itemH)
-    ctx.strokeStyle = isRisk ? 'rgba(255,159,10,0.08)' : 'rgba(255,255,255,0.05)'
-    ctx.lineWidth = 1
-    ctx.strokeRect(x, y, w, itemH)
-
-    // 分隔线（非第一项）
-    if (num > 1) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+      // ORIGIN 星体
+      var ox = x + w * 0.2
+      var oy = y + h * 0.7
+      var og = ctx.createRadialGradient(ox, oy, 0, ox, oy, 14)
+      og.addColorStop(0, 'rgba(10,132,255,0.7)')
+      og.addColorStop(1, 'rgba(10,132,255,0)')
+      ctx.fillStyle = og
+      ctx.beginPath()
+      ctx.arc(ox, oy, 14, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(10,132,255,0.8)'
+      ctx.beginPath()
+      ctx.arc(ox, oy, 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(10,132,255,0.3)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(x + 1, y)
-      ctx.lineTo(x + w - 1, y)
+      ctx.arc(ox, oy, 10, 0, Math.PI * 2)
       ctx.stroke()
+
+      // TARGET 星体
+      var tx = x + w * 0.8
+      var ty = y + h * 0.35
+      var tc = this.data.themeColor || '#32D74B'
+      var tg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 16)
+      tg.addColorStop(0, hexWithAlpha(tc, 'AA'))
+      tg.addColorStop(1, hexWithAlpha(tc, '00'))
+      ctx.fillStyle = tg
+      ctx.beginPath()
+      ctx.arc(tx, ty, 16, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = hexWithAlpha(tc, 'BB')
+      ctx.beginPath()
+      ctx.arc(tx, ty, 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = hexWithAlpha(tc, '44')
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(tx, ty, 12, 0, Math.PI * 2)
+      ctx.stroke()
+
+      // 中央星点
+      ctx.fillStyle = 'rgba(70,255,145,0.9)'
+      ctx.beginPath()
+      ctx.arc(x + w * 0.5, y + h * 0.5, 4, 0, Math.PI * 2)
+      ctx.fill()
+
+      // 指示灯
+      ctx.fillStyle = 'rgba(0,200,255,0.7)'
+      ctx.beginPath()
+      ctx.arc(x + 16, y + 16, 3, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = 'rgba(80,255,150,0.7)'
+      ctx.beginPath()
+      ctx.arc(x + w - 16, y + h - 16, 3, 0, Math.PI * 2)
+      ctx.fill()
+    } catch (drawErr) {
+      console.error('[poster] _drawShareStarMap partial failure:', drawErr && drawErr.message)
     }
 
-    // 编号背景
-    const numBgX = x + cardPadH
-    const numBgY = y + (itemH - 40) / 2
-    const numBgColor = isRisk ? 'rgba(255,159,10,0.08)' : 'rgba(48,209,88,0.08)'
-    const numBorderColor = isRisk ? 'rgba(255,159,10,0.18)' : 'rgba(48,209,88,0.18)'
-    ctx.fillStyle = numBgColor
-    ctx.fillRect(numBgX, numBgY, indexW, 40)
-    ctx.strokeStyle = numBorderColor
-    ctx.lineWidth = 1
-    ctx.strokeRect(numBgX, numBgY, indexW, 40)
-
-    // 编号文字
-    const numStr = String(num).padStart(2, '0')
-    ctx.fillStyle = color
-    ctx.font = 'bold 18px Courier New'
-    ctx.textAlign = 'center'
-    ctx.fillText(numStr, numBgX + indexW / 2, numBgY + 27)
-    ctx.textAlign = 'left'
-
-    // 内容文字
-    ctx.fillStyle = 'rgba(255,255,255,0.72)'
-    ctx.font = '26px sans-serif'
-    let ty = y + cardPadV + 30
-    for (let i = 0; i < maxLines; i++) {
-      ctx.fillText(lines[i], x + cardPadH + indexW + 12, ty)
-      ty += lineH
-    }
-
-    return y + itemH + 8
+    ctx.restore()
   },
-
   _wrapText(ctx, text, maxWidth) {
     const lines = []
     let current = ''
@@ -1602,7 +1979,13 @@ Page({
 
   _fillLetterSpaced(ctx, text, x, y) {
     const chars = text.split('')
-    let cx = x
+    // 预计算总宽度（含 letter-spacing）
+    let totalW = 0
+    for (let i = 0; i < chars.length; i++) {
+      totalW += ctx.measureText(chars[i]).width + 4
+    }
+    // 兼容 textAlign='center'：从 x - totalW/2 开始绘制
+    let cx = ctx.textAlign === 'center' ? x - totalW / 2 : x
     for (let i = 0; i < chars.length; i++) {
       ctx.fillText(chars[i], cx, y)
       cx += ctx.measureText(chars[i]).width + 4
@@ -1676,7 +2059,7 @@ Page({
     this.setData({ posterError: '', phase: 'poster_generating' })
     setTimeout(() => {
       this._renderPosterCanvas()
-    }, 300)
+    }, 500)
   },
 
   onPosterCancel() {
@@ -1697,7 +2080,7 @@ Page({
   onShareAppMessage() {
     const s = this.data.strategy
     if (!s) return {}
-    const title = sanitizeStrategyText(`今日指令投影：${s.tag || '节奏校准'}`)
+    const title = sanitizeStrategyText(`今日指令：${s.tag || '节奏校准'}`)
     const result = {
       title,
       path: '/pages/fortune/fortune',

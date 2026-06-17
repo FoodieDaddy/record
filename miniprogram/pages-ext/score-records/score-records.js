@@ -13,17 +13,47 @@ Page({
     playbackLoading: false,
     playbackRecords: [],
     playbackRoomNo: '',
+    customNavTop: 0,
+    customNavBarHeight: 0,
+    customNavHeight: 0,
+    scrollHeight: 0,
+    reduceMotion: false,
   },
 
   onLoad() {
-    this.calcPageHeight();
+    this.initCustomNav();
   },
 
   onShow() {
     this.setData({ animationEnabled: app.globalData.animationEnabled !== false });
+    this.initCustomNav();
     this.loadSamples();
-    this.calcPageHeight();
   },
+
+  initCustomNav() {
+    let statusBarHeight = 44;
+    let navBarHeight = 44;
+    const windowInfo = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
+    statusBarHeight = windowInfo.statusBarHeight || statusBarHeight;
+    const menuRect = wx.getMenuButtonBoundingClientRect ? wx.getMenuButtonBoundingClientRect() : null;
+    if (menuRect && menuRect.height && menuRect.top > statusBarHeight) {
+      navBarHeight = (menuRect.top - statusBarHeight) * 2 + menuRect.height;
+    }
+    const screenHeight = windowInfo.windowHeight || 667;
+    this.setData({
+      customNavTop: statusBarHeight,
+      customNavBarHeight: navBarHeight,
+      customNavHeight: statusBarHeight + navBarHeight,
+      scrollHeight: screenHeight - statusBarHeight - navBarHeight - 120,
+      reduceMotion: !this.data.animationEnabled
+    });
+  },
+
+  navigateBack() {
+    wx.navigateBack({ delta: 1 });
+  },
+
+  noop() {},
 
   async loadSamples() {
     this.setData({ loading: true, loadError: false });
@@ -92,21 +122,5 @@ Page({
     this.loadSamples().finally(() => {
       wx.stopPullDownRefresh();
     });
-  },
-
-  calcPageHeight() {
-    let pageHeight = 0;
-    try {
-      const win = wx.getWindowInfo();
-      pageHeight = win.windowHeight;
-    } catch (e) {
-      try {
-        const info = wx.getSystemInfoSync();
-        pageHeight = info.windowHeight;
-      } catch (e2) { /* 最终降级 */ }
-    }
-    if (pageHeight) {
-      this.setData({ pageHeight });
-    }
   },
 });

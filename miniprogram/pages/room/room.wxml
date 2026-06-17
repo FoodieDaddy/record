@@ -22,6 +22,7 @@
         </view>
       </view>
     </view>
+    <view class="room-custom-nav__hud-line"></view>
   </view>
 
 
@@ -35,60 +36,144 @@
     </view>
   </view>
 
-  <!-- idle 状态：驾驶舱舷窗待机 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle sr-hud-panel">
-    <view class="starfield"></view>
-    <view class="windshield-grid"></view>
-    <view class="windshield-frame"></view>
-    <view class="windshield-horizon"></view>
+  <!-- idle 状态：基地编队终端 · 待命中 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'idle'}}" class="cockpit-viewport cockpit-viewport--idle idle-base {{currentRoom ? 'idle-base--formed' : ''}}">
 
-    <view class="standby-window-copy">
-      <view class="standby-title">等待编队接入</view>
-      <view class="standby-desc">前方舷窗待命，选择协议槽位后创建本次航程</view>
+    <!-- 基地环境层 -->
+    <view class="base-ambient">
+      <view class="base-glow"></view>
+      <view class="base-grid"></view>
+      <view class="base-vignette"></view>
+      <view class="base-breathe"></view>
     </view>
 
-    <view class="cockpit-id-panel cockpit-id-panel--idle">
-      <text class="hud-label">状态</text>
-      <text class="hud-code">待机</text>
+    <!-- 基地空间线索 -->
+    <view class="base-platform"></view>
+    <view class="base-bay-shadow"></view>
+    <view class="base-hangar"></view>
+    <view class="base-strip-light"></view>
+    <view class="base-projection"></view>
+
+    <!-- 终端面板轮廓 -->
+    <view class="base-terminal-frame"></view>
+
+    <!-- 中央信息区 -->
+    <view class="base-center-info">
+      <!-- 状态A：未创建编队 -->
+      <block wx:if="{{!currentRoom}}">
+        <view class="base-main-title">基地待命中</view>
+        <view class="base-sub-title">当前位于基地编队终端，可创建或加入编队后申请出航</view>
+      </block>
+      <!-- 状态B：已创建编队 -->
+      <block wx:else>
+        <view class="base-main-title">等待编队集结</view>
+        <view class="base-sub-title">当前位于基地编队终端，队员集结完成后可申请出航</view>
+      </block>
+      <view class="base-channel-status">
+        <view class="base-channel-dot"></view>
+        <text>{{currentRoom ? '基地信道广播中' : '基地信道开启中'}}</text>
+      </view>
     </view>
 
-    <view class="cockpit-stats cockpit-stats--idle">
-      <view class="hud-stat">
-        <text class="hud-stat-label">编队成员</text>
-        <text class="hud-stat-value">0/16</text>
-      </view>
-      <view class="hud-stat">
-        <text class="hud-stat-label">航程阶段</text>
-        <text class="hud-stat-value">待机</text>
-      </view>
-      <view class="hud-stat">
-        <text class="hud-stat-label">链路状态</text>
-        <text class="hud-stat-value">待接入</text>
+    <!-- 编队信标 -->
+    <view class="base-beacon">
+      <view class="base-beacon-ring base-beacon-ring--outer"></view>
+      <view class="base-beacon-ring base-beacon-ring--mid"></view>
+      <view class="base-beacon-ring base-beacon-ring--inner"></view>
+      <view class="base-beacon-core"></view>
+      <view class="base-beacon-line"></view>
+      <view class="base-beacon-nodes">
+        <view class="base-beacon-node base-beacon-node--l"></view>
+        <view class="base-beacon-node base-beacon-node--c"></view>
+        <view class="base-beacon-node base-beacon-node--r"></view>
       </view>
     </view>
 
-    <view class="launch-config cockpit-mode-console">
-      <view class="config-chips">
-        <view class="config-chip {{scoreMode === 1 ? 'config-chip--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
-          <view class="chip-dot {{scoreMode === 1 ? 'chip-dot--on' : ''}}"></view>
-          <text>流转协议</text>
+    <!-- 状态面板：未创建编队 -->
+    <view wx:if="{{!currentRoom}}" class="base-status-row">
+      <view class="base-status-chips">
+        <view class="base-chip">
+          <text class="base-chip-label">当前状态</text>
+          <text class="base-chip-value">基地待命</text>
         </view>
-        <view class="config-chip {{scoreMode === 2 ? 'config-chip--on' : ''}}" bindtap="selectScoreMode" data-mode="2">
-          <view class="chip-dot {{scoreMode === 2 ? 'chip-dot--on' : ''}}"></view>
-          <text>录入协议</text>
+        <view class="base-chip">
+          <text class="base-chip-label">编队人数</text>
+          <text class="base-chip-value">0/16</text>
+        </view>
+        <view class="base-chip">
+          <text class="base-chip-label">出航许可</text>
+          <text class="base-chip-value">未激活</text>
+        </view>
+        <view class="base-chip">
+          <text class="base-chip-label">编队状态</text>
+          <text class="base-chip-value">未建立</text>
         </view>
       </view>
     </view>
 
-    <view class="launch-actions cockpit-launch-actions">
-      <button class="sr-btn sr-btn-primary launch-btn {{launching ? 'sr-btn--loading' : ''}}" bindtap="handleStartSpace">
-        <text class="btn-text">创建编队</text>
-        <view class="btn-energy"></view>
+    <!-- 状态面板：已创建编队 -->
+    <view wx:if="{{currentRoom}}" class="base-status-row">
+      <view class="base-status-chips">
+        <view class="base-chip">
+          <text class="base-chip-label">当前状态</text>
+          <text class="base-chip-value">基地待命</text>
+        </view>
+        <view class="base-chip">
+          <text class="base-chip-label">编队人数</text>
+          <text class="base-chip-value">{{currentRoom.members ? currentRoom.members.length : 1}}/16</text>
+        </view>
+        <view class="base-chip">
+          <text class="base-chip-label">出航许可</text>
+          <text class="base-chip-value">未激活</text>
+        </view>
+        <view class="base-chip">
+          <text class="base-chip-label">编队状态</text>
+          <text class="base-chip-value">等待集结</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 组队方式：仅未创建时显示 -->
+    <view wx:if="{{!currentRoom}}" class="base-protocol">
+      <view class="base-protocol-label">组队方式</view>
+      <view class="base-protocol-capsule">
+        <view class="base-protocol-opt {{scoreMode === 1 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="1">
+          <view class="base-protocol-dot {{scoreMode === 1 ? 'base-protocol-dot--on' : ''}}"></view>
+          <text>广播招募</text>
+        </view>
+        <view class="base-protocol-opt {{scoreMode === 2 ? 'base-protocol-opt--on' : ''}}" bindtap="selectScoreMode" data-mode="2">
+          <view class="base-protocol-dot {{scoreMode === 2 ? 'base-protocol-dot--on' : ''}}"></view>
+          <text>编队码加入</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作区：未创建编队 -->
+    <view wx:if="{{!currentRoom}}" class="base-actions">
+      <button class="base-btn-primary {{launching ? 'base-btn-primary--loading' : ''}}" bindtap="handleStartSpace">
+        <view class="base-btn-glow"></view>
+        <text class="base-btn-text">创建编队</text>
+        <text class="base-btn-hint">建立小队后可发起出航</text>
       </button>
-      <button class="sr-btn sr-btn-secondary" bindtap="openJoinPanel">
-        <text class="btn-text">加入编队</text>
+      <button class="base-btn-secondary" bindtap="openJoinPanel">
+        <text class="base-btn-text">加入编队</text>
+        <text class="base-btn-hint">输入编号进入待命</text>
       </button>
     </view>
+
+    <!-- 操作区：已创建编队 -->
+    <view wx:if="{{currentRoom}}" class="base-actions">
+      <button class="base-btn-primary" bindtap="openBeacon">
+        <view class="base-btn-glow"></view>
+        <text class="base-btn-text">复制编队码</text>
+        <text class="base-btn-hint">发送给队员后等待集结</text>
+      </button>
+      <button class="base-btn-secondary" bindtap="confirmLeaveOrDisband">
+        <text class="base-btn-text">{{isOwner ? '解散编队' : '退出编队'}}</text>
+        <text class="base-btn-hint">{{isOwner ? '退出当前出航准备' : '返回基地待命状态'}}</text>
+      </button>
+    </view>
+
   </view>
 
   <!-- 启动过渡层 -->
@@ -99,9 +184,9 @@
       <view class="launch-ring-inner"></view>
     </view>
     <view class="launch-phase-text">
-      <text wx:if="{{launchPhase === 'linking'}}">编队链路建立中</text>
-      <text wx:elif="{{launchPhase === 'window'}}">舷窗正在开启</text>
-      <text wx:elif="{{launchPhase === 'hud'}}">HUD 接入完成</text>
+      <text wx:if="{{launchPhase === 'linking'}}">编队信道建立中</text>
+      <text wx:elif="{{launchPhase === 'window'}}">信道校准中</text>
+      <text wx:elif="{{launchPhase === 'hud'}}">系统接入完成</text>
       <text wx:elif="{{launchPhase === 'slow'}}">编队链路校准中</text>
     </view>
     <view class="launch-slow-actions" wx:if="{{launchPhase === 'slow'}}">
@@ -115,22 +200,35 @@
     </view>
   </view>
 
-  <!-- connecting 状态：链路接入中 -->
-  <view wx:if="{{isLoggedIn && cockpitState === 'connecting'}}" class="cockpit-viewport cockpit-viewport--connecting sr-hud-panel">
-    <view class="starfield"></view>
-    <view class="windshield-grid"></view>
-    <view class="windshield-frame"></view>
-    <view class="windshield-horizon"></view>
+  <!-- connecting 状态：编队链路建立中 -->
+  <view wx:if="{{isLoggedIn && cockpitState === 'connecting'}}" class="cockpit-viewport cockpit-viewport--connecting idle-base idle-base--connecting">
 
-    <view class="standby-window-copy">
-      <view class="standby-title">信标链路准备中</view>
-      <view class="standby-desc">校准编队链路，完成后进入驾驶舱</view>
+    <!-- 基地环境层 -->
+    <view class="base-ambient">
+      <view class="base-glow"></view>
+      <view class="base-grid"></view>
+      <view class="base-vignette"></view>
+      <view class="base-breathe"></view>
     </view>
 
-    <view class="cockpit-id-panel cockpit-id-panel--idle">
-      <text class="hud-label">状态</text>
-      <text class="hud-code">接入中</text>
+    <!-- 基地空间线索 -->
+    <view class="base-platform"></view>
+    <view class="base-bay-shadow"></view>
+    <view class="base-strip-light"></view>
+
+    <!-- 终端面板轮廓 -->
+    <view class="base-terminal-frame"></view>
+
+    <!-- 中央信息 -->
+    <view class="base-center-info">
+      <view class="base-main-title">编队系统接入中</view>
+      <view class="base-sub-title">正在校准编队信道，完成后进入基地待命</view>
+      <view class="base-channel-status">
+        <view class="base-channel-dot"></view>
+        <text>信道校准中</text>
+      </view>
     </view>
+
   </view>
 
   <!-- 加入编队弹窗 -->
@@ -167,13 +265,13 @@
   <!-- idle 状态：已有编队快捷入口 -->
   <view wx:if="{{isLoggedIn && cockpitState === 'idle' && currentRoom && !viewingRoom}}" class="reentry-card sr-card">
     <view class="reentry-head">
-      <view class="reentry-title">进行中的任务编队</view>
+      <view class="reentry-title">基地编队待命中</view>
     </view>
     <view class="reentry-info">
-      <view class="reentry-code">SR-{{currentRoom.roomNo}}</view>
+      <view class="reentry-code">{{currentRoom.roomNo}}</view>
       <view class="reentry-meta">
         <text>编队成员 {{currentRoom.members ? currentRoom.members.length : 0}}</text>
-        <text>{{currentRoom.scoreMode === 1 ? '自由流转' : '本局录入'}}</text>
+        <text>{{currentRoom.scoreMode === 1 ? '广播招募' : '编队码加入'}}</text>
       </view>
     </view>
     <view class="reentry-actions">

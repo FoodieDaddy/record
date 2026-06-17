@@ -19,6 +19,7 @@
 @import "./styles/08i-cockpit-visual.wxss";
 @import "./styles/08j-cockpit-feedback.wxss";
 @import "./styles/09-cockpit-instrument.wxss";
+@import "./styles/10-idle-immersive.wxss";
 
 .full-page-loading {
   position: fixed;

@@ -1,6 +1,7 @@
 {
-  "navigationBarTitleText": "航迹回放",
+  "navigationStyle": "custom",
   "usingComponents": {
-    "pulse-stream": "/components/pulse-stream/pulse-stream"
+    "pulse-stream": "/components/pulse-stream/pulse-stream",
+    "sr-hatch-close": "/components/sr-hatch-close/sr-hatch-close"
   }
 }

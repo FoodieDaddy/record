@@ -209,7 +209,7 @@ Page(Object.assign(
       // ===== 驾驶舱视图 =====
       cockpitView: {
         hasFormation: false,
-        statusLabel: '驾驶舱待机中',
+        statusLabel: '基地终端在线',
         subtitle: '创建编队，记录脉冲',
         formationCode: '--',
         formationCount: 0,
@@ -224,7 +224,7 @@ Page(Object.assign(
         selfPulseSizeClass: 'is-standard',
         myPulseTone: 'zero',
         selfPulseClass: 'is-positive',
-        myCallSign: '未命名本舰',
+        myCallSign: '待命终端',
         isOwner: false,
         roleLabel: '编队成员',
         externalShips: [],
@@ -1242,7 +1242,7 @@ Page(Object.assign(
       const extraState = {};
       if (this.data.cockpitState === 'connecting') {
         extraState.cockpitState = 'active';
-        cockpitView.statusLabel = '驾驶舱已接入';
+        cockpitView.statusLabel = '编队已接入';
         cockpitView.statusDot = 'online';
         cockpitView.isConnecting = false;
       }

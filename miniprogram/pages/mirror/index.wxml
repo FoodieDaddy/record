@@ -13,16 +13,36 @@
       <view class="cockpit-nav-hud">
         <view class="cockpit-nav-hud__link">
           <view class="css-status-dot css-status-dot--{{cockpitView.statusDot || 'idle'}}"></view>
-          <text>{{cockpitView.statusLabel}}</text>
+          <text>镜像链路已接入</text>
+        </view>
+        <view class="mirror-nav-capsule">
+          <text class="mirror-nav-capsule__text">镜像 MIRROR | SCAN</text>
         </view>
       </view>
     </view>
+    <view class="mirror-nav-hud-line"></view>
   </view>
 
-  <!-- 深空背景层 -->
+  <!-- 深空背景层 — 与编队页同源 -->
   <view class="mirror-space-bg" wx:if="{{!isInitialLoading}}">
-    <view class="mirror-nebula"></view>
-    <view class="mirror-scanlines"></view>
+    <!-- 星点场 -->
+    <view class="mirror-starfield"></view>
+    <!-- 细网格 -->
+    <view class="mirror-grid"></view>
+    <!-- 暗角 -->
+    <view class="mirror-vignette"></view>
+    <!-- 扫描扫过 -->
+    <view class="mirror-scan-sweep"></view>
+    <!-- 雷达圆环 -->
+    <view class="mirror-radar">
+      <view class="mirror-radar-ring mirror-radar-ring--outer"></view>
+      <view class="mirror-radar-ring mirror-radar-ring--mid"></view>
+      <view class="mirror-radar-ring mirror-radar-ring--inner"></view>
+      <view class="mirror-radar-sweep"></view>
+    </view>
+    <!-- 舷窗框 -->
+    <view class="mirror-porthole-frame"></view>
+    <!-- HUD 角标 -->
     <view class="mirror-hud-corner mirror-hud-tl"></view>
     <view class="mirror-hud-corner mirror-hud-tr"></view>
     <view class="mirror-hud-corner mirror-hud-bl"></view>
@@ -41,7 +61,7 @@
 
     <view class="mirror-main {{mainDimmed ? 'mirror-main--dimmed' : ''}}">
 
-      <!-- ===== 一级：全息总览 (沉浸式方案中完全移除) ===== -->
+      <!-- ===== 一级：全息总览 (隐藏) ===== -->
       <view class="bay-header hide-page-title" style="opacity: {{headerOpacity}}; display: none;">
         <view class="bay-status-tab bay-status-tab--{{bayStatusState}}">
           <view class="bay-status-tab__dot"></view>
@@ -49,67 +69,96 @@
         </view>
       </view>
 
-      <view class="mirror-hero" style="opacity: {{heroOpacity}};">
-        <!-- 全息扫描图 -->
-        <view class="hero-radar-wrap" wx:if="{{!showMbtiPicker}}">
-          <radar-chart
-            id="radarChart"
-            dimensions="{{radarDimensions}}"
-            size="{{560}}"
-            reduceMotion="{{reduceMotion}}"
-            locked="{{radarLocked}}"
-            heroMode="{{true}}"
-          />
-        </view>
+      <!-- ===== 镜像扫描舱 ===== -->
+      <view class="mirror-scan-chamber" style="opacity: {{heroOpacity}};">
+        <!-- 扫描舱面板 -->
+        <view class="mirror-hud-panel mirror-hud-panel--hero">
+          <!-- 面板角标 -->
+          <view class="hud-angle hud-angle--tl"></view>
+          <view class="hud-angle hud-angle--tr"></view>
+          <view class="hud-angle hud-angle--bl"></view>
+          <view class="hud-angle hud-angle--br"></view>
 
-        <!-- 镜像投影核心 -->
-        <view class="hero-info">
-          <block wx:if="{{mbti.calibrated}}">
-            <text class="hero-type">{{mbti.mbtiType}}</text>
-            <text class="hero-dot">·</text>
-            <text class="hero-title">{{mbti.mbtiTitle}}</text>
-          </block>
-          <block wx:else>
-            <text class="hero-uncalibrated">协议未接入 / 等待校准</text>
-          </block>
-        </view>
+          <!-- 面板顶标签 -->
+          <view class="mirror-panel-tag">
+            <view class="mirror-panel-tag__dot"></view>
+            <text class="mirror-panel-tag__text">MIRROR_SCAN</text>
+          </view>
 
-        <!-- 核心标签（默认可见） -->
-        <view class="hero-signals" wx:if="{{mbti.calibrated && personaSignals.length > 0}}">
-          <view class="hero-signal-tag" wx:for="{{personaSignals}}" wx:key="*this">
-            <text>{{item}}</text>
+          <!-- 全息扫描图 -->
+          <view class="hero-radar-wrap" wx:if="{{!showMbtiPicker}}">
+            <radar-chart
+              id="radarChart"
+              dimensions="{{radarDimensions}}"
+              size="{{480}}"
+              reduceMotion="{{reduceMotion}}"
+              locked="{{radarLocked}}"
+              heroMode="{{true}}"
+            />
           </view>
-        </view>
 
-        <!-- 状态摘要 -->
-        <view class="hero-summary" wx:if="{{mbti.calibrated}}">
-          <view class="summary-item">
-            <text class="summary-label">协议一致率</text>
-            <text class="summary-val {{personaMatchDisplayPending ? 'summary-val--pending' : 'summary-val--match'}}">{{personaMatchDisplay}}</text>
+          <!-- 镜像投影核心 -->
+          <view class="hero-info">
+            <block wx:if="{{mbti.calibrated}}">
+              <text class="hero-type">{{mbti.mbtiType}}</text>
+              <text class="hero-dot">·</text>
+              <text class="hero-title">{{mbti.mbtiTitle}}</text>
+            </block>
+            <block wx:else>
+              <view class="hero-empty-state">
+                <text class="hero-empty-title">等待镜像校准</text>
+                <text class="hero-empty-sub">回答信标问题，生成你的镜像人格档案</text>
+                <view class="hero-empty-status">
+                  <view class="hero-empty-dot"></view>
+                  <text class="hero-empty-status-text">扫描频段开启中</text>
+                </view>
+              </view>
+            </block>
           </view>
-          <view class="summary-sep"></view>
-          <view class="summary-item">
-            <text class="summary-label">航迹样本</text>
-            <text class="summary-val summary-val--sample">{{battlePersona.sampleSize}}</text>
-          </view>
-        </view>
 
-        <!-- 校准入口（未校准态） -->
-        <view class="hero-actions" wx:if="{{!mbti.calibrated}}">
-          <view class="term-btn" bindtap="startFullCalibration">
-            <text>完整校准</text>
+          <!-- 核心标签 -->
+          <view class="hero-signals" wx:if="{{mbti.calibrated && personaSignals.length > 0}}">
+            <view class="hero-signal-tag" wx:for="{{personaSignals}}" wx:key="*this">
+              <text>{{item}}</text>
+            </view>
           </view>
-          <view class="term-btn-desc">20 组信号，生成完整协议</view>
-          <view class="term-btn ghost" bindtap="openMbtiPicker">
-            <text>快速接入</text>
+
+          <!-- 状态摘要 -->
+          <view class="hero-summary" wx:if="{{mbti.calibrated}}">
+            <view class="summary-item">
+              <text class="summary-label">协议一致率</text>
+              <text class="summary-val {{personaMatchDisplayPending ? 'summary-val--pending' : 'summary-val--match'}}">{{personaMatchDisplay}}</text>
+            </view>
+            <view class="summary-sep"></view>
+            <view class="summary-item">
+              <text class="summary-label">航迹样本</text>
+              <text class="summary-val summary-val--sample">{{battlePersona.sampleSize}}</text>
+            </view>
           </view>
-          <view class="term-btn-desc">手动选择类型，立即接入</view>
+
+          <!-- 校准入口（未校准态） -->
+          <view class="hero-actions" wx:if="{{!mbti.calibrated}}">
+            <view class="mirror-cmd-btn mirror-cmd-btn--primary" bindtap="startFullCalibration">
+              <view class="mirror-cmd-sweep"></view>
+              <text class="mirror-cmd-text">完整校准</text>
+            </view>
+            <text class="term-btn-desc">20 组信号，生成完整协议</text>
+            <view class="mirror-cmd-btn mirror-cmd-btn--secondary" bindtap="openMbtiPicker">
+              <text class="mirror-cmd-text">快速接入</text>
+            </view>
+            <text class="term-btn-desc">手动选择类型，立即接入</text>
+          </view>
         </view>
       </view>
 
       <!-- ===== 二级：协议行动 ===== -->
       <view class="mirror-protocol" style="opacity: {{sectionsOpacity}};">
-        <view class="sr-card protocol-card">
+        <view class="mirror-hud-panel protocol-card">
+          <view class="hud-angle hud-angle--tl"></view>
+          <view class="hud-angle hud-angle--tr"></view>
+          <view class="hud-angle hud-angle--bl"></view>
+          <view class="hud-angle hud-angle--br"></view>
+
           <view class="card-header">
             <view class="card-title-row">
               <text class="card-title">协议行动</text>
@@ -145,8 +194,8 @@
             </view>
 
             <view class="protocol-actions">
-              <view class="term-btn-sm {{isSilentSyncing ? 'is-disabled' : ''}}" bindtap="refreshProfile">
-                <text>{{isSilentSyncing ? '同步中' : '同步镜像'}}</text>
+              <view class="mirror-cmd-btn mirror-cmd-btn--sm {{isSilentSyncing ? 'is-disabled' : ''}}" bindtap="refreshProfile">
+                <text class="mirror-cmd-text">{{isSilentSyncing ? '同步中' : '同步镜像'}}</text>
               </view>
             </view>
           </block>
@@ -157,11 +206,11 @@
               <text class="protocol-empty__desc">完成校准后，全息扫描、协议分析和镜像图片会自动解锁。</text>
             </view>
             <view class="protocol-actions protocol-actions--split">
-              <view class="term-btn-sm" bindtap="startFullCalibration">
-                <text>完整校准</text>
+              <view class="mirror-cmd-btn mirror-cmd-btn--sm" bindtap="startFullCalibration">
+                <text class="mirror-cmd-text">完整校准</text>
               </view>
-              <view class="term-btn-sm ghost" bindtap="openMbtiPicker">
-                <text>快速接入</text>
+              <view class="mirror-cmd-btn mirror-cmd-btn--sm mirror-cmd-btn--ghost" bindtap="openMbtiPicker">
+                <text class="mirror-cmd-text">快速接入</text>
               </view>
             </view>
           </block>
@@ -170,7 +219,12 @@
 
       <!-- ===== 二级：航迹档案 ===== -->
       <view class="mirror-track {{!mbti.calibrated ? 'mirror-track--second-screen' : ''}}" style="opacity: {{sectionsOpacity}};">
-        <view class="sr-card track-archive-card" bindtap="goScoreRecords">
+        <view class="mirror-hud-panel track-archive-card" bindtap="goScoreRecords">
+          <view class="hud-angle hud-angle--tl"></view>
+          <view class="hud-angle hud-angle--tr"></view>
+          <view class="hud-angle hud-angle--bl"></view>
+          <view class="hud-angle hud-angle--br"></view>
+
           <view class="card-header">
             <view class="card-title-row">
               <text class="card-title">航迹档案</text>
@@ -202,7 +256,12 @@
 
       <!-- ===== 三级：镜像投影 ===== -->
       <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
-        <view class="sr-card behavior-profile-card">
+        <view class="mirror-hud-panel behavior-profile-card">
+          <view class="hud-angle hud-angle--tl"></view>
+          <view class="hud-angle hud-angle--tr"></view>
+          <view class="hud-angle hud-angle--bl"></view>
+          <view class="hud-angle hud-angle--br"></view>
+
           <view class="card-header">
             <view class="card-title-row">
               <text class="card-title">镜像投影</text>
@@ -233,9 +292,14 @@
         </view>
       </view>
 
-      <!-- ===== 三级：协议分析（独立卡片） ===== -->
+      <!-- ===== 三级：协议分析 ===== -->
       <view class="mirror-analysis" style="opacity: {{sectionsOpacity}};" wx:if="{{mbti.calibrated}}">
-        <view class="sr-card analysis-card">
+        <view class="mirror-hud-panel analysis-card">
+          <view class="hud-angle hud-angle--tl"></view>
+          <view class="hud-angle hud-angle--tr"></view>
+          <view class="hud-angle hud-angle--bl"></view>
+          <view class="hud-angle hud-angle--br"></view>
+
           <view class="card-header">
             <view class="card-title-row analysis-toggle">
               <text class="card-title">协议分析</text>
@@ -359,7 +423,9 @@
 
               <block wx:else>
                 <view class="evo-empty">
-                  <text class="evo-empty-text">协议演化轨迹将在多次校准后生成</text>
+                  <view class="evo-empty-icon"></view>
+                  <text class="evo-empty-title">暂无协议演化轨迹</text>
+                  <text class="evo-empty-text">完成多次校准后，将生成镜像演化曲线</text>
                   <text class="evo-empty-hint">每次校准将记录一次快照</text>
                 </view>
               </block>
@@ -369,7 +435,7 @@
         </view>
       </view>
 
-      <!-- 底部占位：action dock + tabbar + safe area -->
+      <!-- 底部占位 -->
       <view class="mirror-bottom-spacer"></view>
     </view>
 
@@ -379,21 +445,21 @@
   <block wx:if="{{calibrationVisible}}">
     <view class="calibration-shell {{calibrationEntering ? 'calibration-shell--entering' : 'calibration-shell--active'}}">
       <view class="ar-cockpit-console console-show">
-        
+
         <!-- Part 1: 悬空屏幕 (Floating HUD Screen) -->
         <view class="ar-floating-screen">
-          <!-- 背景层，独立负责裁剪扫描线与网格 -->
+          <!-- 背景层 -->
           <view class="ar-screen-bg">
             <view class="ar-screen-grid"></view>
             <view class="ar-screen-scanlines"></view>
           </view>
-          
+
           <!-- AR 定位角 -->
           <view class="ar-hud-angle ar-hud-tl"></view>
           <view class="ar-hud-angle ar-hud-tr"></view>
           <view class="ar-hud-angle ar-hud-bl"></view>
           <view class="ar-hud-angle ar-hud-br"></view>
-          
+
           <!-- AR 顶部系统状态栏 -->
           <view class="ar-top-bar">
             <view class="ar-system-dot"></view>
@@ -402,7 +468,7 @@
               <sr-hatch-close bind:close="closeMbtiTest" reduceMotion="{{reduceMotion}}" />
             </view>
           </view>
-          
+
           <!-- 重新校准内容区 -->
           <view class="ar-content-split">
             <!-- 提交完成面板 -->
@@ -426,21 +492,18 @@
               />
             </view>
           </view>
-          
+
         </view> <!-- End of Floating Screen -->
-        
+
       </view>
 
-      <!-- 答题按钮，平级放在 calibration-shell 下，完美避免 transform 包含块劫持 -->
+      <!-- 答题按钮 -->
       <view class="swipe-actions" wx:if="{{!calibrationSubmitting}}">
-        <!-- 不符合 -->
         <view class="action-btn-hardware hw-btn-adjust hw-btn-left" bindtap="handleCalibrationLeft" title="不符合">
           <view class="crystal-decor crystal-decor-l"></view>
           <view class="crystal-decor crystal-decor-r"></view>
           <text class="hw-btn-text">否</text>
         </view>
-        
-        <!-- 符合 -->
         <view class="action-btn-hardware hw-btn-adjust hw-btn-right" bindtap="handleCalibrationRight" title="符合">
           <view class="crystal-decor crystal-decor-l"></view>
           <view class="crystal-decor crystal-decor-r"></view>
@@ -450,19 +513,22 @@
     </view>
   </block>
 
-  <!-- 固定操作栏：三按钮（tabbar 上方） -->
+  <!-- 固定操作栏：弧形控制台风格 -->
   <view class="mirror-action-dock" wx:if="{{mainVisible && !calibrationVisible && mbti.calibrated}}">
-    <view class="cyber-btn cyber-btn--primary" bindtap="generateDossier">
-      <view class="cyber-btn-scan"></view>
-      <text class="cyber-btn-text">生成镜像</text>
-    </view>
-    <view class="cyber-btn cyber-btn--secondary" bindtap="startFullCalibration">
-      <view class="cyber-btn-glitch"></view>
-      <text class="cyber-btn-text">重新校准</text>
-    </view>
-    <view class="cyber-btn cyber-btn--secondary" bindtap="openMbtiPicker">
-      <view class="cyber-btn-glitch"></view>
-      <text class="cyber-btn-text">修改协议</text>
+    <view class="mirror-dock-shell">
+      <view class="mirror-dock-arc"></view>
+      <view class="mirror-dock-buttons">
+        <view class="mirror-dock-btn mirror-dock-btn--primary" bindtap="generateDossier">
+          <view class="mirror-dock-sweep"></view>
+          <text class="mirror-dock-btn-text">生成镜像</text>
+        </view>
+        <view class="mirror-dock-btn mirror-dock-btn--secondary" bindtap="startFullCalibration">
+          <text class="mirror-dock-btn-text">重新校准</text>
+        </view>
+        <view class="mirror-dock-btn mirror-dock-btn--secondary" bindtap="openMbtiPicker">
+          <text class="mirror-dock-btn-text">修改协议</text>
+        </view>
+      </view>
     </view>
   </view>
 
@@ -494,7 +560,7 @@
   <!-- 隐藏 Canvas -->
   <canvas type="2d" id="personaCardCanvas" class="persona-card-canvas"></canvas>
 
-  <!-- 预览弹窗 (高级科幻全息版) -->
+  <!-- 预览弹窗 — DATA_MIRROR 档案舱 -->
   <view wx:if="{{isCardPreview}}" class="cyber-preview-mask" catchtouchmove="noop">
     <view class="cyber-preview-panel">
       <!-- 边角装饰 -->
@@ -503,10 +569,13 @@
       <view class="cyber-corner-deco cyber-corner-bl"></view>
       <view class="cyber-corner-deco cyber-corner-br"></view>
 
+      <!-- 面板扫描线 -->
+      <view class="cyber-panel-scanline"></view>
+
       <view class="cyber-preview-head">
         <view class="cyber-preview-title-box">
           <view class="cyber-preview-dot"></view>
-          <text class="cyber-preview-title">DATA_PROJECTION / 镜像档案卡</text>
+          <text class="cyber-preview-title">DATA_MIRROR / 镜像档案</text>
         </view>
         <view class="cyber-preview-close" bindtap="closeCardPreview">
           <sr-hatch-close bind:close="closeCardPreview" reduceMotion="{{reduceMotion}}" />
@@ -519,17 +588,14 @@
       </view>
 
       <view class="cyber-preview-actions">
-        <view class="cyber-btn cyber-btn--secondary" bindtap="closeCardPreview">
-          <view class="cyber-btn-glitch"></view>
-          <text class="cyber-btn-text">关闭</text>
+        <view class="mirror-cmd-btn mirror-cmd-btn--sm mirror-cmd-btn--ghost" bindtap="closeCardPreview">
+          <text class="mirror-cmd-text">关闭</text>
         </view>
-        <view class="cyber-btn cyber-btn--primary" bindtap="saveCard">
-          <view class="cyber-btn-scan"></view>
-          <text class="cyber-btn-text">保存</text>
+        <view class="mirror-cmd-btn mirror-cmd-btn--sm" bindtap="saveCard">
+          <text class="mirror-cmd-text">保存</text>
         </view>
-        <button class="cyber-btn cyber-btn--primary" open-type="share">
-          <view class="cyber-btn-scan"></view>
-          <text class="cyber-btn-text">分享</text>
+        <button class="mirror-cmd-btn mirror-cmd-btn--sm mirror-cmd-btn--share" open-type="share">
+          <text class="mirror-cmd-text">分享指令</text>
         </button>
       </view>
     </view>
@@ -539,7 +605,8 @@
   <view class="card-scan-layer" wx:if="{{cardOverlayVisible && !isCardPreview}}" catchtouchmove="noop">
     <view class="card-scan-box">
       <view class="card-scan-ring {{reduceMotion ? '' : 'card-scan-ring-spin'}}"></view>
-      <text class="card-scan-title">镜像图片生成中</text>
+      <text class="card-scan-title">镜像计算中</text>
+      <view class="card-scan-subtitle">正在折叠人格信号</view>
       <view class="card-scan-terminal">
         <view class="card-scan-line card-scan-line--{{item.status}}" wx:for="{{cardScanStepViews}}" wx:key="text">
           <text class="scan-status-dot"></text>
@@ -552,11 +619,19 @@
   <!-- 镜像卡错误态 -->
   <view class="card-error-layer" wx:if="{{cardError}}" catchtouchmove="noop">
     <view class="card-error-box">
+      <view class="hud-angle hud-angle--tl"></view>
+      <view class="hud-angle hud-angle--tr"></view>
+      <view class="hud-angle hud-angle--bl"></view>
+      <view class="hud-angle hud-angle--br"></view>
       <text class="card-error-title">镜像图片生成失败</text>
       <text class="card-error-hint">请稍后重试</text>
       <view class="card-error-actions">
-        <view class="term-btn-sm" bindtap="retryCard">重新生成</view>
-        <view class="term-btn-sm ghost" bindtap="closeCardError">关闭</view>
+        <view class="mirror-cmd-btn mirror-cmd-btn--sm" bindtap="retryCard">
+          <text class="mirror-cmd-text">重新生成</text>
+        </view>
+        <view class="mirror-cmd-btn mirror-cmd-btn--sm mirror-cmd-btn--ghost" bindtap="closeCardError">
+          <text class="mirror-cmd-text">关闭</text>
+        </view>
       </view>
     </view>
   </view>

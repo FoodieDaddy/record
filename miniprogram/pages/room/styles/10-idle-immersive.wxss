@@ -1,0 +1,860 @@
+/* ============================================================
+   Base Terminal — 基地编队终端 · 待命界面
+   叙事：一人独处基地，在编队控制台前等待队员集结，组队后出航
+   氛围：安静、克制、秩序、轻微孤独感、科幻基地室内
+   ============================================================ */
+
+/* === 覆盖旧 viewport 样式 === */
+.cockpit-viewport--idle.idle-base,
+.cockpit-viewport--connecting.idle-base {
+  min-height: 0;
+  margin-bottom: 0;
+  border: none;
+  clip-path: none;
+  background: transparent;
+}
+
+.cockpit-viewport--connecting.idle-base {
+  margin-bottom: var(--sr-tabbar-safe-height, calc(140rpx + env(safe-area-inset-bottom)));
+}
+
+/* === 根容器 === */
+.idle-base {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  margin: 0 -24rpx;
+  border: none;
+  background: transparent;
+  clip-path: none;
+  overflow: hidden;
+}
+
+/* connecting 状态居中 */
+.idle-base--connecting {
+  justify-content: center;
+  align-items: center;
+}
+
+.idle-base--connecting .base-center-info {
+  margin-top: 0;
+}
+
+/* ============================================================
+   基地环境层 — 室内感，非外太空
+   ============================================================ */
+.base-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 88%, rgba(0, 140, 190, 0.045), transparent 42%),
+    radial-gradient(ellipse at 50% 12%, rgba(0, 100, 160, 0.028), transparent 38%),
+    linear-gradient(180deg, #030a12 0%, #041420 50%, #030e18 100%);
+}
+
+/* 设备微光：从底部终端区域发出的柔和光 */
+.base-glow {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 50%;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgba(0, 168, 216, 0.04) 0%,
+    transparent 70%
+  );
+}
+
+/* 基地科技网格：极淡，室内设备投影感 */
+.base-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 160, 210, 0.024) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 160, 210, 0.02) 1rpx, transparent 1rpx);
+  background-size: 80rpx 80rpx;
+  opacity: 0.55;
+  mask-image: radial-gradient(ellipse at 50% 55%, black 0%, black 30%, transparent 65%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 55%, black 0%, black 30%, transparent 65%);
+}
+
+/* 室内暗角：营造空间围合感 */
+.base-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 220rpx rgba(0, 0, 0, 0.60),
+    inset 0 0 110rpx rgba(0, 0, 0, 0.30);
+  pointer-events: none;
+}
+
+/* 终端呼吸光：极慢的设备待机呼吸 */
+.base-breathe {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(0, 168, 216, 0.014) 0%,
+    transparent 50%
+  );
+  animation: baseBreathe 8s ease-in-out infinite;
+}
+
+@keyframes baseBreathe {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+/* ============================================================
+   基地空间线索 — 增强室内结构感
+   ============================================================ */
+
+/* 出航平台透视线：从底部向远处汇聚，更强的纵深 */
+.base-platform {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18%;
+  height: 55%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.28;
+  background:
+    linear-gradient(
+      175deg,
+      transparent 36%,
+      rgba(0, 155, 205, 0.07) 36.3%,
+      transparent 36.6%
+    ),
+    linear-gradient(
+      185deg,
+      transparent 36%,
+      rgba(0, 155, 205, 0.07) 36.3%,
+      transparent 36.6%
+    ),
+    linear-gradient(
+      172deg,
+      transparent 44%,
+      rgba(0, 155, 205, 0.04) 44.3%,
+      transparent 44.6%
+    ),
+    linear-gradient(
+      188deg,
+      transparent 44%,
+      rgba(0, 155, 205, 0.04) 44.3%,
+      transparent 44.6%
+    );
+  mask-image: linear-gradient(to top, black 0%, black 25%, transparent 90%);
+  -webkit-mask-image: linear-gradient(to top, black 0%, black 25%, transparent 90%);
+}
+
+/* 两侧设备舱壁阴影：更明显的室内围合感 */
+.base-bay-shadow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 6, 14, 0.42) 0%, transparent 14%),
+    linear-gradient(270deg, rgba(0, 6, 14, 0.42) 0%, transparent 14%);
+}
+
+/* 远处机库门轮廓：可隐约感知 */
+.base-hangar {
+  position: absolute;
+  left: 50%;
+  top: 5%;
+  transform: translateX(-50%);
+  width: 260rpx;
+  height: 220rpx;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.055;
+  border: 1rpx solid rgba(0, 168, 216, 0.8);
+  border-bottom: none;
+  border-radius: 18rpx 18rpx 0 0;
+}
+
+/* 机库门内部结构线 */
+.base-hangar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  bottom: 0;
+  width: 1rpx;
+  background: rgba(0, 168, 216, 0.45);
+}
+
+/* 基地顶部灯带：稍强 */
+.base-strip-light {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 1.2%;
+  height: 2rpx;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.45;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 168, 216, 0.12) 12%,
+    rgba(0, 168, 216, 0.22) 50%,
+    rgba(0, 168, 216, 0.12) 88%,
+    transparent
+  );
+  box-shadow:
+    0 2rpx 20rpx rgba(0, 168, 216, 0.06),
+    0 0 40rpx rgba(0, 168, 216, 0.03);
+}
+
+/* 中央终端投影区域：底部微弱光斑 */
+.base-projection {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 3%;
+  height: 35%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 85%,
+    rgba(0, 168, 216, 0.022) 0%,
+    transparent 55%
+  );
+}
+
+/* ============================================================
+   终端面板轮廓 — 四角短线 + 极弱内阴影，非闭合大框
+   ============================================================ */
+.base-terminal-frame {
+  position: absolute;
+  inset: 28rpx;
+  z-index: 1;
+  pointer-events: none;
+  /* 长边线极弱，几乎消失 */
+  border: 1rpx solid rgba(0, 160, 210, 0.02);
+  border-radius: 28rpx;
+  box-shadow:
+    inset 0 0 80rpx rgba(0, 20, 40, 0.10);
+}
+
+/* 顶部左角短线 */
+.base-terminal-frame::before {
+  content: '';
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -1rpx;
+  height: 1rpx;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 168, 216, 0.16) 0%,
+    rgba(0, 168, 216, 0.08) 15%,
+    transparent 35%,
+    transparent 65%,
+    rgba(0, 168, 216, 0.08) 85%,
+    rgba(0, 168, 216, 0.16) 100%
+  );
+}
+
+/* 底部角短线 */
+.base-terminal-frame::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1rpx;
+  height: 1rpx;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 168, 216, 0.10) 0%,
+    rgba(0, 168, 216, 0.05) 18%,
+    transparent 40%,
+    transparent 60%,
+    rgba(0, 168, 216, 0.05) 82%,
+    rgba(0, 168, 216, 0.10) 100%
+  );
+}
+
+/* ============================================================
+   中央信息 — 待命文案
+   ============================================================ */
+.base-center-info {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  padding: 0 56rpx;
+  margin-top: 200rpx;
+}
+
+.base-main-title {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: rgba(215, 238, 247, 0.88);
+  text-shadow: 0 0 24rpx rgba(0, 168, 216, 0.14);
+  letter-spacing: 3rpx;
+}
+
+.base-sub-title {
+  margin-top: 18rpx;
+  font-size: 24rpx;
+  color: rgba(127, 152, 168, 0.68);
+  line-height: 1.6;
+}
+
+.base-channel-status {
+  margin-top: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  font-size: 22rpx;
+  color: rgba(0, 168, 216, 0.44);
+  letter-spacing: 2rpx;
+}
+
+.base-channel-dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: rgba(0, 168, 216, 0.55);
+  box-shadow: 0 0 8rpx rgba(0, 168, 216, 0.25);
+  animation: baseChannelPulse 3s ease-in-out infinite;
+}
+
+@keyframes baseChannelPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.9); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* ============================================================
+   编队信标 — 基地编队广播核心
+   外圈极淡，内圈略亮，慢速呼吸，非雷达
+   ============================================================ */
+.base-beacon {
+  position: relative;
+  left: 50%;
+  top: 36%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.base-beacon-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1rpx solid rgba(0, 168, 216, 0.04);
+}
+
+/* 外圈：极淡 */
+.base-beacon-ring--outer {
+  width: 340rpx;
+  height: 340rpx;
+  animation: baseBeaconPulse 9s ease-in-out infinite;
+}
+
+/* 中圈：稍亮 */
+.base-beacon-ring--mid {
+  width: 220rpx;
+  height: 220rpx;
+  border-color: rgba(0, 168, 216, 0.055);
+  animation: baseBeaconPulse 9s ease-in-out 2s infinite;
+}
+
+/* 内圈：最亮 */
+.base-beacon-ring--inner {
+  width: 100rpx;
+  height: 100rpx;
+  border-color: rgba(0, 168, 216, 0.07);
+  animation: baseBeaconPulse 9s ease-in-out 4s infinite;
+}
+
+@keyframes baseBeaconPulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  50% {
+    opacity: 0.75;
+    transform: translate(-50%, -50%) scale(1.03);
+  }
+}
+
+/* 信标核心：中央微光点 */
+.base-beacon-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: rgba(0, 168, 216, 0.42);
+  box-shadow:
+    0 0 16rpx rgba(0, 168, 216, 0.22),
+    0 0 40rpx rgba(0, 168, 216, 0.08);
+  animation: baseBeaconCore 5s ease-in-out infinite;
+}
+
+@keyframes baseBeaconCore {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+
+/* 信标投影线：水平淡线，像终端投影台 */
+.base-beacon-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 60rpx);
+  width: 180rpx;
+  height: 1rpx;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 168, 216, 0.10) 20%,
+    rgba(0, 168, 216, 0.14) 50%,
+    rgba(0, 168, 216, 0.10) 80%,
+    transparent
+  );
+  opacity: 0.6;
+}
+
+/* 信标连接节点：2-3 个微弱光点 */
+.base-beacon-nodes {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 0);
+  width: 200rpx;
+  height: 8rpx;
+}
+
+.base-beacon-node {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5rpx;
+  height: 5rpx;
+  border-radius: 50%;
+  background: rgba(0, 168, 216, 0.28);
+  box-shadow: 0 0 6rpx rgba(0, 168, 216, 0.12);
+}
+
+.base-beacon-node--l {
+  left: 28rpx;
+  animation: baseNodeBreathe 6s ease-in-out 0.5s infinite;
+}
+
+.base-beacon-node--c {
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 168, 216, 0.35);
+  box-shadow: 0 0 8rpx rgba(0, 168, 216, 0.16);
+  animation: baseNodeBreathe 6s ease-in-out 1.5s infinite;
+}
+
+.base-beacon-node--r {
+  right: 28rpx;
+  animation: baseNodeBreathe 6s ease-in-out 2.5s infinite;
+}
+
+@keyframes baseNodeBreathe {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.85; }
+}
+
+/* ============================================================
+   状态面板 — 基地出发条件
+   ============================================================ */
+.base-status-row {
+  position: relative;
+  z-index: 3;
+  margin-top: auto;
+  padding: 0 36rpx;
+  display: flex;
+  align-items: stretch;
+  gap: 10rpx;
+}
+
+.base-status-chips {
+  display: flex;
+  gap: 12rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.base-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 12rpx 10rpx;
+  border: 1rpx solid rgba(0, 160, 210, 0.07);
+  border-radius: 16rpx;
+  background: rgba(3, 10, 18, 0.32);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+}
+
+.base-chip-label {
+  font-size: 16rpx;
+  color: rgba(127, 152, 168, 0.46);
+  white-space: nowrap;
+  letter-spacing: 0.5rpx;
+}
+
+.base-chip-value {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: rgba(0, 185, 225, 0.82);
+  font-family: 'DIN Alternate', Menlo, monospace;
+  white-space: nowrap;
+  text-shadow: 0 0 10rpx rgba(0, 168, 216, 0.08);
+}
+
+/* ============================================================
+   组队方式 — 终端模式选择器
+   ============================================================ */
+.base-protocol {
+  position: relative;
+  z-index: 3;
+  padding: 0 40rpx;
+  margin-top: 28rpx;
+}
+
+/* 小标签 */
+.base-protocol-label {
+  font-size: 18rpx;
+  color: rgba(127, 152, 168, 0.36);
+  letter-spacing: 2rpx;
+  margin-bottom: 10rpx;
+  padding-left: 4rpx;
+}
+
+.base-protocol-capsule {
+  display: flex;
+  border: 1rpx solid rgba(0, 160, 210, 0.07);
+  border-radius: 999rpx;
+  background: rgba(3, 10, 18, 0.30);
+  overflow: hidden;
+}
+
+.base-protocol-opt {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 18rpx 0;
+  font-size: 24rpx;
+  color: rgba(127, 152, 168, 0.50);
+  transition: color .3s, background-color .3s;
+  position: relative;
+}
+
+.base-protocol-opt--on {
+  color: rgba(215, 238, 247, 0.88);
+  background: rgba(0, 168, 216, 0.05);
+}
+
+/* 选中态底部柔光线 */
+.base-protocol-opt--on::after {
+  content: '';
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: 0;
+  height: 2rpx;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 168, 216, 0.30),
+    transparent
+  );
+  border-radius: 1rpx;
+}
+
+.base-protocol-dot {
+  width: 10rpx;
+  height: 10rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(127, 152, 168, 0.20);
+  transition: background-color .3s, border-color .3s, box-shadow .3s;
+}
+
+.base-protocol-dot--on {
+  background: rgba(0, 168, 216, 0.75);
+  border-color: rgba(0, 168, 216, 0.75);
+  box-shadow: 0 0 10rpx rgba(0, 168, 216, 0.35);
+}
+
+/* ============================================================
+   操作区 — 底部控制台
+   ============================================================ */
+.base-actions {
+  position: relative;
+  z-index: 3;
+  padding: 32rpx 40rpx 0;
+  margin-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+/* 主按钮：终端确认风格 */
+.base-btn-primary {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  height: 96rpx;
+  border: 1rpx solid rgba(0, 168, 216, 0.24);
+  border-radius: 12rpx;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 140, 190, 0.07),
+    rgba(0, 168, 216, 0.025)
+  );
+  color: rgba(215, 238, 247, 0.90);
+  overflow: hidden;
+  clip-path: polygon(
+    12rpx 0,
+    calc(100% - 12rpx) 0,
+    100% 12rpx,
+    100% calc(100% - 12rpx),
+    calc(100% - 12rpx) 100%,
+    12rpx 100%,
+    0 calc(100% - 12rpx),
+    0 12rpx
+  );
+  transition: border-color .25s, background-color .25s, transform .15s;
+}
+
+.base-btn-primary::after {
+  display: none;
+}
+
+.base-btn-primary:active {
+  transform: scale(0.97);
+  border-color: rgba(0, 168, 216, 0.44);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 140, 190, 0.10),
+    rgba(0, 168, 216, 0.05)
+  );
+}
+
+.base-btn-primary--loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* 按钮内柔光扫 */
+.base-btn-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 168, 216, 0.05),
+    transparent
+  );
+  animation: baseBtnGlow 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes baseBtnGlow {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.base-btn-text {
+  position: relative;
+  z-index: 1;
+  font-size: 28rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+
+.base-btn-hint {
+  position: relative;
+  z-index: 1;
+  font-size: 20rpx;
+  color: rgba(127, 152, 168, 0.44);
+  font-weight: 400;
+  letter-spacing: 1rpx;
+}
+
+/* 次按钮：明显可点击，不像禁用 */
+.base-btn-secondary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  height: 84rpx;
+  border: 1rpx solid rgba(0, 160, 210, 0.14);
+  border-radius: 12rpx;
+  background: rgba(3, 10, 18, 0.28);
+  color: rgba(160, 185, 200, 0.74);
+  clip-path: polygon(
+    12rpx 0,
+    calc(100% - 12rpx) 0,
+    100% 12rpx,
+    100% calc(100% - 12rpx),
+    calc(100% - 12rpx) 100%,
+    12rpx 100%,
+    0 calc(100% - 12rpx),
+    0 12rpx
+  );
+  transition: border-color .25s, color .25s, box-shadow .25s, transform .15s;
+}
+
+.base-btn-secondary::after {
+  display: none;
+}
+
+.base-btn-secondary:active {
+  transform: scale(0.97);
+  border-color: rgba(0, 168, 216, 0.30);
+  color: rgba(215, 238, 247, 0.82);
+  box-shadow:
+    0 0 16rpx rgba(0, 168, 216, 0.08),
+    inset 0 0 12rpx rgba(0, 168, 216, 0.04);
+}
+
+.base-btn-secondary .base-btn-hint {
+  color: rgba(127, 152, 168, 0.40);
+}
+
+/* ============================================================
+   已创建编队 (State B) 样式覆盖
+   ============================================================ */
+
+/* 信息区顶部间距缩小，让内容更居中 */
+.idle-base--formed .base-center-info {
+  margin-top: 100rpx;
+}
+
+/* State B 状态行 */
+.idle-base--formed .base-status-row {
+  padding: 0 32rpx;
+}
+
+.idle-base--formed .base-status-chips {
+  flex: 1;
+  gap: 10rpx;
+}
+
+.idle-base--formed .base-chip {
+  padding: 12rpx 8rpx;
+  border-color: rgba(0, 160, 210, 0.09);
+}
+
+/* ============================================================
+   顶部导航增强
+   ============================================================ */
+.room-custom-nav__hud-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 0;
+  height: 1rpx;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 168, 216, 0.14) 20%,
+    rgba(0, 168, 216, 0.18) 50%,
+    rgba(0, 168, 216, 0.14) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* ============================================================
+   重入卡片适配 — 半透明暗色融入基地
+   ============================================================ */
+.room-page .reentry-card {
+  position: relative;
+  z-index: 3;
+  margin: -160rpx 24rpx 0;
+  border-color: rgba(0, 160, 210, 0.07);
+  background: rgba(3, 10, 18, 0.45);
+  backdrop-filter: blur(14rpx);
+  -webkit-backdrop-filter: blur(14rpx);
+}
+
+/* ============================================================
+   小屏适配
+   ============================================================ */
+@media (max-height: 700px) {
+  .base-center-info {
+    margin-top: 140rpx;
+  }
+
+  .idle-base--formed .base-center-info {
+    margin-top: 60rpx;
+  }
+
+  .base-main-title {
+    font-size: 38rpx;
+  }
+
+  .base-beacon-ring--outer {
+    width: 280rpx;
+    height: 280rpx;
+  }
+
+  .base-beacon-ring--mid {
+    width: 180rpx;
+    height: 180rpx;
+  }
+
+  .base-beacon-ring--inner {
+    width: 80rpx;
+    height: 80rpx;
+  }
+}
+
+/* ============================================================
+   reduce-motion
+   ============================================================ */
+.reduce-motion .base-breathe,
+.reduce-motion .base-channel-dot,
+.reduce-motion .base-beacon-ring,
+.reduce-motion .base-beacon-core,
+.reduce-motion .base-beacon-node,
+.reduce-motion .base-btn-glow {
+  animation: none !important;
+}
+
+.reduce-motion .base-channel-dot {
+  opacity: 0.6;
+}
+
+.reduce-motion .base-beacon-ring {
+  opacity: 0.5;
+}
+
+.reduce-motion .base-beacon-core {
+  opacity: 0.6;
+}
+
+.reduce-motion .base-beacon-node {
+  opacity: 0.5;
+}

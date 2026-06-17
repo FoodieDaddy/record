@@ -1,90 +1,122 @@
-<scroll-view
-  class="page-container {{!animationEnabled ? 'reduce-motion' : ''}}"
-  style="height: {{pageHeight}}px;"
-  scroll-y
-  enhanced
-  show-scrollbar="{{false}}"
-  refresher-enabled
-  refresher-triggered="{{loading}}"
-  bindrefresherrefresh="onPullDownRefresh"
->
-
-  <!-- 终端标题 -->
-  <view class="terminal-header">
-    <text class="terminal-title">航迹回放</text>
-    <view class="terminal-line"></view>
-  </view>
-
-  <!-- 加载中 -->
-  <view class="loading-state" wx:if="{{loading && records.length === 0}}">
-    <view class="loading-spinner"></view>
-    <text class="loading-text">正在读取航迹索引</text>
-  </view>
-
-  <!-- 加载失败 -->
-  <view class="error-state" wx:elif="{{loadError}}">
-    <text class="error-text">航迹索引读取失败</text>
-    <view class="error-retry" bindtap="loadSamples">
-      <text class="error-retry-text">重新读取</text>
-    </view>
-  </view>
-
-  <!-- 空状态 -->
-  <view class="empty-state" wx:elif="{{!loading && records.length === 0}}">
-    <view class="empty-box">
-      <view class="empty-box-inner"></view>
-    </view>
-    <text class="empty-text">航迹档案尚未写入样本</text>
-    <text class="empty-hint">完成一次航程封存后，回放索引将自动点亮</text>
-  </view>
-
-  <!-- 航程样本列表 -->
-  <block wx:if="{{records.length > 0}}">
-    <view class="section-header">
-      <text class="section-label">航程样本</text>
-    </view>
-
-    <view class="sample-list">
-      <view
-        class="sample-card"
-        wx:for="{{records}}"
-        wx:key="roomId"
-        data-room-id="{{item.roomId}}"
-        bindtap="onSampleTap"
-      >
-        <view class="sample-card__left">
-          <view class="sample-card__id-row">
-            <text class="sample-card__prefix">样本</text>
-            <text class="sample-card__room">{{item.roomNo}}</text>
-          </view>
-          <text class="sample-card__time">{{item.settledAt}} 已封存</text>
+<view class="trace-page {{reduceMotion ? 'reduce-motion' : ''}}">
+  <!-- HUD Header -->
+  <view class="trace-nav" style="height: {{customNavHeight}}px; padding-top: {{customNavTop}}px;">
+    <view class="trace-nav__bar" style="height: {{customNavBarHeight}}px;">
+      <view class="trace-nav-hud">
+        <view class="trace-back-btn" bindtap="navigateBack">
+          <view class="trace-back-arrow"></view>
+          <text class="trace-back-text">返回</text>
         </view>
-        <view class="sample-card__right">
-          <text class="sample-card__score {{item.myScore > 0 ? 'score-positive' : item.myScore < 0 ? 'score-negative' : 'score-zero'}}">
-            {{item.myScore > 0 ? '+' : ''}}{{item.myScore}}
-          </text>
-          <text class="sample-card__rank">#{{item.myRank}} / {{item.memberCount}}</text>
-        </view>
-        <view class="sample-card__action">
-          <text class="sample-card__action-text">回放</text>
-          <view class="svg-icon svg-icon--arrow-sm"></view>
+        <view class="trace-nav-title">
+          <text class="trace-nav-title__main">航迹回放</text>
+          <text class="trace-nav-title__sub">TRACE_ARCHIVE</text>
         </view>
       </view>
     </view>
-  </block>
+    <view class="trace-nav-line"></view>
+  </view>
 
-</scroll-view>
+  <!-- Deep space background -->
+  <view class="trace-space-bg">
+    <view class="trace-starfield"></view>
+    <view class="trace-grid"></view>
+    <view class="trace-vignette"></view>
+  </view>
 
-<view class="playback-mask" wx:if="{{playbackVisible}}" bindtap="closePlayback">
-  <view class="playback-panel" catchtap="">
-    <pulse-stream
-      records="{{playbackRecords}}"
-      live="{{false}}"
-      loading="{{playbackLoading}}"
-      title="航程 {{playbackRoomNo}} 脉冲回放"
-      max-rows="{{12}}"
-      show-close
-      bind:close="closePlayback"
-    />
+  <!-- Toolbar -->
+  <view class="trace-toolbar" style="top: {{customNavHeight}}px;">
+    <view class="trace-search">
+      <text class="trace-search__icon">⌕</text>
+      <input class="trace-search__input" placeholder="搜索样本编号" placeholder-class="trace-search__placeholder" />
+    </view>
+    <view class="trace-filters">
+      <view class="trace-filter-chip trace-filter-chip--active">全部</view>
+      <view class="trace-filter-chip">有回放</view>
+      <view class="trace-filter-chip">无回放</view>
+    </view>
+  </view>
+
+  <!-- Main scroll area -->
+  <scroll-view scroll-y class="trace-scroll" style="height: {{scrollHeight}}px;">
+    <!-- Loading -->
+    <view class="trace-loading" wx:if="{{loading && records.length === 0}}">
+      <view class="trace-loading-ring"></view>
+      <text class="trace-loading-text">链路同步中</text>
+      <text class="trace-loading-sub">正在读取航迹索引</text>
+    </view>
+
+    <!-- Error -->
+    <view class="trace-error" wx:elif="{{loadError}}">
+      <text class="trace-error-title">航迹同步失败</text>
+      <text class="trace-error-sub">请检查链路后重试</text>
+      <view class="trace-retry-btn" bindtap="loadSamples">
+        <text>重试</text>
+      </view>
+    </view>
+
+    <!-- Empty -->
+    <view class="trace-empty" wx:elif="{{records.length === 0}}">
+      <view class="trace-empty-icon"></view>
+      <text class="trace-empty-title">暂无航迹样本</text>
+      <text class="trace-empty-desc">完成镜像生成后将自动写入航迹档案</text>
+    </view>
+
+    <!-- List -->
+    <view class="trace-list" wx:else>
+      <view class="trace-card" wx:for="{{records}}" wx:key="roomId" bindtap="onSampleTap" data-room-id="{{item.roomId}}">
+        <view class="trace-hud-angle trace-hud-angle--tl"></view>
+        <view class="trace-hud-angle trace-hud-angle--tr"></view>
+        <view class="trace-hud-angle trace-hud-angle--bl"></view>
+        <view class="trace-hud-angle trace-hud-angle--br"></view>
+        <view class="trace-card__left">
+          <text class="trace-card__id">{{item.roomNo}}</text>
+          <text class="trace-card__time">{{item.settledAt}}</text>
+          <text class="trace-card__status">已封存</text>
+        </view>
+        <view class="trace-card__right">
+          <text class="trace-card__plays {{item.myScore === 0 ? 'trace-card__plays--zero' : ''}}">回放 {{item.playCount || 0}}</text>
+          <view class="trace-card__arrow"></view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- Playback overlay -->
+  <view class="trace-playback-mask" wx:if="{{playbackVisible}}" catchtouchmove="noop">
+    <view class="trace-playback-panel">
+      <view class="trace-hud-angle trace-hud-angle--tl"></view>
+      <view class="trace-hud-angle trace-hud-angle--tr"></view>
+      <view class="trace-hud-angle trace-hud-angle--bl"></view>
+      <view class="trace-hud-angle trace-hud-angle--br"></view>
+      <view class="trace-playback-head">
+        <view class="trace-playback-title">
+          <text class="trace-playback-title__room">航程 {{playbackRoomNo}}</text>
+          <text class="trace-playback-title__sub">TRACE_PLAYBACK / 脉冲回放</text>
+        </view>
+        <view class="trace-playback-close" bindtap="closePlayback">
+          <text class="trace-playback-close-text">✕</text>
+        </view>
+      </view>
+      <view class="trace-playback-body">
+        <!-- Loading -->
+        <view class="trace-pb-loading" wx:if="{{playbackLoading}}">
+          <view class="trace-pb-loading-dots">
+            <view class="trace-pb-dot"></view>
+            <view class="trace-pb-dot"></view>
+            <view class="trace-pb-dot"></view>
+          </view>
+          <text class="trace-pb-loading-text">链路同步中</text>
+          <text class="trace-pb-loading-sub">正在读取航迹脉冲</text>
+        </view>
+        <!-- Empty -->
+        <view class="trace-pb-empty" wx:elif="{{playbackRecords.length === 0}}">
+          <view class="trace-pb-empty-radar"></view>
+          <text class="trace-pb-empty-title">该航程暂无脉冲记录</text>
+          <text class="trace-pb-empty-desc">该样本已封存，但尚未写入可回放片段</text>
+        </view>
+        <!-- Data -->
+        <pulse-stream wx:else records="{{playbackRecords}}" live="{{false}}" loading="{{false}}" title="" max-rows="{{12}}" />
+      </view>
+    </view>
   </view>
 </view>

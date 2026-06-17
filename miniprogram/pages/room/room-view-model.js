@@ -252,6 +252,7 @@ function buildCockpitView(ctx = {}) {
   const state = ctx.cockpitState;
   const grid = ctx.memberGrid || [];
   const hasFormation = !!(room && ctx.viewingRoom);
+  const hasRoom = !!room;
   const isConnecting = state === 'connecting';
   const selfId = String(ctx.myUserId || '');
   const selfMember = grid.find(m => String(m.userId) === selfId) ||
@@ -261,7 +262,9 @@ function buildCockpitView(ctx = {}) {
   const myPulse = Number(rawPulse || 0);
   const formationCount = hasFormation
     ? (grid.length || (room && room.members ? room.members.length : 0))
-    : 0;
+    : hasRoom
+      ? (room.members ? room.members.length : 1)
+      : 0;
   const externalShips = deriveFormationShips(grid, selfId, ctx);
   const visibleTraces = ctx.pulseTraces || [];
   const chronologicalTraces = visibleTraces.slice().sort((a, b) => getTraceSortValue(a) - getTraceSortValue(b));
@@ -270,25 +273,25 @@ function buildCockpitView(ctx = {}) {
 
   let statusLabel, statusDot, statusSubtitle;
   if (isConnecting || state === 'connecting') {
-    statusLabel = '驾驶舱启动中';
+    statusLabel = '编队系统接入中';
     statusDot = 'connecting';
     statusSubtitle = '';
-  } else if (hasFormation) {
+  } else if (hasFormation || hasRoom) {
     if (ctx.wsReconnecting) {
       statusLabel = '链路重试中';
       statusSubtitle = '正在重新建立通讯...';
       statusDot = 'connecting';
-    } else if (ctx.wsConnected === false) {
+    } else if (ctx.wsConnected === false && hasFormation) {
       statusLabel = '链路已断开';
       statusSubtitle = '通讯异常，请检查网络';
       statusDot = 'idle';
     } else {
-      statusLabel = '驾驶舱已接入';
-      statusSubtitle = externalShips.length > 0 ? '' : '暂无外部航船';
+      statusLabel = '编队已建立';
+      statusSubtitle = '';
       statusDot = 'online';
     }
   } else {
-    statusLabel = '驾驶舱待机中';
+    statusLabel = '基地终端在线';
     statusDot = 'idle';
     statusSubtitle = '';
   }
@@ -306,8 +309,8 @@ function buildCockpitView(ctx = {}) {
     statusLabel,
     statusDot,
     statusSubtitle,
-    formationCode: hasFormation && room ? room.roomNo : '--',
-    roomNo: hasFormation && room ? room.roomNo : '--',
+    formationCode: hasRoom ? room.roomNo : '--',
+    roomNo: hasRoom ? room.roomNo : '--',
     formationCount,
     memberCountText: `${formationCount}/16`,
     maxMembers: 16,

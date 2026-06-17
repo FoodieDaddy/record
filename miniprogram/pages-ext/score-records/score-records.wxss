@@ -1,18 +1,541 @@
-/* ===== 页面容器 ===== */
-.page-container {
+/* ============================================================
+   航迹回放页 — TRACE ARCHIVE · 深空舰桥 HUD 风格
+   与镜像页 (mirror/index) 同源视觉语言
+   ============================================================ */
+
+/* === 根容器 === */
+.trace-page {
+  position: relative;
+  box-sizing: border-box;
+  min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 0%, rgba(10, 132, 255, 0.08), transparent 32%),
-    radial-gradient(circle at 90% 18%, rgba(94, 92, 230, 0.05), transparent 30%),
-    #0A0A0A;
-  padding: 24rpx;
-  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+    radial-gradient(ellipse at 50% 20%, rgba(0, 168, 216, 0.06), transparent 50%),
+    radial-gradient(ellipse at 20% 70%, rgba(5, 18, 31, 0.9), transparent 60%),
+    radial-gradient(ellipse at 80% 85%, rgba(7, 26, 42, 0.6), transparent 50%),
+    linear-gradient(180deg, #02070d 0%, #04121f 40%, #071a2a 100%);
+  color: rgba(226, 242, 255, 0.90);
+  overflow: hidden;
+}
+
+/* ============================================================
+   导航条
+   ============================================================ */
+.trace-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-sizing: border-box;
+  background: rgba(2, 7, 13, 0.88);
+  border-bottom: 1rpx solid rgba(0, 180, 255, 0.08);
+}
+
+.trace-nav__bar {
+  display: flex;
+  align-items: center;
   box-sizing: border-box;
 }
 
-.playback-mask {
+.trace-nav-hud {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 24rpx;
+  box-sizing: border-box;
+}
+
+.trace-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 16rpx 12rpx 8rpx;
+  flex-shrink: 0;
+}
+
+.trace-back-btn:active {
+  opacity: 0.6;
+}
+
+.trace-back-arrow {
+  width: 16rpx;
+  height: 16rpx;
+  border-left: 3rpx solid rgba(0, 216, 255, 0.72);
+  border-bottom: 3rpx solid rgba(0, 216, 255, 0.72);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+
+.trace-back-text {
+  font-size: 26rpx;
+  color: rgba(0, 216, 255, 0.72);
+  letter-spacing: 2rpx;
+}
+
+.trace-nav-title {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-left: 12rpx;
+}
+
+.trace-nav-title__main {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #e8f7ff;
+  letter-spacing: 3rpx;
+}
+
+.trace-nav-title__sub {
+  font-size: 18rpx;
+  font-weight: 600;
+  color: rgba(0, 216, 255, 0.42);
+  letter-spacing: 4rpx;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.trace-nav-line {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: 0;
+  height: 1rpx;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 216, 255, 0.22) 20%,
+    rgba(0, 216, 255, 0.32) 50%,
+    rgba(0, 216, 255, 0.22) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* ============================================================
+   深空背景层 — 与镜像页 mirror-space-bg 同源
+   ============================================================ */
+.trace-space-bg {
   position: fixed;
-  z-index: 1200;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 星点场 */
+.trace-starfield {
+  position: absolute;
   inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 22%, rgba(200, 230, 255, 0.45) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 42% 12%, rgba(0, 216, 255, 0.30) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 68% 35%, rgba(200, 230, 255, 0.35) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 85% 18%, rgba(0, 200, 255, 0.22) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 28% 55%, rgba(200, 230, 255, 0.28) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 72% 62%, rgba(200, 230, 255, 0.22) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 8% 78%, rgba(0, 216, 255, 0.18) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 55% 82%, rgba(200, 230, 255, 0.20) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 92% 48%, rgba(200, 230, 255, 0.24) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 38% 42%, rgba(0, 200, 255, 0.16) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 62% 88%, rgba(200, 230, 255, 0.14) 0 1rpx, transparent 2rpx),
+    radial-gradient(circle at 18% 92%, rgba(0, 216, 255, 0.12) 0 1rpx, transparent 2rpx);
+  animation: traceStarDrift 60s linear infinite;
+}
+
+@keyframes traceStarDrift {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-6rpx); }
+  100% { transform: translateY(0); }
+}
+
+/* 细网格 */
+.trace-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 180, 255, 0.04) 1rpx, transparent 1rpx),
+    linear-gradient(90deg, rgba(0, 180, 255, 0.03) 1rpx, transparent 1rpx);
+  background-size: 72rpx 72rpx;
+  opacity: 0.5;
+  mask-image: radial-gradient(ellipse at 50% 40%, black 0%, black 40%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 0%, black 40%, transparent 78%);
+}
+
+/* 暗角 */
+.trace-vignette {
+  position: absolute;
+  inset: 0;
+  box-shadow:
+    inset 0 0 180rpx rgba(0, 0, 0, 0.6),
+    inset 0 0 80rpx rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+/* ============================================================
+   工具栏 — 搜索 + 筛选
+   ============================================================ */
+.trace-toolbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 900;
+  padding: 16rpx 28rpx 12rpx;
+  box-sizing: border-box;
+  background: rgba(2, 7, 13, 0.72);
+  border-bottom: 1rpx solid rgba(0, 180, 255, 0.08);
+}
+
+.trace-search {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  height: 68rpx;
+  padding: 0 20rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(0, 216, 255, 0.18);
+  background: rgba(2, 7, 13, 0.55);
+  margin-bottom: 14rpx;
+}
+
+.trace-search__icon {
+  font-size: 32rpx;
+  color: rgba(0, 216, 255, 0.52);
+  flex-shrink: 0;
+}
+
+.trace-search__input {
+  flex: 1;
+  font-size: 26rpx;
+  color: rgba(226, 242, 255, 0.88);
+  height: 68rpx;
+  line-height: 68rpx;
+}
+
+.trace-search__placeholder {
+  color: rgba(170, 195, 215, 0.36);
+  font-size: 26rpx;
+}
+
+.trace-filters {
+  display: flex;
+  gap: 14rpx;
+}
+
+.trace-filter-chip {
+  height: 48rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(0, 180, 255, 0.12);
+  background: rgba(2, 7, 13, 0.36);
+  font-size: 22rpx;
+  color: rgba(170, 195, 215, 0.56);
+  display: flex;
+  align-items: center;
+  letter-spacing: 1rpx;
+}
+
+.trace-filter-chip--active {
+  border-color: rgba(0, 216, 255, 0.36);
+  color: rgba(0, 216, 255, 0.82);
+  background: rgba(0, 168, 216, 0.08);
+}
+
+.trace-filter-chip:active {
+  background: rgba(0, 168, 216, 0.12);
+}
+
+/* ============================================================
+   滚动容器
+   ============================================================ */
+.trace-scroll {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: 0 28rpx;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+}
+
+/* ============================================================
+   加载态
+   ============================================================ */
+.trace-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.trace-loading-ring {
+  width: 56rpx;
+  height: 56rpx;
+  border: 3rpx solid rgba(0, 216, 255, 0.12);
+  border-top-color: rgba(0, 216, 255, 0.82);
+  border-radius: 50%;
+  animation: traceSpin 0.9s linear infinite;
+}
+
+@keyframes traceSpin {
+  to { transform: rotate(360deg); }
+}
+
+.trace-loading-text {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(0, 216, 255, 0.62);
+  letter-spacing: 4rpx;
+  margin-top: 28rpx;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.trace-loading-sub {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(170, 195, 215, 0.42);
+  margin-top: 10rpx;
+}
+
+/* ============================================================
+   错误态
+   ============================================================ */
+.trace-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.trace-error-title {
+  font-size: 28rpx;
+  color: rgba(255, 69, 58, 0.82);
+  letter-spacing: 2rpx;
+  margin-bottom: 8rpx;
+}
+
+.trace-error-sub {
+  font-size: 22rpx;
+  color: rgba(170, 195, 215, 0.48);
+  margin-bottom: 32rpx;
+}
+
+.trace-retry-btn {
+  padding: 16rpx 48rpx;
+  border: 1rpx solid rgba(0, 216, 255, 0.32);
+  border-radius: 10rpx;
+  background: rgba(0, 168, 216, 0.08);
+}
+
+.trace-retry-btn:active {
+  background: rgba(0, 168, 216, 0.16);
+  border-color: rgba(0, 216, 255, 0.48);
+}
+
+.trace-retry-btn text {
+  font-size: 24rpx;
+  color: rgba(0, 216, 255, 0.82);
+  letter-spacing: 3rpx;
+}
+
+/* ============================================================
+   空状态
+   ============================================================ */
+.trace-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.trace-empty-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border: 2rpx solid rgba(0, 180, 255, 0.18);
+  border-radius: 50%;
+  margin-bottom: 28rpx;
+  position: relative;
+}
+
+.trace-empty-icon::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 12rpx;
+  right: 12rpx;
+  height: 2rpx;
+  background: rgba(0, 180, 255, 0.14);
+}
+
+.trace-empty-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 12rpx;
+  bottom: 12rpx;
+  width: 2rpx;
+  background: rgba(0, 180, 255, 0.14);
+}
+
+.trace-empty-title {
+  font-size: 28rpx;
+  color: rgba(170, 195, 215, 0.62);
+  margin-bottom: 10rpx;
+  letter-spacing: 2rpx;
+}
+
+.trace-empty-desc {
+  font-size: 22rpx;
+  color: rgba(170, 195, 215, 0.38);
+}
+
+/* ============================================================
+   列表容器
+   ============================================================ */
+.trace-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding-top: 8rpx;
+}
+
+/* ============================================================
+   HUD 卡片 — 与镜像页 mirror-hud-panel 同源
+   ============================================================ */
+.trace-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 24rpx 28rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(0, 180, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(4, 18, 31, 0.78), rgba(2, 10, 18, 0.88));
+  box-shadow:
+    0 0 0 1rpx rgba(255, 255, 255, 0.02) inset,
+    0 8rpx 32rpx rgba(0, 0, 0, 0.3);
+  min-height: 86rpx;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.trace-card:active {
+  border-color: rgba(0, 216, 255, 0.32);
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(0, 168, 216, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(4, 18, 31, 0.82), rgba(2, 10, 18, 0.92));
+}
+
+/* HUD 角标 */
+.trace-hud-angle {
+  position: absolute;
+  width: 16rpx;
+  height: 16rpx;
+  border-color: rgba(0, 216, 255, 0.42);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.trace-hud-angle--tl {
+  top: -1rpx;
+  left: -1rpx;
+  border-width: 2rpx 0 0 2rpx;
+  border-radius: 6rpx 0 0 0;
+}
+
+.trace-hud-angle--tr {
+  top: -1rpx;
+  right: -1rpx;
+  border-width: 2rpx 2rpx 0 0;
+  border-radius: 0 6rpx 0 0;
+}
+
+.trace-hud-angle--bl {
+  bottom: -1rpx;
+  left: -1rpx;
+  border-width: 0 0 2rpx 2rpx;
+  border-radius: 0 0 0 6rpx;
+}
+
+.trace-hud-angle--br {
+  bottom: -1rpx;
+  right: -1rpx;
+  border-width: 0 2rpx 2rpx 0;
+  border-radius: 0 0 6rpx 0;
+}
+
+/* 卡片左侧 */
+.trace-card__left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.trace-card__id {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: rgba(0, 216, 255, 0.82);
+  font-family: "SF Mono", "Courier New", monospace;
+  letter-spacing: 3rpx;
+  line-height: 1.3;
+}
+
+.trace-card__time {
+  font-size: 21rpx;
+  color: rgba(170, 195, 215, 0.56);
+  font-family: "SF Mono", "Courier New", monospace;
+  letter-spacing: 1rpx;
+}
+
+.trace-card__status {
+  font-size: 20rpx;
+  color: rgba(170, 195, 215, 0.42);
+  letter-spacing: 2rpx;
+}
+
+/* 卡片右侧 */
+.trace-card__right {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+  margin-left: 20rpx;
+}
+
+.trace-card__plays {
+  font-size: 22rpx;
+  color: rgba(0, 216, 255, 0.62);
+  letter-spacing: 1rpx;
+  font-family: "SF Mono", "Courier New", monospace;
+}
+
+.trace-card__plays--zero {
+  color: rgba(170, 195, 215, 0.32);
+}
+
+.trace-card__arrow {
+  width: 20rpx;
+  height: 20rpx;
+  border-right: 3rpx solid rgba(0, 216, 255, 0.36);
+  border-bottom: 3rpx solid rgba(0, 216, 255, 0.36);
+  transform: rotate(-45deg);
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+/* ============================================================
+   回放遮罩 — HUD 覆盖面板
+   ============================================================ */
+.trace-playback-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,310 +543,210 @@
   box-sizing: border-box;
   background:
     radial-gradient(ellipse at 50% 48%, rgba(0, 125, 184, 0.12), transparent 48%),
-    rgba(0, 3, 7, 0.82);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+    rgba(2, 7, 13, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-.playback-panel {
+.trace-playback-panel {
   width: 92%;
   max-width: 650rpx;
-  box-shadow: 0 26rpx 80rpx rgba(0, 0, 0, 0.58);
-}
-
-/* ===== 终端标题 ===== */
-.terminal-header {
-  margin-bottom: 32rpx;
-}
-
-.terminal-kicker {
-  display: block;
-  font-size: 20rpx;
-  font-weight: 600;
-  color: rgba(10, 132, 255, 0.56);
-  letter-spacing: 6rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-}
-
-.terminal-title {
-  display: block;
-  font-size: 36rpx;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-top: 4rpx;
-}
-
-.terminal-line {
-  height: 1rpx;
-  background: linear-gradient(90deg, rgba(0, 175, 255, 0.30), transparent);
-  margin-top: 16rpx;
-}
-
-/* ===== 加载态 ===== */
-.loading-state {
+  max-height: 80vh;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(0, 180, 255, 0.20);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0, 168, 216, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(4, 18, 31, 0.88), rgba(2, 10, 18, 0.96));
+  box-shadow:
+    0 0 80rpx rgba(0, 150, 255, 0.10),
+    0 26rpx 80rpx rgba(0, 0, 0, 0.50),
+    inset 0 0 32rpx rgba(0, 216, 255, 0.04);
   display: flex;
   flex-direction: column;
+  overflow: visible;
+  position: relative;
+}
+
+/* 回放面板头部 */
+.trace-playback-head {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding-top: 200rpx;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 18rpx;
+  border-bottom: 1rpx solid rgba(0, 180, 255, 0.10);
+  position: relative;
+  z-index: 2;
 }
 
-.loading-spinner {
-  width: 48rpx;
-  height: 48rpx;
-  border: 3rpx solid rgba(0, 175, 255, 0.15);
-  border-top-color: var(--color-cyan);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 22rpx;
-  color: rgba(0, 175, 255, 0.56);
-  letter-spacing: 3rpx;
-  margin-top: 24rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-}
-
-/* ===== 错误态 ===== */
-.error-state {
+.trace-playback-title {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: 200rpx;
+  gap: 6rpx;
 }
 
-.error-kicker {
-  font-size: 20rpx;
-  color: rgba(255, 69, 58, 0.56);
-  letter-spacing: 3rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-  margin-bottom: 12rpx;
-}
-
-.error-text {
+.trace-playback-title__room {
   font-size: 28rpx;
-  color: var(--text-secondary);
-  margin-bottom: 24rpx;
-}
-
-.error-retry {
-  padding: 14rpx 40rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.30);
-  border-radius: 8rpx;
-}
-
-.error-retry:active {
-  background: rgba(0, 175, 255, 0.08);
-}
-
-.error-retry-text {
-  font-size: 24rpx;
-  color: var(--color-cyan);
+  font-weight: 700;
+  color: #e8f7ff;
   letter-spacing: 2rpx;
 }
 
-/* ===== 空状态 ===== */
-.empty-state {
+.trace-playback-title__sub {
+  font-size: 18rpx;
+  font-weight: 600;
+  color: rgba(0, 216, 255, 0.42);
+  letter-spacing: 4rpx;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.trace-playback-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid rgba(0, 180, 255, 0.14);
+  border-radius: 50%;
+}
+
+.trace-playback-close:active {
+  background: rgba(0, 168, 216, 0.12);
+  border-color: rgba(0, 216, 255, 0.32);
+}
+
+.trace-playback-close-text {
+  font-size: 24rpx;
+  color: rgba(170, 195, 215, 0.62);
+}
+
+/* 回放面板内容区 */
+.trace-playback-body {
+  padding: 24rpx 28rpx 32rpx;
+  min-height: 200rpx;
+  max-height: 60vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================================
+   回放加载态 — 三点脉冲
+   ============================================================ */
+.trace-pb-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding-top: 200rpx;
+  padding-top: 60rpx;
 }
 
-.empty-box {
-  width: 80rpx;
-  height: 80rpx;
-  border: 2rpx solid rgba(0, 175, 255, 0.20);
-  border-radius: 8rpx;
+.trace-pb-loading-dots {
   display: flex;
+  gap: 18rpx;
+  margin-bottom: 28rpx;
+}
+
+.trace-pb-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: rgba(0, 216, 255, 0.72);
+  animation: traceDotPulse 1.4s ease-in-out infinite;
+}
+
+.trace-pb-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.trace-pb-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes traceDotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+.trace-pb-loading-text {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(0, 216, 255, 0.58);
+  letter-spacing: 3rpx;
+  font-family: "Courier New", Courier, monospace;
+}
+
+.trace-pb-loading-sub {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(170, 195, 215, 0.42);
+  margin-top: 8rpx;
+}
+
+/* ============================================================
+   回放空状态 — 雷达占位
+   ============================================================ */
+.trace-pb-empty {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding-top: 48rpx;
+}
+
+.trace-pb-empty-radar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(0, 180, 255, 0.18);
   margin-bottom: 28rpx;
   position: relative;
 }
 
-.empty-box::before {
+.trace-pb-empty-radar::before {
   content: '';
   position: absolute;
   top: 50%;
-  left: 12rpx;
-  right: 12rpx;
-  height: 2rpx;
-  background: rgba(0, 175, 255, 0.15);
+  left: 8rpx;
+  right: 8rpx;
+  height: 1rpx;
+  background: rgba(0, 180, 255, 0.14);
 }
 
-.empty-box::after {
+.trace-pb-empty-radar::after {
   content: '';
   position: absolute;
   left: 50%;
-  top: 12rpx;
-  bottom: 12rpx;
-  width: 2rpx;
-  background: rgba(0, 175, 255, 0.15);
+  top: 8rpx;
+  bottom: 8rpx;
+  width: 1rpx;
+  background: rgba(0, 180, 255, 0.14);
 }
 
-.empty-box-inner {
-  width: 24rpx;
-  height: 24rpx;
-  border: 2rpx solid rgba(0, 175, 255, 0.30);
-  border-radius: 4rpx;
-  transform: rotate(45deg);
-}
-
-.empty-text {
-  font-size: 28rpx;
-  color: var(--text-secondary);
+.trace-pb-empty-title {
+  font-size: 26rpx;
+  color: rgba(170, 195, 215, 0.62);
   margin-bottom: 8rpx;
+  letter-spacing: 1rpx;
 }
 
-.empty-hint {
+.trace-pb-empty-desc {
   font-size: 22rpx;
-  color: rgba(126, 156, 180, 0.38);
+  color: rgba(170, 195, 215, 0.38);
+  text-align: center;
+  line-height: 1.6;
 }
 
-/* ===== 区块标题 ===== */
-.section-header {
-  margin-bottom: 20rpx;
+/* ============================================================
+   Reduce Motion — 全局动效降级
+   ============================================================ */
+.reduce-motion .trace-starfield,
+.reduce-motion .trace-loading-ring,
+.reduce-motion .trace-pb-dot {
+  animation: none !important;
 }
 
-.section-label {
-  display: block;
-  font-size: 24rpx;
-  font-weight: 700;
-  color: var(--color-cyan);
-  letter-spacing: 2rpx;
+.reduce-motion .trace-loading-ring {
+  border-top-color: rgba(0, 216, 255, 0.62);
 }
 
-.section-kicker {
-  display: block;
-  font-size: 18rpx;
-  font-weight: 600;
-  color: rgba(126, 156, 180, 0.30);
-  letter-spacing: 4rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-  margin-top: 4rpx;
-}
-
-/* ===== 样本列表 ===== */
-.sample-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  margin-bottom: calc(40rpx + env(safe-area-inset-bottom));
-}
-
-/* ===== 样本卡 ===== */
-.sample-card {
-  display: flex;
-  align-items: center;
-  padding: 28rpx 24rpx;
-  border-radius: 20rpx;
-  border: 1rpx solid rgba(0, 175, 255, 0.12);
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.sample-card:active {
-  background: rgba(0, 175, 255, 0.06);
-}
-
-.sample-card__left {
-  flex: 1;
-  min-width: 0;
-}
-
-.sample-card__id-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.sample-card__prefix {
-  font-size: 20rpx;
-  color: rgba(126, 156, 180, 0.38);
-}
-
-.sample-card__room {
-  font-size: 28rpx;
-  font-weight: 700;
-  color: rgba(0, 200, 255, 0.92);
-  font-family: 'SF Mono', 'Courier New', monospace;
-  letter-spacing: 2rpx;
-}
-
-.sample-card__time {
-  display: block;
-  font-size: 20rpx;
-  color: rgba(126, 156, 180, 0.38);
-  font-family: 'SF Mono', 'Courier New', monospace;
-  margin-top: 6rpx;
-}
-
-.sample-card__right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-right: 20rpx;
-}
-
-.sample-card__score {
-  font-size: 36rpx;
-  font-weight: 700;
-  font-family: 'SF Mono', 'Courier New', monospace;
-  line-height: 1.2;
-}
-
-.score-positive {
-  color: var(--color-cyan);
-}
-
-.score-negative {
-  color: var(--color-orange);
-}
-
-.score-zero {
-  color: var(--text-primary);
-}
-
-.sample-card__rank {
-  font-size: 22rpx;
-  color: rgba(94, 92, 230, 0.72);
-  font-family: 'SF Mono', 'Courier New', monospace;
-  margin-top: 4rpx;
-}
-
-.sample-card__action {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  flex-shrink: 0;
-}
-
-.sample-card__action-text {
-  font-size: 20rpx;
-  color: rgba(0, 175, 255, 0.56);
-  letter-spacing: 2rpx;
-  font-family: 'SF Mono', 'Courier New', monospace;
-}
-
-.svg-icon {
-  width: 20rpx;
-  height: 20rpx;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  flex-shrink: 0;
-  opacity: 0.3;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300AFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E");
-}
-
-/* ===== reduce-motion ===== */
-.reduce-motion .loading-spinner {
-  animation: none;
+.reduce-motion .trace-pb-dot {
+  opacity: 0.6;
 }
