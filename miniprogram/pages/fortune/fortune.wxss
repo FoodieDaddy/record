@@ -534,15 +534,13 @@
 
 .star-core--completing {
   opacity: 0.55;
-  transform: scale(0.80) translateY(-80rpx);
-  margin-bottom: -120rpx;
+  transform: scale(0.95);
   pointer-events: none;
 }
 
 .star-core--completed {
-  opacity: 0.18;
-  transform: scale(0.64) translateY(-160rpx);
-  margin-bottom: -240rpx;
+  opacity: 0.22;
+  transform: scale(0.92);
   pointer-events: none;
 }
 
@@ -1525,24 +1523,12 @@
 }
 
 .flight-deck--idle,
-.flight-deck--starting {
-  padding-top: 360rpx;
-}
-
-.flight-deck--calibrating {
-  padding-top: 280rpx;
-}
-
-.flight-deck--completing {
-  padding-top: 180rpx;
-}
-
-.flight-deck--completed {
-  padding-top: 140rpx;
-}
-
+.flight-deck--starting,
+.flight-deck--calibrating,
+.flight-deck--completing,
+.flight-deck--completed,
 .flight-deck--regenerating {
-  padding-top: 360rpx;
+  padding-top: 320rpx;
 }
 
 .flight-deck > .bay-status-tab {
@@ -1737,22 +1723,23 @@
 /* ##### 飞船导航系统 HUD 重构 - 终极版 (修复版) ##### */
 
 .directive-projection {
+  position: absolute;
+  bottom: calc(180rpx + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translate(-50%, 24rpx);
   width: 100%;
   max-width: 680rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 24rpx 40rpx;
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
   opacity: 0;
-  transform: translateY(8rpx);
   transition:
-    opacity 300ms ease,
-    transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 450ms ease,
+    transform 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    backdrop-filter 450ms ease;
   pointer-events: none;
-  flex-shrink: 0;
-  position: relative;
   /* 增加背景动态数据流 */
   background-image:
     radial-gradient(
@@ -1767,17 +1754,19 @@
     60rpx 60rpx,
     60rpx 60rpx;
   animation: bgDataStream 40s linear infinite;
-  z-index: 10;
+  z-index: 100;
 }
 
 .strategy-page--completed .directive-projection {
-  margin-top: -28rpx;
+  margin-top: 0;
 }
 
 .dp-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
   pointer-events: auto;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .projection-card {
